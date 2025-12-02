@@ -1,41 +1,216 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
   <title>Profile — Enoma</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f6f7f9;
+      margin: 0;
+      color: #111;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 780px;
+      margin: 4rem auto;
+      padding: 1.5rem;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 14px;
+      padding: 2.5rem;
+      box-shadow: 0 15px 40px rgba(0,0,0,.05);
+    }
+
+    h1 {
+      font-size: 2.1rem;
+      margin: 0 0 .25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .headline {
+      font-size: 1.1rem;
+      opacity: .7;
+      margin-bottom: 1.5rem;
+    }
+
+    .section {
+      margin-top: 2.5rem;
+    }
+
+    .section h2 {
+      font-size: .8rem;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      color: #888;
+      margin-bottom: .75rem;
+    }
+
+    .summary {
+      font-size: 1.05rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .5rem;
+      margin-top: .5rem;
+    }
+
+    .badge {
+      padding: .4rem .75rem;
+      background: #f0f0f0;
+      border-radius: 999px;
+      font-size: .8rem;
+      color: #444;
+    }
+
+    .timeline {
+      border-left: 2px solid #eee;
+      padding-left: 1.25rem;
+      margin-top: 1rem;
+    }
+
+    .timeline-item {
+      margin-bottom: 1.25rem;
+      position: relative;
+    }
+
+    .timeline-item::before {
+      content: "";
+      position: absolute;
+      left: -1.6rem;
+      top: .25rem;
+      width: .65rem;
+      height: .65rem;
+      border-radius: 50%;
+      background: #000;
+    }
+
+    .timeline-year {
+      font-weight: 600;
+      font-size: .85rem;
+      opacity: .6;
+    }
+
+    .links a {
+      display: inline-block;
+      margin-right: 1rem;
+      margin-top: .5rem;
+      text-decoration: none;
+      font-size: .9rem;
+      color: #000;
+      border-bottom: 1px solid rgba(0,0,0,.2);
+    }
+
+    .footer {
+      margin-top: 3rem;
+      text-align: center;
+      font-size: .75rem;
+      opacity: .4;
+    }
+
+    .empty {
+      opacity: .4;
+      font-size: .9rem;
+    }
+  </style>
 </head>
 <body>
 
-<h1 id="name"></h1>
-<h3 id="headline"></h3>
-<p id="summary"></p>
+<div class="container">
+  <div class="card">
 
-<h4>Expertise</h4>
-<ul id="expertise"></ul>
+    <h1 id="displayName"></h1>
+    <div class="headline" id="headline"></div>
 
-<h4>Timeline</h4>
-<ul id="timeline"></ul>
+    <div class="summary" id="summary"></div>
+
+    <div class="section">
+      <h2>Expertise</h2>
+      <div id="expertise" class="badge-row"></div>
+    </div>
+
+    <div class="section">
+      <h2>Timeline</h2>
+      <div id="timeline" class="timeline"></div>
+    </div>
+
+    <div class="section">
+      <h2>Links</h2>
+      <div id="links" class="links"></div>
+    </div>
+
+    <div class="footer">enoma.io — structured identity</div>
+
+  </div>
+</div>
 
 <script>
 const profile = JSON.parse(sessionStorage.getItem("profile"));
 
 if (!profile) {
-  document.body.innerHTML = "No profile found.";
+  document.body.innerHTML = "<p style='padding:2rem'>No profile found.</p>";
+  throw new Error("No profile data");
+}
+
+// HEADER
+document.getElementById("displayName").textContent = profile.display_name || "";
+document.getElementById("headline").textContent = profile.headline || "";
+document.getElementById("summary").textContent = profile.summary || "";
+
+// EXPERTISE
+const expertiseEl = document.getElementById("expertise");
+if (profile.expertise?.length) {
+  profile.expertise.forEach(item => {
+    const span = document.createElement("span");
+    span.className = "badge";
+    span.textContent = item;
+    expertiseEl.appendChild(span);
+  });
 } else {
-  document.getElementById("name").textContent = profile.display_name;
-  document.getElementById("headline").textContent = profile.headline;
-  document.getElementById("summary").textContent = profile.summary;
+  expertiseEl.innerHTML = "<span class='empty'>No expertise listed.</span>";
+}
 
-  (profile.expertise || []).forEach(e => {
-    const li = document.createElement("li");
-    li.textContent = e;
-    document.getElementById("expertise").appendChild(li);
+// TIMELINE
+const timelineEl = document.getElementById("timeline");
+if (profile.timeline?.length) {
+  profile.timeline.forEach(entry => {
+    const div = document.createElement("div");
+    div.className = "timeline-item";
+    div.innerHTML = `
+      <div class="timeline-year">${entry.year || ""}</div>
+      <div>${entry.event || ""}</div>
+    `;
+    timelineEl.appendChild(div);
   });
+} else {
+  timelineEl.innerHTML = "<div class='empty'>No timeline provided.</div>";
+}
 
-  (profile.timeline || []).forEach(t => {
-    const li = document.createElement("li");
-    li.textContent = `${t.year}: ${t.event}`;
-    document.getElementById("timeline").appendChild(li);
+// LINKS
+const linksEl = document.getElementById("links");
+if (profile.links?.length) {
+  profile.links.forEach(link => {
+    const a = document.createElement("a");
+    a.href = link.url || "#";
+    a.textContent = link.type || link.url;
+    a.target = "_blank";
+    linksEl.appendChild(a);
   });
+} else {
+  linksEl.innerHTML = "<span class='empty'>No links available.</span>";
 }
 </script>
 
