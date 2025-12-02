@@ -3,13 +3,73 @@
 <head>
   <title>Enoma — Your Public Identity</title>
   <style>
-    body { font-family: system-ui; padding: 60px; background: #0b0b0d; color: white }
+    body {
+      font-family: system-ui;
+      padding: 60px;
+      background: #0b0b0d;
+      color: white;
+    }
     a { color: #7b61ff }
   </style>
 </head>
-<body>
-  <h1>Enoma</h1>
-  <p>Your professional identity, generated and maintained.</p>
-  <a href="/create">Create your profile →</a>
-</body>
+<body></body>
+
+<script>
+const slug = location.pathname.replace("/", "");
+
+// Homepage
+if (!slug || slug === "index.html") {
+  document.body.innerHTML = `
+    <h1>Enoma</h1>
+    <p>Your professional identity, generated and maintained.</p>
+    <a href="/create.html">Create your profile →</a>
+  `;
+}
+
+// Public Profile Page
+else {
+  fetch(`/profiles/${slug}.json`)
+    .then(res => {
+      if (!res.ok) throw new Error("Not found");
+      return res.json();
+    })
+    .then(profile => {
+      renderProfile(profile);
+    })
+    .catch(() => {
+      document.body.innerHTML = `
+        <h1>Profile not found</h1>
+        <p>No profile exists for "${slug}".</p>
+        <a href="/create.html">Create yours →</a>
+      `;
+    });
+}
+
+function renderProfile(profile) {
+  document.body.innerHTML = `
+    <h1>${profile.display_name}</h1>
+    <h3>${profile.headline}</h3>
+
+    <p>${profile.summary}</p>
+
+    ${profile.expertise?.length ? `
+      <h4>Expertise</h4>
+      <ul>${profile.expertise.map(e => `<li>${e}</li>`).join("")}</ul>
+    ` : ""}
+
+    ${profile.timeline?.length ? `
+      <h4>Timeline</h4>
+      <ul>${profile.timeline.map(t => `<li>${t}</li>`).join("")}</ul>
+    ` : ""}
+
+    ${profile.links?.length ? `
+      <h4>Links</h4>
+      <ul>${profile.links.map(l => `<li><a href="${l}" target="_blank">${l}</a></li>`).join("")}</ul>
+    ` : ""}
+  `;
+}
+</script>
+
+
+
 </html>
