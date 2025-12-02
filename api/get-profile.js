@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
+  process.env.SUPABASE_SERVICE_KEY
 );
 
 export default async function handler(req, res) {
@@ -16,13 +16,14 @@ export default async function handler(req, res) {
   const { data, error } = await supabase
     .from("profiles")
     .select("*")
-    .eq("username", username);
+    .eq("username", username)
+    .single();
 
-if (!data || !data.length) {
-  return res.status(404).json({ error: "Profile not found" });
+  if (error || !data) {
+    return res.status(404).json({ error: "Profile not found" });
+  }
+
+  return res.json(data);
 }
 
-return res.json(data[0]);
-
-}
 
