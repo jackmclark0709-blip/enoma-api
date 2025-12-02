@@ -1,4 +1,5 @@
 {
+  "outputDirectory": ".",
   "functions": {
     "api/*.js": {
       "runtime": "nodejs18.x"
@@ -9,5 +10,6 @@
     { "src": "/(.*)", "dest": "/$1" }
   ]
 }
+
 
 
