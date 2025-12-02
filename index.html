@@ -15,9 +15,11 @@
 <body></body>
 
 <script>
-const slug = location.pathname.replace("/", "");
+const slug = location.pathname.replace("/", "").replace(".html", "");
 
-if (!slug) {
+const knownPages = ["", "index", "create", "profile"];
+
+if (knownPages.includes(slug)) {
   document.body.innerHTML = `
     <h1>Enoma</h1>
     <p>Your professional identity, generated and maintained.</p>
@@ -35,7 +37,7 @@ if (!slug) {
     .catch(() => {
       document.body.innerHTML = `
         <h1>Profile not found</h1>
-        <p>No profile exists for "${slug}".</p>
+        <p>No public profile exists for "${slug}".</p>
         <a href="/create.html">Create yours →</a>
       `;
     });
@@ -45,27 +47,31 @@ function renderProfile(profile) {
   document.body.innerHTML = `
     <h1>${profile.display_name}</h1>
     <h3>${profile.headline}</h3>
-
     <p>${profile.summary}</p>
 
-    ${profile.expertise?.length ? `
+    ${
+      profile.expertise?.length ? `
       <h4>Expertise</h4>
-      <ul>${profile.expertise.map(e => `<li>${e}</li>`).join("")}</ul>
-    ` : ""}
+      <ul>${profile.expertise.map(e => `<li>${e}</li>`).join("")}</ul>`
+      : ""
+    }
 
-    ${profile.timeline?.length ? `
+    ${
+      profile.timeline?.length ? `
       <h4>Timeline</h4>
-      <ul>${profile.timeline.map(t => `<li>${t}</li>`).join("")}</ul>
-    ` : ""}
+      <ul>${profile.timeline.map(e => `<li>${e.year} — ${e.event}</li>`).join("")}</ul>`
+      : ""
+    }
 
-    ${profile.links?.length ? `
+    ${
+      profile.links ? `
       <h4>Links</h4>
-      <ul>${profile.links.map(l => `<li><a href="${l}" target="_blank">${l}</a></li>`).join("")}</ul>
-    ` : ""}
+      <ul><li><a href="${profile.links.url}" target="_blank">${profile.links.label}</a></li></ul>`
+      : ""
+    }
   `;
 }
 </script>
-
 
 
 </html>

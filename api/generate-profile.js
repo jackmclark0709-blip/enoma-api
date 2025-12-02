@@ -1,6 +1,5 @@
 import fetch from "node-fetch";
-import fs from "fs";
-import path from "path";
+import { createClient } from "@supabase/supabase-js";
 
 function slugify(name) {
   return name
@@ -8,6 +7,12 @@ function slugify(name) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 }
+
+// ✅ Supabase client using env variables (already configured in Vercel)
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+);
 
 export default async function handler(req, res) {
 
@@ -52,6 +57,7 @@ Links: ${linksText}
 
   try {
 
+    // ✅ CALL OPENAI
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -76,35 +82,50 @@ Links: ${linksText}
       return res.status(500).json({ error: "No output from AI", raw: data });
     }
 
+    // ✅ PARSE JSON
     const cleaned = text.replace(/```json|```/g, "").trim();
-
     let profile;
+
     try {
       profile = JSON.parse(cleaned);
     } catch (err) {
-      console.error("Parse error:", cleaned);
       return res.status(500).json({ error: "Invalid JSON", raw: cleaned });
     }
 
-    // ✅ generate username
-    const username = slugify(profile.display_name || name);
-    profile.username = username;
+    // ✅ CREATE USERNAME
+    let baseUsername = slugify(profile.display_name || name);
+    let username = baseUsername;
 
-    // ✅ ensure folder exists
-    const dir = path.join(process.cwd(), "profiles");
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir);
+    // ✅ ENSURE UNIQUE USERNAMES
+    const { data: existing } = await supabase
+      .from("profiles")
+      .select("username")
+      .like("username", `${baseUsername}%`);
+
+    if (existing?.length) {
+      const suffix = existing.length + 1;
+      username = `${baseUsername}-${suffix}`;
     }
 
-    // ✅ store profile
-    const filePath = path.join(dir, `${username}.json`);
-    fs.writeFileSync(filePath, JSON.stringify(profile, null, 2));
+    profile.username = username;
+    profile.is_public = true;
+    profile.created_at = new Date().toISOString();
 
+    // ✅ SAVE TO DATABASE
+    const { error: insertError } = await supabase
+      .from("profiles")
+      .insert([profile]);
+
+    if (insertError) {
+      console.error(insertError);
+      return res.status(500).json({ error: "Database insert failed" });
+    }
+
+    // ✅ RETURN
     return res.json(profile);
 
   } catch (err) {
     console.error("Server error:", err);
     return res.status(500).json({ error: "Server crash", details: err.message });
   }
-
 }
