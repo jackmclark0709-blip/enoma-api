@@ -1,3 +1,11 @@
+export default function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "POST only" });
+  }
+
+  return res.json({ ok: true });
+}
+
 import fetch from "node-fetch";
 
 export default async function handler(req, res) {
