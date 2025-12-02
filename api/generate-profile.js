@@ -1,4 +1,13 @@
 import fetch from "node-fetch";
+import fs from "fs";
+import path from "path";
+
+function slugify(name) {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
 
 export default async function handler(req, res) {
 
@@ -43,7 +52,6 @@ Links: ${linksText}
 
   try {
 
-    // ✅ CALL OPENAI API
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -58,30 +66,40 @@ Links: ${linksText}
 
     const data = await response.json();
 
-    // ✅ HARD FAIL IF OPENAI RETURNS ERROR
     if (data.error) {
       return res.status(500).json({ error: "OpenAI error", details: data.error });
     }
 
     const text = data?.choices?.[0]?.message?.content;
 
-    // ✅ HARD FAIL IF MODEL RETURNS NO TEXT
     if (!text) {
       return res.status(500).json({ error: "No output from AI", raw: data });
     }
 
-    // ✅ CLEAN JSON OUTPUT (REMOVE ``` IF PRESENT)
     const cleaned = text.replace(/```json|```/g, "").trim();
 
     let profile;
     try {
       profile = JSON.parse(cleaned);
     } catch (err) {
-      console.error("JSON parse error:", cleaned);
+      console.error("Parse error:", cleaned);
       return res.status(500).json({ error: "Invalid JSON", raw: cleaned });
     }
 
-    // ✅ FINAL RESPONSE TO CLIENT
+    // ✅ generate username
+    const username = slugify(profile.display_name || name);
+    profile.username = username;
+
+    // ✅ ensure folder exists
+    const dir = path.join(process.cwd(), "profiles");
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir);
+    }
+
+    // ✅ store profile
+    const filePath = path.join(dir, `${username}.json`);
+    fs.writeFileSync(filePath, JSON.stringify(profile, null, 2));
+
     return res.json(profile);
 
   } catch (err) {
@@ -90,4 +108,3 @@ Links: ${linksText}
   }
 
 }
-
