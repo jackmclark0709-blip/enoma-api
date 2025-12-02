@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Create Profile — Enoma</title>
+</head>
+<body>
+
+<h1>Create your Enoma profile</h1>
+
+<form id="form">
+  <input name="name" placeholder="Name" required /><br><br>
+  <input name="role" placeholder="Role (Founder, CEO...)" /><br><br>
+  <input name="company" placeholder="Company" /><br><br>
+  <textarea name="bio" placeholder="Short bio"></textarea><br><br>
+  <input name="links" placeholder="Links (comma separated)" /><br><br>
+  <button>Create profile</button>
+</form>
+
+<pre id="output"></pre>
+
+<script>
+const form = document.getElementById("form");
+const output = document.getElementById("output");
+
+form.addEventListener("submit", async e => {
+  e.preventDefault();
+
+  const data = Object.fromEntries(new FormData(form));
+  data.links = data.links?.split(",").map(l => l.trim());
+
+  output.textContent = "Generating profile…";
+
+  const res = await fetch("/generate-profile", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  });
+
+  const profile = await res.json();
+
+  if (profile.display_name) {
+    sessionStorage.setItem("profile", JSON.stringify(profile));
+    location.href = "/profile";
+  } else {
+    output.textContent = JSON.stringify(profile, null, 2);
+  }
+});
+</script>
+
+</body>
+</html>

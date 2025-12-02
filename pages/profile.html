@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Profile — Enoma</title>
+</head>
+<body>
+
+<h1 id="name"></h1>
+<h3 id="headline"></h3>
+<p id="summary"></p>
+
+<h4>Expertise</h4>
+<ul id="expertise"></ul>
+
+<h4>Timeline</h4>
+<ul id="timeline"></ul>
+
+<script>
+const profile = JSON.parse(sessionStorage.getItem("profile"));
+
+if (!profile) {
+  document.body.innerHTML = "No profile found.";
+} else {
+  document.getElementById("name").textContent = profile.display_name;
+  document.getElementById("headline").textContent = profile.headline;
+  document.getElementById("summary").textContent = profile.summary;
+
+  (profile.expertise || []).forEach(e => {
+    const li = document.createElement("li");
+    li.textContent = e;
+    document.getElementById("expertise").appendChild(li);
+  });
+
+  (profile.timeline || []).forEach(t => {
+    const li = document.createElement("li");
+    li.textContent = `${t.year}: ${t.event}`;
+    document.getElementById("timeline").appendChild(li);
+  });
+}
+</script>
+
+</body>
+</html>
