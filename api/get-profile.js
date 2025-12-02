@@ -18,10 +18,11 @@ export default async function handler(req, res) {
     .select("*")
     .eq("username", username);
 
-  return res.json({
-    username,
-    data,
-    error
-  });
+if (!data || !data.length) {
+  return res.status(404).json({ error: "Profile not found" });
+}
+
+return res.json(data[0]);
+
 }
 
