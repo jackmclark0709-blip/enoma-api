@@ -158,60 +158,107 @@
 </div>
 
 <script>
-const profile = JSON.parse(sessionStorage.getItem("profile"));
+<script>
+const usernameFromURL = window.location.pathname.replace("/", "").trim();
 
-if (!profile) {
-  document.body.innerHTML = "<p style='padding:2rem'>No profile found.</p>";
-  throw new Error("No profile data");
+async function loadProfile() {
+
+  // CASE 1: Loaded via /profile.html → read sessionStorage
+  if (!usernameFromURL || usernameFromURL === "profile.html") {
+
+    const stored = sessionStorage.getItem("profile");
+
+    if (!stored) {
+      return showError("No profile found.");
+    }
+
+    const profile = JSON.parse(stored);
+    renderProfile(profile);
+    return;
+  }
+
+  // CASE 2: Loaded via /username → fetch public profile
+  try {
+    const res = await fetch(`/api/profile?username=${usernameFromURL}`);
+    const data = await res.json();
+
+    if (data.error) {
+      return showError("Profile not found.");
+    }
+
+    renderProfile(data);
+
+  } catch (err) {
+    showError("Error loading profile.");
+    console.error(err);
+  }
 }
 
-// HEADER
-document.getElementById("displayName").textContent = profile.display_name || "";
-document.getElementById("headline").textContent = profile.headline || "";
-document.getElementById("summary").textContent = profile.summary || "";
-
-// EXPERTISE
-const expertiseEl = document.getElementById("expertise");
-if (profile.expertise?.length) {
-  profile.expertise.forEach(item => {
-    const span = document.createElement("span");
-    span.className = "badge";
-    span.textContent = item;
-    expertiseEl.appendChild(span);
-  });
-} else {
-  expertiseEl.innerHTML = "<span class='empty'>No expertise listed.</span>";
+function showError(message) {
+  document.body.innerHTML = `<p style="padding:2rem">${message}</p>`;
 }
 
-// TIMELINE
-const timelineEl = document.getElementById("timeline");
-if (profile.timeline?.length) {
-  profile.timeline.forEach(entry => {
-    const div = document.createElement("div");
-    div.className = "timeline-item";
-    div.innerHTML = `
-      <div class="timeline-year">${entry.year || ""}</div>
-      <div>${entry.event || ""}</div>
-    `;
-    timelineEl.appendChild(div);
-  });
-} else {
-  timelineEl.innerHTML = "<div class='empty'>No timeline provided.</div>";
+function renderProfile(profile) {
+
+  // HEADER
+  document.getElementById("displayName").textContent = profile.display_name || "";
+  document.getElementById("headline").textContent = profile.headline || "";
+  document.getElementById("summary").textContent = profile.summary || "";
+
+  // EXPERTISE
+  const expertiseEl = document.getElementById("expertise");
+  expertiseEl.innerHTML = "";
+
+  if (profile.expertise?.length) {
+    profile.expertise.forEach(item => {
+      const span = document.createElement("span");
+      span.className = "badge";
+      span.textContent = item;
+      expertiseEl.appendChild(span);
+    });
+  } else {
+    expertiseEl.innerHTML = "<span class='empty'>No expertise listed.</span>";
+  }
+
+  // TIMELINE
+  const timelineEl = document.getElementById("timeline");
+  timelineEl.innerHTML = "";
+
+  if (profile.timeline?.length) {
+    profile.timeline.forEach(entry => {
+      const div = document.createElement("div");
+      div.className = "timeline-item";
+      div.innerHTML = `
+        <div class="timeline-year">${entry.year || ""}</div>
+        <div>${entry.event || ""}</div>
+      `;
+      timelineEl.appendChild(div);
+    });
+  } else {
+    timelineEl.innerHTML = "<div class='empty'>No timeline provided.</div>";
+  }
+
+  // LINKS
+  const linksEl = document.getElementById("links");
+  linksEl.innerHTML = "";
+
+  if (profile.links?.length) {
+    profile.links.forEach(link => {
+      const a = document.createElement("a");
+      a.href = link.url || "#";
+      a.textContent = link.type || link.url;
+      a.target = "_blank";
+      linksEl.appendChild(a);
+    });
+  } else {
+    linksEl.innerHTML = "<span class='empty'>No links available.</span>";
+  }
 }
 
-// LINKS
-const linksEl = document.getElementById("links");
-if (profile.links?.length) {
-  profile.links.forEach(link => {
-    const a = document.createElement("a");
-    a.href = link.url || "#";
-    a.textContent = link.type || link.url;
-    a.target = "_blank";
-    linksEl.appendChild(a);
-  });
-} else {
-  linksEl.innerHTML = "<span class='empty'>No links available.</span>";
-}
+// ✅ RUN ON PAGE LOAD
+loadProfile();
+</script>
+
 </script>
 
 </body>
