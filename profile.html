@@ -158,108 +158,115 @@
 </div>
 
 <script>
-<script>
-const usernameFromURL = window.location.pathname.replace("/", "").trim();
+(function() {
 
-async function loadProfile() {
+  function getUsername() {
+    const path = window.location.pathname
+      .replace(/^\/+/, '')      // remove leading /
+      .replace(/\/+$/, '')      // remove trailing /
+      .split('?')[0]
+      .split('#')[0];
 
-  // CASE 1: Loaded via /profile.html → read sessionStorage
-  if (!usernameFromURL || usernameFromURL === "profile.html") {
+    if (!path || path === "profile.html") return null;
 
-    const stored = sessionStorage.getItem("profile");
+    return path;
+  }
 
-    if (!stored) {
-      return showError("No profile found.");
+  async function loadProfile() {
+    const username = getUsername();
+
+    // CASE 1: /profile.html loaded directly → use sessionStorage
+    if (!username) {
+      const stored = sessionStorage.getItem("profile");
+      if (!stored) return showError("No profile loaded.");
+      renderProfile(JSON.parse(stored));
+      return;
     }
 
-    const profile = JSON.parse(stored);
-    renderProfile(profile);
-    return;
+    // CASE 2: /username → fetch backend
+    try {
+      console.log("Fetching:", username);
+
+      const res = await fetch(`/api/get-profile?username=${encodeURIComponent(username)}`);
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        return showError(`Profile not found for "${username}"`);
+      }
+
+      renderProfile(data);
+
+    } catch (err) {
+      console.error(err);
+      showError("Failed to load profile.");
+    }
   }
 
-  // CASE 2: Loaded via /username → fetch public profile
-  try {
-    const res = await fetch(`/api/profile?username=${usernameFromURL}`);
-    const data = await res.json();
+  function showError(msg) {
+    document.body.innerHTML = `<div style="padding:3rem;font-family:sans-serif">${msg}</div>`;
+  }
 
-    if (data.error) {
-      return showError("Profile not found.");
+  function renderProfile(profile) {
+
+    document.getElementById("displayName").textContent = profile.display_name || "";
+    document.getElementById("headline").textContent = profile.headline || "";
+    document.getElementById("summary").textContent = profile.summary || "";
+
+    // Expertise
+    const expertise = document.getElementById("expertise");
+    expertise.innerHTML = "";
+
+    if (profile.expertise?.length) {
+      profile.expertise.forEach(item => {
+        const el = document.createElement("span");
+        el.className = "badge";
+        el.textContent = item;
+        expertise.appendChild(el);
+      });
+    } else {
+      expertise.innerHTML = "<span class='empty'>No expertise listed.</span>";
     }
 
-    renderProfile(data);
+    // Timeline
+    const timeline = document.getElementById("timeline");
+    timeline.innerHTML = "";
 
-  } catch (err) {
-    showError("Error loading profile.");
-    console.error(err);
-  }
-}
+    if (profile.timeline?.length) {
+      profile.timeline.forEach(item => {
+        const el = document.createElement("div");
+        el.className = "timeline-item";
+        el.innerHTML = `
+          <div class="timeline-year">${item.year || ""}</div>
+          <div>${item.event || ""}</div>
+        `;
+        timeline.appendChild(el);
+      });
+    } else {
+      timeline.innerHTML = "<div class='empty'>No timeline provided.</div>";
+    }
 
-function showError(message) {
-  document.body.innerHTML = `<p style="padding:2rem">${message}</p>`;
-}
+    // Links
+    const links = document.getElementById("links");
+    links.innerHTML = "";
 
-function renderProfile(profile) {
-
-  // HEADER
-  document.getElementById("displayName").textContent = profile.display_name || "";
-  document.getElementById("headline").textContent = profile.headline || "";
-  document.getElementById("summary").textContent = profile.summary || "";
-
-  // EXPERTISE
-  const expertiseEl = document.getElementById("expertise");
-  expertiseEl.innerHTML = "";
-
-  if (profile.expertise?.length) {
-    profile.expertise.forEach(item => {
-      const span = document.createElement("span");
-      span.className = "badge";
-      span.textContent = item;
-      expertiseEl.appendChild(span);
-    });
-  } else {
-    expertiseEl.innerHTML = "<span class='empty'>No expertise listed.</span>";
-  }
-
-  // TIMELINE
-  const timelineEl = document.getElementById("timeline");
-  timelineEl.innerHTML = "";
-
-  if (profile.timeline?.length) {
-    profile.timeline.forEach(entry => {
-      const div = document.createElement("div");
-      div.className = "timeline-item";
-      div.innerHTML = `
-        <div class="timeline-year">${entry.year || ""}</div>
-        <div>${entry.event || ""}</div>
-      `;
-      timelineEl.appendChild(div);
-    });
-  } else {
-    timelineEl.innerHTML = "<div class='empty'>No timeline provided.</div>";
+    if (profile.links?.length) {
+      profile.links.forEach(link => {
+        const a = document.createElement("a");
+        a.href = link.url;
+        a.target = "_blank";
+        a.textContent = link.type || link.url;
+        links.appendChild(a);
+      });
+    } else {
+      links.innerHTML = "<span class='empty'>No links available.</span>";
+    }
   }
 
-  // LINKS
-  const linksEl = document.getElementById("links");
-  linksEl.innerHTML = "";
+  loadProfile();
 
-  if (profile.links?.length) {
-    profile.links.forEach(link => {
-      const a = document.createElement("a");
-      a.href = link.url || "#";
-      a.textContent = link.type || link.url;
-      a.target = "_blank";
-      linksEl.appendChild(a);
-    });
-  } else {
-    linksEl.innerHTML = "<span class='empty'>No links available.</span>";
-  }
-}
-
-// ✅ RUN ON PAGE LOAD
-loadProfile();
+})();
 </script>
 
-</script>
 
 </body>
 </html>
