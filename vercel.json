@@ -1,12 +1,17 @@
 {
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-
-    { "src": "/", "dest": "/index.html" },
-    { "src": "/create", "dest": "/create.html" },
-    { "src": "/profile", "dest": "/profile.html" },
-
-    { "src": "/(.*)", "dest": "/index.html" }
+  "rewrites": [
+    {
+      "source": "/create",
+      "destination": "/create.html"
+    },
+    {
+      "source": "/create.html",
+      "destination": "/create.html"
+    },
+    {
+      "source": "/:username",
+      "destination": "/profile.html"
+    }
   ]
 }
 
