@@ -1,22 +1,77 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Create Profile — Enoma</title>
+  <meta charset="UTF-8" />
+  <title>Create Profile — Enoma FIXED </title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #fafafa;
+      color: #111;
+      max-width: 480px;
+      margin: 4rem auto;
+      padding: 0 1.5rem;
+    }
+
+    h1 {
+      font-weight: 600;
+      margin-bottom: 2rem;
+    }
+
+    input, textarea, button {
+      width: 100%;
+      font-size: 1rem;
+      padding: .75rem;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+      margin-bottom: 1rem;
+    }
+
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+
+    button {
+      background: #000;
+      color: #fff;
+      cursor: pointer;
+      border: none;
+      margin-top: .5rem;
+    }
+
+    button:hover {
+      opacity: .9;
+    }
+
+    #output {
+      white-space: pre-wrap;
+      font-size: .85rem;
+      margin-top: 1.25rem;
+      color: #444;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
 </head>
 <body>
 
 <h1>Create your Enoma profile</h1>
 
 <form id="form">
-  <input name="name" placeholder="Name" required /><br><br>
-  <input name="role" placeholder="Role (Founder, CEO...)" /><br><br>
-  <input name="company" placeholder="Company" /><br><br>
-  <textarea name="bio" placeholder="Short bio"></textarea><br><br>
-  <input name="links" placeholder="Links (comma separated)" /><br><br>
+  <input name="name" placeholder="Full name" required />
+  <input name="role" placeholder="Role (Founder, CEO…)" />
+  <input name="company" placeholder="Company" />
+  <textarea name="bio" placeholder="Short bio"></textarea>
+  <input name="links" placeholder="Links (comma separated)" />
   <button>Create profile</button>
 </form>
 
-<pre id="output"></pre>
+<div id="output" class="hidden"></div>
 
 <script>
 const form = document.getElementById("form");
@@ -25,27 +80,38 @@ const output = document.getElementById("output");
 form.addEventListener("submit", async e => {
   e.preventDefault();
 
-  const data = Object.fromEntries(new FormData(form));
-  data.links = data.links?.split(",").map(l => l.trim());
-
+  output.classList.remove("hidden");
   output.textContent = "Generating profile…";
 
-  const res = await fetch("/api/generate-profile", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data)
-  });
+  const data = Object.fromEntries(new FormData(form));
+  data.links = data.links
+    ? data.links.split(",").map(l => l.trim()).filter(Boolean)
+    : [];
 
-  const profile = await res.json();
+  try {
 
-  if (profile.display_name) {
-    sessionStorage.setItem("profile", JSON.stringify(profile));
-    location.href = "/profile";
-  } else {
-    output.textContent = JSON.stringify(profile, null, 2);
+    const res = await fetch("/api/generate-profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+
+    const profile = await res.json();
+
+    if (profile.display_name) {
+      sessionStorage.setItem("profile", JSON.stringify(profile));
+      window.location.href = "/profile.html";
+    } else {
+      output.textContent = JSON.stringify(profile, null, 2);
+    }
+
+  } catch (err) {
+    output.textContent = "Error generating profile. Please try again.";
+    console.error(err);
   }
 });
 </script>
 
 </body>
 </html>
+
