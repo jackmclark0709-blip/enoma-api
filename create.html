@@ -1,114 +1,149 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Create Profile — Enoma FIXED </title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="UTF-8"/>
+<title>Create Profile — Enoma</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
 
-  <style>
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #fafafa;
-      color: #111;
-      max-width: 480px;
-      margin: 4rem auto;
-      padding: 0 1.5rem;
-    }
+<style>
+body {
+  font-family: system-ui;
+  background: #fafafa;
+  max-width: 600px;
+  margin: 3rem auto;
+  color: #111;
+}
 
-    h1 {
-      font-weight: 600;
-      margin-bottom: 2rem;
-    }
+label {
+  display: block;
+  margin: 1rem 0 .25rem;
+  font-weight: 500;
+}
 
-    input, textarea, button {
-      width: 100%;
-      font-size: 1rem;
-      padding: .75rem;
-      border-radius: 6px;
-      border: 1px solid #ddd;
-      margin-bottom: 1rem;
-    }
+input, textarea, select, button {
+  width: 100%;
+  padding: .75rem;
+  font-size: 1rem;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+}
 
-    textarea {
-      min-height: 90px;
-      resize: vertical;
-    }
-
-    button {
-      background: #000;
-      color: #fff;
-      cursor: pointer;
-      border: none;
-      margin-top: .5rem;
-    }
-
-    button:hover {
-      opacity: .9;
-    }
-
-    #output {
-      white-space: pre-wrap;
-      font-size: .85rem;
-      margin-top: 1.25rem;
-      color: #444;
-    }
-
-    .hidden {
-      display: none;
-    }
-  </style>
+textarea { resize: vertical; }
+button { margin-top: 1.25rem; background: black; color: white; border: none; cursor: pointer; }
+.hidden { display: none;}
+</style>
 </head>
+
 <body>
 
 <h1>Create your Enoma profile</h1>
 
 <form id="form">
-  <input name="name" placeholder="Full name" required />
-  <input name="role" placeholder="Role (Founder, CEO…)" />
-  <input name="company" placeholder="Company" />
-  <textarea name="bio" placeholder="Short bio"></textarea>
-  <input name="links" placeholder="Links (comma separated)" />
-  <button>Create profile</button>
+
+<label>Profile Type</label>
+<select name="type" id="type">
+  <option value="personal">Personal</option>
+  <option value="business">Business</option>
+</select>
+
+<label>Full name</label>
+<input name="name" required />
+
+<label>Profile Image URL</label>
+<input name="image" placeholder="https://..." />
+
+<label>Headline</label>
+<input name="headline" />
+
+<label>Summary / Bio</label>
+<textarea name="bio"></textarea>
+
+<div id="businessFields" class="hidden">
+  <label>Company</label>
+  <input name="company" />
+
+  <label>Role</label>
+  <input name="role" />
+</div>
+
+<hr/>
+
+<label>Email</label>
+<input name="email"/>
+
+<label>Phone</label>
+<input name="phone"/>
+
+<label>Website</label>
+<input name="website"/>
+
+<hr/>
+
+<label>LinkedIn</label>
+<input name="linkedin"/>
+
+<label>X (Twitter)</label>
+<input name="twitter"/>
+
+<label>GitHub</label>
+<input name="github"/>
+
+<label>Instagram</label>
+<input name="instagram"/>
+
+<label>YouTube</label>
+<input name="youtube"/>
+
+<hr/>
+
+<label>Expertise (comma separated)</label>
+<input name="expertise"/>
+
+<label>Timeline (format: YEAR: Event, YEAR: Event)</label>
+<textarea name="timeline"></textarea>
+
+<button>Create Profile</button>
+
 </form>
 
-<div id="output" class="hidden"></div>
+<div id="status"></div>
 
 <script>
+const typeField = document.getElementById("type");
+const businessFields = document.getElementById("businessFields");
 const form = document.getElementById("form");
-const output = document.getElementById("output");
+const status = document.getElementById("status");
+
+typeField.addEventListener("change", () => {
+  businessFields.classList.toggle("hidden", typeField.value !== "business");
+});
 
 form.addEventListener("submit", async e => {
   e.preventDefault();
-
-  output.classList.remove("hidden");
-  output.textContent = "Generating profile…";
+  status.textContent = "Creating profile...";
 
   const data = Object.fromEntries(new FormData(form));
-  data.links = data.links
-    ? data.links.split(",").map(l => l.trim()).filter(Boolean)
+
+  data.expertise = data.expertise
+    ? data.expertise.split(",").map(x => x.trim()).filter(Boolean)
     : [];
 
-  try {
+  data.timeline = data.timeline
+    ? data.timeline.split(",").map(t => {
+        const [year, event] = t.split(":");
+        return { year: year?.trim(), event: event?.trim() };
+      })
+    : [];
 
-    const res = await fetch("/api/generate-profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    });
+  const res = await fetch("/api/generate-profile", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(data)
+  });
 
-    const profile = await res.json();
-
-    if (profile.display_name) {
-      sessionStorage.setItem("profile", JSON.stringify(profile));
-      window.location.href = "/profile.html";
-    } else {
-      output.textContent = JSON.stringify(profile, null, 2);
-    }
-
-  } catch (err) {
-    output.textContent = "Error generating profile. Please try again.";
-    console.error(err);
-  }
+  const profile = await res.json();
+  sessionStorage.setItem("profile", JSON.stringify(profile));
+  window.location.href = "/profile.html";
 });
 </script>
 

@@ -133,6 +133,8 @@
   <div class="card">
 
     <h1 id="displayName"></h1>
+<img id="avatar" style="max-width:140px;border-radius:50%;margin-top:.75rem;" />
+
     <div class="headline" id="headline"></div>
 
     <div class="summary" id="summary"></div>
@@ -158,115 +160,67 @@
 </div>
 
 <script>
-(function() {
+const username = location.pathname.replace("/", "").replace(".html","");
 
-  function getUsername() {
-    const path = window.location.pathname
-      .replace(/^\/+/, '')      // remove leading /
-      .replace(/\/+$/, '')      // remove trailing /
-      .split('?')[0]
-      .split('#')[0];
+async function loadProfile(){
 
-    if (!path || path === "profile.html") return null;
-
-    return path;
+  if(username === "" || username === "profile") {
+    const profile = JSON.parse(sessionStorage.getItem("profile"));
+    return render(profile);
   }
 
-  async function loadProfile() {
-    const username = getUsername();
+  const res = await fetch(`/api/get-profile?username=${username}`);
+  const profile = await res.json();
 
-    // CASE 1: /profile.html loaded directly → use sessionStorage
-    if (!username) {
-      const stored = sessionStorage.getItem("profile");
-      if (!stored) return showError("No profile loaded.");
-      renderProfile(JSON.parse(stored));
-      return;
-    }
+  render(profile);
+}
 
-    // CASE 2: /username → fetch backend
-    try {
-      console.log("Fetching:", username);
+function render(p) {
 
-      const res = await fetch(`/api/get-profile?username=${encodeURIComponent(username)}`);
-      const data = await res.json();
+document.getElementById("displayName").textContent = p.display_name;
+document.getElementById("headline").textContent = p.headline;
+document.getElementById("summary").textContent = p.summary;
 
-      if (!res.ok || data.error) {
-        return showError(`Profile not found for "${username}"`);
-      }
+if(p.profile_image) {
+  document.getElementById("avatar").src = p.profile_image;
+}
 
-      renderProfile(data);
+// Expertise
+const ex = document.getElementById("expertise");
+ex.innerHTML = "";
+(p.expertise || []).forEach(e=>{
+  const span=document.createElement("span");
+  span.className="badge";
+  span.textContent=e;
+  ex.appendChild(span);
+});
 
-    } catch (err) {
-      console.error(err);
-      showError("Failed to load profile.");
-    }
-  }
+// Timeline
+const t = document.getElementById("timeline");
+t.innerHTML = "";
+(p.timeline || []).forEach(item=>{
+  const div=document.createElement("div");
+  div.className="timeline-item";
+  div.innerHTML = `<div class="timeline-year">${item.year || ""}</div><div>${item.event||""}</div>`;
+  t.appendChild(div);
+})
 
-  function showError(msg) {
-    document.body.innerHTML = `<div style="padding:3rem;font-family:sans-serif">${msg}</div>`;
-  }
+// Links
+const l = document.getElementById("links");
+l.innerHTML = "";
 
-  function renderProfile(profile) {
+Object.entries(p.social||{}).forEach(([key,url])=>{
+  if(!url) return;
+  const a=document.createElement("a");
+  a.href=url;
+  a.textContent=key;
+  a.target="_blank";
+  l.appendChild(a);
+});
+}
 
-    document.getElementById("displayName").textContent = profile.display_name || "";
-    document.getElementById("headline").textContent = profile.headline || "";
-    document.getElementById("summary").textContent = profile.summary || "";
-
-    // Expertise
-    const expertise = document.getElementById("expertise");
-    expertise.innerHTML = "";
-
-    if (profile.expertise?.length) {
-      profile.expertise.forEach(item => {
-        const el = document.createElement("span");
-        el.className = "badge";
-        el.textContent = item;
-        expertise.appendChild(el);
-      });
-    } else {
-      expertise.innerHTML = "<span class='empty'>No expertise listed.</span>";
-    }
-
-    // Timeline
-    const timeline = document.getElementById("timeline");
-    timeline.innerHTML = "";
-
-    if (profile.timeline?.length) {
-      profile.timeline.forEach(item => {
-        const el = document.createElement("div");
-        el.className = "timeline-item";
-        el.innerHTML = `
-          <div class="timeline-year">${item.year || ""}</div>
-          <div>${item.event || ""}</div>
-        `;
-        timeline.appendChild(el);
-      });
-    } else {
-      timeline.innerHTML = "<div class='empty'>No timeline provided.</div>";
-    }
-
-    // Links
-    const links = document.getElementById("links");
-    links.innerHTML = "";
-
-    if (profile.links?.length) {
-      profile.links.forEach(link => {
-        const a = document.createElement("a");
-        a.href = link.url;
-        a.target = "_blank";
-        a.textContent = link.type || link.url;
-        links.appendChild(a);
-      });
-    } else {
-      links.innerHTML = "<span class='empty'>No links available.</span>";
-    }
-  }
-
-  loadProfile();
-
-})();
+loadProfile();
 </script>
-
 
 </body>
 </html>
