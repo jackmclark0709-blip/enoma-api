@@ -58,9 +58,16 @@ function renderProfile(profile) {
     ` : ""}
 
     ${profile.timeline?.length ? `
-      <h4>Timeline</h4>
-      <ul>${profile.timeline.map(t => `<li>${t}</li>`).join("")}</ul>
-    ` : ""}
+  <h4>Timeline</h4>
+  <ul>
+    ${profile.timeline.map(t => `
+     <li style="margin-bottom: .5rem">
+  <strong>${t.year}</strong>: ${t.event}
+</li>
+    `).join("")}
+  </ul>
+` : ""}
+
 
     ${profile.links?.length ? `
       <h4>Links</h4>
