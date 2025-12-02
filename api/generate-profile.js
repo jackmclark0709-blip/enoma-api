@@ -43,6 +43,7 @@ Links: ${linksText}
 
   try {
 
+    // ✅ CALL OPENAI API
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -56,20 +57,37 @@ Links: ${linksText}
     });
 
     const data = await response.json();
+
+    // ✅ HARD FAIL IF OPENAI RETURNS ERROR
+    if (data.error) {
+      return res.status(500).json({ error: "OpenAI error", details: data.error });
+    }
+
     const text = data?.choices?.[0]?.message?.content;
 
+    // ✅ HARD FAIL IF MODEL RETURNS NO TEXT
     if (!text) {
       return res.status(500).json({ error: "No output from AI", raw: data });
     }
 
+    // ✅ CLEAN JSON OUTPUT (REMOVE ``` IF PRESENT)
     const cleaned = text.replace(/```json|```/g, "").trim();
-    const profile = JSON.parse(cleaned);
 
+    let profile;
+    try {
+      profile = JSON.parse(cleaned);
+    } catch (err) {
+      console.error("JSON parse error:", cleaned);
+      return res.status(500).json({ error: "Invalid JSON", raw: cleaned });
+    }
+
+    // ✅ FINAL RESPONSE TO CLIENT
     return res.json(profile);
 
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Server error", details: err.message });
+    console.error("Server error:", err);
+    return res.status(500).json({ error: "Server crash", details: err.message });
   }
 
 }
+
