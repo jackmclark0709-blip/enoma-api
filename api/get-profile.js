@@ -16,12 +16,12 @@ export default async function handler(req, res) {
   const { data, error } = await supabase
     .from("profiles")
     .select("*")
-    .eq("username", username)
-    .single();
+    .eq("username", username);
 
-  if (error || !data) {
-    return res.status(404).json({ error: "Profile not found" });
-  }
-
-  return res.json(data);
+  return res.json({
+    username,
+    data,
+    error
+  });
 }
+
