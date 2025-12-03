@@ -48,6 +48,8 @@ Expertise: ${expertise}
 `;
 
  console.log("🤖 Calling OpenAI...");
+console.log("🧠 AI profile ready, inserting into Supabase...");
+
 const aiStart = Date.now();
 
 const controller = new AbortController();
@@ -115,9 +117,21 @@ try {
     is_public: true
   };
 
-  await supabase
-    .from("profiles")
-    .upsert(finalProfile, { onConflict: "username" });
+const { error } = await supabase
+  .from("profiles")
+  .upsert(finalProfile, { onConflict: "username" });
+
+console.log("✅ Profile saved", username);
+
+
+if (error) {
+  console.error("❌ Supabase error:", error);
+  return res.status(500).json({
+    error: "Database insert failed",
+    supabase: error
+  });
+}
+
 
 console.log("✅ Total request time:", Date.now() - t0, "ms");
 

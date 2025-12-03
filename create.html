@@ -6,37 +6,149 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 
 <style>
-body {
-  font-family: system-ui;
-  background: #fafafa;
-  max-width: 600px;
-  margin: 3rem auto;
-  color: #111;
+:root {
+  --enoma-blue: #211551;
+  --enoma-lavender: #9A8CFF;
+  --enoma-green: #50A684;
+  --enoma-bg: #0f0d2b;
+  --enoma-card: #ffffff;
+  --enoma-border: #e6e6ef;
+  --enoma-text: #1c1c1c;
+  --enoma-muted: #6f6f85;
 }
 
+body {
+  font-family: "Inter", system-ui, sans-serif;
+  background: radial-gradient(circle at top, #1a1450, var(--enoma-bg));
+  margin: 0;
+  padding: 3.5rem 1rem;
+  color: white;
+}
+
+/* Center Card */
+form {
+  background: var(--enoma-card);
+  max-width: 620px;
+  margin: auto;
+  border-radius: 16px;
+  padding: 2.5rem 2.75rem 2.75rem;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+}
+
+/* Title */
+h1 {
+  text-align: center;
+  color: var(--enoma-blue);
+  font-weight: 700;
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+/* Title Accent Line */
+h1::after {
+  content: "";
+  width: 42px;
+  height: 4px;
+  margin: 0.75rem auto 0;
+  background: linear-gradient(90deg, var(--enoma-lavender), var(--enoma-green));
+  display: block;
+  border-radius: 3px;
+}
+
+/* Labels */
 label {
   display: block;
-  margin: 1rem 0 .25rem;
-  font-weight: 500;
+  margin: 1.25rem 0 0.4rem;
+  font-weight: 600;
+  color: var(--enoma-blue);
 }
 
-input, textarea, select, button {
+/* Inputs */
+input,
+textarea,
+select {
   width: 100%;
-  padding: .75rem;
-  font-size: 1rem;
-  border-radius: 6px;
-  border: 1px solid #ddd;
+  padding: 0.75rem 0.85rem;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  border: 1px solid var(--enoma-border);
+  background: #fff;
+  transition: 0.2s ease;
 }
 
-textarea { resize: vertical; }
-button { margin-top: 1.25rem; background: black; color: white; border: none; cursor: pointer; }
-.hidden { display: none;}
+/* Focus style */
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--enoma-lavender);
+  box-shadow: 0 0 0 3px rgba(154, 140, 255, 0.18);
+}
+
+/* Separators */
+hr {
+  border: none;
+  border-top: 1px dashed var(--enoma-border);
+  margin: 2rem 0;
+}
+
+/* Button */
+button {
+  margin-top: 2rem;
+  width: 100%;
+  padding: 0.85rem;
+  border-radius: 10px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--enoma-lavender), var(--enoma-blue));
+  color: white;
+  transition: 0.25s ease;
+}
+
+/* Button Hover */
+button:hover {
+  background: linear-gradient(135deg, var(--enoma-green), var(--enoma-blue));
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(80,166,132,0.3);
+}
+
+/* Status message */
+#status {
+  text-align: center;
+  margin-top: 1rem;
+  color: var(--enoma-green);
+  font-weight: 600;
+}
+
+/* Utility */
+.hidden {
+  display: none;
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  form {
+    padding: 2rem 1.5rem;
+    border-radius: 14px;
+  }
+}
+.subtitle {
+  text-align: center;
+  color: var(--enoma-muted);
+  margin-top: -1rem;
+  margin-bottom: 2rem;
+}
+
+
 </style>
 </head>
 
 <body>
 
 <h1>Create your Enoma profile</h1>
+<p class="subtitle">Your personal profile, designed to live on the internet.</p>
+
 
 <form id="form">
 
