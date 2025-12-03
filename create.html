@@ -164,6 +164,11 @@ button:hover {
 <label>Profile Image URL</label>
 <input name="image" placeholder="https://..." />
 
+<label>Upload Resume (optional)</label>
+<input type="file" name="resume" id="resume" accept=".pdf,.doc,.docx,.txt"/>
+<small style="color:#888">PDF, DOCX, or text — we extract timeline + expertise automatically.</small>
+
+
 <label>Headline</label>
 <input name="headline" />
 
@@ -234,28 +239,41 @@ form.addEventListener("submit", async e => {
   e.preventDefault();
   status.textContent = "Creating profile...";
 
-  const data = Object.fromEntries(new FormData(form));
+  const fd = new FormData(form);
 
-  data.expertise = data.expertise
-    ? data.expertise.split(",").map(x => x.trim()).filter(Boolean)
-    : [];
+  const expertise = fd.get("expertise")
+    ?.split(",").map(x => x.trim()).filter(Boolean) || [];
 
-  data.timeline = data.timeline
-    ? data.timeline.split(",").map(t => {
-        const [year, event] = t.split(":");
-        return { year: year?.trim(), event: event?.trim() };
-      })
-    : [];
+  const timeline = fd.get("timeline")
+    ?.split(",").map(t => {
+      const [year, event] = t.split(":");
+      return { year: year?.trim(), event: event?.trim() };
+    }) || [];
 
-  const res = await fetch("/api/generate-profile", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify(data)
-  });
+  fd.set("expertise", JSON.stringify(expertise));
+  fd.set("timeline", JSON.stringify(timeline)); // backend-readable
 
-  const profile = await res.json();
-  sessionStorage.setItem("profile", JSON.stringify(profile));
-  window.location.href = "/profile.html";
+  try {
+    const res = await fetch("/api/generate-profile", {
+      method: "POST",
+      body: fd
+    });
+
+    const profile = await res.json();
+
+    if (profile.error) {
+      status.textContent = profile.error;
+      console.error(profile);
+      return;
+    }
+
+    sessionStorage.setItem("profile", JSON.stringify(profile));
+    window.location.assign("/profile.html");
+
+  } catch (err) {
+    console.error(err);
+    status.textContent = "Profile generation failed. Try again.";
+  }
 });
 </script>
 
