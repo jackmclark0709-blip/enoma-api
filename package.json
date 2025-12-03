@@ -16,6 +16,9 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
-    "node-fetch": "^3.3.2"
+    "formidable": "^3.5.4",
+    "mammoth": "^1.11.0",
+    "node-fetch": "^3.3.2",
+    "pdf-parse": "^2.4.5"
   }
 }
