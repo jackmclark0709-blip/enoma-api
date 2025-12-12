@@ -1,9 +1,6 @@
-
-
 import fetch from "node-fetch";
 import { createClient } from "@supabase/supabase-js";
 import formidable from "formidable";
-import fs from "fs";
 
 // ----------------------------------------------------
 // SUPABASE CLIENT
@@ -23,122 +20,126 @@ export const config = {
 // ----------------------------------------------------
 function first(val) {
   if (!val) return "";
-
-  // Formidable often wraps fields in arrays
   if (Array.isArray(val)) return val[0];
-
-  // Sometimes returns objects like { _fields: ["value"] }
-  if (typeof val === "object" && val._fields?.[0]) {
-    return val._fields[0];
-  }
-
+  if (typeof val === "object" && val._fields?.[0]) return val._fields[0];
   return val;
+}
+
+function safeJSON(val, fallback = []) {
+  try {
+    if (!val) return fallback;
+    return typeof val === "string" ? JSON.parse(val) : val;
+  } catch {
+    return fallback;
+  }
 }
 
 function slugify(text) {
   if (!text) return "";
-  text = Array.isArray(text) ? text[0] : text;
   return String(text)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 }
 
+// ----------------------------------------------------
+// Handler
+// ----------------------------------------------------
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "POST only" });
   }
 
-  console.log("⚡ Business profile generation invoked");
+  console.log("⚡ generate-business invoked");
 
-  const form = formidable({ multiples: true, keepExtensions: true });
-
-  const { fields, files } = await new Promise((resolve, reject) => {
-    form.parse(req, (err, fields, files) => {
-      if (err) reject(err);
-      else resolve({ fields, files });
-    });
+  // ✅ FIX: allow empty files
+  const form = formidable({
+    multiples: true,
+    keepExtensions: true,
+    allowEmptyFiles: true,
+    minFileSize: 0
   });
+
+  let fields, files;
+  try {
+    ({ fields, files } = await new Promise((resolve, reject) => {
+      form.parse(req, (err, fields, files) => {
+        if (err) reject(err);
+        else resolve({ fields, files });
+      });
+    }));
+  } catch (err) {
+    console.error("❌ Form parse failed:", err);
+    return res.status(400).json({ error: "Invalid form data" });
+  }
 
   // ----------------------------------------------------
   // Normalize fields
   // ----------------------------------------------------
-
   const business_name = first(fields.business_name);
   const owner_name    = first(fields.name);
   const address       = first(fields.address);
   const phone         = first(fields.phone);
   const email         = first(fields.email);
   const website       = first(fields.website);
-  const about         = first(fields.about);
+  const about_input   = first(fields.about);
   const tone          = first(fields.tone);
-
-  const service_area_raw = first(fields.service_area);
-  const services_raw     = first(fields.services);
 
   if (!business_name || !email) {
     return res.status(400).json({ error: "Business name and email required." });
   }
 
-  // Arrays
-  let parsedServiceArea = [];
-  let parsedServices = [];
-
-  try { parsedServiceArea = JSON.parse(service_area_raw || "[]"); } catch {}
-  try { parsedServices     = JSON.parse(services_raw || "[]"); } catch {}
-
-  // Username slug
   const username = slugify(business_name);
 
-  // ----------------------------------------------------
-  // Handle images (later upgrade to Supabase Storage)
-  // ----------------------------------------------------
-  let imageURLs = [];
+  // JSON fields from form
+  const service_area = safeJSON(fields.service_area);
+  const services     = safeJSON(fields.services);
+  const testimonials = safeJSON(fields.testimonials);
+  const attachments  = safeJSON(fields.attachments);
 
-  if (files.images) {
+  // ----------------------------------------------------
+  // Handle images (metadata only for now)
+  // ----------------------------------------------------
+  let images = [];
+  if (files?.images) {
     const arr = Array.isArray(files.images) ? files.images : [files.images];
-    imageURLs = arr.map(f => ({
-      filename: f.originalFilename,
-      type: f.mimetype
-    }));
+    images = arr
+      .filter(f => f.size > 0)
+      .map(f => ({
+        filename: f.originalFilename,
+        mimetype: f.mimetype
+      }));
   }
 
   // ----------------------------------------------------
-  // AI Prompt
+  // AI ENRICHMENT (augment, not overwrite)
   // ----------------------------------------------------
   const prompt = `
-Create an SEO-optimized business profile.
+Create SEO-optimized copy for a business profile.
 
-Return ONLY JSON in this structure:
-
+Return ONLY valid JSON:
 {
   "seo_title": "",
   "seo_description": "",
   "hero_tagline": "",
-  "about_section": "",
-  "why_choose_us": "",
-  "services_expanded": [],
-  "town_sections": []
+  "about": "",
+  "why_choose_us": ""
 }
 
-DATA PROVIDED:
 Business Name: ${business_name}
-Owner Name: ${owner_name}
+Owner: ${owner_name}
 Address: ${address}
 Phone: ${phone}
-Email: ${email}
 Website: ${website}
 
-Tone requested: ${tone}
+Tone: ${tone}
+Service Area: ${service_area.join(", ")}
 
-Service Area: ${parsedServiceArea.join(", ")}
-Services Offered: ${parsedServices.join(", ")}
-
-About business:
-${about}
+Business Description:
+${about_input}
 `;
 
-  console.log("🤖 Calling OpenAI...");
+  console.log("🤖 Calling OpenAI");
 
   const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -155,22 +156,21 @@ ${about}
   const ai = await aiResponse.json();
 
   if (!aiResponse.ok || ai.error) {
-    console.error(ai);
-    return res.status(500).json({ error: "OpenAI failed", raw: ai });
+    console.error("❌ OpenAI error:", ai);
+    return res.status(500).json({ error: "AI generation failed" });
   }
 
-  let generated;
+  let generated = {};
   try {
     generated = JSON.parse(
       ai.choices[0].message.content.replace(/```json|```/g, "").trim()
     );
-  } catch (err) {
-    console.error("JSON parsing failed:", ai.choices[0].message.content);
-    return res.status(500).json({ error: "Bad AI JSON" });
+  } catch {
+    console.error("❌ AI JSON invalid:", ai.choices[0].message.content);
   }
 
   // ----------------------------------------------------
-  // Build final profile object
+  // Final profile object
   // ----------------------------------------------------
   const finalProfile = {
     username,
@@ -180,30 +180,34 @@ ${about}
     phone,
     email,
     website,
-    about: generated.about_section,
+
+    about: generated.about || about_input,
     hero_tagline: generated.hero_tagline,
     seo_title: generated.seo_title,
     seo_description: generated.seo_description,
-    services: generated.services_expanded,
-    service_area: parsedServiceArea,
-    town_sections: generated.town_sections,
     why_choose_us: generated.why_choose_us,
-    images: imageURLs,
+
+    services,        // includes pricing
+    testimonials,
+    attachments,
+    service_area,
+
+    images,
     is_public: true,
     updated_at: new Date().toISOString()
   };
 
-  console.log("🧾 Saving business profile:", username);
+  console.log("🧾 Upserting profile:", username);
 
   const { error } = await supabase
     .from("small_business_profiles")
     .upsert(finalProfile, { onConflict: "username" });
 
   if (error) {
-    console.error("❌ Supabase insert failed:", error);
+    console.error("❌ Supabase error:", error);
     return res.status(500).json({ error: "Database error", details: error });
   }
 
-  console.log("✅ Business profile saved");
-  res.json({ username, success: true });
+  console.log("✅ Business profile created:", username);
+  res.json({ success: true, username });
 }
