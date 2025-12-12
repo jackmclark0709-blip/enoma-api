@@ -25,10 +25,9 @@ body {
   color: white;
 }
 
-/* Form card */
 form {
   background: var(--enoma-card);
-  max-width: 640px;
+  max-width: 680px;
   margin: auto;
   border-radius: 16px;
   padding: 2.5rem 2.75rem;
@@ -40,16 +39,6 @@ h1 {
   color: var(--enoma-blue);
   font-weight: 700;
   margin-bottom: 1rem;
-}
-
-h1::after {
-  content: "";
-  width: 42px;
-  height: 4px;
-  margin: 0.75rem auto 0;
-  background: linear-gradient(90deg, var(--enoma-lavender), var(--enoma-green));
-  display: block;
-  border-radius: 3px;
 }
 
 .subtitle {
@@ -73,16 +62,6 @@ select {
   font-size: 0.95rem;
   border-radius: 8px;
   border: 1px solid var(--enoma-border);
-  background: #fff;
-  transition: 0.2s ease;
-}
-
-input:focus,
-textarea:focus,
-select:focus {
-  outline: none;
-  border-color: var(--enoma-lavender);
-  box-shadow: 0 0 0 3px rgba(154, 140, 255, 0.18);
 }
 
 hr {
@@ -91,7 +70,24 @@ hr {
   margin: 2rem 0;
 }
 
-button {
+.add-btn {
+  background: none;
+  border: none;
+  color: var(--enoma-lavender);
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+
+.block {
+  background: #fafafa;
+  border: 1px solid var(--enoma-border);
+  border-radius: 10px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+button[type="submit"] {
   margin-top: 2rem;
   width: 100%;
   padding: 0.85rem;
@@ -101,13 +97,6 @@ button {
   cursor: pointer;
   background: linear-gradient(135deg, var(--enoma-lavender), var(--enoma-blue));
   color: white;
-  transition: 0.25s ease;
-}
-
-button:hover {
-  background: linear-gradient(135deg, var(--enoma-green), var(--enoma-blue));
-  transform: translateY(-1px);
-  box-shadow: 0 8px 18px rgba(80,166,132,0.3);
 }
 
 #status {
@@ -122,41 +111,37 @@ button:hover {
 <body>
 
 <h1>Create Your Business Page</h1>
-<p class="subtitle">We turn your business info into a polished, search-optimized webpage.</p>
+<p class="subtitle">We turn your business info into a polished, lead-generating webpage.</p>
 
 <form id="form">
 
-<!-- Hidden but preserved personal setting -->
 <input type="hidden" name="type" value="business" />
 
 <label>Business Name</label>
-<input name="business_name" required placeholder="e.g., Clark Electrical Services"/>
+<input name="business_name" required />
 
 <label>Owner Name</label>
-<input name="name" required placeholder="Your full name"/>
+<input name="name" />
 
 <label>Business Address</label>
-<input name="address" placeholder="123 Main St, Attleboro, MA"/>
+<input name="address" />
 
 <label>Phone Number</label>
-<input name="phone" placeholder="(555) 123-4567"/>
+<input name="phone" />
 
 <label>Email</label>
-<input name="email" placeholder="business@email.com"/>
+<input name="email" />
 
-<label>Website (optional)</label>
-<input name="website" placeholder="https://..."/>
+<label>Website</label>
+<input name="website" />
 
 <hr/>
 
-<label>Service Area (comma separated towns)</label>
-<input name="service_area" placeholder="Attleboro, North Attleboro, Mansfield"/>
-
-<label>Services Offered (comma separated)</label>
-<input name="services" placeholder="Electrical repair, panel upgrades, lighting installation"/>
+<label>Service Area (comma separated)</label>
+<input name="service_area" />
 
 <label>Describe Your Business</label>
-<textarea name="about" placeholder="Tell us about what makes your business great..."></textarea>
+<textarea name="about"></textarea>
 
 <label>Preferred Tone</label>
 <select name="tone">
@@ -167,13 +152,30 @@ button:hover {
   <option value="simple">Simple & Clean</option>
 </select>
 
-<label>Upload Logo or Business Images</label>
-<input type="file" name="images" accept="image/*" multiple />
+<hr/>
+
+<h3>Services</h3>
+<div id="services"></div>
+<button type="button" class="add-btn" onclick="addService()">+ Add Service</button>
 
 <hr/>
 
-<button>Create Business Page</button>
+<h3>Testimonials</h3>
+<div id="testimonials"></div>
+<button type="button" class="add-btn" onclick="addTestimonial()">+ Add Testimonial</button>
 
+<hr/>
+
+<h3>Attachments (brochures, PDFs, case studies)</h3>
+<div id="attachments"></div>
+<button type="button" class="add-btn" onclick="addAttachment()">+ Add Attachment</button>
+
+<hr/>
+
+<label>Upload Images (optional)</label>
+<input type="file" name="images" accept="image/*" multiple />
+
+<button type="submit">Create Business Page</button>
 </form>
 
 <div id="status"></div>
@@ -182,25 +184,60 @@ button:hover {
 const form = document.getElementById("form");
 const status = document.getElementById("status");
 
+function addService() {
+  services.innerHTML += `
+    <div class="block">
+      <input placeholder="Service name" class="service-name"/>
+      <textarea placeholder="Service description" class="service-description"></textarea>
+      <input placeholder="Price (e.g. $1,500+)" class="service-price"/>
+    </div>`;
+}
+
+function addTestimonial() {
+  testimonials.innerHTML += `
+    <div class="block">
+      <textarea placeholder="Client quote" class="testimonial-quote"></textarea>
+      <input placeholder="Author (name, role, company)" class="testimonial-author"/>
+    </div>`;
+}
+
+function addAttachment() {
+  attachments.innerHTML += `
+    <div class="block">
+      <input placeholder="Label (e.g. Company Brochure)" class="attachment-label"/>
+      <input placeholder="URL (PDF, Drive, Dropbox, etc.)" class="attachment-url"/>
+    </div>`;
+}
+
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   status.textContent = "Creating your business profile...";
 
   const fd = new FormData(form);
 
-  // Parse service area + services into JSON
-  const services = fd.get("services")
-    ?.split(",")
-    .map(x => x.trim())
-    .filter(Boolean) || [];
+  const servicesData = [...document.querySelectorAll(".service-name")].map((_, i) => ({
+    service_name: document.querySelectorAll(".service-name")[i].value,
+    service_description: document.querySelectorAll(".service-description")[i].value,
+    price: document.querySelectorAll(".service-price")[i].value
+  })).filter(s => s.service_name);
 
-  const serviceArea = fd.get("service_area")
-    ?.split(",")
-    .map(x => x.trim())
-    .filter(Boolean) || [];
+  const testimonialsData = [...document.querySelectorAll(".testimonial-quote")].map((_, i) => ({
+    quote: document.querySelectorAll(".testimonial-quote")[i].value,
+    author: document.querySelectorAll(".testimonial-author")[i].value
+  })).filter(t => t.quote);
 
-  fd.set("services", JSON.stringify(services));
-  fd.set("service_area", JSON.stringify(serviceArea));
+  const attachmentsData = [...document.querySelectorAll(".attachment-url")].map((_, i) => ({
+    label: document.querySelectorAll(".attachment-label")[i].value,
+    url: document.querySelectorAll(".attachment-url")[i].value
+  })).filter(a => a.url);
+
+  fd.set("services", JSON.stringify(servicesData));
+  fd.set("testimonials", JSON.stringify(testimonialsData));
+  fd.set("attachments", JSON.stringify(attachmentsData));
+
+  fd.set("service_area",
+    JSON.stringify(fd.get("service_area")?.split(",").map(x => x.trim()).filter(Boolean))
+  );
 
   try {
     const res = await fetch("/api/generate-business", {
@@ -209,21 +246,14 @@ form.addEventListener("submit", async (e) => {
     });
 
     const profile = await res.json();
-
     if (profile.error) {
       status.textContent = profile.error;
-      console.error(profile);
       return;
     }
 
-    // Save for preview page
-    sessionStorage.setItem("profile", JSON.stringify(profile));
+    window.location.assign(`/profile.html?slug=${profile.username}`);
 
-    // Redirect to public page template
-    window.location.assign(`/business.html?slug=${profile.username}`);
-
-  } catch (err) {
-    console.error(err);
+  } catch {
     status.textContent = "Failed to create profile. Try again.";
   }
 });
