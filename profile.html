@@ -220,7 +220,9 @@ async function loadProfile() {
 
 const res = await fetch(`/api/get-profile?username=${slug}`);
 
-  const p = await res.json();
+let p = await res.json();
+p = normalizeProfile(p);
+
 
   document.body.classList.add(p.profile_type || "person");
 
@@ -291,6 +293,27 @@ const res = await fetch(`/api/get-profile?username=${slug}`);
       r.ok ? "Message sent." : "Something went wrong.";
   });
 }
+
+function normalizeProfile(p) {
+  return {
+    ...p,
+
+    highlights: Array.isArray(p.highlights)
+      ? p.highlights
+      : typeof p.highlights === "string"
+        ? p.highlights.split("\n").filter(Boolean)
+        : [],
+
+    services: Array.isArray(p.services)
+      ? p.services
+      : [],
+
+    images: Array.isArray(p.images)
+      ? p.images
+      : []
+  };
+}
+
 
 loadProfile();
 </script>
