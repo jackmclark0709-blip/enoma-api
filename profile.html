@@ -2,224 +2,236 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Profile — Enoma</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  
+
+  <title id="seo_title">Business — Enoma</title>
+  <meta id="seo_description" name="description" content="">
+
   <style>
-    * {
-      box-sizing: border-box;
+    :root {
+      --blue: #211551;
+      --lavender: #9A8CFF;
+      --green: #50A684;
+      --bg: #f6f7f9;
+      --text: #1c1c1c;
     }
 
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f6f7f9;
+      font-family: "Inter", system-ui, sans-serif;
       margin: 0;
-      color: #111;
-      line-height: 1.6;
+      background: var(--bg);
+      color: var(--text);
     }
 
     .container {
-      max-width: 780px;
-      margin: 4rem auto;
-      padding: 1.5rem;
+      max-width: 900px;
+      margin: auto;
+      padding: 2rem 1.25rem;
     }
 
-    .card {
-      background: #ffffff;
-      border-radius: 14px;
-      padding: 2.5rem;
-      box-shadow: 0 15px 40px rgba(0,0,0,.05);
+    /* HERO SECTION */
+    .hero {
+      text-align: center;
+      padding: 3.5rem 1.5rem;
+      background: linear-gradient(135deg, var(--lavender), var(--blue));
+      color: white;
+      border-radius: 18px;
+      margin-top: 2rem;
     }
 
-    h1 {
-      font-size: 2.1rem;
-      margin: 0 0 .25rem;
+    .hero h1 {
+      font-size: 2.4rem;
       font-weight: 700;
-      letter-spacing: -0.02em;
+      margin: 0;
     }
 
-    .headline {
-      font-size: 1.1rem;
-      opacity: .7;
-      margin-bottom: 1.5rem;
+    .hero p {
+      font-size: 1.25rem;
+      opacity: 0.9;
+      margin-top: 0.5rem;
     }
 
+    /* SECTION WRAPPER */
     .section {
-      margin-top: 2.5rem;
+      background: white;
+      border-radius: 14px;
+      padding: 2rem;
+      margin-top: 2rem;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.06);
     }
 
     .section h2 {
-      font-size: .8rem;
-      text-transform: uppercase;
-      letter-spacing: .14em;
-      color: #888;
-      margin-bottom: .75rem;
+      margin-top: 0;
+      font-size: 1.3rem;
+      color: var(--blue);
     }
 
-    .summary {
-      font-size: 1.05rem;
-      margin-bottom: 1.25rem;
-    }
-
-    .badge-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: .5rem;
-      margin-top: .5rem;
-    }
-
-    .badge {
-      padding: .4rem .75rem;
-      background: #f0f0f0;
-      border-radius: 999px;
-      font-size: .8rem;
-      color: #444;
-    }
-
-    .timeline {
-      border-left: 2px solid #eee;
-      padding-left: 1.25rem;
+    /* SERVICES GRID */
+    .service-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.25rem;
       margin-top: 1rem;
     }
 
-    .timeline-item {
-      margin-bottom: 1.25rem;
-      position: relative;
+    .service-card {
+      background: #fafafa;
+      padding: 1rem 1.2rem;
+      border-radius: 12px;
+      border: 1px solid #eee;
     }
 
-    .timeline-item::before {
-      content: "";
-      position: absolute;
-      left: -1.6rem;
-      top: .25rem;
-      width: .65rem;
-      height: .65rem;
-      border-radius: 50%;
-      background: #000;
+    .service-card h3 {
+      margin: 0 0 0.35rem;
+      color: var(--blue);
+      font-size: 1.05rem;
     }
 
-    .timeline-year {
-      font-weight: 600;
-      font-size: .85rem;
-      opacity: .6;
+    /* LOCAL SEO TOWN SECTIONS */
+    .town-section {
+      margin-top: 1.25rem;
+      padding: 1.25rem;
+      background: #f8f8ff;
+      border-left: 4px solid var(--lavender);
+      border-radius: 10px;
     }
 
-    .links a {
-      display: inline-block;
-      margin-right: 1rem;
-      margin-top: .5rem;
-      text-decoration: none;
-      font-size: .9rem;
-      color: #000;
-      border-bottom: 1px solid rgba(0,0,0,.2);
+    /* CONTACT BOX */
+    .contact-box {
+      background: #f0f8f4;
+      border-left: 4px solid var(--green);
+      padding: 1.25rem;
+      border-radius: 10px;
+      margin-top: 1.5rem;
     }
 
     .footer {
-      margin-top: 3rem;
       text-align: center;
-      font-size: .75rem;
-      opacity: .4;
-    }
-
-    .empty {
-      opacity: .4;
-      font-size: .9rem;
+      margin-top: 4rem;
+      opacity: 0.5;
+      font-size: 0.8rem;
     }
   </style>
 </head>
+
 <body>
 
 <div class="container">
-  <div class="card">
-
-    <h1 id="displayName"></h1>
-<img id="avatar" style="max-width:140px;border-radius:50%;margin-top:.75rem;" />
-
-    <div class="headline" id="headline"></div>
-
-    <div class="summary" id="summary"></div>
-
-    <div class="section">
-      <h2>Expertise</h2>
-      <div id="expertise" class="badge-row"></div>
-    </div>
-
-    <div class="section">
-      <h2>Timeline</h2>
-      <div id="timeline" class="timeline"></div>
-    </div>
-
-    <div class="section">
-      <h2>Links</h2>
-      <div id="links" class="links"></div>
-    </div>
-
-    <div class="footer">enoma.io — structured identity</div>
-
+  
+  <!-- HERO -->
+  <div class="hero">
+    <h1 id="businessName"></h1>
+    <p id="heroTagline"></p>
   </div>
+
+  <!-- ABOUT -->
+  <div class="section">
+    <h2>About Us</h2>
+    <p id="about"></p>
+  </div>
+
+  <!-- WHY CHOOSE US -->
+  <div class="section">
+    <h2>Why Choose Us</h2>
+    <div id="why"></div>
+  </div>
+
+  <!-- SERVICES -->
+  <div class="section">
+    <h2>Services We Provide</h2>
+    <div id="services" class="service-grid"></div>
+  </div>
+
+  <!-- SERVICE AREA -->
+  <div class="section">
+    <h2>Service Area</h2>
+    <p id="serviceArea"></p>
+  </div>
+
+  <!-- TOWN SEO SECTIONS -->
+  <div class="section">
+    <h2>Serving Your Community</h2>
+    <div id="townSections"></div>
+  </div>
+
+  <!-- CONTACT -->
+  <div class="section contact-box">
+    <h2>Contact Us</h2>
+    <p><strong>Email:</strong> <span id="email"></span></p>
+    <p><strong>Phone:</strong> <span id="phone"></span></p>
+    <p><strong>Website:</strong> <a id="website" href="" target="_blank"></a></p>
+    <p><strong>Address:</strong> <span id="address"></span></p>
+  </div>
+
+  <div class="footer">
+    Powered by Enoma — Smart Web Presence for Local Businesses
+  </div>
+
 </div>
 
 <script>
-const username = location.pathname.replace("/", "").replace(".html","");
+async function loadBusiness() {
+  const urlParams = new URLSearchParams(location.search);
+  const slug = urlParams.get("slug");
 
-async function loadProfile(){
-
-  if(username === "" || username === "profile") {
-    const profile = JSON.parse(sessionStorage.getItem("profile"));
-    return render(profile);
+  if (!slug) {
+    document.body.innerHTML = "<h2>Business not found.</h2>";
+    return;
   }
 
-  const res = await fetch(`/api/get-profile?username=${username}`);
-  const profile = await res.json();
+  const res = await fetch(`/api/get-business?username=${slug}`);
+  const p = await res.json();
 
-  render(profile);
+  // SEO
+  document.getElementById("seo_title").textContent = p.seo_title || p.business_name;
+  document.getElementById("seo_description").content = p.seo_description || "";
+
+  // Hero
+  document.getElementById("businessName").textContent = p.business_name;
+  document.getElementById("heroTagline").textContent = p.hero_tagline;
+
+  // About
+  document.getElementById("about").textContent = p.about;
+
+  // Why Choose Us
+  document.getElementById("why").innerHTML = p.why_choose_us
+    ? `<ul>${p.why_choose_us.split("\n").map(x => `<li>${x}</li>`).join("")}</ul>`
+    : "";
+
+  // Services
+  const servicesEl = document.getElementById("services");
+  servicesEl.innerHTML = "";
+  (p.services || []).forEach(s => {
+    servicesEl.innerHTML += `
+      <div class="service-card">
+        <h3>${s.name}</h3>
+        <p>${s.description}</p>
+      </div>`;
+  });
+
+  // Service area
+  document.getElementById("serviceArea").textContent = (p.service_area || []).join(", ");
+
+  // Town Sections
+  const townEl = document.getElementById("townSections");
+  townEl.innerHTML = "";
+  (p.town_sections || []).forEach(t => {
+    townEl.innerHTML += `
+      <div class="town-section">
+        <h3>${t.town}</h3>
+        <p>${t.text}</p>
+      </div>`;
+  });
+
+  // Contact
+  document.getElementById("email").textContent = p.email;
+  document.getElementById("phone").textContent = p.phone;
+  document.getElementById("address").textContent = p.address;
+  document.getElementById("website").textContent = p.website;
+  document.getElementById("website").href = p.website;
 }
 
-function render(p) {
-
-document.getElementById("displayName").textContent = p.display_name;
-document.getElementById("headline").textContent = p.headline;
-document.getElementById("summary").textContent = p.summary;
-
-if(p.profile_image) {
-  document.getElementById("avatar").src = p.profile_image;
-}
-
-// Expertise
-const ex = document.getElementById("expertise");
-ex.innerHTML = "";
-(p.expertise || []).forEach(e=>{
-  const span=document.createElement("span");
-  span.className="badge";
-  span.textContent=e;
-  ex.appendChild(span);
-});
-
-// Timeline
-const t = document.getElementById("timeline");
-t.innerHTML = "";
-(p.timeline || []).forEach(item=>{
-  const div=document.createElement("div");
-  div.className="timeline-item";
-  div.innerHTML = `<div class="timeline-year">${item.year || ""}</div><div>${item.event||""}</div>`;
-  t.appendChild(div);
-})
-
-// Links
-const l = document.getElementById("links");
-l.innerHTML = "";
-
-Object.entries(p.social||{}).forEach(([key,url])=>{
-  if(!url) return;
-  const a=document.createElement("a");
-  a.href=url;
-  a.textContent=key;
-  a.target="_blank";
-  l.appendChild(a);
-});
-}
-
-loadProfile();
+loadBusiness();
 </script>
 
 </body>

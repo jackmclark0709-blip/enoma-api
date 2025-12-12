@@ -1,84 +1,29 @@
-
-✅ Accepts file uploads
-✅ Extracts resume text
-✅ Feeds resume into AI
-✅ Hard-limits size + file types
-✅ Times out safely
-✅ Writes profile to Supabase
-✅ Returns username + profile
-✅ Never blocks UI forever
-
-✅ STEP 0 — Install required packages (run once locally)
-npm install formidable pdf-parse mammoth
-
-
-Commit after install:
-
-git add package.json package-lock.json
-git commit -m "Add resume parsing libraries"
-git push
-
-
-Vercel will auto-deploy.
-
-✅ STEP 1 — Replace api/generate-profile.js FULLY with this
-
-Delete your current file and paste this entire implementation:
-
 import fetch from "node-fetch";
 import { createClient } from "@supabase/supabase-js";
 import formidable from "formidable";
 import fs from "fs";
-import pdf from "pdf-parse";
-import mammoth from "mammoth";
 
-// ✅ Supabase
+// ----------------------------------------------------
+// SUPABASE CLIENT
+// ----------------------------------------------------
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
 );
 
-// ✅ Disable Next.js bodyParser
+// Disable Next.js bodyParser so FormData works
 export const config = {
-  api: {
-    bodyParser: false,
-  },
+  api: { bodyParser: false }
 };
 
-// ✅ Helper: username slug
-function slugify(name) {
-  return name.toLowerCase()
-    .replace(/[^a-z0-9]+/g,"-")
-    .replace(/(^-|-$)/g,"");
-}
-
-// ✅ Resume extraction
-async function extractResumeText(file) {
-  const buffer = fs.readFileSync(file.filepath);
-
-  // File size guard: 5 MB
-  if (buffer.length > 5 * 1024 * 1024) {
-    throw new Error("Resume too large (5MB limit)");
-  }
-
-  if (file.mimetype === "application/pdf") {
-    const parsed = await pdf(buffer);
-    return parsed.text;
-  }
-
-  if (
-    file.mimetype ===
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-  ) {
-    const result = await mammoth.extractRawText({ buffer });
-    return result.value;
-  }
-
-  if (file.mimetype === "text/plain") {
-    return buffer.toString("utf-8");
-  }
-
-  throw new Error("Unsupported file format");
+// ----------------------------------------------------
+// Helper: Convert business name → clean slug
+// ----------------------------------------------------
+function slugify(text) {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 }
 
 export default async function handler(req, res) {
@@ -86,11 +31,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "POST only" });
   }
 
-  const started = Date.now();
-  console.log("⚡ generate-profile invoked");
+  console.log("⚡ Business profile generation invoked");
 
-  // ✅ Parse incoming form-data
-  const form = formidable({ keepExtensions: true });
+  // Parse incoming form-data (supports file uploads)
+  const form = formidable({ multiples: true, keepExtensions: true });
 
   const { fields, files } = await new Promise((resolve, reject) => {
     form.parse(req, (err, fields, files) => {
@@ -99,135 +43,165 @@ export default async function handler(req, res) {
     });
   });
 
-  // ✅ Extract inputs
+  // ----------------------------------------------------
+  // Extract inputs
+  // ----------------------------------------------------
   const {
-    name, type, image, headline, bio,
-    role, company,
-    email, phone, website,
-    linkedin, twitter, github, instagram, youtube,
-    expertise, timeline
+    business_name,
+    name,
+    address,
+    phone,
+    email,
+    website,
+    service_area,
+    services,
+    about,
+    tone,
   } = fields;
 
-  if (!name) return res.status(400).json({ error:"Name required" });
-
-  const username = slugify(name);
-
-  // ✅ Parse expertise + timeline (JSON strings from frontend)
-  let parsedExpertise = [];
-  let parsedTimeline = [];
-
-  try { parsedExpertise = JSON.parse(expertise || "[]"); } catch {}
-  try { parsedTimeline = JSON.parse(timeline || "[]"); } catch {}
-
-  // ✅ Resume ingestion
-  let resumeText = "";
-
-  if (files.resume?.[0]) {
-    console.log("📄 Resume uploaded, extracting...");
-    resumeText = await extractResumeText(files.resume[0]);
-    resumeText = resumeText.slice(0, 6000); // token safety
+  if (!business_name || !email) {
+    return res.status(400).json({ error: "Business name and email required." });
   }
 
-  // ✅ AI Prompt
+  const username = slugify(business_name);
+
+  // Arrays (passed as JSON strings from client)
+  let parsedServices = [];
+  let parsedServiceArea = [];
+
+  try { parsedServices = JSON.parse(services || "[]"); } catch {}
+  try { parsedServiceArea = JSON.parse(service_area || "[]"); } catch {}
+
+  // ----------------------------------------------------
+  // Optional image upload → store raw files in /tmp for now
+  // (Future upgrade: upload to Supabase Storage)
+  // ----------------------------------------------------
+  let imageURLs = [];
+
+  if (files.images) {
+    const arr = Array.isArray(files.images) ? files.images : [files.images];
+
+    imageURLs = arr.map((f) => ({
+      filename: f.originalFilename,
+      type: f.mimetype
+    }));
+  }
+
+  // ----------------------------------------------------
+  // BUILD AI PROMPT
+  // ----------------------------------------------------
   const prompt = `
-You are constructing a public identity profile.
+Create an SEO-optimized business profile.
 
-If resume is present, trust resume facts over form.
-
-Return ONLY JSON in this format:
+Return ONLY JSON in this structure:
 
 {
-  "display_name":"",
-  "headline":"",
-  "summary":"",
-  "expertise":[],
-  "timeline":[]
+  "seo_title": "",
+  "seo_description": "",
+  "hero_tagline": "",
+  "about_section": "",
+  "why_choose_us": "",
+  "services_expanded": [],
+  "town_sections": []
 }
 
-FORM INFO:
-Name: ${name}
-Headline: ${headline}
-Bio: ${bio}
-Role: ${role}
-Company: ${company}
-Expertise: ${parsedExpertise.join(", ")}
+DATA PROVIDED:
+Business Name: ${business_name}
+Owner Name: ${name}
+Address: ${address}
+Phone: ${phone}
+Email: ${email}
+Website: ${website}
 
-RESUME CONTENT:
-${resumeText}
+Tone requested: ${tone}
+
+Service Area: ${parsedServiceArea.join(", ")}
+Services Offered: ${parsedServices.join(", ")}
+
+About business:
+${about}
+
+TASKS:
+1. Generate a powerful SEO page title.
+2. Write a compelling meta description using local SEO.
+3. Create a strong hero tagline.
+4. Expand "about" into a polished, persuasive business overview.
+5. Create a “Why Choose Us” section listing 3–5 reasons.
+6. Rewrite each service into a professional, polished 2–3 sentence description using benefit-driven language.
+7. For EACH town in the service area, write a paragraph explaining service availability + add local SEO keywords.
 `;
 
   console.log("🤖 Calling OpenAI...");
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 12000);
 
-  let ai;
-  try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: prompt }]
-      })
-    });
+  const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.OPENAI_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }]
+    })
+  });
 
-    clearTimeout(timeout);
-    ai = await response.json();
+  const ai = await aiResponse.json();
 
-    if (!response.ok || ai.error) {
-      console.error("OpenAI error:", ai);
-      return res.status(500).json({ error:"OpenAI failed", raw: ai });
-    }
-
-  } catch (e) {
-    console.error("OpenAI timeout", e);
-    return res.status(504).json({ error: "AI timeout" });
+  if (!aiResponse.ok || ai.error) {
+    console.error(ai);
+    return res.status(500).json({ error: "OpenAI failed", raw: ai });
   }
 
-  // ✅ Parse output
-  const raw = ai.choices?.[0]?.message?.content;
-
-  if (!raw) return res.status(500).json({ error:"AI empty" });
-
-  let profile;
+  let generated;
   try {
-    profile = JSON.parse(raw.replace(/```json|```/g,"").trim());
+    generated = JSON.parse(
+      ai.choices[0].message.content.replace(/```json|```/g, "").trim()
+    );
   } catch (err) {
-    console.error("JSON invalid:", raw);
-    return res.status(500).json({ error:"Bad AI JSON", raw });
+    console.error("JSON parsing failed:", ai.choices[0].message.content);
+    return res.status(500).json({ error: "Bad AI JSON" });
   }
 
-  // ✅ Final profile shape
+  // ----------------------------------------------------
+  // Build final profile object for Supabase
+  // ----------------------------------------------------
   const finalProfile = {
     username,
-    type,
-    profile_image: image,
-    display_name: profile.display_name || name,
-    headline: profile.headline || headline,
-    summary: profile.summary || bio,
-    expertise: profile.expertise || parsedExpertise,
-    timeline: profile.timeline || parsedTimeline,
-    contact: { email, phone, website },
-    social: { linkedin, twitter, github, instagram, youtube },
-    is_public: true
+    business_name,
+    owner_name: name,
+    address,
+    phone,
+    email,
+    website,
+    about: generated.about_section,
+    hero_tagline: generated.hero_tagline,
+    seo_title: generated.seo_title,
+    seo_description: generated.seo_description,
+    services: generated.services_expanded,
+    service_area: parsedServiceArea,
+    town_sections: generated.town_sections,
+    why_choose_us: generated.why_choose_us,
+    images: imageURLs,
+    is_public: true,
+    updated_at: new Date().toISOString()
   };
 
-  // ✅ Save to DB
-  console.log("🧾 Saving profile:", username);
+  // ----------------------------------------------------
+  // WRITE TO SUPABASE
+  // ----------------------------------------------------
+  console.log("🧾 Saving business profile:", username);
 
   const { error } = await supabase
-    .from("profiles")
+    .from("small_business_profiles")
     .upsert(finalProfile, { onConflict: "username" });
 
   if (error) {
     console.error("❌ Supabase insert failed:", error);
-    return res.status(500).json({ error:"DB failure", supabase:error });
+    return res.status(500).json({ error: "Database error", details: error });
   }
 
-  console.log("✅ Saved in", Date.now() - started, "ms");
-  res.json(finalProfile);
+  console.log("✅ Business saved");
+
+  // return minimal payload for redirect
+  res.json({ username, success: true });
 }

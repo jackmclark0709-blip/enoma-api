@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<title>Create Profile — Enoma</title>
+<title>Create Business Profile — Enoma</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 
 <style>
@@ -25,26 +25,23 @@ body {
   color: white;
 }
 
-/* Center Card */
+/* Form card */
 form {
   background: var(--enoma-card);
-  max-width: 620px;
+  max-width: 640px;
   margin: auto;
   border-radius: 16px;
-  padding: 2.5rem 2.75rem 2.75rem;
+  padding: 2.5rem 2.75rem;
   box-shadow: 0 25px 60px rgba(0,0,0,0.4);
 }
 
-/* Title */
 h1 {
   text-align: center;
   color: var(--enoma-blue);
   font-weight: 700;
-  margin-bottom: 2rem;
-  position: relative;
+  margin-bottom: 1rem;
 }
 
-/* Title Accent Line */
 h1::after {
   content: "";
   width: 42px;
@@ -55,7 +52,12 @@ h1::after {
   border-radius: 3px;
 }
 
-/* Labels */
+.subtitle {
+  text-align: center;
+  color: var(--enoma-muted);
+  margin-bottom: 2rem;
+}
+
 label {
   display: block;
   margin: 1.25rem 0 0.4rem;
@@ -63,7 +65,6 @@ label {
   color: var(--enoma-blue);
 }
 
-/* Inputs */
 input,
 textarea,
 select {
@@ -76,7 +77,6 @@ select {
   transition: 0.2s ease;
 }
 
-/* Focus style */
 input:focus,
 textarea:focus,
 select:focus {
@@ -85,14 +85,12 @@ select:focus {
   box-shadow: 0 0 0 3px rgba(154, 140, 255, 0.18);
 }
 
-/* Separators */
 hr {
   border: none;
   border-top: 1px dashed var(--enoma-border);
   margin: 2rem 0;
 }
 
-/* Button */
 button {
   margin-top: 2rem;
   width: 100%;
@@ -106,152 +104,103 @@ button {
   transition: 0.25s ease;
 }
 
-/* Button Hover */
 button:hover {
   background: linear-gradient(135deg, var(--enoma-green), var(--enoma-blue));
   transform: translateY(-1px);
   box-shadow: 0 8px 18px rgba(80,166,132,0.3);
 }
 
-/* Status message */
 #status {
   text-align: center;
   margin-top: 1rem;
   color: var(--enoma-green);
   font-weight: 600;
 }
-
-/* Utility */
-.hidden {
-  display: none;
-}
-
-/* Mobile */
-@media (max-width: 600px) {
-  form {
-    padding: 2rem 1.5rem;
-    border-radius: 14px;
-  }
-}
-.subtitle {
-  text-align: center;
-  color: var(--enoma-muted);
-  margin-top: -1rem;
-  margin-bottom: 2rem;
-}
-
-
 </style>
 </head>
 
 <body>
 
-<h1>Create your Enoma profile</h1>
-<p class="subtitle">Your personal profile, designed to live on the internet.</p>
-
+<h1>Create Your Business Page</h1>
+<p class="subtitle">We turn your business info into a polished, search-optimized webpage.</p>
 
 <form id="form">
 
-<label>Profile Type</label>
-<select name="type" id="type">
-  <option value="personal">Personal</option>
-  <option value="business">Business</option>
-</select>
+<!-- Hidden but preserved personal setting -->
+<input type="hidden" name="type" value="business" />
 
-<label>Full name</label>
-<input name="name" required />
+<label>Business Name</label>
+<input name="business_name" required placeholder="e.g., Clark Electrical Services"/>
 
-<label>Profile Image URL</label>
-<input name="image" placeholder="https://..." />
+<label>Owner Name</label>
+<input name="name" required placeholder="Your full name"/>
 
-<label>Upload Resume (optional)</label>
-<input type="file" name="resume" id="resume" accept=".pdf,.doc,.docx,.txt"/>
-<small style="color:#888">PDF, DOCX, or text — we extract timeline + expertise automatically.</small>
+<label>Business Address</label>
+<input name="address" placeholder="123 Main St, Attleboro, MA"/>
 
-
-<label>Headline</label>
-<input name="headline" />
-
-<label>Summary / Bio</label>
-<textarea name="bio"></textarea>
-
-<div id="businessFields" class="hidden">
-  <label>Company</label>
-  <input name="company" />
-
-  <label>Role</label>
-  <input name="role" />
-</div>
-
-<hr/>
+<label>Phone Number</label>
+<input name="phone" placeholder="(555) 123-4567"/>
 
 <label>Email</label>
-<input name="email"/>
+<input name="email" placeholder="business@email.com"/>
 
-<label>Phone</label>
-<input name="phone"/>
-
-<label>Website</label>
-<input name="website"/>
+<label>Website (optional)</label>
+<input name="website" placeholder="https://..."/>
 
 <hr/>
 
-<label>LinkedIn</label>
-<input name="linkedin"/>
+<label>Service Area (comma separated towns)</label>
+<input name="service_area" placeholder="Attleboro, North Attleboro, Mansfield"/>
 
-<label>X (Twitter)</label>
-<input name="twitter"/>
+<label>Services Offered (comma separated)</label>
+<input name="services" placeholder="Electrical repair, panel upgrades, lighting installation"/>
 
-<label>GitHub</label>
-<input name="github"/>
+<label>Describe Your Business</label>
+<textarea name="about" placeholder="Tell us about what makes your business great..."></textarea>
 
-<label>Instagram</label>
-<input name="instagram"/>
+<label>Preferred Tone</label>
+<select name="tone">
+  <option value="professional">Professional</option>
+  <option value="friendly">Friendly</option>
+  <option value="luxury">Luxury</option>
+  <option value="bold">Bold</option>
+  <option value="simple">Simple & Clean</option>
+</select>
 
-<label>YouTube</label>
-<input name="youtube"/>
+<label>Upload Logo or Business Images</label>
+<input type="file" name="images" accept="image/*" multiple />
 
 <hr/>
 
-<label>Expertise (comma separated)</label>
-<input name="expertise"/>
-
-<label>Timeline (format: YEAR: Event, YEAR: Event)</label>
-<textarea name="timeline"></textarea>
-
-<button>Create Profile</button>
+<button>Create Business Page</button>
 
 </form>
 
 <div id="status"></div>
 
 <script>
-const typeField = document.getElementById("type");
-const businessFields = document.getElementById("businessFields");
 const form = document.getElementById("form");
 const status = document.getElementById("status");
 
-typeField.addEventListener("change", () => {
-  businessFields.classList.toggle("hidden", typeField.value !== "business");
-});
-
-form.addEventListener("submit", async e => {
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
-  status.textContent = "Creating profile...";
+  status.textContent = "Creating your business profile...";
 
   const fd = new FormData(form);
 
-  const expertise = fd.get("expertise")
-    ?.split(",").map(x => x.trim()).filter(Boolean) || [];
+  // Parse service area + services into JSON
+  const services = fd.get("services")
+    ?.split(",")
+    .map(x => x.trim())
+    .filter(Boolean) || [];
 
-  const timeline = fd.get("timeline")
-    ?.split(",").map(t => {
-      const [year, event] = t.split(":");
-      return { year: year?.trim(), event: event?.trim() };
-    }) || [];
+  const serviceArea = fd.get("service_area")
+    ?.split(",")
+    .map(x => x.trim())
+    .filter(Boolean) || [];
 
-  fd.set("expertise", JSON.stringify(expertise));
-  fd.set("timeline", JSON.stringify(timeline)); // backend-readable
+  fd.set("services", JSON.stringify(services));
+  fd.set("service_area", JSON.stringify(serviceArea));
 
   try {
     const res = await fetch("/api/generate-profile", {
@@ -267,16 +216,20 @@ form.addEventListener("submit", async e => {
       return;
     }
 
+    // Save for preview page
     sessionStorage.setItem("profile", JSON.stringify(profile));
-    window.location.assign("/profile.html");
+
+    // Redirect to public page template
+    window.location.assign(`/business.html?slug=${profile.username}`);
 
   } catch (err) {
     console.error(err);
-    status.textContent = "Profile generation failed. Try again.";
+    status.textContent = "Failed to create profile. Try again.";
   }
 });
 </script>
 
 </body>
 </html>
+
 
