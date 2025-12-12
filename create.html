@@ -203,7 +203,7 @@ form.addEventListener("submit", async (e) => {
   fd.set("service_area", JSON.stringify(serviceArea));
 
   try {
-    const res = await fetch("/api/generate-profile", {
+    const res = await fetch("/api/generate-business", {
       method: "POST",
       body: fd
     });
