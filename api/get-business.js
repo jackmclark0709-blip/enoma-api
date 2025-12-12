@@ -6,17 +6,17 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  const { username } = req.query;
+  // Canonical identifier
+  const slug = req.query.slug || req.query.username;
 
-  if (!username) {
-    return res.status(400).json({ error: "No username provided" });
+  if (!slug) {
+    return res.status(400).json({ error: "No slug provided" });
   }
 
-  // Fetch the matching business
   const { data, error } = await supabase
     .from("small_business_profiles")
     .select("*")
-    .eq("username", username)
+    .eq("username", slug) // keep using username column for now
     .single();
 
   if (error || !data) {
@@ -24,7 +24,6 @@ export default async function handler(req, res) {
     return res.status(404).json({ error: "Business profile not found" });
   }
 
-  // Normalize the JSON columns (services, service_area, town_sections)
   const clean = {
     ...data,
     services: safeParse(data.services),
@@ -32,7 +31,7 @@ export default async function handler(req, res) {
     town_sections: safeParse(data.town_sections),
   };
 
-  return res.json(clean);
+  return res.status(200).json(clean);
 }
 
 // Helper to prevent crashes from malformed JSON
@@ -46,3 +45,4 @@ function safeParse(val) {
     return [];
   }
 }
+
