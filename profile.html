@@ -185,6 +185,32 @@
       font-style: italic;
     }
 
+    /* ===== Attachments ===== */
+    .attachment-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .attachment-list li {
+      margin-top: 0.75rem;
+    }
+
+    .attachment-list a {
+      display: inline-block;
+      padding: 0.6rem 0.9rem;
+      border-radius: 8px;
+      background: #fafafa;
+      border: 1px solid #eee;
+      text-decoration: none;
+      color: var(--blue);
+      font-weight: 500;
+    }
+
+    .attachment-list a:hover {
+      background: #f0f0ff;
+    }
+
     /* ===== Contact ===== */
     .contact form {
       display: grid;
@@ -267,6 +293,11 @@
     <div id="testimonialList"></div>
   </div>
 
+  <div class="section hidden" id="attachments">
+    <h2>Resources</h2>
+    <ul id="attachmentList" class="attachment-list"></ul>
+  </div>
+
   <div class="section">
     <h2>Gallery</h2>
     <div id="gallery" class="image-grid"></div>
@@ -317,7 +348,8 @@ function normalizeProfile(p) {
       ? p.images.map(i => ({ url: i.url || i.filename || i }))
       : [],
 
-    testimonials: Array.isArray(p.testimonials) ? p.testimonials : []
+    testimonials: Array.isArray(p.testimonials) ? p.testimonials : [],
+    attachments: Array.isArray(p.attachments) ? p.attachments : []
   };
 }
 
@@ -329,9 +361,9 @@ async function loadProfile() {
   const res = await fetch(`/api/get-business?slug=${slug}`);
   const p = normalizeProfile(await res.json());
 
-  document.getElementById("name").textContent = p.name;
-  document.getElementById("tagline").textContent = p.tagline;
-  document.getElementById("about").textContent = p.about;
+  name.textContent = p.name;
+  tagline.textContent = p.tagline;
+  about.textContent = p.about;
 
   const headerCTA = document.getElementById("headerCTA");
   if (p.phone) {
@@ -383,6 +415,13 @@ async function loadProfile() {
     ).join("");
   }
 
+  if (p.attachments.length) {
+    attachments.classList.remove("hidden");
+    attachmentList.innerHTML = p.attachments.map(a =>
+      `<li><a href="${a.url}" target="_blank">📄 ${a.label || "View resource"}</a></li>`
+    ).join("");
+  }
+
   contactForm.addEventListener("submit", async e => {
     e.preventDefault();
     const btn = contactForm.querySelector("button");
@@ -416,4 +455,3 @@ loadProfile();
 
 </body>
 </html>
-
