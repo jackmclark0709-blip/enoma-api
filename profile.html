@@ -218,7 +218,8 @@ async function loadProfile() {
   const slug = new URLSearchParams(location.search).get("slug");
   if (!slug) return;
 
-  const res = await fetch(`/api/get-profile?slug=${slug}`);
+const res = await fetch(`/api/get-profile?username=${slug}`);
+
   const p = await res.json();
 
   document.body.classList.add(p.profile_type || "person");
