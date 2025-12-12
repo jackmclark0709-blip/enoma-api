@@ -220,7 +220,7 @@ async function loadProfile() {
   const slug = new URLSearchParams(location.search).get("slug");
   if (!slug) return;
 
-  const res = await fetch(`/api/get-profile?username=${slug}`);
+const res = await fetch(`/api/get-business?username=${slug}`);
   let p = normalizeProfile(await res.json());
 
   const name =
@@ -229,10 +229,11 @@ async function loadProfile() {
     p.company_name ||
     "";
 
-  const tagline =
-    p.tagline ||
-    p.hero_tagline ||
-    "";
+ const tagline =
+  p.hero_tagline ||
+  p.tagline ||
+  "";
+
 
   document.getElementById("seo_title").textContent = p.seo_title || name;
   document.getElementById("seo_description").content = p.seo_description || "";
