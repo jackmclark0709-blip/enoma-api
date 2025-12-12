@@ -1,3 +1,5 @@
+
+
 import fetch from "node-fetch";
 import { createClient } from "@supabase/supabase-js";
 import formidable from "formidable";
@@ -17,10 +19,26 @@ export const config = {
 };
 
 // ----------------------------------------------------
-// Helper: Convert business name → clean slug
+// Helpers
 // ----------------------------------------------------
+function first(val) {
+  if (!val) return "";
+
+  // Formidable often wraps fields in arrays
+  if (Array.isArray(val)) return val[0];
+
+  // Sometimes returns objects like { _fields: ["value"] }
+  if (typeof val === "object" && val._fields?.[0]) {
+    return val._fields[0];
+  }
+
+  return val;
+}
+
 function slugify(text) {
-  return text
+  if (!text) return "";
+  text = Array.isArray(text) ? text[0] : text;
+  return String(text)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
@@ -33,7 +51,6 @@ export default async function handler(req, res) {
 
   console.log("⚡ Business profile generation invoked");
 
-  // Parse incoming form-data (supports file uploads)
   const form = formidable({ multiples: true, keepExtensions: true });
 
   const { fields, files } = await new Promise((resolve, reject) => {
@@ -44,51 +61,50 @@ export default async function handler(req, res) {
   });
 
   // ----------------------------------------------------
-  // Extract inputs
+  // Normalize fields
   // ----------------------------------------------------
-  const {
-    business_name,
-    name,
-    address,
-    phone,
-    email,
-    website,
-    service_area,
-    services,
-    about,
-    tone,
-  } = fields;
+
+  const business_name = first(fields.business_name);
+  const owner_name    = first(fields.name);
+  const address       = first(fields.address);
+  const phone         = first(fields.phone);
+  const email         = first(fields.email);
+  const website       = first(fields.website);
+  const about         = first(fields.about);
+  const tone          = first(fields.tone);
+
+  const service_area_raw = first(fields.service_area);
+  const services_raw     = first(fields.services);
 
   if (!business_name || !email) {
     return res.status(400).json({ error: "Business name and email required." });
   }
 
+  // Arrays
+  let parsedServiceArea = [];
+  let parsedServices = [];
+
+  try { parsedServiceArea = JSON.parse(service_area_raw || "[]"); } catch {}
+  try { parsedServices     = JSON.parse(services_raw || "[]"); } catch {}
+
+  // Username slug
   const username = slugify(business_name);
 
-  // Arrays (passed as JSON strings from client)
-  let parsedServices = [];
-  let parsedServiceArea = [];
-
-  try { parsedServices = JSON.parse(services || "[]"); } catch {}
-  try { parsedServiceArea = JSON.parse(service_area || "[]"); } catch {}
-
   // ----------------------------------------------------
-  // Optional image upload → store raw files in /tmp for now
-  // (Future upgrade: upload to Supabase Storage)
+  // Handle images (later upgrade to Supabase Storage)
   // ----------------------------------------------------
   let imageURLs = [];
 
   if (files.images) {
     const arr = Array.isArray(files.images) ? files.images : [files.images];
-
-    imageURLs = arr.map((f) => ({
+    imageURLs = arr.map(f => ({
       filename: f.originalFilename,
       type: f.mimetype
     }));
   }
 
   // ----------------------------------------------------
-  // BUILD AI PROMPT
+  // AI Prompt
   // ----------------------------------------------------
   const prompt = `
 Create an SEO-optimized business profile.
@@ -107,7 +123,7 @@ Return ONLY JSON in this structure:
 
 DATA PROVIDED:
 Business Name: ${business_name}
-Owner Name: ${name}
+Owner Name: ${owner_name}
 Address: ${address}
 Phone: ${phone}
 Email: ${email}
@@ -120,15 +136,6 @@ Services Offered: ${parsedServices.join(", ")}
 
 About business:
 ${about}
-
-TASKS:
-1. Generate a powerful SEO page title.
-2. Write a compelling meta description using local SEO.
-3. Create a strong hero tagline.
-4. Expand "about" into a polished, persuasive business overview.
-5. Create a “Why Choose Us” section listing 3–5 reasons.
-6. Rewrite each service into a professional, polished 2–3 sentence description using benefit-driven language.
-7. For EACH town in the service area, write a paragraph explaining service availability + add local SEO keywords.
 `;
 
   console.log("🤖 Calling OpenAI...");
@@ -163,12 +170,12 @@ TASKS:
   }
 
   // ----------------------------------------------------
-  // Build final profile object for Supabase
+  // Build final profile object
   // ----------------------------------------------------
   const finalProfile = {
     username,
     business_name,
-    owner_name: name,
+    owner_name,
     address,
     phone,
     email,
@@ -186,9 +193,6 @@ TASKS:
     updated_at: new Date().toISOString()
   };
 
-  // ----------------------------------------------------
-  // WRITE TO SUPABASE
-  // ----------------------------------------------------
   console.log("🧾 Saving business profile:", username);
 
   const { error } = await supabase
@@ -200,8 +204,6 @@ TASKS:
     return res.status(500).json({ error: "Database error", details: error });
   }
 
-  console.log("✅ Business saved");
-
-  // return minimal payload for redirect
+  console.log("✅ Business profile saved");
   res.json({ username, success: true });
 }
