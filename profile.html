@@ -23,12 +23,47 @@
       color: var(--text);
     }
 
+    .hidden { display: none; }
+
     .container {
       max-width: 900px;
       margin: auto;
       padding: 2rem 1.25rem;
     }
 
+    /* ===== Header ===== */
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: white;
+      border-bottom: 1px solid #eee;
+    }
+
+    .header-inner {
+      max-width: 900px;
+      margin: auto;
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      font-weight: 600;
+      color: var(--blue);
+    }
+
+    .header-cta {
+      background: var(--blue);
+      color: white;
+      padding: 0.45rem 0.9rem;
+      border-radius: 999px;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    /* ===== Hero ===== */
     .hero {
       text-align: center;
       padding: 3.5rem 1.5rem;
@@ -59,13 +94,8 @@
       object-fit: contain;
     }
 
-    .hidden {
-      display: none;
-    }
-
     .hero h1 {
       font-size: 2.4rem;
-      font-weight: 700;
       margin: 0;
     }
 
@@ -75,6 +105,7 @@
       margin-top: 0.5rem;
     }
 
+    /* ===== Sections ===== */
     .section {
       background: white;
       border-radius: 14px;
@@ -85,10 +116,27 @@
 
     .section h2 {
       margin-top: 0;
-      font-size: 1.3rem;
       color: var(--blue);
+      font-size: 1.3rem;
     }
 
+    /* ===== Company Details ===== */
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .details-grid div {
+      background: #fafafa;
+      padding: 1rem;
+      border-radius: 10px;
+      border: 1px solid #eee;
+      font-size: 0.95rem;
+    }
+
+    /* ===== Services ===== */
     .service-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -98,7 +146,7 @@
 
     .service-card {
       background: #fafafa;
-      padding: 1rem 1.2rem;
+      padding: 1.25rem;
       border-radius: 12px;
       border: 1px solid #eee;
     }
@@ -109,6 +157,13 @@
       font-size: 1.05rem;
     }
 
+    .service-price {
+      margin-top: 0.5rem;
+      font-weight: 600;
+      color: var(--green);
+    }
+
+    /* ===== Gallery ===== */
     .image-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -120,6 +175,17 @@
       border-radius: 12px;
     }
 
+    /* ===== Testimonials ===== */
+    .testimonial {
+      background: #fafafa;
+      padding: 1.25rem;
+      border-radius: 12px;
+      border: 1px solid #eee;
+      margin-top: 1rem;
+      font-style: italic;
+    }
+
+    /* ===== Contact ===== */
     .contact form {
       display: grid;
       gap: 0.75rem;
@@ -149,38 +215,6 @@
       opacity: 0.5;
       font-size: 0.8rem;
     }
-
-.site-header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background: white;
-  border-bottom: 1px solid #eee;
-}
-
-.header-inner {
-  max-width: 900px;
-  margin: auto;
-  padding: 0.75rem 1.25rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.brand {
-  font-weight: 600;
-  color: var(--blue);
-}
-
-.header-cta {
-  background: var(--blue);
-  color: white;
-  padding: 0.45rem 0.9rem;
-  border-radius: 999px;
-  text-decoration: none;
-  font-size: 0.9rem;
-}
-
   </style>
 </head>
 
@@ -189,10 +223,9 @@
 <header class="site-header">
   <div class="header-inner">
     <span class="brand">Enoma</span>
-    <a href="#contact" class="header-cta">Contact</a>
+    <a id="headerCTA" class="header-cta hidden"></a>
   </div>
 </header>
-
 
 <div class="container">
 
@@ -210,13 +243,14 @@
     <p id="about"></p>
   </div>
 
-<div class="section hidden" id="companyDetails">
-  <h2>Company Details</h2>
-  <p id="companyEmail"></p>
-  <p id="companyPhone"></p>
-  <p id="companyWebsite"></p>
-</div>
-
+  <div class="section hidden" id="companyDetails">
+    <h2>Company Details</h2>
+    <div class="details-grid">
+      <div id="companyEmail"></div>
+      <div id="companyPhone"></div>
+      <div id="companyWebsite"></div>
+    </div>
+  </div>
 
   <div class="section">
     <h2>Highlights</h2>
@@ -228,12 +262,17 @@
     <div id="services" class="service-grid"></div>
   </div>
 
+  <div class="section hidden" id="testimonials">
+    <h2>What Clients Say</h2>
+    <div id="testimonialList"></div>
+  </div>
+
   <div class="section">
     <h2>Gallery</h2>
     <div id="gallery" class="image-grid"></div>
   </div>
 
-  <div class="section contact">
+  <div class="section contact" id="contact">
     <h2>Contact</h2>
     <form id="contactForm">
       <input name="name" placeholder="Your name" required />
@@ -253,157 +292,104 @@
 <script>
 function normalizeProfile(p) {
   return {
-    name:
-      p.name ||
-      p.business_name ||
-      p.company_name ||
-      "",
-
-    tagline:
-      p.hero_tagline ||
-      p.tagline ||
-      p.headline ||
-      "",
-
-    about:
-      p.about ||
-      p.bio ||
-      "",
-
+    name: p.business_name || p.company_name || "",
+    tagline: p.hero_tagline || "",
+    about: p.about || "",
     email: p.email || null,
     phone: p.phone || null,
     website: p.website || null,
+    avatar_url: p.profile_image || null,
+    logo_url: p.logo_url || null,
 
-    avatar_url:
-      p.avatar_url ||
-      p.profile_image ||
-      null,
+    highlights: typeof p.why_choose_us === "string"
+      ? p.why_choose_us.split("\n").filter(Boolean)
+      : [],
 
-    logo_url:
-      p.logo_url ||
-      null,
+    services: Array.isArray(p.services)
+      ? p.services.map(s => ({
+          name: s.service_name || s.name,
+          description: s.service_description || s.description,
+          price: s.price || null
+        }))
+      : [],
 
-    highlights:
-      Array.isArray(p.highlights)
-        ? p.highlights
-        : typeof p.why_choose_us === "string"
-          ? [p.why_choose_us]
-          : [],
+    images: Array.isArray(p.images)
+      ? p.images.map(i => ({ url: i.url || i.filename || i }))
+      : [],
 
-    services:
-      Array.isArray(p.services)
-        ? p.services.map(s => ({
-            name: s.name || s.service_name,
-            description: s.description || s.service_description
-          }))
-        : [],
-
-    images:
-      Array.isArray(p.images)
-        ? p.images.map(img => ({
-            url: img.url || img.filename || img
-          }))
-        : [],
-
-    seo_title: p.seo_title,
-    seo_description: p.seo_description
+    testimonials: Array.isArray(p.testimonials) ? p.testimonials : []
   };
 }
 
 async function loadProfile() {
   let slug = new URLSearchParams(location.search).get("slug");
-  if (!slug) {
-    slug = location.pathname.replace("/", "");
-  }
+  if (!slug) slug = location.pathname.replace("/", "");
   if (!slug) return;
 
   const res = await fetch(`/api/get-business?slug=${slug}`);
-  const raw = await res.json();
-  const p = normalizeProfile(raw);
+  const p = normalizeProfile(await res.json());
 
-  const name = p.name || slug.replace(/-/g, " ");
-  const tagline = p.tagline || "";
+  document.getElementById("name").textContent = p.name;
+  document.getElementById("tagline").textContent = p.tagline;
+  document.getElementById("about").textContent = p.about;
 
-  document.getElementById("seo_title").textContent =
-    p.seo_title || name;
-  document.getElementById("seo_description").content =
-    p.seo_description || "";
-
-  document.getElementById("name").textContent = name;
-  document.getElementById("tagline").textContent = tagline;
-  document.getElementById("about").textContent = p.about || "";
-
-  // Contact details
-  const detailsEl = document.getElementById("companyDetails");
-  if (detailsEl && (p.email || p.phone || p.website)) {
-    detailsEl.classList.remove("hidden");
-
-    if (p.email) {
-      document.getElementById("companyEmail").innerHTML =
-        `Email: <a href="mailto:${p.email}">${p.email}</a>`;
-    }
-
-    if (p.phone) {
-      document.getElementById("companyPhone").textContent =
-        `Phone: ${p.phone}`;
-    }
-
-    if (p.website) {
-      document.getElementById("companyWebsite").innerHTML =
-        `Website: <a href="${p.website}" target="_blank">${p.website}</a>`;
-    }
+  const headerCTA = document.getElementById("headerCTA");
+  if (p.phone) {
+    headerCTA.href = `tel:${p.phone}`;
+    headerCTA.textContent = "Call Now";
+  } else if (p.email) {
+    headerCTA.href = `mailto:${p.email}`;
+    headerCTA.textContent = "Email Us";
+  } else {
+    headerCTA.href = "#contact";
+    headerCTA.textContent = "Contact";
   }
+  headerCTA.classList.remove("hidden");
 
-  // Media
   if (p.avatar_url) {
-    const a = document.getElementById("avatar");
-    a.src = p.avatar_url;
-    a.classList.remove("hidden");
+    avatar.src = p.avatar_url;
+    avatar.classList.remove("hidden");
   }
-
   if (p.logo_url) {
-    const l = document.getElementById("logo");
-    l.src = p.logo_url;
-    l.classList.remove("hidden");
+    logo.src = p.logo_url;
+    logo.classList.remove("hidden");
   }
 
-  // Highlights
-  document.getElementById("why").innerHTML =
-    p.highlights.length
-      ? `<ul>${p.highlights.map(h => `<li>${h}</li>`).join("")}</ul>`
-      : "";
+  if (p.email || p.phone || p.website) {
+    companyDetails.classList.remove("hidden");
+    if (p.email) companyEmail.innerHTML = `📧 <strong>Email</strong><br><a href="mailto:${p.email}">${p.email}</a>`;
+    if (p.phone) companyPhone.innerHTML = `📞 <strong>Phone</strong><br><a href="tel:${p.phone}">${p.phone}</a>`;
+    if (p.website) companyWebsite.innerHTML = `🌐 <strong>Website</strong><br><a href="${p.website}" target="_blank">${p.website}</a>`;
+  }
 
-  // Services
-  const servicesEl = document.getElementById("services");
-  servicesEl.innerHTML = p.services.length
-    ? p.services.map(s =>
-        `<div class="service-card">
-          <h3>${s.name}</h3>
-          <p>${s.description}</p>
-        </div>`
-      ).join("")
-    : "";
+  why.innerHTML = p.highlights.length ? `<ul>${p.highlights.map(h => `<li>${h}</li>`).join("")}</ul>` : "";
 
-  // Gallery
-  const galleryEl = document.getElementById("gallery");
-  galleryEl.innerHTML = p.images.length
-    ? p.images.map(img =>
-        `<img src="${img.url}" alt="${name} image" loading="lazy">`
-      ).join("")
-    : "";
+  services.innerHTML = p.services.map(s =>
+    `<div class="service-card">
+      <h3>${s.name}</h3>
+      <p>${s.description}</p>
+      ${s.price ? `<div class="service-price">Starting at ${s.price}</div>` : ""}
+    </div>`
+  ).join("");
 
-  // Contact form (single, correct handler)
-  const form = document.getElementById("contactForm");
-  const status = document.getElementById("contactStatus");
+  gallery.innerHTML = p.images.map(img =>
+    `<img src="${img.url}" alt="" loading="lazy">`
+  ).join("");
 
-  form.addEventListener("submit", async e => {
+  if (p.testimonials.length) {
+    testimonials.classList.remove("hidden");
+    testimonialList.innerHTML = p.testimonials.map(t =>
+      `<div class="testimonial">“${t.quote}”<br><strong>— ${t.author}</strong></div>`
+    ).join("");
+  }
+
+  contactForm.addEventListener("submit", async e => {
     e.preventDefault();
+    const btn = contactForm.querySelector("button");
+    btn.disabled = true;
+    btn.textContent = "Sending…";
 
-    const button = form.querySelector("button");
-    button.disabled = true;
-    button.textContent = "Sending…";
-
-    const data = Object.fromEntries(new FormData(form));
+    const data = Object.fromEntries(new FormData(contactForm));
     data.slug = slug;
 
     try {
@@ -412,24 +398,22 @@ async function loadProfile() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
       });
-
-      status.textContent = r.ok
+      contactStatus.textContent = r.ok
         ? "Thanks — we’ll be in touch shortly."
-        : "Something went wrong. Please try again.";
-
-      if (r.ok) form.reset();
+        : "Something went wrong.";
+      if (r.ok) contactForm.reset();
     } catch {
-      status.textContent = "Network error. Please try again.";
+      contactStatus.textContent = "Network error.";
     }
 
-    button.disabled = false;
-    button.textContent = "Send message";
+    btn.disabled = false;
+    btn.textContent = "Send message";
   });
 }
 
 loadProfile();
 </script>
 
-
 </body>
 </html>
+
