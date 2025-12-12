@@ -29,7 +29,6 @@
       padding: 2rem 1.25rem;
     }
 
-    /* HERO */
     .hero {
       text-align: center;
       padding: 3.5rem 1.5rem;
@@ -76,7 +75,6 @@
       margin-top: 0.5rem;
     }
 
-    /* SECTIONS */
     .section {
       background: white;
       border-radius: 14px;
@@ -91,7 +89,6 @@
       color: var(--blue);
     }
 
-    /* SERVICES / CARDS */
     .service-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -112,7 +109,6 @@
       font-size: 1.05rem;
     }
 
-    /* GALLERY */
     .image-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -124,7 +120,6 @@
       border-radius: 12px;
     }
 
-    /* CONTACT FORM */
     .contact form {
       display: grid;
       gap: 0.75rem;
@@ -161,7 +156,6 @@
 
 <div class="container">
 
-  <!-- HERO -->
   <div class="hero">
     <div class="hero-media">
       <img id="logo" class="logo hidden" />
@@ -171,31 +165,26 @@
     <p id="tagline"></p>
   </div>
 
-  <!-- ABOUT -->
   <div class="section">
     <h2>About</h2>
     <p id="about"></p>
   </div>
 
-  <!-- HIGHLIGHTS / WHY -->
-  <div class="section" id="whySection">
+  <div class="section">
     <h2>Highlights</h2>
     <div id="why"></div>
   </div>
 
-  <!-- SERVICES -->
-  <div class="section" id="servicesSection">
+  <div class="section">
     <h2>Services</h2>
     <div id="services" class="service-grid"></div>
   </div>
 
-  <!-- GALLERY -->
-  <div class="section" id="gallerySection">
+  <div class="section">
     <h2>Gallery</h2>
     <div id="gallery" class="image-grid"></div>
   </div>
 
-  <!-- CONTACT -->
   <div class="section contact">
     <h2>Contact</h2>
     <form id="contactForm">
@@ -214,25 +203,43 @@
 </div>
 
 <script>
+function normalizeProfile(p) {
+  return {
+    ...p,
+    highlights: Array.isArray(p.highlights)
+      ? p.highlights
+      : typeof p.highlights === "string"
+        ? p.highlights.split("\n").filter(Boolean)
+        : [],
+    services: Array.isArray(p.services) ? p.services : [],
+    images: Array.isArray(p.images) ? p.images : []
+  };
+}
+
 async function loadProfile() {
   const slug = new URLSearchParams(location.search).get("slug");
   if (!slug) return;
 
-const res = await fetch(`/api/get-profile?username=${slug}`);
+  const res = await fetch(`/api/get-profile?username=${slug}`);
+  let p = normalizeProfile(await res.json());
 
-let p = await res.json();
-p = normalizeProfile(p);
+  const name =
+    p.name ||
+    p.business_name ||
+    p.company_name ||
+    "";
 
+  const tagline =
+    p.tagline ||
+    p.hero_tagline ||
+    "";
 
-  document.body.classList.add(p.profile_type || "person");
-
-  // SEO
-  document.getElementById("seo_title").textContent = p.seo_title || p.name;
+  document.getElementById("seo_title").textContent = p.seo_title || name;
   document.getElementById("seo_description").content = p.seo_description || "";
 
-  // Hero
-  document.getElementById("name").textContent = p.name || p.business_name;
-  document.getElementById("tagline").textContent = p.tagline || "";
+  document.getElementById("name").textContent = name;
+  document.getElementById("tagline").textContent = tagline;
+  document.getElementById("about").textContent = p.about || "";
 
   if (p.avatar_url) {
     const a = document.getElementById("avatar");
@@ -246,38 +253,23 @@ p = normalizeProfile(p);
     l.classList.remove("hidden");
   }
 
-  // About
-  document.getElementById("about").textContent = p.about || "";
+  document.getElementById("why").innerHTML =
+    p.highlights.length
+      ? `<ul>${p.highlights.map(h => `<li>${h}</li>`).join("")}</ul>`
+      : "<p>No highlights provided.</p>";
 
-  // Highlights
-  if (p.highlights?.length) {
-    document.getElementById("why").innerHTML =
-      `<ul>${p.highlights.map(h => `<li>${h}</li>`).join("")}</ul>`;
-  } else {
-    document.getElementById("whySection").remove();
-  }
+  const servicesEl = document.getElementById("services");
+  servicesEl.innerHTML = p.services.length
+    ? p.services.map(s =>
+        `<div class="service-card"><h3>${s.name}</h3><p>${s.description}</p></div>`
+      ).join("")
+    : "<p>No services listed.</p>";
 
-  // Services
-  if (p.services?.length) {
-    const s = document.getElementById("services");
-    p.services.forEach(x => {
-      s.innerHTML += `<div class="service-card"><h3>${x.name}</h3><p>${x.description}</p></div>`;
-    });
-  } else {
-    document.getElementById("servicesSection").remove();
-  }
+  const galleryEl = document.getElementById("gallery");
+  galleryEl.innerHTML = p.images.length
+    ? p.images.map(img => `<img src="${img.url}" alt="">`).join("")
+    : "<p>No images available.</p>";
 
-  // Gallery
-  if (p.images?.length) {
-    const g = document.getElementById("gallery");
-    p.images.forEach(img => {
-      g.innerHTML += `<img src="${img.url}" alt="">`;
-    });
-  } else {
-    document.getElementById("gallerySection").remove();
-  }
-
-  // Contact form
   document.getElementById("contactForm").addEventListener("submit", async e => {
     e.preventDefault();
     const data = Object.fromEntries(new FormData(e.target));
@@ -293,27 +285,6 @@ p = normalizeProfile(p);
       r.ok ? "Message sent." : "Something went wrong.";
   });
 }
-
-function normalizeProfile(p) {
-  return {
-    ...p,
-
-    highlights: Array.isArray(p.highlights)
-      ? p.highlights
-      : typeof p.highlights === "string"
-        ? p.highlights.split("\n").filter(Boolean)
-        : [],
-
-    services: Array.isArray(p.services)
-      ? p.services
-      : [],
-
-    images: Array.isArray(p.images)
-      ? p.images
-      : []
-  };
-}
-
 
 loadProfile();
 </script>
