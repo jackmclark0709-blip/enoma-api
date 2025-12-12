@@ -149,10 +149,50 @@
       opacity: 0.5;
       font-size: 0.8rem;
     }
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: white;
+  border-bottom: 1px solid #eee;
+}
+
+.header-inner {
+  max-width: 900px;
+  margin: auto;
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.brand {
+  font-weight: 600;
+  color: var(--blue);
+}
+
+.header-cta {
+  background: var(--blue);
+  color: white;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
   </style>
 </head>
 
 <body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <span class="brand">Enoma</span>
+    <a href="#contact" class="header-cta">Contact</a>
+  </div>
+</header>
+
 
 <div class="container">
 
@@ -169,6 +209,14 @@
     <h2>About</h2>
     <p id="about"></p>
   </div>
+
+<div class="section hidden" id="companyDetails">
+  <h2>Company Details</h2>
+  <p id="companyEmail"></p>
+  <p id="companyPhone"></p>
+  <p id="companyWebsite"></p>
+</div>
+
 
   <div class="section">
     <h2>Highlights</h2>
@@ -242,6 +290,28 @@ const res = await fetch(`/api/get-business?username=${slug}`);
   document.getElementById("tagline").textContent = tagline;
   document.getElementById("about").textContent = p.about || "";
 
+const detailsEl = document.getElementById("companyDetails");
+
+if (p.email || p.phone || p.website) {
+  detailsEl.classList.remove("hidden");
+
+  if (p.email) {
+    document.getElementById("companyEmail").innerHTML =
+      `Email: <a href="mailto:${p.email}">${p.email}</a>`;
+  }
+
+  if (p.phone) {
+    document.getElementById("companyPhone").textContent =
+      `Phone: ${p.phone}`;
+  }
+
+  if (p.website) {
+    document.getElementById("companyWebsite").innerHTML =
+      `Website: <a href="${p.website}" target="_blank">${p.website}</a>`;
+  }
+}
+
+
   if (p.avatar_url) {
     const a = document.getElementById("avatar");
     a.src = p.avatar_url;
@@ -267,14 +337,46 @@ const res = await fetch(`/api/get-business?username=${slug}`);
     : "<p>No services listed.</p>";
 
   const galleryEl = document.getElementById("gallery");
-  galleryEl.innerHTML = p.images.length
-    ? p.images.map(img => `<img src="${img.url}" alt="">`).join("")
-    : "<p>No images available.</p>";
+ galleryEl.innerHTML = p.images.length
+  ? p.images.map(img =>
+      `<img src="${img.url}" alt="${name} image" loading="lazy">`
+    ).join("")
+  : "<p>No images available.</p>";
 
-  document.getElementById("contactForm").addEventListener("submit", async e => {
-    e.preventDefault();
-    const data = Object.fromEntries(new FormData(e.target));
-    data.slug = slug;
+
+document.getElementById("contactForm").addEventListener("submit", async e => {
+  e.preventDefault();
+
+  const form = e.target;
+  const status = document.getElementById("contactStatus");
+  const button = form.querySelector("button");
+
+  button.disabled = true;
+  button.textContent = "Sending…";
+
+  const data = Object.fromEntries(new FormData(form));
+  data.slug = slug;
+
+  try {
+    const r = await fetch("/api/contact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+
+    status.textContent = r.ok
+      ? "Thanks — we’ll be in touch shortly."
+      : "Something went wrong. Please try again.";
+
+    if (r.ok) form.reset();
+  } catch {
+    status.textContent = "Network error. Please try again.";
+  }
+
+  button.disabled = false;
+  button.textContent = "Send message";
+});
+
 
     const r = await fetch("/api/contact", {
       method: "POST",
