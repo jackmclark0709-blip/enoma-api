@@ -268,7 +268,7 @@ async function loadProfile() {
   const slug = new URLSearchParams(location.search).get("slug");
   if (!slug) return;
 
-const res = await fetch(`/api/get-business?username=${slug}`);
+const res = await fetch(`/api/get-business?slug=${slug}`);
   let p = normalizeProfile(await res.json());
 
   const name =
