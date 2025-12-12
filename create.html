@@ -38,7 +38,7 @@ h1 {
   text-align: center;
   color: var(--enoma-blue);
   font-weight: 700;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .subtitle {
@@ -76,7 +76,7 @@ hr {
   color: var(--enoma-lavender);
   font-weight: 600;
   cursor: pointer;
-  margin-top: 0.5rem;
+  margin-top: 0.75rem;
 }
 
 .block {
@@ -130,7 +130,7 @@ button[type="submit"] {
 <input name="phone" />
 
 <label>Email</label>
-<input name="email" />
+<input name="email" required />
 
 <label>Website</label>
 <input name="website" />
@@ -138,7 +138,7 @@ button[type="submit"] {
 <hr/>
 
 <label>Service Area (comma separated)</label>
-<input name="service_area" />
+<input name="service_area" placeholder="Boston, Cambridge, Remote" />
 
 <label>Describe Your Business</label>
 <textarea name="about"></textarea>
@@ -183,60 +183,70 @@ button[type="submit"] {
 <script>
 const form = document.getElementById("form");
 const status = document.getElementById("status");
+const servicesEl = document.getElementById("services");
+const testimonialsEl = document.getElementById("testimonials");
+const attachmentsEl = document.getElementById("attachments");
 
 function addService() {
-  services.innerHTML += `
-    <div class="block">
-      <input placeholder="Service name" class="service-name"/>
-      <textarea placeholder="Service description" class="service-description"></textarea>
-      <input placeholder="Price (e.g. $1,500+)" class="service-price"/>
-    </div>`;
+  const div = document.createElement("div");
+  div.className = "block";
+  div.innerHTML = `
+    <input placeholder="Service name" class="service-name"/>
+    <textarea placeholder="Service description" class="service-description"></textarea>
+    <input placeholder="Price (e.g. $1,500+)" class="service-price"/>
+  `;
+  servicesEl.appendChild(div);
 }
 
 function addTestimonial() {
-  testimonials.innerHTML += `
-    <div class="block">
-      <textarea placeholder="Client quote" class="testimonial-quote"></textarea>
-      <input placeholder="Author (name, role, company)" class="testimonial-author"/>
-    </div>`;
+  const div = document.createElement("div");
+  div.className = "block";
+  div.innerHTML = `
+    <textarea placeholder="Client quote" class="testimonial-quote"></textarea>
+    <input placeholder="Author (name, role, company)" class="testimonial-author"/>
+  `;
+  testimonialsEl.appendChild(div);
 }
 
 function addAttachment() {
-  attachments.innerHTML += `
-    <div class="block">
-      <input placeholder="Label (e.g. Company Brochure)" class="attachment-label"/>
-      <input placeholder="URL (PDF, Drive, Dropbox, etc.)" class="attachment-url"/>
-    </div>`;
+  const div = document.createElement("div");
+  div.className = "block";
+  div.innerHTML = `
+    <input placeholder="Label (e.g. Company Brochure)" class="attachment-label"/>
+    <input placeholder="URL (PDF, Drive, Dropbox, etc.)" class="attachment-url"/>
+  `;
+  attachmentsEl.appendChild(div);
 }
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
-  status.textContent = "Creating your business profile...";
+  status.textContent = "Creating your business profile…";
 
   const fd = new FormData(form);
 
   const servicesData = [...document.querySelectorAll(".service-name")].map((_, i) => ({
-    service_name: document.querySelectorAll(".service-name")[i].value,
-    service_description: document.querySelectorAll(".service-description")[i].value,
-    price: document.querySelectorAll(".service-price")[i].value
+    service_name: document.querySelectorAll(".service-name")[i].value.trim(),
+    service_description: document.querySelectorAll(".service-description")[i].value.trim(),
+    price: document.querySelectorAll(".service-price")[i].value.trim()
   })).filter(s => s.service_name);
 
   const testimonialsData = [...document.querySelectorAll(".testimonial-quote")].map((_, i) => ({
-    quote: document.querySelectorAll(".testimonial-quote")[i].value,
-    author: document.querySelectorAll(".testimonial-author")[i].value
+    quote: document.querySelectorAll(".testimonial-quote")[i].value.trim(),
+    author: document.querySelectorAll(".testimonial-author")[i].value.trim()
   })).filter(t => t.quote);
 
   const attachmentsData = [...document.querySelectorAll(".attachment-url")].map((_, i) => ({
-    label: document.querySelectorAll(".attachment-label")[i].value,
-    url: document.querySelectorAll(".attachment-url")[i].value
+    label: document.querySelectorAll(".attachment-label")[i].value.trim(),
+    url: document.querySelectorAll(".attachment-url")[i].value.trim()
   })).filter(a => a.url);
 
   fd.set("services", JSON.stringify(servicesData));
   fd.set("testimonials", JSON.stringify(testimonialsData));
   fd.set("attachments", JSON.stringify(attachmentsData));
 
+  const area = fd.get("service_area") || "";
   fd.set("service_area",
-    JSON.stringify(fd.get("service_area")?.split(",").map(x => x.trim()).filter(Boolean))
+    JSON.stringify(area.split(",").map(x => x.trim()).filter(Boolean))
   );
 
   try {
@@ -252,8 +262,8 @@ form.addEventListener("submit", async (e) => {
     }
 
     window.location.assign(`/profile.html?slug=${profile.username}`);
-
-  } catch {
+  } catch (err) {
+    console.error(err);
     status.textContent = "Failed to create profile. Try again.";
   }
 });
@@ -261,5 +271,3 @@ form.addEventListener("submit", async (e) => {
 
 </body>
 </html>
-
-
