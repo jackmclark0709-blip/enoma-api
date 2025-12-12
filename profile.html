@@ -253,65 +253,108 @@
 <script>
 function normalizeProfile(p) {
   return {
-    ...p,
-    highlights: Array.isArray(p.highlights)
-      ? p.highlights
-      : typeof p.highlights === "string"
-        ? p.highlights.split("\n").filter(Boolean)
+    name:
+      p.name ||
+      p.business_name ||
+      p.company_name ||
+      "",
+
+    tagline:
+      p.hero_tagline ||
+      p.tagline ||
+      p.headline ||
+      "",
+
+    about:
+      p.about ||
+      p.bio ||
+      "",
+
+    email: p.email || null,
+    phone: p.phone || null,
+    website: p.website || null,
+
+    avatar_url:
+      p.avatar_url ||
+      p.profile_image ||
+      null,
+
+    logo_url:
+      p.logo_url ||
+      null,
+
+    highlights:
+      Array.isArray(p.highlights)
+        ? p.highlights
+        : typeof p.why_choose_us === "string"
+          ? [p.why_choose_us]
+          : [],
+
+    services:
+      Array.isArray(p.services)
+        ? p.services.map(s => ({
+            name: s.name || s.service_name,
+            description: s.description || s.service_description
+          }))
         : [],
-    services: Array.isArray(p.services) ? p.services : [],
-    images: Array.isArray(p.images) ? p.images : []
+
+    images:
+      Array.isArray(p.images)
+        ? p.images.map(img => ({
+            url: img.url || img.filename || img
+          }))
+        : [],
+
+    seo_title: p.seo_title,
+    seo_description: p.seo_description
   };
 }
 
 async function loadProfile() {
-  const slug = new URLSearchParams(location.search).get("slug");
+  let slug = new URLSearchParams(location.search).get("slug");
+  if (!slug) {
+    slug = location.pathname.replace("/", "");
+  }
   if (!slug) return;
 
-const res = await fetch(`/api/get-business?slug=${slug}`);
-  let p = normalizeProfile(await res.json());
+  const res = await fetch(`/api/get-business?slug=${slug}`);
+  const raw = await res.json();
+  const p = normalizeProfile(raw);
 
-  const name =
-    p.name ||
-    p.business_name ||
-    p.company_name ||
-    "";
+  const name = p.name || slug.replace(/-/g, " ");
+  const tagline = p.tagline || "";
 
- const tagline =
-  p.hero_tagline ||
-  p.tagline ||
-  "";
-
-
-  document.getElementById("seo_title").textContent = p.seo_title || name;
-  document.getElementById("seo_description").content = p.seo_description || "";
+  document.getElementById("seo_title").textContent =
+    p.seo_title || name;
+  document.getElementById("seo_description").content =
+    p.seo_description || "";
 
   document.getElementById("name").textContent = name;
   document.getElementById("tagline").textContent = tagline;
   document.getElementById("about").textContent = p.about || "";
 
-const detailsEl = document.getElementById("companyDetails");
+  // Contact details
+  const detailsEl = document.getElementById("companyDetails");
+  if (detailsEl && (p.email || p.phone || p.website)) {
+    detailsEl.classList.remove("hidden");
 
-if (p.email || p.phone || p.website) {
-  detailsEl.classList.remove("hidden");
+    if (p.email) {
+      document.getElementById("companyEmail").innerHTML =
+        `Email: <a href="mailto:${p.email}">${p.email}</a>`;
+    }
 
-  if (p.email) {
-    document.getElementById("companyEmail").innerHTML =
-      `Email: <a href="mailto:${p.email}">${p.email}</a>`;
+    if (p.phone) {
+      document.getElementById("companyPhone").textContent =
+        `Phone: ${p.phone}`;
+    }
+
+    if (p.website) {
+      document.getElementById("companyWebsite").innerHTML =
+        `Website: <a href="${p.website}" target="_blank">${p.website}</a>`;
+    }
   }
 
-  if (p.phone) {
-    document.getElementById("companyPhone").textContent =
-      `Phone: ${p.phone}`;
-  }
-
-  if (p.website) {
-    document.getElementById("companyWebsite").innerHTML =
-      `Website: <a href="${p.website}" target="_blank">${p.website}</a>`;
-  }
-}
-
-
+  // Media
   if (p.avatar_url) {
     const a = document.getElementById("avatar");
     a.src = p.avatar_url;
@@ -324,73 +367,69 @@ if (p.email || p.phone || p.website) {
     l.classList.remove("hidden");
   }
 
+  // Highlights
   document.getElementById("why").innerHTML =
     p.highlights.length
       ? `<ul>${p.highlights.map(h => `<li>${h}</li>`).join("")}</ul>`
-      : "<p>No highlights provided.</p>";
+      : "";
 
+  // Services
   const servicesEl = document.getElementById("services");
   servicesEl.innerHTML = p.services.length
     ? p.services.map(s =>
-        `<div class="service-card"><h3>${s.name}</h3><p>${s.description}</p></div>`
+        `<div class="service-card">
+          <h3>${s.name}</h3>
+          <p>${s.description}</p>
+        </div>`
       ).join("")
-    : "<p>No services listed.</p>";
+    : "";
 
+  // Gallery
   const galleryEl = document.getElementById("gallery");
- galleryEl.innerHTML = p.images.length
-  ? p.images.map(img =>
-      `<img src="${img.url}" alt="${name} image" loading="lazy">`
-    ).join("")
-  : "<p>No images available.</p>";
+  galleryEl.innerHTML = p.images.length
+    ? p.images.map(img =>
+        `<img src="${img.url}" alt="${name} image" loading="lazy">`
+      ).join("")
+    : "";
 
-
-document.getElementById("contactForm").addEventListener("submit", async e => {
-  e.preventDefault();
-
-  const form = e.target;
+  // Contact form (single, correct handler)
+  const form = document.getElementById("contactForm");
   const status = document.getElementById("contactStatus");
-  const button = form.querySelector("button");
 
-  button.disabled = true;
-  button.textContent = "Sending…";
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
 
-  const data = Object.fromEntries(new FormData(form));
-  data.slug = slug;
+    const button = form.querySelector("button");
+    button.disabled = true;
+    button.textContent = "Sending…";
 
-  try {
-    const r = await fetch("/api/contact", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    });
+    const data = Object.fromEntries(new FormData(form));
+    data.slug = slug;
 
-    status.textContent = r.ok
-      ? "Thanks — we’ll be in touch shortly."
-      : "Something went wrong. Please try again.";
+    try {
+      const r = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
 
-    if (r.ok) form.reset();
-  } catch {
-    status.textContent = "Network error. Please try again.";
-  }
+      status.textContent = r.ok
+        ? "Thanks — we’ll be in touch shortly."
+        : "Something went wrong. Please try again.";
 
-  button.disabled = false;
-  button.textContent = "Send message";
-});
+      if (r.ok) form.reset();
+    } catch {
+      status.textContent = "Network error. Please try again.";
+    }
 
-
-    const r = await fetch("/api/contact", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    });
-
-    document.getElementById("contactStatus").textContent =
-      r.ok ? "Message sent." : "Something went wrong.";
+    button.disabled = false;
+    button.textContent = "Send message";
   });
 }
 
 loadProfile();
 </script>
+
 
 </body>
 </html>
