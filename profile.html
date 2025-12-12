@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <title id="seo_title">Business — Enoma</title>
+  <title id="seo_title">Profile — Enoma</title>
   <meta id="seo_description" name="description" content="">
 
   <style>
@@ -29,7 +29,7 @@
       padding: 2rem 1.25rem;
     }
 
-    /* HERO SECTION */
+    /* HERO */
     .hero {
       text-align: center;
       padding: 3.5rem 1.5rem;
@@ -37,6 +37,31 @@
       color: white;
       border-radius: 18px;
       margin-top: 2rem;
+    }
+
+    .hero-media {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      align-items: center;
+    }
+
+    .avatar {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid white;
+    }
+
+    .logo {
+      max-height: 64px;
+      object-fit: contain;
+    }
+
+    .hidden {
+      display: none;
     }
 
     .hero h1 {
@@ -51,7 +76,7 @@
       margin-top: 0.5rem;
     }
 
-    /* SECTION WRAPPER */
+    /* SECTIONS */
     .section {
       background: white;
       border-radius: 14px;
@@ -66,7 +91,7 @@
       color: var(--blue);
     }
 
-    /* SERVICES GRID */
+    /* SERVICES / CARDS */
     .service-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -87,22 +112,40 @@
       font-size: 1.05rem;
     }
 
-    /* LOCAL SEO TOWN SECTIONS */
-    .town-section {
-      margin-top: 1.25rem;
-      padding: 1.25rem;
-      background: #f8f8ff;
-      border-left: 4px solid var(--lavender);
-      border-radius: 10px;
+    /* GALLERY */
+    .image-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
     }
 
-    /* CONTACT BOX */
-    .contact-box {
-      background: #f0f8f4;
-      border-left: 4px solid var(--green);
-      padding: 1.25rem;
-      border-radius: 10px;
-      margin-top: 1.5rem;
+    .image-grid img {
+      width: 100%;
+      border-radius: 12px;
+    }
+
+    /* CONTACT FORM */
+    .contact form {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .contact input,
+    .contact textarea {
+      padding: 0.7rem;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      font-family: inherit;
+    }
+
+    .contact button {
+      background: var(--blue);
+      color: white;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
     }
 
     .footer {
@@ -117,121 +160,138 @@
 <body>
 
 <div class="container">
-  
+
   <!-- HERO -->
   <div class="hero">
-    <h1 id="businessName"></h1>
-    <p id="heroTagline"></p>
+    <div class="hero-media">
+      <img id="logo" class="logo hidden" />
+      <img id="avatar" class="avatar hidden" />
+    </div>
+    <h1 id="name"></h1>
+    <p id="tagline"></p>
   </div>
 
   <!-- ABOUT -->
   <div class="section">
-    <h2>About Us</h2>
+    <h2>About</h2>
     <p id="about"></p>
   </div>
 
-  <!-- WHY CHOOSE US -->
-  <div class="section">
-    <h2>Why Choose Us</h2>
+  <!-- HIGHLIGHTS / WHY -->
+  <div class="section" id="whySection">
+    <h2>Highlights</h2>
     <div id="why"></div>
   </div>
 
   <!-- SERVICES -->
-  <div class="section">
-    <h2>Services We Provide</h2>
+  <div class="section" id="servicesSection">
+    <h2>Services</h2>
     <div id="services" class="service-grid"></div>
   </div>
 
-  <!-- SERVICE AREA -->
-  <div class="section">
-    <h2>Service Area</h2>
-    <p id="serviceArea"></p>
-  </div>
-
-  <!-- TOWN SEO SECTIONS -->
-  <div class="section">
-    <h2>Serving Your Community</h2>
-    <div id="townSections"></div>
+  <!-- GALLERY -->
+  <div class="section" id="gallerySection">
+    <h2>Gallery</h2>
+    <div id="gallery" class="image-grid"></div>
   </div>
 
   <!-- CONTACT -->
-  <div class="section contact-box">
-    <h2>Contact Us</h2>
-    <p><strong>Email:</strong> <span id="email"></span></p>
-    <p><strong>Phone:</strong> <span id="phone"></span></p>
-    <p><strong>Website:</strong> <a id="website" href="" target="_blank"></a></p>
-    <p><strong>Address:</strong> <span id="address"></span></p>
+  <div class="section contact">
+    <h2>Contact</h2>
+    <form id="contactForm">
+      <input name="name" placeholder="Your name" required />
+      <input name="email" type="email" placeholder="Your email" required />
+      <textarea name="message" placeholder="Message" required></textarea>
+      <button type="submit">Send message</button>
+    </form>
+    <p id="contactStatus"></p>
   </div>
 
   <div class="footer">
-    Powered by Enoma — Smart Web Presence for Local Businesses
+    Powered by Enoma
   </div>
 
 </div>
 
 <script>
-async function loadBusiness() {
-  const urlParams = new URLSearchParams(location.search);
-  const slug = urlParams.get("slug");
+async function loadProfile() {
+  const slug = new URLSearchParams(location.search).get("slug");
+  if (!slug) return;
 
-  if (!slug) {
-    document.body.innerHTML = "<h2>Business not found.</h2>";
-    return;
-  }
-
-  const res = await fetch(`/api/get-business?username=${slug}`);
+  const res = await fetch(`/api/get-profile?slug=${slug}`);
   const p = await res.json();
 
+  document.body.classList.add(p.profile_type || "person");
+
   // SEO
-  document.getElementById("seo_title").textContent = p.seo_title || p.business_name;
+  document.getElementById("seo_title").textContent = p.seo_title || p.name;
   document.getElementById("seo_description").content = p.seo_description || "";
 
   // Hero
-  document.getElementById("businessName").textContent = p.business_name;
-  document.getElementById("heroTagline").textContent = p.hero_tagline;
+  document.getElementById("name").textContent = p.name || p.business_name;
+  document.getElementById("tagline").textContent = p.tagline || "";
+
+  if (p.avatar_url) {
+    const a = document.getElementById("avatar");
+    a.src = p.avatar_url;
+    a.classList.remove("hidden");
+  }
+
+  if (p.logo_url) {
+    const l = document.getElementById("logo");
+    l.src = p.logo_url;
+    l.classList.remove("hidden");
+  }
 
   // About
-  document.getElementById("about").textContent = p.about;
+  document.getElementById("about").textContent = p.about || "";
 
-  // Why Choose Us
-  document.getElementById("why").innerHTML = p.why_choose_us
-    ? `<ul>${p.why_choose_us.split("\n").map(x => `<li>${x}</li>`).join("")}</ul>`
-    : "";
+  // Highlights
+  if (p.highlights?.length) {
+    document.getElementById("why").innerHTML =
+      `<ul>${p.highlights.map(h => `<li>${h}</li>`).join("")}</ul>`;
+  } else {
+    document.getElementById("whySection").remove();
+  }
 
   // Services
-  const servicesEl = document.getElementById("services");
-  servicesEl.innerHTML = "";
-  (p.services || []).forEach(s => {
-    servicesEl.innerHTML += `
-      <div class="service-card">
-        <h3>${s.name}</h3>
-        <p>${s.description}</p>
-      </div>`;
+  if (p.services?.length) {
+    const s = document.getElementById("services");
+    p.services.forEach(x => {
+      s.innerHTML += `<div class="service-card"><h3>${x.name}</h3><p>${x.description}</p></div>`;
+    });
+  } else {
+    document.getElementById("servicesSection").remove();
+  }
+
+  // Gallery
+  if (p.images?.length) {
+    const g = document.getElementById("gallery");
+    p.images.forEach(img => {
+      g.innerHTML += `<img src="${img.url}" alt="">`;
+    });
+  } else {
+    document.getElementById("gallerySection").remove();
+  }
+
+  // Contact form
+  document.getElementById("contactForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target));
+    data.slug = slug;
+
+    const r = await fetch("/api/contact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+
+    document.getElementById("contactStatus").textContent =
+      r.ok ? "Message sent." : "Something went wrong.";
   });
-
-  // Service area
-  document.getElementById("serviceArea").textContent = (p.service_area || []).join(", ");
-
-  // Town Sections
-  const townEl = document.getElementById("townSections");
-  townEl.innerHTML = "";
-  (p.town_sections || []).forEach(t => {
-    townEl.innerHTML += `
-      <div class="town-section">
-        <h3>${t.town}</h3>
-        <p>${t.text}</p>
-      </div>`;
-  });
-
-  // Contact
-  document.getElementById("email").textContent = p.email;
-  document.getElementById("phone").textContent = p.phone;
-  document.getElementById("address").textContent = p.address;
-  document.getElementById("website").textContent = p.website;
-  document.getElementById("website").href = p.website;
 }
 
-loadBusiness();
+loadProfile();
 </script>
 
 </body>
