@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   const { data, error } = await supabase
     .from("small_business_profiles")
     .select("*")
-    .eq("username", slug) // keep using username column for now
+    .eq("username", slug)
     .single();
 
   if (error || !data) {
@@ -24,25 +24,49 @@ export default async function handler(req, res) {
     return res.status(404).json({ error: "Business profile not found" });
   }
 
+  // 🔐 HARD NORMALIZATION LAYER
   const clean = {
     ...data,
-    services: safeParse(data.services),
-    service_area: safeParse(data.service_area),
-    town_sections: safeParse(data.town_sections),
+    services: normalizeArray(data.services),
+    testimonials: normalizeArray(data.testimonials),
+    attachments: normalizeArray(data.attachments),
+    service_area: normalizeArray(data.service_area),
+    town_sections: normalizeArray(data.town_sections),
   };
 
   return res.status(200).json(clean);
 }
 
-// Helper to prevent crashes from malformed JSON
-function safeParse(val) {
+/**
+ * Normalizes values into arrays.
+ * Handles:
+ * - real arrays
+ * - objects like { "0": {...} }
+ * - stringified JSON
+ * - null / undefined
+ */
+function normalizeArray(val) {
   if (!val) return [];
+
+  // Already correct
   if (Array.isArray(val)) return val;
 
-  try {
-    return JSON.parse(val);
-  } catch {
-    return [];
+  // Object (Formidable / legacy case)
+  if (typeof val === "object") {
+    return Object.values(val);
   }
-}
 
+  // Stringified JSON
+  if (typeof val === "string") {
+    try {
+      const parsed = JSON.parse(val);
+      if (Array.isArray(parsed)) return parsed;
+      if (typeof parsed === "object") return Object.values(parsed);
+      return [];
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+}
