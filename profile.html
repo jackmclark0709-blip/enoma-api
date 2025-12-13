@@ -444,13 +444,20 @@ function normalizeProfile(p) {
       ? p.why_choose_us.split("\n").filter(Boolean)
       : [],
 
-    services: Array.isArray(p.services)
-      ? p.services.map(s => ({
-          name: s.service_name || s.name,
-          description: s.service_description || s.description,
-          price: s.price || null
-        }))
-      : [],
+    services: (() => {
+  try {
+    if (Array.isArray(p.services)) return p.services;
+    if (typeof p.services === "string") return JSON.parse(p.services);
+    return [];
+  } catch {
+    return [];
+  }
+})().map(s => ({
+  name: s.service_name || s.name || "",
+  description: s.service_description || s.description || "",
+  price: s.price || null
+})),
+
 
     images: Array.isArray(p.images)
       ? p.images.map(i => ({ url: i.url || i.filename || i }))
