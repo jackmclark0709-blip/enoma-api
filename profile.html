@@ -347,7 +347,138 @@
   </div>
 
 </main>
+<script>
+function normalizeProfile(p) {
+  return {
+    name: p.business_name || p.company_name || "",
+    tagline: p.hero_tagline || "",
+    about: p.about || "",
+    email: p.email || null,
+    phone: p.phone || null,
+    website: p.website || null,
+    avatar_url: p.profile_image || null,
+    logo_url: p.logo_url || null,
+
+    highlights: typeof p.why_choose_us === "string"
+      ? p.why_choose_us.split("\n").filter(Boolean)
+      : [],
+
+    services: Array.isArray(p.services)
+      ? p.services.map(s => ({
+          name: s.service_name || s.name,
+          description: s.service_description || s.description,
+          price: s.price || null
+        }))
+      : [],
+
+    images: Array.isArray(p.images)
+      ? p.images.map(i => ({ url: i.url || i.filename || i }))
+      : [],
+
+    testimonials: Array.isArray(p.testimonials) ? p.testimonials : [],
+    attachments: Array.isArray(p.attachments) ? p.attachments : []
+  };
+}
+
+async function loadProfile() {
+  let slug = new URLSearchParams(location.search).get("slug");
+  if (!slug) slug = location.pathname.replace("/", "");
+  if (!slug) return;
+
+  const res = await fetch(`/api/get-business?slug=${slug}`);
+  const p = normalizeProfile(await res.json());
+
+  name.textContent = p.name;
+  tagline.textContent = p.tagline;
+  about.textContent = p.about;
+
+  const headerCTA = document.getElementById("headerCTA");
+  if (p.phone) {
+    headerCTA.href = `tel:${p.phone}`;
+    headerCTA.textContent = "Call Now";
+  } else if (p.email) {
+    headerCTA.href = `mailto:${p.email}`;
+    headerCTA.textContent = "Email Us";
+  } else {
+    headerCTA.href = "#contact";
+    headerCTA.textContent = "Contact";
+  }
+  headerCTA.classList.remove("hidden");
+
+  if (p.avatar_url) {
+    avatar.src = p.avatar_url;
+    avatar.classList.remove("hidden");
+  }
+  if (p.logo_url) {
+    logo.src = p.logo_url;
+    logo.classList.remove("hidden");
+  }
+
+  if (p.email || p.phone || p.website) {
+    companyDetails.classList.remove("hidden");
+    if (p.email) companyEmail.innerHTML = `📧 <strong>Email</strong><br><a href="mailto:${p.email}">${p.email}</a>`;
+    if (p.phone) companyPhone.innerHTML = `📞 <strong>Phone</strong><br><a href="tel:${p.phone}">${p.phone}</a>`;
+    if (p.website) companyWebsite.innerHTML = `🌐 <strong>Website</strong><br><a href="${p.website}" target="_blank">${p.website}</a>`;
+  }
+
+  why.innerHTML = p.highlights.length ? `<ul>${p.highlights.map(h => `<li>${h}</li>`).join("")}</ul>` : "";
+
+  services.innerHTML = p.services.map(s =>
+    `<div class="service-card">
+      <h3>${s.name}</h3>
+      <p>${s.description}</p>
+      ${s.price ? `<div class="service-price">Starting at ${s.price}</div>` : ""}
+    </div>`
+  ).join("");
+
+  gallery.innerHTML = p.images.map(img =>
+    `<img src="${img.url}" alt="" loading="lazy">`
+  ).join("");
+
+  if (p.testimonials.length) {
+    testimonials.classList.remove("hidden");
+    testimonialList.innerHTML = p.testimonials.map(t =>
+      `<div class="testimonial">“${t.quote}”<br><strong>— ${t.author}</strong></div>`
+    ).join("");
+  }
+
+  if (p.attachments.length) {
+    attachments.classList.remove("hidden");
+    attachmentList.innerHTML = p.attachments.map(a =>
+      `<li><a href="${a.url}" target="_blank">📄 ${a.label || "View resource"}</a></li>`
+    ).join("");
+  }
+
+  contactForm.addEventListener("submit", async e => {
+    e.preventDefault();
+    const btn = contactForm.querySelector("button");
+    btn.disabled = true;
+    btn.textContent = "Sending…";
+
+    const data = Object.fromEntries(new FormData(contactForm));
+    data.slug = slug;
+
+    try {
+      const r = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      contactStatus.textContent = r.ok
+        ? "Thanks — we’ll be in touch shortly."
+        : "Something went wrong.";
+      if (r.ok) contactForm.reset();
+    } catch {
+      contactStatus.textContent = "Network error.";
+    }
+
+    btn.disabled = false;
+    btn.textContent = "Send message";
+  });
+}
+
+loadProfile();
+</script>
 
 </body>
 </html>
-
