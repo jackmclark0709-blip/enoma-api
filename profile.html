@@ -12,13 +12,6 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" id="og_title" content="" />
   <meta property="og:description" id="og_description" content="" />
-  <meta property="og:image" id="og_image" content="" />
-
-  <!-- Twitter -->
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" id="twitter_title" content="" />
-  <meta name="twitter:description" id="twitter_description" content="" />
-  <meta name="twitter:image" id="twitter_image" content="" />
 
   <style>
     :root {
@@ -63,7 +56,7 @@
     }
 
     .brand {
-      font-weight: 600;
+      font-weight: 700;
       color: var(--blue);
     }
 
@@ -95,6 +88,7 @@
     .hero-media {
       display: flex;
       justify-content: center;
+      gap: 1rem;
       margin-bottom: 1.25rem;
     }
 
@@ -125,7 +119,7 @@
       margin-top: 0.75rem;
     }
 
-    /* Value Strip */
+    /* Value strip */
     .value-strip {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
@@ -185,15 +179,7 @@
       margin-top: 0.75rem;
     }
 
-    .service-cta {
-      display: inline-block;
-      margin-top: 1rem;
-      color: var(--blue);
-      font-weight: 600;
-      text-decoration: none;
-    }
-
-    /* CTA */
+    /* Mid CTA */
     .mid-cta {
       text-align: center;
       padding: 3rem 1.5rem;
@@ -213,7 +199,42 @@
       text-decoration: none;
     }
 
-    /* Footer */
+    /* Gallery */
+    .image-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+      gap: 1rem;
+    }
+
+    .image-grid img {
+      width: 100%;
+      border-radius: 12px;
+    }
+
+    /* Contact */
+    .contact form {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .contact input,
+    .contact textarea {
+      padding: 0.7rem;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      font-family: inherit;
+    }
+
+    .contact button {
+      background: var(--blue);
+      color: white;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
     .footer {
       margin-top: 4rem;
       padding-top: 2rem;
@@ -263,45 +284,27 @@
     <div id="services" class="service-grid"></div>
   </div>
 
+  <div class="mid-cta" id="midCTA">
+    <h3>Want a page like this?</h3>
+    <p>Create your own SEO-optimized business profile in minutes.</p>
+    <a href="/create.html">Create your Enoma page</a>
+  </div>
 
+  <div class="section">
+    <h2>Gallery</h2>
+    <div id="gallery" class="image-grid"></div>
+  </div>
 
-<!-- MID CTA -->
-<div class="mid-cta" id="midCTA">
-  <h3>Want a page like this?</h3>
-  <p>Create your own SEO-optimized business profile in minutes.</p>
-  <a href="/create.html">Create your Enoma page</a>
-</div>
-
-<!-- TESTIMONIALS -->
-<div class="section hidden" id="testimonials">
-  <h2>What Clients Say</h2>
-  <div id="testimonialList"></div>
-</div>
-
-<!-- ATTACHMENTS / RESOURCES -->
-<div class="section hidden" id="attachments">
-  <h2>Resources</h2>
-  <ul id="attachmentList" class="attachment-list"></ul>
-</div>
-
-<!-- GALLERY -->
-<div class="section">
-  <h2>Gallery</h2>
-  <div id="gallery" class="image-grid"></div>
-</div>
-
-<!-- CONTACT -->
-<div class="section contact" id="contact">
-  <h2>Contact</h2>
-  <form id="contactForm">
-    <input name="name" placeholder="Your name" required />
-    <input name="email" type="email" placeholder="Your email" required />
-    <textarea name="message" placeholder="Message" required></textarea>
-    <button type="submit">Send message</button>
-  </form>
-  <p id="contactStatus"></p>
-</div>
-
+  <div class="section contact" id="contact">
+    <h2>Contact</h2>
+    <form id="contactForm">
+      <input name="name" placeholder="Your name" required />
+      <input name="email" type="email" placeholder="Your email" required />
+      <textarea name="message" placeholder="Message" required></textarea>
+      <button type="submit">Send message</button>
+    </form>
+    <p id="contactStatus"></p>
+  </div>
 
   <div class="footer">
     Enoma — simple, search-optimized business pages built to convert.
@@ -310,36 +313,24 @@
 </div>
 
 <script>
-const track = (event, data = {}) => {
-  console.log("[track]", event, data);
-};
-
 function safeParse(val) {
   try {
     if (Array.isArray(val)) return val;
     if (typeof val === "string") return JSON.parse(val);
     return [];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 async function loadProfile() {
   const slug = new URLSearchParams(location.search).get("slug");
   if (!slug) return;
 
-  track("page_view", { slug });
-
   const res = await fetch(`/api/get-business?slug=${slug}`);
   const p = await res.json();
 
-  // SEO
-  seo_title.textContent = p.seo_title || p.business_name;
-  seo_description.content = p.seo_description || "";
-  og_title.content = seo_title.textContent;
-  og_description.content = seo_description.content;
-  twitter_title.content = seo_title.textContent;
-  twitter_description.content = seo_description.content;
-
-  name.textContent = p.business_name;
+  name.textContent = p.business_name || "";
   tagline.textContent = p.hero_tagline || "";
   about.textContent = p.about || "";
 
@@ -352,13 +343,8 @@ async function loadProfile() {
   }
 
   const headerCTA = document.getElementById("headerCTA");
-  if (p.phone) {
-    headerCTA.href = `tel:${p.phone}`;
-    headerCTA.textContent = "Call Now";
-  } else {
-    headerCTA.href = "#contact";
-    headerCTA.textContent = "Contact";
-  }
+  headerCTA.href = p.phone ? `tel:${p.phone}` : "#contact";
+  headerCTA.textContent = p.phone ? "Call Now" : "Contact";
   headerCTA.classList.remove("hidden");
 
   if (slug === "enoma-io") {
@@ -371,71 +357,17 @@ async function loadProfile() {
       <h3>${s.service_name || s.name}</h3>
       <p>${s.service_description || s.description || ""}</p>
       ${s.price ? `<div class="service-price">Starting at ${s.price}</div>` : ""}
-      <a class="service-cta" href="#contact">Get started →</a>
     </div>
   `).join("");
-}
 
-if (p.testimonials.length) {
-  testimonials.classList.remove("hidden");
-  testimonialList.innerHTML = p.testimonials.map(t =>
-    `<div class="testimonial">
-      “${t.quote}”
-      <br><strong>— ${t.author}</strong>
-    </div>`
+  const images = safeParse(p.images);
+  gallery.innerHTML = images.map(img =>
+    `<img src="${img.url || img}" loading="lazy" />`
   ).join("");
 }
-
-if (p.attachments.length) {
-  attachments.classList.remove("hidden");
-  attachmentList.innerHTML = p.attachments.map(a =>
-    `<li>
-      <a href="${a.url}" target="_blank">
-        📄 ${a.label || "View resource"}
-      </a>
-    </li>`
-  ).join("");
-}
-
-gallery.innerHTML = p.images.map(img =>
-  `<img src="${img.url}" alt="" loading="lazy">`
-).join("");
-
-
-contactForm.addEventListener("submit", async e => {
-  e.preventDefault();
-  const btn = contactForm.querySelector("button");
-  btn.disabled = true;
-  btn.textContent = "Sending…";
-
-  const data = Object.fromEntries(new FormData(contactForm));
-  data.slug = slug;
-
-  try {
-    const r = await fetch("/api/contact", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    });
-
-    contactStatus.textContent = r.ok
-      ? "Thanks — we’ll be in touch shortly."
-      : "Something went wrong.";
-
-    if (r.ok) contactForm.reset();
-  } catch {
-    contactStatus.textContent = "Network error.";
-  }
-
-  btn.disabled = false;
-  btn.textContent = "Send message";
-});
-
 
 loadProfile();
 </script>
 
 </body>
 </html>
-
-
