@@ -48,10 +48,21 @@ export default async function handler(req, res) {
 function normalizeArray(val) {
   if (!val) return [];
 
-  // Already correct
-  if (Array.isArray(val)) return val;
+  // Already an array
+  if (Array.isArray(val)) {
+    // Handle array of JSON strings (YOUR CURRENT CASE)
+    if (val.length === 1 && typeof val[0] === "string") {
+      try {
+        const parsed = JSON.parse(val[0]);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return val;
+  }
 
-  // Object (Formidable / legacy case)
+  // Object (legacy form submissions)
   if (typeof val === "object") {
     return Object.values(val);
   }
@@ -62,10 +73,7 @@ function normalizeArray(val) {
       const parsed = JSON.parse(val);
       if (Array.isArray(parsed)) return parsed;
       if (typeof parsed === "object") return Object.values(parsed);
-      return [];
-    } catch {
-      return [];
-    }
+    } catch {}
   }
 
   return [];
