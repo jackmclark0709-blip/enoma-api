@@ -12,6 +12,13 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" id="og_title" content="" />
   <meta property="og:description" id="og_description" content="" />
+  <meta property="og:image" id="og_image" content="" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" id="twitter_title" content="" />
+  <meta name="twitter:description" id="twitter_description" content="" />
+  <meta name="twitter:image" id="twitter_image" content="" />
 
   <style>
     :root {
@@ -37,7 +44,7 @@
       padding: 2rem 1.25rem;
     }
 
-    /* Header */
+    /* ================= Header ================= */
     .site-header {
       position: sticky;
       top: 0;
@@ -70,7 +77,7 @@
       font-size: 0.9rem;
     }
 
-    /* Hero */
+    /* ================= Hero ================= */
     .hero-wrapper {
       width: 100vw;
       margin-left: calc(50% - 50vw);
@@ -119,7 +126,7 @@
       margin-top: 0.75rem;
     }
 
-    /* Value strip */
+    /* ================= Value Strip ================= */
     .value-strip {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
@@ -139,7 +146,7 @@
       box-shadow: 0 8px 25px rgba(0,0,0,0.06);
     }
 
-    /* Sections */
+    /* ================= Sections ================= */
     .section {
       background: white;
       border-radius: 16px;
@@ -153,7 +160,53 @@
       color: var(--blue);
     }
 
-    /* Services */
+    /* ================= Highlights ================= */
+    .highlights ul {
+      padding-left: 1.25rem;
+    }
+
+    .highlights li {
+      margin-bottom: 0.5rem;
+    }
+
+    /* ================= How It Works ================= */
+    .how-it-works {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
+      gap: 1.25rem;
+      margin-top: 1rem;
+    }
+
+    .step {
+      background: #fafafa;
+      border-radius: 14px;
+      padding: 1.5rem;
+      border: 1px solid #eee;
+    }
+
+    .step-number {
+      font-weight: 700;
+      color: var(--lavender);
+      font-size: 1.4rem;
+      margin-bottom: 0.5rem;
+    }
+
+    /* ================= Contact Details ================= */
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .details-grid div {
+      background: #fafafa;
+      padding: 1rem;
+      border-radius: 12px;
+      border: 1px solid #eee;
+    }
+
+    /* ================= Services ================= */
     .service-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px,1fr));
@@ -168,18 +221,22 @@
       border: 1px solid #eee;
     }
 
-    .service-card h3 {
-      margin: 0;
-      color: var(--blue);
-    }
-
     .service-price {
       color: var(--green);
       font-weight: 600;
       margin-top: 0.75rem;
     }
 
-    /* Mid CTA */
+    /* ================= Town SEO ================= */
+    .town {
+      background: #fafafa;
+      padding: 1.25rem;
+      border-radius: 14px;
+      border: 1px solid #eee;
+      margin-top: 1rem;
+    }
+
+    /* ================= Mid CTA ================= */
     .mid-cta {
       text-align: center;
       padding: 3rem 1.5rem;
@@ -199,7 +256,7 @@
       text-decoration: none;
     }
 
-    /* Gallery */
+    /* ================= Gallery ================= */
     .image-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
@@ -211,7 +268,17 @@
       border-radius: 12px;
     }
 
-    /* Contact */
+    /* ================= Testimonials ================= */
+    .testimonial {
+      background: #fafafa;
+      padding: 1.25rem;
+      border-radius: 12px;
+      border: 1px solid #eee;
+      margin-top: 1rem;
+      font-style: italic;
+    }
+
+    /* ================= Contact ================= */
     .contact form {
       display: grid;
       gap: 0.75rem;
@@ -235,6 +302,7 @@
       cursor: pointer;
     }
 
+    /* ================= Footer ================= */
     .footer {
       margin-top: 4rem;
       padding-top: 2rem;
@@ -243,22 +311,6 @@
       font-size: 0.8rem;
       opacity: 0.7;
     }
-
-.details-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.details-grid div {
-  background: #fafafa;
-  padding: 1rem;
-  border-radius: 12px;
-  border: 1px solid #eee;
-  font-size: 0.95rem;
-}
-
   </style>
 </head>
 
@@ -295,25 +347,53 @@
     <p id="about"></p>
   </div>
 
-<div class="section hidden" id="companyDetails">
-  <h2>Contact Information</h2>
-  <div class="details-grid">
-    <div id="companyEmail"></div>
-    <div id="companyPhone"></div>
-    <div id="companyWebsite"></div>
+  <div class="section highlights hidden" id="highlights">
+    <h2>Why Choose Us</h2>
+    <div id="why"></div>
   </div>
-</div>
 
+  <div class="section">
+    <h2>How It Works</h2>
+    <div class="how-it-works">
+      <div class="step"><div class="step-number">1</div>Share your business details</div>
+      <div class="step"><div class="step-number">2</div>We build your page</div>
+      <div class="step"><div class="step-number">3</div>Launch & get inquiries</div>
+    </div>
+  </div>
+
+  <div class="section hidden" id="companyDetails">
+    <h2>Contact Information</h2>
+    <div class="details-grid">
+      <div id="companyEmail"></div>
+      <div id="companyPhone"></div>
+      <div id="companyWebsite"></div>
+    </div>
+  </div>
 
   <div class="section">
     <h2>Services</h2>
     <div id="services" class="service-grid"></div>
   </div>
 
+  <div class="section hidden" id="towns">
+    <h2>Areas We Serve</h2>
+    <div id="townList"></div>
+  </div>
+
   <div class="mid-cta" id="midCTA">
     <h3>Want a page like this?</h3>
     <p>Create your own SEO-optimized business profile in minutes.</p>
     <a href="/create.html">Create your Enoma page</a>
+  </div>
+
+  <div class="section hidden" id="testimonials">
+    <h2>What Clients Say</h2>
+    <div id="testimonialList"></div>
+  </div>
+
+  <div class="section hidden" id="attachments">
+    <h2>Resources</h2>
+    <ul id="attachmentList"></ul>
   </div>
 
   <div class="section">
@@ -339,15 +419,13 @@
 </div>
 
 <script>
-function safeParse(val) {
+const safeParse = v => {
   try {
-    if (Array.isArray(val)) return val;
-    if (typeof val === "string") return JSON.parse(val);
+    if (Array.isArray(v)) return v;
+    if (typeof v === "string") return JSON.parse(v);
     return [];
-  } catch {
-    return [];
-  }
-}
+  } catch { return []; }
+};
 
 async function loadProfile() {
   const slug = new URLSearchParams(location.search).get("slug");
@@ -356,6 +434,14 @@ async function loadProfile() {
   const res = await fetch(`/api/get-business?slug=${slug}`);
   const p = await res.json();
 
+  // SEO
+  seo_title.textContent = p.seo_title || p.business_name;
+  seo_description.content = p.seo_description || "";
+  og_title.content = seo_title.textContent;
+  og_description.content = seo_description.content;
+  twitter_title.content = seo_title.textContent;
+  twitter_description.content = seo_description.content;
+
   name.textContent = p.business_name || "";
   tagline.textContent = p.hero_tagline || "";
   about.textContent = p.about || "";
@@ -363,22 +449,49 @@ async function loadProfile() {
   if (p.logo_url) {
     logo.src = p.logo_url;
     logo.classList.remove("hidden");
+    og_image.content = p.logo_url;
+    twitter_image.content = p.logo_url;
   } else if (p.profile_image) {
     avatar.src = p.profile_image;
     avatar.classList.remove("hidden");
+    og_image.content = p.profile_image;
+    twitter_image.content = p.profile_image;
   }
 
   const headerCTA = document.getElementById("headerCTA");
-  headerCTA.href = p.phone ? `tel:${p.phone}` : "#contact";
-  headerCTA.textContent = p.phone ? "Call Now" : "Contact";
+  if (p.phone) {
+    headerCTA.href = `tel:${p.phone}`;
+    headerCTA.textContent = "Call Now";
+  } else if (p.email) {
+    headerCTA.href = `mailto:${p.email}`;
+    headerCTA.textContent = "Email";
+  } else {
+    headerCTA.href = "#contact";
+    headerCTA.textContent = "Contact";
+  }
   headerCTA.classList.remove("hidden");
 
-  if (slug === "enoma-io") {
-    midCTA.classList.add("hidden");
+  if (slug === "enoma-io") midCTA.classList.add("hidden");
+
+  // Highlights
+  const highlights = typeof p.why_choose_us === "string"
+    ? p.why_choose_us.split("\n").filter(Boolean)
+    : [];
+  if (highlights.length) {
+    why.innerHTML = `<ul>${highlights.map(h => `<li>${h}</li>`).join("")}</ul>`;
+    highlightsSection.classList.remove("hidden");
   }
 
-  const servicesData = safeParse(p.services);
-  services.innerHTML = servicesData.map(s => `
+  // Contact details
+  if (p.email || p.phone || p.website) {
+    companyDetails.classList.remove("hidden");
+    if (p.email) companyEmail.innerHTML = `📧 <strong>Email</strong><br><a href="mailto:${p.email}">${p.email}</a>`;
+    if (p.phone) companyPhone.innerHTML = `📞 <strong>Phone</strong><br><a href="tel:${p.phone}">${p.phone}</a>`;
+    if (p.website) companyWebsite.innerHTML = `🌐 <strong>Website</strong><br><a href="${p.website}" target="_blank">${p.website}</a>`;
+  }
+
+  // Services
+  services.innerHTML = safeParse(p.services).map(s => `
     <div class="service-card">
       <h3>${s.service_name || s.name}</h3>
       <p>${s.service_description || s.description || ""}</p>
@@ -386,43 +499,45 @@ async function loadProfile() {
     </div>
   `).join("");
 
-  const images = safeParse(p.images);
-  gallery.innerHTML = images.map(img =>
-    `<img src="${img.url || img}" loading="lazy" />`
+  // Towns
+  const towns = safeParse(p.towns);
+  if (towns.length) {
+    townsSection.classList.remove("hidden");
+    townList.innerHTML = towns.map(t =>
+      `<div class="town">${p.business_name} serves ${t}</div>`
+    ).join("");
+  }
+
+  // Gallery
+  gallery.innerHTML = safeParse(p.images).map(img =>
+    `<img src="${img.url || img}" loading="lazy">`
   ).join("");
-}
 
+  // Contact form
+  contactForm.addEventListener("submit", async e => {
+    e.preventDefault();
+    const btn = contactForm.querySelector("button");
+    btn.disabled = true;
+    btn.textContent = "Sending…";
 
-// Contact details
-if (p.email || p.phone || p.website) {
-  companyDetails.classList.remove("hidden");
+    const data = Object.fromEntries(new FormData(contactForm));
+    data.slug = slug;
 
-  if (p.email) {
-    companyEmail.innerHTML = `
-      📧 <strong>Email</strong><br>
-      <a href="mailto:${p.email}">${p.email}</a>
-    `;
-  } else {
-    companyEmail.style.display = "none";
-  }
+    try {
+      const r = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      contactStatus.textContent = r.ok ? "Thanks — we’ll be in touch shortly." : "Something went wrong.";
+      if (r.ok) contactForm.reset();
+    } catch {
+      contactStatus.textContent = "Network error.";
+    }
 
-  if (p.phone) {
-    companyPhone.innerHTML = `
-      📞 <strong>Phone</strong><br>
-      <a href="tel:${p.phone}">${p.phone}</a>
-    `;
-  } else {
-    companyPhone.style.display = "none";
-  }
-
-  if (p.website) {
-    companyWebsite.innerHTML = `
-      🌐 <strong>Website</strong><br>
-      <a href="${p.website}" target="_blank">${p.website}</a>
-    `;
-  } else {
-    companyWebsite.style.display = "none";
-  }
+    btn.disabled = false;
+    btn.textContent = "Send message";
+  });
 }
 
 loadProfile();
