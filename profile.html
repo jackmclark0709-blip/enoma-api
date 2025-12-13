@@ -14,13 +14,6 @@
       --green: #50A684;
       --bg: #f6f7f9;
       --text: #1c1c1c;
-
-      --content-width: 900px;
-      --hero-width: 1200px;
-    }
-
-    * {
-      box-sizing: border-box;
     }
 
     body {
@@ -32,7 +25,13 @@
 
     .hidden { display: none; }
 
-    /* ===== Header ===== */
+    .container {
+      max-width: 900px;
+      margin: auto;
+      padding: 2rem 1.25rem;
+    }
+
+    /* ================= Header ================= */
     .site-header {
       position: sticky;
       top: 0;
@@ -42,7 +41,7 @@
     }
 
     .header-inner {
-      max-width: var(--content-width);
+      max-width: 900px;
       margin: auto;
       padding: 0.75rem 1.25rem;
       display: flex;
@@ -62,9 +61,10 @@
       border-radius: 999px;
       text-decoration: none;
       font-size: 0.9rem;
+      font-weight: 600;
     }
 
-    /* ===== Hero (Full Width) ===== */
+    /* ================= Hero ================= */
     .hero-wrapper {
       width: 100vw;
       margin-left: calc(50% - 50vw);
@@ -72,13 +72,11 @@
     }
 
     .hero {
-      max-width: var(--hero-width);
+      max-width: 1200px;
       margin: auto;
       padding: 4.5rem 1.5rem;
       text-align: center;
       color: white;
-      border-radius: 24px;
-      box-shadow: 0 25px 60px rgba(0,0,0,0.15);
     }
 
     .hero-media {
@@ -109,23 +107,36 @@
 
     .hero p {
       font-size: 1.35rem;
-      opacity: 0.95;
+      opacity: 0.9;
       margin-top: 0.5rem;
     }
 
-    /* ===== Content Wrapper ===== */
-    .container {
-      max-width: var(--content-width);
-      margin: auto;
-      padding: 2.5rem 1.25rem;
+    /* ================= Value Strip ================= */
+    .value-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin: 2.5rem auto 0;
+      max-width: 900px;
+      padding: 0 1.25rem;
     }
 
-    /* ===== Sections ===== */
+    .value-item {
+      background: white;
+      border-radius: 12px;
+      padding: 1.25rem;
+      text-align: center;
+      font-weight: 600;
+      color: var(--blue);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.06);
+    }
+
+    /* ================= Sections ================= */
     .section {
       background: white;
       border-radius: 14px;
       padding: 2rem;
-      margin-top: 2.5rem;
+      margin-top: 2rem;
       box-shadow: 0 8px 25px rgba(0,0,0,0.06);
     }
 
@@ -135,7 +146,7 @@
       font-size: 1.3rem;
     }
 
-    /* ===== Company Details ===== */
+    /* ================= Company Details ================= */
     .details-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -151,7 +162,29 @@
       font-size: 0.95rem;
     }
 
-    /* ===== Services ===== */
+    /* ================= How It Works ================= */
+    .how-it-works {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .step {
+      background: #fafafa;
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 1px solid #eee;
+    }
+
+    .step-number {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--lavender);
+      margin-bottom: 0.5rem;
+    }
+
+    /* ================= Services ================= */
     .service-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -164,6 +197,24 @@
       padding: 1.25rem;
       border-radius: 12px;
       border: 1px solid #eee;
+      position: relative;
+    }
+
+    .service-card.featured {
+      border: 2px solid var(--lavender);
+      box-shadow: 0 15px 40px rgba(154,140,255,0.25);
+    }
+
+    .service-badge {
+      position: absolute;
+      top: -10px;
+      right: 12px;
+      background: var(--lavender);
+      color: white;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
     }
 
     .service-card h3 {
@@ -178,19 +229,32 @@
       color: var(--green);
     }
 
-    /* ===== Gallery ===== */
-    .image-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 1rem;
+    /* ================= Mid CTA ================= */
+    .mid-cta {
+      text-align: center;
+      padding: 2.5rem 1.5rem;
+      background: linear-gradient(135deg, #f3f1ff, #ffffff);
+      border-radius: 16px;
+      margin-top: 3rem;
     }
 
-    .image-grid img {
-      width: 100%;
-      border-radius: 12px;
+    .mid-cta h3 {
+      margin: 0 0 0.75rem;
+      color: var(--blue);
     }
 
-    /* ===== Testimonials ===== */
+    .mid-cta a {
+      display: inline-block;
+      margin-top: 1rem;
+      background: var(--blue);
+      color: white;
+      padding: 0.7rem 1.4rem;
+      border-radius: 999px;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    /* ================= Testimonials ================= */
     .testimonial {
       background: #fafafa;
       padding: 1.25rem;
@@ -200,7 +264,7 @@
       font-style: italic;
     }
 
-    /* ===== Attachments ===== */
+    /* ================= Attachments ================= */
     .attachment-list {
       list-style: none;
       padding: 0;
@@ -222,11 +286,19 @@
       font-weight: 500;
     }
 
-    .attachment-list a:hover {
-      background: #f0f0ff;
+    /* ================= Gallery ================= */
+    .image-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
     }
 
-    /* ===== Contact ===== */
+    .image-grid img {
+      width: 100%;
+      border-radius: 12px;
+    }
+
+    /* ================= Contact ================= */
     .contact form {
       display: grid;
       gap: 0.75rem;
@@ -250,20 +322,14 @@
       font-size: 1rem;
     }
 
+    /* ================= Footer ================= */
     .footer {
       text-align: center;
       margin-top: 4rem;
-      opacity: 0.5;
+      padding-top: 2rem;
+      border-top: 1px solid #eee;
       font-size: 0.8rem;
-    }
-
-    /* ===== Accessibility ===== */
-    a:focus-visible,
-    button:focus-visible,
-    input:focus-visible,
-    textarea:focus-visible {
-      outline: 3px solid var(--lavender);
-      outline-offset: 2px;
+      opacity: 0.7;
     }
   </style>
 </head>
@@ -277,7 +343,6 @@
   </div>
 </header>
 
-<!-- HERO -->
 <div class="hero-wrapper">
   <div class="hero">
     <div class="hero-media">
@@ -289,31 +354,46 @@
   </div>
 </div>
 
-<!-- CONTENT -->
-<main class="container">
+<div class="value-strip">
+  <div class="value-item">SEO-Optimized Pages</div>
+  <div class="value-item">Hosted & Maintained</div>
+  <div class="value-item">Built to Convert</div>
+</div>
+
+<div class="container">
 
   <div class="section">
     <h2>About</h2>
     <p id="about"></p>
   </div>
 
-  <div class="section hidden" id="companyDetails">
-    <h2>Company Details</h2>
-    <div class="details-grid">
-      <div id="companyEmail"></div>
-      <div id="companyPhone"></div>
-      <div id="companyWebsite"></div>
-    </div>
-  </div>
-
   <div class="section">
-    <h2>Highlights</h2>
-    <div id="why"></div>
+    <h2>How It Works</h2>
+    <div class="how-it-works">
+      <div class="step">
+        <div class="step-number">1</div>
+        Share your business details
+      </div>
+      <div class="step">
+        <div class="step-number">2</div>
+        We create your page
+      </div>
+      <div class="step">
+        <div class="step-number">3</div>
+        Start getting inquiries
+      </div>
+    </div>
   </div>
 
   <div class="section">
     <h2>Services</h2>
     <div id="services" class="service-grid"></div>
+  </div>
+
+  <div class="mid-cta">
+    <h3>Want a page like this?</h3>
+    <p>Create your own SEO-optimized business profile in minutes.</p>
+    <a href="/create.html">Create your Enoma page</a>
   </div>
 
   <div class="section hidden" id="testimonials">
@@ -343,10 +423,11 @@
   </div>
 
   <div class="footer">
-    Powered by Enoma
+    Enoma — simple, search-optimized business pages built to convert.
   </div>
 
-</main>
+</div>
+
 <script>
 function normalizeProfile(p) {
   return {
