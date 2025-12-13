@@ -243,6 +243,22 @@
       font-size: 0.8rem;
       opacity: 0.7;
     }
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.details-grid div {
+  background: #fafafa;
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px solid #eee;
+  font-size: 0.95rem;
+}
+
   </style>
 </head>
 
@@ -278,6 +294,16 @@
     <h2>About</h2>
     <p id="about"></p>
   </div>
+
+<div class="section hidden" id="companyDetails">
+  <h2>Contact Information</h2>
+  <div class="details-grid">
+    <div id="companyEmail"></div>
+    <div id="companyPhone"></div>
+    <div id="companyWebsite"></div>
+  </div>
+</div>
+
 
   <div class="section">
     <h2>Services</h2>
@@ -364,6 +390,39 @@ async function loadProfile() {
   gallery.innerHTML = images.map(img =>
     `<img src="${img.url || img}" loading="lazy" />`
   ).join("");
+}
+
+
+// Contact details
+if (p.email || p.phone || p.website) {
+  companyDetails.classList.remove("hidden");
+
+  if (p.email) {
+    companyEmail.innerHTML = `
+      📧 <strong>Email</strong><br>
+      <a href="mailto:${p.email}">${p.email}</a>
+    `;
+  } else {
+    companyEmail.style.display = "none";
+  }
+
+  if (p.phone) {
+    companyPhone.innerHTML = `
+      📞 <strong>Phone</strong><br>
+      <a href="tel:${p.phone}">${p.phone}</a>
+    `;
+  } else {
+    companyPhone.style.display = "none";
+  }
+
+  if (p.website) {
+    companyWebsite.innerHTML = `
+      🌐 <strong>Website</strong><br>
+      <a href="${p.website}" target="_blank">${p.website}</a>
+    `;
+  } else {
+    companyWebsite.style.display = "none";
+  }
 }
 
 loadProfile();
