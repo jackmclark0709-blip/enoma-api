@@ -4,8 +4,21 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <title id="seo_title">Profile — Enoma</title>
+  <!-- SEO -->
+  <title id="seo_title">Business Profile — Enoma</title>
   <meta id="seo_description" name="description" content="" />
+
+  <!-- OpenGraph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" id="og_title" content="" />
+  <meta property="og:description" id="og_description" content="" />
+  <meta property="og:image" id="og_image" content="" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" id="twitter_title" content="" />
+  <meta name="twitter:description" id="twitter_description" content="" />
+  <meta name="twitter:image" id="twitter_image" content="" />
 
   <style>
     :root {
@@ -17,8 +30,8 @@
     }
 
     body {
-      font-family: "Inter", system-ui, sans-serif;
       margin: 0;
+      font-family: Inter, system-ui, sans-serif;
       background: var(--bg);
       color: var(--text);
     }
@@ -31,7 +44,7 @@
       padding: 2rem 1.25rem;
     }
 
-    /* ================= Header ================= */
+    /* Header */
     .site-header {
       position: sticky;
       top: 0;
@@ -57,14 +70,14 @@
     .header-cta {
       background: var(--blue);
       color: white;
-      padding: 0.45rem 0.9rem;
+      padding: 0.45rem 1rem;
       border-radius: 999px;
       text-decoration: none;
-      font-size: 0.9rem;
       font-weight: 600;
+      font-size: 0.9rem;
     }
 
-    /* ================= Hero ================= */
+    /* Hero */
     .hero-wrapper {
       width: 100vw;
       margin-left: calc(50% - 50vw);
@@ -82,39 +95,40 @@
     .hero-media {
       display: flex;
       justify-content: center;
-      gap: 1rem;
-      margin-bottom: 1rem;
-      align-items: center;
+      margin-bottom: 1.25rem;
+    }
+
+    .logo {
+      max-height: 80px;
+      background: white;
+      padding: 0.75rem;
+      border-radius: 16px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.2);
     }
 
     .avatar {
       width: 96px;
       height: 96px;
       border-radius: 50%;
-      object-fit: cover;
       border: 3px solid white;
-    }
-
-    .logo {
-      max-height: 64px;
-      object-fit: contain;
+      object-fit: cover;
     }
 
     .hero h1 {
-      font-size: 2.75rem;
+      font-size: 2.8rem;
       margin: 0;
     }
 
     .hero p {
       font-size: 1.35rem;
       opacity: 0.9;
-      margin-top: 0.5rem;
+      margin-top: 0.75rem;
     }
 
-    /* ================= Value Strip ================= */
+    /* Value Strip */
     .value-strip {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
       gap: 1rem;
       margin: 2.5rem auto 0;
       max-width: 900px;
@@ -123,7 +137,7 @@
 
     .value-item {
       background: white;
-      border-radius: 12px;
+      border-radius: 14px;
       padding: 1.25rem;
       text-align: center;
       font-weight: 600;
@@ -131,10 +145,10 @@
       box-shadow: 0 8px 25px rgba(0,0,0,0.06);
     }
 
-    /* ================= Sections ================= */
+    /* Sections */
     .section {
       background: white;
-      border-radius: 14px;
+      border-radius: 16px;
       padding: 2rem;
       margin-top: 2rem;
       box-shadow: 0 8px 25px rgba(0,0,0,0.06);
@@ -143,70 +157,49 @@
     .section h2 {
       margin-top: 0;
       color: var(--blue);
-      font-size: 1.3rem;
     }
 
-    /* ================= How It Works ================= */
-    .how-it-works {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1.5rem;
-      margin-top: 1.5rem;
-    }
-
-    .step {
-      background: #fafafa;
-      border-radius: 12px;
-      padding: 1.5rem;
-      border: 1px solid #eee;
-    }
-
-    .step-number {
-      font-size: 1.4rem;
-      font-weight: 700;
-      color: var(--lavender);
-      margin-bottom: 0.5rem;
-    }
-
-    /* ================= Services ================= */
+    /* Services */
     .service-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(260px,1fr));
       gap: 1.25rem;
       margin-top: 1rem;
     }
 
     .service-card {
       background: #fafafa;
-      padding: 1.25rem;
-      border-radius: 12px;
+      border-radius: 14px;
+      padding: 1.5rem;
       border: 1px solid #eee;
     }
 
     .service-card h3 {
-      margin: 0 0 0.35rem;
+      margin: 0;
       color: var(--blue);
-      font-size: 1.05rem;
     }
 
     .service-price {
-      margin-top: 0.5rem;
-      font-weight: 600;
       color: var(--green);
+      font-weight: 600;
+      margin-top: 0.75rem;
     }
 
-    /* ================= Mid CTA ================= */
+    .service-cta {
+      display: inline-block;
+      margin-top: 1rem;
+      color: var(--blue);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    /* CTA */
     .mid-cta {
       text-align: center;
-      padding: 2.5rem 1.5rem;
-      background: linear-gradient(135deg, #f3f1ff, #ffffff);
-      border-radius: 16px;
+      padding: 3rem 1.5rem;
+      background: linear-gradient(135deg,#f3f1ff,#ffffff);
+      border-radius: 18px;
       margin-top: 3rem;
-    }
-
-    .mid-cta h3 {
-      margin: 0 0 0.75rem;
-      color: var(--blue);
     }
 
     .mid-cta a {
@@ -214,54 +207,18 @@
       margin-top: 1rem;
       background: var(--blue);
       color: white;
-      padding: 0.7rem 1.4rem;
+      padding: 0.75rem 1.6rem;
       border-radius: 999px;
-      text-decoration: none;
       font-weight: 600;
+      text-decoration: none;
     }
 
-    /* ================= Gallery ================= */
-    .image-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 1rem;
-    }
-
-    .image-grid img {
-      width: 100%;
-      border-radius: 12px;
-    }
-
-    /* ================= Contact ================= */
-    .contact form {
-      display: grid;
-      gap: 0.75rem;
-    }
-
-    .contact input,
-    .contact textarea {
-      padding: 0.7rem;
-      border-radius: 8px;
-      border: 1px solid #ddd;
-      font-family: inherit;
-    }
-
-    .contact button {
-      background: var(--blue);
-      color: white;
-      padding: 0.75rem;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1rem;
-    }
-
-    /* ================= Footer ================= */
+    /* Footer */
     .footer {
-      text-align: center;
       margin-top: 4rem;
       padding-top: 2rem;
       border-top: 1px solid #eee;
+      text-align: center;
       font-size: 0.8rem;
       opacity: 0.7;
     }
@@ -289,7 +246,7 @@
 </div>
 
 <div class="value-strip">
-  <div class="value-item">SEO-Optimized Pages</div>
+  <div class="value-item">SEO-Optimized</div>
   <div class="value-item">Hosted & Maintained</div>
   <div class="value-item">Built to Convert</div>
 </div>
@@ -299,15 +256,6 @@
   <div class="section">
     <h2>About</h2>
     <p id="about"></p>
-  </div>
-
-  <div class="section">
-    <h2>How It Works</h2>
-    <div class="how-it-works">
-      <div class="step"><div class="step-number">1</div>Share your business details</div>
-      <div class="step"><div class="step-number">2</div>We create your page</div>
-      <div class="step"><div class="step-number">3</div>Start getting inquiries</div>
-    </div>
   </div>
 
   <div class="section">
@@ -321,22 +269,6 @@
     <a href="/create.html">Create your Enoma page</a>
   </div>
 
-  <div class="section">
-    <h2>Gallery</h2>
-    <div id="gallery" class="image-grid"></div>
-  </div>
-
-  <div class="section contact" id="contact">
-    <h2>Contact</h2>
-    <form id="contactForm">
-      <input name="name" placeholder="Your name" required />
-      <input name="email" type="email" placeholder="Your email" required />
-      <textarea name="message" placeholder="Message" required></textarea>
-      <button type="submit">Send message</button>
-    </form>
-    <p id="contactStatus"></p>
-  </div>
-
   <div class="footer">
     Enoma — simple, search-optimized business pages built to convert.
   </div>
@@ -344,61 +276,70 @@
 </div>
 
 <script>
-function parseJSON(val) {
+const track = (event, data = {}) => {
+  console.log("[track]", event, data);
+};
+
+function safeParse(val) {
   try {
     if (Array.isArray(val)) return val;
     if (typeof val === "string") return JSON.parse(val);
     return [];
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 async function loadProfile() {
   const slug = new URLSearchParams(location.search).get("slug");
   if (!slug) return;
 
+  track("page_view", { slug });
+
   const res = await fetch(`/api/get-business?slug=${slug}`);
   const p = await res.json();
 
-  name.textContent = p.business_name || "";
+  // SEO
+  seo_title.textContent = p.seo_title || p.business_name;
+  seo_description.content = p.seo_description || "";
+  og_title.content = seo_title.textContent;
+  og_description.content = seo_description.content;
+  twitter_title.content = seo_title.textContent;
+  twitter_description.content = seo_description.content;
+
+  name.textContent = p.business_name;
   tagline.textContent = p.hero_tagline || "";
   about.textContent = p.about || "";
 
-  // Header CTA
+  if (p.logo_url) {
+    logo.src = p.logo_url;
+    logo.classList.remove("hidden");
+  } else if (p.profile_image) {
+    avatar.src = p.profile_image;
+    avatar.classList.remove("hidden");
+  }
+
   const headerCTA = document.getElementById("headerCTA");
   if (p.phone) {
     headerCTA.href = `tel:${p.phone}`;
     headerCTA.textContent = "Call Now";
-  } else if (p.email) {
-    headerCTA.href = `mailto:${p.email}`;
-    headerCTA.textContent = "Email Us";
   } else {
     headerCTA.href = "#contact";
     headerCTA.textContent = "Contact";
   }
   headerCTA.classList.remove("hidden");
 
-  // Hide mid CTA on Enoma page
   if (slug === "enoma-io") {
-    document.getElementById("midCTA").classList.add("hidden");
+    midCTA.classList.add("hidden");
   }
 
-  // Services
-  const servicesData = parseJSON(p.services);
+  const servicesData = safeParse(p.services);
   services.innerHTML = servicesData.map(s => `
     <div class="service-card">
       <h3>${s.service_name || s.name}</h3>
       <p>${s.service_description || s.description || ""}</p>
       ${s.price ? `<div class="service-price">Starting at ${s.price}</div>` : ""}
+      <a class="service-cta" href="#contact">Get started →</a>
     </div>
   `).join("");
-
-  // Gallery
-  const images = parseJSON(p.images);
-  gallery.innerHTML = images.map(i =>
-    `<img src="${i.url || i.filename}" loading="lazy" />`
-  ).join("");
 }
 
 loadProfile();
@@ -406,4 +347,5 @@ loadProfile();
 
 </body>
 </html>
+
 
