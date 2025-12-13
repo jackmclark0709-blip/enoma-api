@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <title id="seo_title">Profile — Enoma</title>
-  <meta id="seo_description" name="description" content="">
+  <meta id="seo_description" name="description" content="" />
 
   <style>
     :root {
@@ -146,22 +146,6 @@
       font-size: 1.3rem;
     }
 
-    /* ================= Company Details ================= */
-    .details-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
-      margin-top: 1rem;
-    }
-
-    .details-grid div {
-      background: #fafafa;
-      padding: 1rem;
-      border-radius: 10px;
-      border: 1px solid #eee;
-      font-size: 0.95rem;
-    }
-
     /* ================= How It Works ================= */
     .how-it-works {
       display: grid;
@@ -197,24 +181,6 @@
       padding: 1.25rem;
       border-radius: 12px;
       border: 1px solid #eee;
-      position: relative;
-    }
-
-    .service-card.featured {
-      border: 2px solid var(--lavender);
-      box-shadow: 0 15px 40px rgba(154,140,255,0.25);
-    }
-
-    .service-badge {
-      position: absolute;
-      top: -10px;
-      right: 12px;
-      background: var(--lavender);
-      color: white;
-      padding: 0.25rem 0.6rem;
-      border-radius: 999px;
-      font-size: 0.75rem;
-      font-weight: 600;
     }
 
     .service-card h3 {
@@ -252,38 +218,6 @@
       border-radius: 999px;
       text-decoration: none;
       font-weight: 600;
-    }
-
-    /* ================= Testimonials ================= */
-    .testimonial {
-      background: #fafafa;
-      padding: 1.25rem;
-      border-radius: 12px;
-      border: 1px solid #eee;
-      margin-top: 1rem;
-      font-style: italic;
-    }
-
-    /* ================= Attachments ================= */
-    .attachment-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-
-    .attachment-list li {
-      margin-top: 0.75rem;
-    }
-
-    .attachment-list a {
-      display: inline-block;
-      padding: 0.6rem 0.9rem;
-      border-radius: 8px;
-      background: #fafafa;
-      border: 1px solid #eee;
-      text-decoration: none;
-      color: var(--blue);
-      font-weight: 500;
     }
 
     /* ================= Gallery ================= */
@@ -370,18 +304,9 @@
   <div class="section">
     <h2>How It Works</h2>
     <div class="how-it-works">
-      <div class="step">
-        <div class="step-number">1</div>
-        Share your business details
-      </div>
-      <div class="step">
-        <div class="step-number">2</div>
-        We create your page
-      </div>
-      <div class="step">
-        <div class="step-number">3</div>
-        Start getting inquiries
-      </div>
+      <div class="step"><div class="step-number">1</div>Share your business details</div>
+      <div class="step"><div class="step-number">2</div>We create your page</div>
+      <div class="step"><div class="step-number">3</div>Start getting inquiries</div>
     </div>
   </div>
 
@@ -390,20 +315,10 @@
     <div id="services" class="service-grid"></div>
   </div>
 
-  <div class="mid-cta">
+  <div class="mid-cta" id="midCTA">
     <h3>Want a page like this?</h3>
     <p>Create your own SEO-optimized business profile in minutes.</p>
     <a href="/create.html">Create your Enoma page</a>
-  </div>
-
-  <div class="section hidden" id="testimonials">
-    <h2>What Clients Say</h2>
-    <div id="testimonialList"></div>
-  </div>
-
-  <div class="section hidden" id="attachments">
-    <h2>Resources</h2>
-    <ul id="attachmentList" class="attachment-list"></ul>
   </div>
 
   <div class="section">
@@ -429,57 +344,28 @@
 </div>
 
 <script>
-function normalizeProfile(p) {
-  return {
-    name: p.business_name || p.company_name || "",
-    tagline: p.hero_tagline || "",
-    about: p.about || "",
-    email: p.email || null,
-    phone: p.phone || null,
-    website: p.website || null,
-    avatar_url: p.profile_image || null,
-    logo_url: p.logo_url || null,
-
-    highlights: typeof p.why_choose_us === "string"
-      ? p.why_choose_us.split("\n").filter(Boolean)
-      : [],
-
-    services: (() => {
+function parseJSON(val) {
   try {
-    if (Array.isArray(p.services)) return p.services;
-    if (typeof p.services === "string") return JSON.parse(p.services);
+    if (Array.isArray(val)) return val;
+    if (typeof val === "string") return JSON.parse(val);
     return [];
   } catch {
     return [];
   }
-})().map(s => ({
-  name: s.service_name || s.name || "",
-  description: s.service_description || s.description || "",
-  price: s.price || null
-})),
-
-
-    images: Array.isArray(p.images)
-      ? p.images.map(i => ({ url: i.url || i.filename || i }))
-      : [],
-
-    testimonials: Array.isArray(p.testimonials) ? p.testimonials : [],
-    attachments: Array.isArray(p.attachments) ? p.attachments : []
-  };
 }
 
 async function loadProfile() {
-  let slug = new URLSearchParams(location.search).get("slug");
-  if (!slug) slug = location.pathname.replace("/", "");
+  const slug = new URLSearchParams(location.search).get("slug");
   if (!slug) return;
 
   const res = await fetch(`/api/get-business?slug=${slug}`);
-  const p = normalizeProfile(await res.json());
+  const p = await res.json();
 
-  name.textContent = p.name;
-  tagline.textContent = p.tagline;
-  about.textContent = p.about;
+  name.textContent = p.business_name || "";
+  tagline.textContent = p.hero_tagline || "";
+  about.textContent = p.about || "";
 
+  // Header CTA
   const headerCTA = document.getElementById("headerCTA");
   if (p.phone) {
     headerCTA.href = `tel:${p.phone}`;
@@ -493,76 +379,26 @@ async function loadProfile() {
   }
   headerCTA.classList.remove("hidden");
 
-  if (p.avatar_url) {
-    avatar.src = p.avatar_url;
-    avatar.classList.remove("hidden");
-  }
-  if (p.logo_url) {
-    logo.src = p.logo_url;
-    logo.classList.remove("hidden");
+  // Hide mid CTA on Enoma page
+  if (slug === "enoma-io") {
+    document.getElementById("midCTA").classList.add("hidden");
   }
 
-  if (p.email || p.phone || p.website) {
-    companyDetails.classList.remove("hidden");
-    if (p.email) companyEmail.innerHTML = `📧 <strong>Email</strong><br><a href="mailto:${p.email}">${p.email}</a>`;
-    if (p.phone) companyPhone.innerHTML = `📞 <strong>Phone</strong><br><a href="tel:${p.phone}">${p.phone}</a>`;
-    if (p.website) companyWebsite.innerHTML = `🌐 <strong>Website</strong><br><a href="${p.website}" target="_blank">${p.website}</a>`;
-  }
-
-  why.innerHTML = p.highlights.length ? `<ul>${p.highlights.map(h => `<li>${h}</li>`).join("")}</ul>` : "";
-
-  services.innerHTML = p.services.map(s =>
-    `<div class="service-card">
-      <h3>${s.name}</h3>
-      <p>${s.description}</p>
+  // Services
+  const servicesData = parseJSON(p.services);
+  services.innerHTML = servicesData.map(s => `
+    <div class="service-card">
+      <h3>${s.service_name || s.name}</h3>
+      <p>${s.service_description || s.description || ""}</p>
       ${s.price ? `<div class="service-price">Starting at ${s.price}</div>` : ""}
-    </div>`
+    </div>
+  `).join("");
+
+  // Gallery
+  const images = parseJSON(p.images);
+  gallery.innerHTML = images.map(i =>
+    `<img src="${i.url || i.filename}" loading="lazy" />`
   ).join("");
-
-  gallery.innerHTML = p.images.map(img =>
-    `<img src="${img.url}" alt="" loading="lazy">`
-  ).join("");
-
-  if (p.testimonials.length) {
-    testimonials.classList.remove("hidden");
-    testimonialList.innerHTML = p.testimonials.map(t =>
-      `<div class="testimonial">“${t.quote}”<br><strong>— ${t.author}</strong></div>`
-    ).join("");
-  }
-
-  if (p.attachments.length) {
-    attachments.classList.remove("hidden");
-    attachmentList.innerHTML = p.attachments.map(a =>
-      `<li><a href="${a.url}" target="_blank">📄 ${a.label || "View resource"}</a></li>`
-    ).join("");
-  }
-
-  contactForm.addEventListener("submit", async e => {
-    e.preventDefault();
-    const btn = contactForm.querySelector("button");
-    btn.disabled = true;
-    btn.textContent = "Sending…";
-
-    const data = Object.fromEntries(new FormData(contactForm));
-    data.slug = slug;
-
-    try {
-      const r = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-      });
-      contactStatus.textContent = r.ok
-        ? "Thanks — we’ll be in touch shortly."
-        : "Something went wrong.";
-      if (r.ok) contactForm.reset();
-    } catch {
-      contactStatus.textContent = "Network error.";
-    }
-
-    btn.disabled = false;
-    btn.textContent = "Send message";
-  });
 }
 
 loadProfile();
@@ -570,3 +406,4 @@ loadProfile();
 
 </body>
 </html>
+
