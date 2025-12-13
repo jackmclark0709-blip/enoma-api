@@ -424,7 +424,9 @@ const safeParse = v => {
     if (Array.isArray(v)) return v;
     if (typeof v === "string") return JSON.parse(v);
     return [];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 };
 
 async function loadProfile() {
@@ -434,18 +436,20 @@ async function loadProfile() {
   const res = await fetch(`/api/get-business?slug=${slug}`);
   const p = await res.json();
 
-  // SEO
-  seo_title.textContent = p.seo_title || p.business_name;
+  /* ================= SEO ================= */
+  seo_title.textContent = p.seo_title || p.business_name || "Business Profile";
   seo_description.content = p.seo_description || "";
   og_title.content = seo_title.textContent;
   og_description.content = seo_description.content;
   twitter_title.content = seo_title.textContent;
   twitter_description.content = seo_description.content;
 
+  /* ================= Core Content ================= */
   name.textContent = p.business_name || "";
   tagline.textContent = p.hero_tagline || "";
   about.textContent = p.about || "";
 
+  /* ================= Media ================= */
   if (p.logo_url) {
     logo.src = p.logo_url;
     logo.classList.remove("hidden");
@@ -458,6 +462,7 @@ async function loadProfile() {
     twitter_image.content = p.profile_image;
   }
 
+  /* ================= Header CTA ================= */
   const headerCTA = document.getElementById("headerCTA");
   if (p.phone) {
     headerCTA.href = `tel:${p.phone}`;
@@ -471,51 +476,91 @@ async function loadProfile() {
   }
   headerCTA.classList.remove("hidden");
 
-  if (slug === "enoma-io") midCTA.classList.add("hidden");
+  /* Hide mid CTA on Enoma demo page */
+  if (slug === "enoma-io" && typeof midCTA !== "undefined") {
+    midCTA.classList.add("hidden");
+  }
 
-  // Highlights
+  /* ================= Highlights ================= */
   const highlights = typeof p.why_choose_us === "string"
     ? p.why_choose_us.split("\n").filter(Boolean)
     : [];
-  if (highlights.length) {
+
+  if (highlights.length && typeof why !== "undefined") {
     why.innerHTML = `<ul>${highlights.map(h => `<li>${h}</li>`).join("")}</ul>`;
-    highlightsSection.classList.remove("hidden");
+    if (typeof highlightsSection !== "undefined") {
+      highlightsSection.classList.remove("hidden");
+    }
   }
 
-  // Contact details
+  /* ================= Contact Information ================= */
   if (p.email || p.phone || p.website) {
     companyDetails.classList.remove("hidden");
-    if (p.email) companyEmail.innerHTML = `📧 <strong>Email</strong><br><a href="mailto:${p.email}">${p.email}</a>`;
-    if (p.phone) companyPhone.innerHTML = `📞 <strong>Phone</strong><br><a href="tel:${p.phone}">${p.phone}</a>`;
-    if (p.website) companyWebsite.innerHTML = `🌐 <strong>Website</strong><br><a href="${p.website}" target="_blank">${p.website}</a>`;
+
+    if (p.email) {
+      companyEmail.innerHTML = `
+        📧 <strong>Email</strong><br>
+        <a href="mailto:${p.email}">${p.email}</a>
+      `;
+    } else {
+      companyEmail.style.display = "none";
+    }
+
+    if (p.phone) {
+      companyPhone.innerHTML = `
+        📞 <strong>Phone</strong><br>
+        <a href="tel:${p.phone}">${p.phone}</a>
+      `;
+    } else {
+      companyPhone.style.display = "none";
+    }
+
+    if (p.website) {
+      companyWebsite.innerHTML = `
+        🌐 <strong>Website</strong><br>
+        <a href="${p.website}" target="_blank">${p.website}</a>
+      `;
+    } else {
+      companyWebsite.style.display = "none";
+    }
   }
 
-  // Services
-  services.innerHTML = safeParse(p.services).map(s => `
-    <div class="service-card">
-      <h3>${s.service_name || s.name}</h3>
-      <p>${s.service_description || s.description || ""}</p>
-      ${s.price ? `<div class="service-price">Starting at ${s.price}</div>` : ""}
-    </div>
-  `).join("");
+  /* ================= Services ================= */
+  const servicesData = safeParse(p.services);
 
-  // Towns
+  if (servicesData.length) {
+    services.innerHTML = servicesData.map(s => `
+      <div class="service-card">
+        <h3>${s.service_name || s.name || ""}</h3>
+        <p>${s.service_description || s.description || ""}</p>
+        ${s.price ? `<div class="service-price">Starting at ${s.price}</div>` : ""}
+      </div>
+    `).join("");
+  } else {
+    services.closest(".section").classList.add("hidden");
+  }
+
+  /* ================= Town / Location SEO ================= */
   const towns = safeParse(p.towns);
-  if (towns.length) {
+  if (towns.length && typeof townsSection !== "undefined") {
     townsSection.classList.remove("hidden");
     townList.innerHTML = towns.map(t =>
       `<div class="town">${p.business_name} serves ${t}</div>`
     ).join("");
   }
 
-  // Gallery
-  gallery.innerHTML = safeParse(p.images).map(img =>
-    `<img src="${img.url || img}" loading="lazy">`
-  ).join("");
+  /* ================= Gallery ================= */
+  const images = safeParse(p.images);
+  if (images.length) {
+    gallery.innerHTML = images.map(img =>
+      `<img src="${img.url || img}" loading="lazy">`
+    ).join("");
+  }
 
-  // Contact form
+  /* ================= Contact Form ================= */
   contactForm.addEventListener("submit", async e => {
     e.preventDefault();
+
     const btn = contactForm.querySelector("button");
     btn.disabled = true;
     btn.textContent = "Sending…";
@@ -529,7 +574,11 @@ async function loadProfile() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
       });
-      contactStatus.textContent = r.ok ? "Thanks — we’ll be in touch shortly." : "Something went wrong.";
+
+      contactStatus.textContent = r.ok
+        ? "Thanks — we’ll be in touch shortly."
+        : "Something went wrong.";
+
       if (r.ok) contactForm.reset();
     } catch {
       contactStatus.textContent = "Network error.";
