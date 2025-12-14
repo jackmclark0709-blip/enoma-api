@@ -437,8 +437,18 @@ const safeParse = v => {
 };
 
 async function loadProfile() {
-  const slug = new URLSearchParams(location.search).get("slug");
-  if (!slug) return;
+const params = new URLSearchParams(location.search);
+let slug = params.get("slug");
+
+if (!slug) {
+  const parts = location.pathname.split("/").filter(Boolean);
+  if (parts[0] === "p" && parts[1]) {
+    slug = parts[1];
+  }
+}
+
+if (!slug) return;
+
 
   const res = await fetch(`/api/get-business?slug=${slug}`);
   const p = await res.json();
