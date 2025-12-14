@@ -96,11 +96,12 @@
       display: flex;
       justify-content: center;
       gap: 1rem;
-      margin-bottom: 1.25rem;
+      margin-bottom: 1.5rem;
     }
 
     .logo {
-      max-height: 80px;
+      max-height: 200px;
+      max-width: 200px;
       background: white;
       padding: 0.75rem;
       border-radius: 16px;
@@ -380,10 +381,14 @@
     <div id="townList"></div>
   </div>
 
-<div id="map"></div>
-<div id="hours"></div>
-<div id="rating"></div>
-<div id="reviews"></div>
+<div class="section" id="googleSection">
+  <h2>Location & Reviews</h2>
+  <div id="map" style="margin-bottom:1rem;"></div>
+  <div id="rating" style="font-weight:600;margin-bottom:0.5rem;"></div>
+  <div id="hours"></div>
+  <div id="reviews"></div>
+</div>
+
 
   <div class="mid-cta" id="midCTA">
     <h3>Want a page like this?</h3>
@@ -437,19 +442,35 @@ const safeParse = v => {
 };
 
 async function loadProfile() {
-const params = new URLSearchParams(location.search);
-let slug = params.get("slug");
+  // ===== Resolve slug =====
+  const params = new URLSearchParams(location.search);
+  let slug = params.get("slug");
 
-if (!slug) {
-  const parts = location.pathname.split("/").filter(Boolean);
-  if (parts[0] === "p" && parts[1]) {
-    slug = parts[1];
+  if (!slug) {
+    const parts = location.pathname.split("/").filter(Boolean);
+    if (parts[0] === "p" && parts[1]) slug = parts[1];
   }
-}
 
-if (!slug) return;
+  if (!slug) return;
 
+  // ===== Bind DOM elements ONCE =====
+  const els = {
+    name: document.getElementById("name"),
+    tagline: document.getElementById("tagline"),
+    about: document.getElementById("about"),
+    logo: document.getElementById("logo"),
+    avatar: document.getElementById("avatar"),
+    services: document.getElementById("services"),
+    gallery: document.getElementById("gallery"),
+    map: document.getElementById("map"),
+    hours: document.getElementById("hours"),
+    rating: document.getElementById("rating"),
+    reviews: document.getElementById("reviews"),
+    googleSection: document.getElementById("googleSection"),
+    midCTA: document.getElementById("midCTA")
+  };
 
+  // ===== Fetch profile =====
   const res = await fetch(`/api/get-business?slug=${slug}`);
   const p = await res.json();
 
@@ -462,29 +483,31 @@ if (!slug) return;
   twitter_description.content = seo_description.content;
 
   /* ================= Core Content ================= */
-  if (name) name.textContent = p.business_name || "";
-  if (tagline) tagline.textContent = p.hero_tagline || "";
-  if (about) about.textContent = p.about || "";
+  if (els.name) els.name.textContent = p.business_name || "";
+  if (els.tagline) els.tagline.textContent = p.hero_tagline || "";
+  if (els.about) els.about.textContent = p.about || "";
 
   /* ================= Media ================= */
-  if (p.logo_url && logo) {
-    logo.src = p.logo_url;
-    logo.classList.remove("hidden");
-  } else if (p.profile_image && avatar) {
-    avatar.src = p.profile_image;
-    avatar.classList.remove("hidden");
+  if (p.logo_url && els.logo) {
+    els.logo.src = p.logo_url;
+    els.logo.classList.remove("hidden");
+  } else if (p.profile_image && els.avatar) {
+    els.avatar.src = p.profile_image;
+    els.avatar.classList.remove("hidden");
   }
 
   /* ================= Services ================= */
   const servicesData = safeParse(p.services);
-  if (services && servicesData.length) {
-    services.innerHTML = servicesData.map(s => `
+  if (els.services && servicesData.length) {
+    els.services.innerHTML = servicesData.map(s => `
       <div class="service-card">
         <h3>${s.service_name || ""}</h3>
         <p>${s.service_description || ""}</p>
         ${s.price ? `<div class="service-price">Starting at ${s.price}</div>` : ""}
       </div>
     `).join("");
+  } else if (els.services) {
+    els.services.closest(".section")?.classList.add("hidden");
   }
 
   /* ================= Google Data ================= */
@@ -497,10 +520,12 @@ if (!slug) return;
     } catch (e) {
       console.warn("Google data unavailable", e);
     }
+  } else if (els.googleSection) {
+    els.googleSection.classList.add("hidden");
   }
 
-  if (p.google_place_id && map) {
-    map.innerHTML = `
+  if (p.google_place_id && els.map) {
+    els.map.innerHTML = `
       <iframe
         width="100%"
         height="300"
@@ -511,8 +536,8 @@ if (!slug) return;
     `;
   }
 
-  if (google?.opening_hours?.weekday_text && hours) {
-    hours.innerHTML = `
+  if (google?.opening_hours?.weekday_text && els.hours) {
+    els.hours.innerHTML = `
       <h3>Hours</h3>
       <ul>
         ${google.opening_hours.weekday_text.map(d => `<li>${d}</li>`).join("")}
@@ -520,12 +545,12 @@ if (!slug) return;
     `;
   }
 
-  if (google?.rating && rating) {
-    rating.textContent = `⭐ ${google.rating} on Google`;
+  if (google?.rating && els.rating) {
+    els.rating.textContent = `⭐ ${google.rating} on Google`;
   }
 
-  if (google?.reviews?.length && reviews) {
-    reviews.innerHTML = `
+  if (google?.reviews?.length && els.reviews) {
+    els.reviews.innerHTML = `
       <h3>Reviews</h3>
       ${google.reviews.slice(0,3).map(r => `
         <div class="review">
@@ -537,11 +562,17 @@ if (!slug) return;
     `;
   }
 
+  /* ================= Demo cleanup ================= */
+  if (slug === "enoma-io" && els.midCTA) {
+    els.midCTA.classList.add("hidden");
+  }
+
   console.log("profile data:", p);
 }
 
 loadProfile();
 </script>
+
 
 
 </body>
