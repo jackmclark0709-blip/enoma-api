@@ -452,167 +452,44 @@ async function loadProfile() {
   twitter_description.content = seo_description.content;
 
   /* ================= Core Content ================= */
-  name.textContent = p.business_name || "";
-  tagline.textContent = p.hero_tagline || "";
-  about.textContent = p.about || "";
+  if (name) name.textContent = p.business_name || "";
+  if (tagline) tagline.textContent = p.hero_tagline || "";
+  if (about) about.textContent = p.about || "";
 
   /* ================= Media ================= */
-  if (p.logo_url) {
+  if (p.logo_url && logo) {
     logo.src = p.logo_url;
     logo.classList.remove("hidden");
-    og_image.content = p.logo_url;
-    twitter_image.content = p.logo_url;
-  } else if (p.profile_image) {
+  } else if (p.profile_image && avatar) {
     avatar.src = p.profile_image;
     avatar.classList.remove("hidden");
-    og_image.content = p.profile_image;
-    twitter_image.content = p.profile_image;
-  }
-
-  /* ================= Header CTA ================= */
-  const headerCTA = document.getElementById("headerCTA");
-  if (p.phone) {
-    headerCTA.href = `tel:${p.phone}`;
-    headerCTA.textContent = "Call Now";
-  } else if (p.email) {
-    headerCTA.href = `mailto:${p.email}`;
-    headerCTA.textContent = "Email";
-  } else {
-    headerCTA.href = "#contact";
-    headerCTA.textContent = "Contact";
-  }
-  headerCTA.classList.remove("hidden");
-
-  /* Hide mid CTA on Enoma demo page */
-  if (slug === "enoma-io" && typeof midCTA !== "undefined") {
-    midCTA.classList.add("hidden");
-  }
-
-  /* ================= Highlights ================= */
-  const highlights = typeof p.why_choose_us === "string"
-    ? p.why_choose_us.split("\n").filter(Boolean)
-    : [];
-
-  if (highlights.length && typeof why !== "undefined") {
-    why.innerHTML = `<ul>${highlights.map(h => `<li>${h}</li>`).join("")}</ul>`;
-    if (typeof highlightsSection !== "undefined") {
-      highlightsSection.classList.remove("hidden");
-    }
-  }
-
-  /* ================= Contact Information ================= */
-  if (p.email || p.phone || p.website) {
-    companyDetails.classList.remove("hidden");
-
-    if (p.email) {
-      companyEmail.innerHTML = `
-        📧 <strong>Email</strong><br>
-        <a href="mailto:${p.email}">${p.email}</a>
-      `;
-    } else {
-      companyEmail.style.display = "none";
-    }
-
-    if (p.phone) {
-      companyPhone.innerHTML = `
-        📞 <strong>Phone</strong><br>
-        <a href="tel:${p.phone}">${p.phone}</a>
-      `;
-    } else {
-      companyPhone.style.display = "none";
-    }
-
-    if (p.website) {
-      companyWebsite.innerHTML = `
-        🌐 <strong>Website</strong><br>
-        <a href="${p.website}" target="_blank">${p.website}</a>
-      `;
-    } else {
-      companyWebsite.style.display = "none";
-    }
   }
 
   /* ================= Services ================= */
   const servicesData = safeParse(p.services);
-
-  if (servicesData.length) {
+  if (services && servicesData.length) {
     services.innerHTML = servicesData.map(s => `
       <div class="service-card">
-        <h3>${s.service_name || s.name || ""}</h3>
-        <p>${s.service_description || s.description || ""}</p>
+        <h3>${s.service_name || ""}</h3>
+        <p>${s.service_description || ""}</p>
         ${s.price ? `<div class="service-price">Starting at ${s.price}</div>` : ""}
       </div>
     `).join("");
-  } else {
-    services.closest(".section").classList.add("hidden");
   }
 
-  /* ================= Town / Location SEO ================= */
-  const towns = safeParse(p.towns);
-  if (towns.length && typeof townsSection !== "undefined") {
-    townsSection.classList.remove("hidden");
-    townList.innerHTML = towns.map(t =>
-      `<div class="town">${p.business_name} serves ${t}</div>`
-    ).join("");
-  }
-
-  /* ================= Gallery ================= */
-  const images = safeParse(p.images);
-  if (images.length) {
-    gallery.innerHTML = images.map(img =>
-      `<img src="${img.url || img}" loading="lazy">`
-    ).join("");
-  }
-
-  /* ================= Contact Form ================= */
-  contactForm.addEventListener("submit", async e => {
-    e.preventDefault();
-
-    const btn = contactForm.querySelector("button");
-    btn.disabled = true;
-    btn.textContent = "Sending…";
-
-    const data = Object.fromEntries(new FormData(contactForm));
-    data.slug = slug;
-
-    try {
-      const r = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-      });
-
-      contactStatus.textContent = r.ok
-        ? "Thanks — we’ll be in touch shortly."
-        : "Something went wrong.";
-
-      if (r.ok) contactForm.reset();
-    } catch {
-      contactStatus.textContent = "Network error.";
-    }
-
-    btn.disabled = false;
-    btn.textContent = "Send message";
-  });
-}
-
-   /* ================= Google Data ================= */
-
+  /* ================= Google Data ================= */
   let google = null;
 
   if (p.google_place_id) {
     try {
-      const r = await fetch(
-        `/api/google-place?place_id=${p.google_place_id}`
-      );
+      const r = await fetch(`/api/google-place?place_id=${p.google_place_id}`);
       google = await r.json();
     } catch (e) {
-      console.warn("Google data unavailable");
+      console.warn("Google data unavailable", e);
     }
   }
 
-  // MAP
-  if (p.google_place_id && typeof map !== "undefined") {
+  if (p.google_place_id && map) {
     map.innerHTML = `
       <iframe
         width="100%"
@@ -624,28 +501,23 @@ async function loadProfile() {
     `;
   }
 
-  // HOURS
-  if (google?.opening_hours?.weekday_text && typeof hours !== "undefined") {
+  if (google?.opening_hours?.weekday_text && hours) {
     hours.innerHTML = `
       <h3>Hours</h3>
       <ul>
-        ${google.opening_hours.weekday_text
-          .map(d => `<li>${d}</li>`)
-          .join("")}
+        ${google.opening_hours.weekday_text.map(d => `<li>${d}</li>`).join("")}
       </ul>
     `;
   }
 
-  // RATING
-  if (google?.rating && typeof rating !== "undefined") {
+  if (google?.rating && rating) {
     rating.textContent = `⭐ ${google.rating} on Google`;
   }
 
-  // REVIEWS
-  if (google?.reviews?.length && typeof reviews !== "undefined") {
+  if (google?.reviews?.length && reviews) {
     reviews.innerHTML = `
       <h3>Reviews</h3>
-      ${google.reviews.slice(0, 3).map(r => `
+      ${google.reviews.slice(0,3).map(r => `
         <div class="review">
           <strong>${r.author_name}</strong>
           <span>⭐ ${r.rating}</span>
@@ -656,7 +528,6 @@ async function loadProfile() {
   }
 
   console.log("profile data:", p);
-
 }
 
 loadProfile();
