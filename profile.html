@@ -380,6 +380,11 @@
     <div id="townList"></div>
   </div>
 
+<div id="map"></div>
+<div id="hours"></div>
+<div id="rating"></div>
+<div id="reviews"></div>
+
   <div class="mid-cta" id="midCTA">
     <h3>Want a page like this?</h3>
     <p>Create your own SEO-optimized business profile in minutes.</p>
@@ -587,6 +592,64 @@ async function loadProfile() {
     btn.disabled = false;
     btn.textContent = "Send message";
   });
+}
+
+ let google = null;
+
+  if (p.google_place_id) {
+    try {
+      const r = await fetch(
+        `/api/google-place?place_id=${p.google_place_id}`
+      );
+      google = await r.json();
+    } catch (e) {
+      console.warn("Google data unavailable");
+    }
+  }
+
+  // MAP
+  if (p.google_place_id) {
+    map.innerHTML = `
+      <iframe
+        width="100%"
+        height="300"
+        loading="lazy"
+        style="border:0"
+        src="https://www.google.com/maps/embed/v1/place?key=GOOGLE_PUBLIC_MAPS_KEY&q=place_id:${p.google_place_id}">
+      </iframe>
+    `;
+  }
+
+  // HOURS
+  if (google?.opening_hours?.weekday_text) {
+    hours.innerHTML = `
+      <h3>Hours</h3>
+      <ul>
+        ${google.opening_hours.weekday_text
+          .map(d => `<li>${d}</li>`)
+          .join("")}
+      </ul>
+    `;
+  }
+
+  // RATING
+  if (google?.rating) {
+    rating.textContent = `⭐ ${google.rating} on Google`;
+  }
+
+  // REVIEWS
+  if (google?.reviews?.length) {
+    reviews.innerHTML = `
+      <h3>Reviews</h3>
+      ${google.reviews.slice(0, 3).map(r => `
+        <div class="review">
+          <strong>${r.author_name}</strong>
+          <span>⭐ ${r.rating}</span>
+          <p>${r.text}</p>
+        </div>
+      `).join("")}
+    `;
+  }
 }
 
 loadProfile();

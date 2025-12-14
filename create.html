@@ -120,6 +120,15 @@ button[type="submit"] {
 <label>Business Name</label>
 <input name="business_name" required />
 
+<label>Find your business on Google</label>
+<input
+  id="google_place"
+  placeholder="Start typing your business name..."
+/>
+
+<input type="hidden" name="google_place_id" />
+
+
 <label>Business Logo</label>
 <input
   type="file"
@@ -275,6 +284,36 @@ form.addEventListener("submit", async (e) => {
   }
 });
 </script>
+
+<script
+  src="https://maps.googleapis.com/maps/api/js?key=GOOGLE_PUBLIC_MAPS_KEY&libraries=places">
+</script>
+
+<script>
+const input = document.getElementById("google_place");
+
+const autocomplete = new google.maps.places.Autocomplete(input, {
+  types: ["establishment"]
+});
+
+autocomplete.addListener("place_changed", () => {
+  const place = autocomplete.getPlace();
+  if (!place.place_id) return;
+
+  document.querySelector('[name="google_place_id"]').value = place.place_id;
+
+  // Optional autofill
+  if (place.formatted_address)
+    document.querySelector('[name="address"]').value = place.formatted_address;
+
+  if (place.formatted_phone_number)
+    document.querySelector('[name="phone"]').value = place.formatted_phone_number;
+
+  if (place.website)
+    document.querySelector('[name="website"]').value = place.website;
+});
+</script>
+
 
 </body>
 </html>
