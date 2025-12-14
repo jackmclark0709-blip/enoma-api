@@ -424,6 +424,8 @@
 </div>
 
 <script>
+console.log("script loaded");
+
 const safeParse = v => {
   try {
     if (Array.isArray(v)) return v;
@@ -651,6 +653,9 @@ async function loadProfile() {
     `;
   }
 }
+
+console.log("profile data:", p);
+
 
 loadProfile();
 </script>

@@ -1,12 +1,7 @@
 {
   "rewrites": [
-    {
-      "source": "/create",
-      "destination": "/create.html"
-    },
-    {
-      "source": "/p/:slug",
-      "destination": "/profile.html?slug=:slug"
-    }
+    { "source": "/create", "destination": "/create.html" },
+    { "source": "/p/:slug", "destination": "/profile.html?slug=:slug" }
   ]
 }
+
