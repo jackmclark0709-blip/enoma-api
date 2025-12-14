@@ -515,8 +515,15 @@ async function loadProfile() {
 
   if (p.google_place_id) {
     try {
-      const r = await fetch(`/api/google-place?place_id=${p.google_place_id}`);
-      google = await r.json();
+const r = await fetch(`/api/google-place?place_id=${p.google_place_id}`);
+
+if (!r.ok) {
+  throw new Error(`Google API failed: ${r.status}`);
+}
+
+const text = await r.text();
+google = text ? JSON.parse(text) : null;
+
     } catch (e) {
       console.warn("Google data unavailable", e);
     }
