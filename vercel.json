@@ -5,16 +5,8 @@
       "destination": "/create.html"
     },
     {
-      "source": "/create.html",
-      "destination": "/create.html"
-    },
-    {
-      "source": "/:username",
-      "destination": "/profile.html"
+      "source": "/p/:slug",
+      "destination": "/profile.html?slug=:slug"
     }
   ]
 }
-
-
-
-
