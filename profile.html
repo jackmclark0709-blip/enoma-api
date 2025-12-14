@@ -596,7 +596,9 @@ async function loadProfile() {
   });
 }
 
- let google = null;
+   /* ================= Google Data ================= */
+
+  let google = null;
 
   if (p.google_place_id) {
     try {
@@ -610,20 +612,20 @@ async function loadProfile() {
   }
 
   // MAP
-  if (p.google_place_id) {
+  if (p.google_place_id && typeof map !== "undefined") {
     map.innerHTML = `
       <iframe
         width="100%"
         height="300"
         loading="lazy"
         style="border:0"
-        src="https://www.google.com/maps/embed/v1/place?key=GOOGLE_PUBLIC_MAPS_KEY&q=place_id:${p.google_place_id}">
+        src="https://www.google.com/maps/embed/v1/place?key=AIza_YOUR_PUBLIC_KEY&q=place_id:${p.google_place_id}">
       </iframe>
     `;
   }
 
   // HOURS
-  if (google?.opening_hours?.weekday_text) {
+  if (google?.opening_hours?.weekday_text && typeof hours !== "undefined") {
     hours.innerHTML = `
       <h3>Hours</h3>
       <ul>
@@ -635,12 +637,12 @@ async function loadProfile() {
   }
 
   // RATING
-  if (google?.rating) {
+  if (google?.rating && typeof rating !== "undefined") {
     rating.textContent = `⭐ ${google.rating} on Google`;
   }
 
   // REVIEWS
-  if (google?.reviews?.length) {
+  if (google?.reviews?.length && typeof reviews !== "undefined") {
     reviews.innerHTML = `
       <h3>Reviews</h3>
       ${google.reviews.slice(0, 3).map(r => `
@@ -652,13 +654,14 @@ async function loadProfile() {
       `).join("")}
     `;
   }
+
+  console.log("profile data:", p);
+
 }
-
-console.log("profile data:", p);
-
 
 loadProfile();
 </script>
+
 
 </body>
 </html>
