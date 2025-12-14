@@ -1,8 +1,12 @@
-export default async function handler(req, res) {
-  const { place_id } = req.query;
+export async function GET(req) {
+  const { searchParams } = new URL(req.url);
+  const place_id = searchParams.get("place_id");
 
   if (!place_id) {
-    return res.status(400).json({ error: "Missing place_id" });
+    return new Response(
+      JSON.stringify({ error: "Missing place_id" }),
+      { status: 400 }
+    );
   }
 
   try {
@@ -16,13 +20,22 @@ export default async function handler(req, res) {
     const data = await r.json();
 
     if (data.status !== "OK") {
-      return res.status(500).json({ error: data.status });
+      return new Response(
+        JSON.stringify({ error: data.status }),
+        { status: 500 }
+      );
     }
 
-    return res.json(data.result);
+    return new Response(JSON.stringify(data.result), {
+      headers: { "Content-Type": "application/json" }
+    });
   } catch (err) {
-    console.error("Google Places error:", err);
-    return res.status(500).json({ error: "Google fetch failed" });
+    console.error(err);
+    return new Response(
+      JSON.stringify({ error: "Google fetch failed" }),
+      { status: 500 }
+    );
   }
 }
+
 
