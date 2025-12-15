@@ -67,6 +67,11 @@
       color: var(--blue);
     }
 
+.section.alt {
+  background: linear-gradient(135deg, #f4f2ff, #ffffff);
+}
+
+
     .header-cta {
       background: var(--blue);
       color: white;
@@ -76,6 +81,19 @@
       font-weight: 600;
       font-size: 0.9rem;
     }
+
+.hero-cta {
+  display: inline-block;
+  margin-top: 1.5rem;
+  background: white;
+  color: var(--blue);
+  padding: 0.9rem 1.8rem;
+  border-radius: 999px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
 
     /* ================= Hero ================= */
     .hero-wrapper {
@@ -184,6 +202,15 @@
       padding: 1.5rem;
       border: 1px solid #eee;
     }
+
+.service-cta {
+  display: inline-block;
+  margin-top: 0.75rem;
+  font-weight: 600;
+  color: var(--blue);
+  text-decoration: none;
+}
+
 
     .step-number {
       font-weight: 700;
@@ -312,6 +339,92 @@
       font-size: 0.8rem;
       opacity: 0.7;
     }
+
+.hero-actions {
+  margin-top: 1.75rem;
+}
+
+.contact form {
+  max-width: 500px;
+}
+
+.contact button {
+  margin-top: 0.5rem;
+}
+
+
+.primary-cta {
+  display: inline-block;
+  background: white;
+  color: var(--blue);
+  padding: 0.9rem 2rem;
+  border-radius: 999px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+.service-price {
+  margin-top: 1rem;
+  font-weight: 700;
+  color: var(--green);
+  font-size: 0.95rem;
+}
+
+.location-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.map-wrap iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 280px;
+  border-radius: 14px;
+}
+
+.location-meta {
+  background: #fafafa;
+  padding: 1.25rem;
+  border-radius: 14px;
+  border: 1px solid #eee;
+}
+
+.rating {
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.reviews {
+  margin-top: 2rem;
+}
+
+.review {
+  background: #fafafa;
+  padding: 1.25rem;
+  border-radius: 14px;
+  border: 1px solid #eee;
+  margin-top: 1rem;
+}
+
+@media (max-width: 768px) {
+  .location-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.header-cta {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.header-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+}
+
+
   </style>
 </head>
 
@@ -330,10 +443,16 @@
       <img id="logo" class="logo hidden" />
       <img id="avatar" class="avatar hidden" />
     </div>
+
     <h1 id="name"></h1>
     <p id="tagline"></p>
+
+    <div class="hero-actions">
+      <a href="#contact" class="primary-cta">Get Started</a>
+    </div>
   </div>
 </div>
+
 
 <div class="value-strip">
   <div class="value-item">SEO-Optimized</div>
@@ -353,7 +472,7 @@
     <div id="why"></div>
   </div>
 
-  <div class="section">
+  <div class="section-alt">
     <h2>How It Works</h2>
     <div class="how-it-works">
       <div class="step"><div class="step-number">1</div>Share your business details</div>
@@ -371,30 +490,41 @@
     </div>
   </div>
 
-  <div class="section">
-    <h2>Services</h2>
-    <div id="services" class="service-grid"></div>
-  </div>
+<div class="service-card">
+  <h3>${s.service_name || ""}</h3>
+  <p>${s.service_description || ""}</p>
+  ${s.price ? `<div class="service-price">${s.price}</div>` : ""}
+</div>
+
 
   <div class="section hidden" id="towns">
     <h2>Areas We Serve</h2>
     <div id="townList"></div>
   </div>
 
-<div class="section" id="googleSection">
+<div class="section alt" id="googleSection">
   <h2>Location & Reviews</h2>
-  <div id="map" style="margin-bottom:1rem;"></div>
-  <div id="rating" style="font-weight:600;margin-bottom:0.5rem;"></div>
-  <div id="hours"></div>
-  <div id="reviews"></div>
+
+  <div class="location-grid">
+    <div class="map-wrap" id="map"></div>
+
+    <div class="location-meta">
+      <div id="rating" class="rating"></div>
+      <div id="hours"></div>
+    </div>
+  </div>
+
+  <div id="reviews" class="reviews"></div>
 </div>
 
 
-  <div class="mid-cta" id="midCTA">
-    <h3>Want a page like this?</h3>
-    <p>Create your own SEO-optimized business profile in minutes.</p>
-    <a href="/create.html">Create your Enoma page</a>
-  </div>
+
+<div class="mid-cta" id="midCTA">
+  <h3>Want a page like this?</h3>
+  <p>Launch a professional, SEO-optimized business profile — without building a full website.</p>
+  <a href="/create.html">Create Your Enoma Page</a>
+</div>
+
 
   <div class="section hidden" id="testimonials">
     <h2>What Clients Say</h2>
@@ -406,13 +536,9 @@
     <ul id="attachmentList"></ul>
   </div>
 
-  <div class="section">
-    <h2>Gallery</h2>
-    <div id="gallery" class="image-grid"></div>
-  </div>
-
-  <div class="section contact" id="contact">
+<div class="section contact" id="contact">
     <h2>Contact</h2>
+<p>No obligation. We’ll respond within one business day.</p>
     <form id="contactForm">
       <input name="name" placeholder="Your name" required />
       <input name="email" type="email" placeholder="Your email" required />
@@ -422,6 +548,13 @@
     <p id="contactStatus"></p>
   </div>
 
+
+  <div class="section">
+    <h2>Gallery</h2>
+    <div id="gallery" class="image-grid"></div>
+  </div>
+
+  
   <div class="footer">
     Enoma — simple, search-optimized business pages built to convert.
   </div>
