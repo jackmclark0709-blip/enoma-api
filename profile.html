@@ -543,31 +543,39 @@ google = text ? JSON.parse(text) : null;
     `;
   }
 
-  if (google?.opening_hours?.weekday_text && els.hours) {
-    els.hours.innerHTML = `
-      <h3>Hours</h3>
-      <ul>
-        ${google.opening_hours.weekday_text.map(d => `<li>${d}</li>`).join("")}
-      </ul>
-    `;
-  }
+if (
+  google?.regularOpeningHours?.weekdayDescriptions &&
+  els.hours
+) {
+  els.hours.innerHTML = `
+    <h3>Hours</h3>
+    <ul>
+      ${google.regularOpeningHours.weekdayDescriptions
+        .map(d => `<li>${d}</li>`)
+        .join("")}
+    </ul>
+  `;
+}
+
+
 
   if (google?.rating && els.rating) {
     els.rating.textContent = `⭐ ${google.rating} on Google`;
   }
 
   if (google?.reviews?.length && els.reviews) {
-    els.reviews.innerHTML = `
-      <h3>Reviews</h3>
-      ${google.reviews.slice(0,3).map(r => `
-        <div class="review">
-          <strong>${r.author_name}</strong>
-          <span>⭐ ${r.rating}</span>
-          <p>${r.text}</p>
-        </div>
-      `).join("")}
-    `;
-  }
+  els.reviews.innerHTML = `
+    <h3>Reviews</h3>
+    ${google.reviews.slice(0,3).map(r => `
+      <div class="review">
+        <strong>${r.authorAttribution?.displayName || "Google User"}</strong>
+        <span>⭐ ${r.rating}</span>
+        <p>${r.text?.text || ""}</p>
+      </div>
+    `).join("")}
+  `;
+}
+
 
   /* ================= Demo cleanup ================= */
   if (slug === "enoma-io" && els.midCTA) {
