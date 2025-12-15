@@ -105,7 +105,7 @@
     .hero {
       max-width: 1200px;
       margin: auto;
-      padding: 1.5rem 1.5rem;
+      padding: .75rem 1.5rem 2.25rem;
       text-align: center;
       color: white;
     }
@@ -135,14 +135,13 @@
     }
 
     .hero h1 {
-      font-size: 2.8rem;
+      font-size: 2.4rem;
       margin: 0;
     }
 
     .hero p {
-      font-size: 1.35rem;
-      opacity: 0.9;
-      margin-top: 0.75rem;
+  font-size: 1.2rem;
+  max-width: 520px;
     }
 
     /* ================= Value Strip ================= */
@@ -362,6 +361,8 @@
   font-weight: 700;
   text-decoration: none;
   box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
 }
 
 .service-price {
@@ -418,6 +419,19 @@
 .header-cta {
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
+
+.primary-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(0,0,0,0.25);
+}
+
+.hero-wrapper::after {
+  content: "";
+  display: block;
+  height: 1px;
+  background: rgba(255,255,255,0.18);
+}
+
 
 .header-cta:hover {
   transform: translateY(-1px);
@@ -505,6 +519,38 @@
   }
 }
 
+.hero-card {
+  background: white;
+  border-radius: 20px;
+  padding: 1.25rem;
+  max-width: 260px;
+  text-align: center;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.25);
+}
+
+.hero-card .logo {
+  max-width: 160px;
+  margin: auto;
+  background: white;
+  padding: 0.75rem;
+  border-radius: 14px;
+}
+
+.hero-card .avatar {
+  margin-top: 0.5rem;
+}
+
+.hero-card-meta {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.hero-card-meta strong {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--blue);
+}
 
 
   </style>
@@ -538,20 +584,22 @@
       </div>
     </div>
 
-    <!-- RIGHT: Visual -->
+    <!-- RIGHT: Proof Card -->
     <div class="hero-visual">
-      <img id="logo" class="logo hidden" />
-      <img id="avatar" class="avatar hidden" />
+      <div class="hero-card">
+        <img id="logo" class="logo hidden" />
+        <img id="avatar" class="avatar hidden" />
+
+        <div class="hero-card-meta">
+          <strong>Live Business Profile</strong>
+          <span>SEO-ready • Hosted • Lead-optimized</span>
+        </div>
+      </div>
     </div>
 
   </div>
 </div>
 
-<div class="value-strip">
-  <div class="value-item">SEO-Optimized</div>
-  <div class="value-item">Hosted & Maintained</div>
-  <div class="value-item">Built to Convert</div>
-</div>
 
 <div class="container">
 
