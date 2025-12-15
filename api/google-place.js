@@ -9,10 +9,11 @@ export default async function handler(req, res) {
     const url = `https://places.googleapis.com/v1/places/${place_id}?fields=rating,reviews,regularOpeningHours.weekdayDescriptions`;
 
     const r = await fetch(url, {
-      headers: {
-        "X-Goog-Api-Key": process.env.GOOGLE_SERVER_PLACES_KEY,
-        "X-Goog-FieldMask": "rating,reviews,regularOpeningHours.weekdayDescriptions"
-      }
+headers: {
+  "X-Goog-Api-Key": process.env.GOOGLE_SERVER_PLACES_KEY,
+  "X-Goog-FieldMask": "rating,reviews,regularOpeningHours.weekdayDescriptions"
+}
+
     });
 
     const data = await r.json();
