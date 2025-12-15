@@ -39,7 +39,7 @@
     .hidden { display: none; }
 
     .container {
-      max-width: 900px;
+      max-width: 1200px;
       margin: auto;
       padding: 2rem 1.25rem;
     }
@@ -127,8 +127,8 @@
     }
 
     .avatar {
-      width: 96px;
-      height: 96px;
+      width: 200px;
+      height: 200px;
       border-radius: 50%;
       border: 3px solid white;
       object-fit: cover;
@@ -344,7 +344,7 @@
 }
 
 .contact form {
-  max-width: 500px;
+  max-width: 1200px;
 }
 
 .contact button {
@@ -368,7 +368,7 @@
 .service-price {
   margin-top: 1rem;
   font-weight: 700;
-  color: var(--green);
+  color: #50a684;
   font-size: 0.95rem;
 }
 
@@ -552,6 +552,77 @@
   color: var(--blue);
 }
 
+/* =========================================================
+   ENOMA UI POLISH — OVERRIDES (v1)
+   Safe to remove or refactor later
+   ========================================================= */
+
+/* Reduce card noise */
+.section,
+.service-card,
+.details-grid div,
+.location-meta,
+.review,
+.testimonial {
+  box-shadow: none;
+  border: 1px solid #eee;
+}
+
+/* Restore emphasis where it matters */
+.hero-card,
+.primary-cta,
+.header-cta {
+  box-shadow: 0 18px 40px rgba(0,0,0,0.25);
+}
+
+/* Typography hierarchy */
+.hero-copy h1 {
+  font-size: clamp(2.6rem, 4vw, 3.2rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.section h2 {
+  font-size: 1.6rem;
+  letter-spacing: -0.01em;
+}
+
+/* Section rhythm */
+.section {
+  padding: 2.25rem;
+}
+
+.section + .section {
+  margin-top: 3rem;
+}
+
+/* Softer hero secondary text */
+.hero-copy p {
+  opacity: 0.85;
+}
+
+/* Service cards feel interactive */
+.service-card {
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.service-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--lavender);
+}
+
+/* Review readability */
+.reviews {
+  max-width: 800px;
+}
+
+/* CTA intent clarity */
+.header-cta {
+  background: transparent;
+  color: var(--blue);
+  border: 1px solid var(--blue);
+}
+
 
   </style>
 </head>
@@ -577,11 +648,11 @@
         <a href="#contact" class="primary-cta">Get Started</a>
       </div>
 
-      <div class="hero-trust">
-        <span>SEO-Optimized</span>
-        <span>Hosted & Maintained</span>
-        <span>Built to Convert</span>
-      </div>
+<div class="hero-facts">
+  <span id="heroLocation"></span>
+  <span id="heroAvailability"></span>
+  <span id="heroResponseTime"></span>
+</div>
     </div>
 
     <!-- RIGHT: Proof Card -->
@@ -613,14 +684,6 @@
     <div id="why"></div>
   </div>
 
-  <div class="section-alt">
-    <h2>How It Works</h2>
-    <div class="how-it-works">
-      <div class="step"><div class="step-number">1</div>Share your business details</div>
-      <div class="step"><div class="step-number">2</div>We build your page</div>
-      <div class="step"><div class="step-number">3</div>Launch & get inquiries</div>
-    </div>
-  </div>
 
   <div class="section hidden" id="companyDetails">
     <h2>Contact Information</h2>
