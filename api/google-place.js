@@ -1,41 +1,33 @@
-export async function GET(req) {
-  const { searchParams } = new URL(req.url);
-  const place_id = searchParams.get("place_id");
+export default async function handler(req, res) {
+  const { place_id } = req.query;
 
   if (!place_id) {
-    return new Response(
-      JSON.stringify({ error: "Missing place_id" }),
-      { status: 400 }
-    );
+    return res.status(400).json({ error: "Missing place_id" });
   }
 
   try {
-    const url =
-      "https://maps.googleapis.com/maps/api/place/details/json" +
-      `?place_id=${place_id}` +
-      `&fields=rating,reviews,opening_hours` +
-      `&key=${process.env.GOOGLE_SERVER_PLACES_KEY}`;
+    const url = `https://places.googleapis.com/v1/places/${place_id}?fields=rating,reviews,regularOpeningHours.weekdayDescriptions`;
 
-    const r = await fetch(url);
+    const r = await fetch(url, {
+      headers: {
+        "X-Goog-Api-Key": process.env.GOOGLE_SERVER_PLACES_KEY,
+        "X-Goog-FieldMask": "rating,reviews,regularOpeningHours.weekdayDescriptions"
+      }
+    });
+
     const data = await r.json();
 
-    if (data.status !== "OK") {
-      return new Response(
-        JSON.stringify({ error: data.status }),
-        { status: 500 }
-      );
+    if (!r.ok) {
+      console.error("Google error:", data);
+      return res.status(r.status).json(data);
     }
 
-    return new Response(JSON.stringify(data.result), {
-      headers: { "Content-Type": "application/json" }
-    });
+    return res.json(data);
   } catch (err) {
-    console.error(err);
-    return new Response(
-      JSON.stringify({ error: "Google fetch failed" }),
-      { status: 500 }
-    );
+    console.error("Google Places fetch failed:", err);
+    return res.status(500).json({ error: "Google Places fetch failed" });
   }
 }
+
 
 
