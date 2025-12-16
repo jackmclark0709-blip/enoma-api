@@ -1031,19 +1031,30 @@ if (
 }
 
 
-  /* ================= Services ================= */
-  const servicesData = safeParse(p.services);
-  if (els.services && servicesData.length) {
-    els.services.innerHTML = servicesData.map(s => `
-      <div class="service-card">
-        <h3>${s.service_name || ""}</h3>
-        <p>${s.service_description || ""}</p>
-        ${s.price ? `<div class="service-price">Starting at ${s.price}</div>` : ""}
-      </div>
-    `).join("");
-  } else if (els.services) {
-    els.services.closest(".section")?.classList.add("hidden");
+/* ================= Services ================= */
+let servicesData = [];
+
+if (Array.isArray(p.services)) {
+  servicesData = p.services;
+} else if (typeof p.services === "string") {
+  try {
+    servicesData = JSON.parse(p.services);
+  } catch {
+    servicesData = [];
   }
+}
+
+if (els.services && servicesData.length) {
+  els.services.innerHTML = servicesData.map(s => `
+    <div class="service-card">
+      <h3>${s.service_name || ""}</h3>
+      <p>${s.service_description || ""}</p>
+      ${s.price ? `<div class="service-price">Starting at ${s.price}</div>` : ""}
+    </div>
+  `).join("");
+} else if (els.services) {
+  els.services.closest(".section")?.classList.add("hidden");
+}
 
   /* ================= Google Data ================= */
   let google = null;
