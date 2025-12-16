@@ -750,6 +750,68 @@ body {
   color: #6b7280;
 }
 
+.section--soft {
+  background: #f9f8ff;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.section--none {
+  background: transparent;
+  box-shadow: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.section h2 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.section p {
+  font-size: 1rem;
+  line-height: 1.7;
+  max-width: 760px;
+}
+
+.section {
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+
+.section-divider {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(0,0,0,0.08),
+    transparent
+  );
+  margin: 3rem 0;
+}
+
+.service-card,
+.testimonial,
+.review {
+  background: white;
+  border-radius: 16px;
+  padding: 1.75rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+}
+
+.band {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  padding: 4rem 1.5rem;
+}
+
+.band--lavender {
+  background: linear-gradient(135deg, #f4f2ff, #ffffff);
+}
+
 
   </style>
 </head>
@@ -810,12 +872,12 @@ body {
 
 <div class="container">
 
-  <div class="section">
+<div class="section section--none">
     <h2>About</h2>
     <p id="about"></p>
   </div>
 
-  <div class="section highlights hidden" id="highlights">
+<div class="section section--soft">
     <h2>Why Choose Us</h2>
     <div id="why"></div>
   </div>
@@ -830,7 +892,12 @@ body {
     </div>
   </div>
 
-<div class="section"> <h2>Services</h2> 
+<div class="section-divider"></div>
+
+
+<div class="band band--lavender">
+  <div class="container">
+<h2>Services</h2> 
 <p class="section-intro">
   Clear pricing. No contracts. Built for conversion.
 </p>
@@ -839,6 +906,7 @@ body {
 <div class="quick-contact hidden" id="quickContact">
   <a id="quickCall" class="quick-action">Call Now</a>
   <a href="#contact" class="quick-action secondary">Request a Quote</a>
+</div>
 </div>
 
 
@@ -884,6 +952,9 @@ body {
   </div>
 
 <div class="review-summary hidden" id="reviewSummary"></div>
+
+<div class="section-divider"></div>
+
 
 
   <div class="section hidden" id="attachments">
