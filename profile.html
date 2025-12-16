@@ -1127,6 +1127,65 @@ if (
   `;
 }
 
+const testimonialsSection = document.getElementById("testimonials");
+const testimonialList = document.getElementById("testimonialList");
+
+if (Array.isArray(p.testimonials) && p.testimonials.length) {
+  testimonialList.innerHTML = "";
+
+  p.testimonials.forEach(t => {
+    const div = document.createElement("div");
+    div.className = "testimonial";
+    div.innerHTML = `
+      <p>“${t.quote}”</p>
+      <strong>${t.author}</strong>
+    `;
+    testimonialList.appendChild(div);
+  });
+
+  testimonialsSection.classList.remove("hidden");
+}
+
+const attachmentsSection = document.getElementById("attachments");
+const attachmentList = document.getElementById("attachmentList");
+
+if (Array.isArray(p.attachments) && p.attachments.length) {
+  attachmentList.innerHTML = "";
+
+  p.attachments.forEach(a => {
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <a href="${a.url}" target="_blank" rel="noopener">
+        ${a.label}
+      </a>
+    `;
+    attachmentList.appendChild(li);
+  });
+
+  attachmentsSection.classList.remove("hidden");
+}
+
+const highlightsSection = document.getElementById("highlights");
+const whyEl = document.getElementById("why");
+
+if (p.why_choose_us && whyEl) {
+  whyEl.textContent = p.why_choose_us;
+  highlightsSection.classList.remove("hidden");
+}
+
+
+const townsSection = document.getElementById("towns");
+const townList = document.getElementById("townList");
+
+if (Array.isArray(p.service_area) && p.service_area.length) {
+  townList.innerHTML = p.service_area
+    .map(t => `<span class="town">${t}</span>`)
+    .join("");
+
+  townsSection.classList.remove("hidden");
+}
+
+
 
   /* ================= Demo cleanup ================= */
   if (slug === "enoma-io" && els.midCTA) {
