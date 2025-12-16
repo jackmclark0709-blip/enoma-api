@@ -623,6 +623,14 @@
   border: 1px solid var(--blue);
 }
 
+.trust-badges,
+.business-status,
+.quick-contact {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
 
   </style>
 </head>
@@ -644,9 +652,10 @@
       <h1 id="name"></h1>
       <p id="tagline"></p>
 
-      <div class="hero-actions">
-        <a href="#contact" class="primary-cta">Get Started</a>
-      </div>
+<div class="primary-action hidden" id="primaryAction">
+  <a id="primaryCtaButton" class="primary-cta"></a>
+</div>
+
 
 <div class="hero-facts">
   <span id="heroLocation"></span>
@@ -661,10 +670,18 @@
         <img id="logo" class="logo hidden" />
         <img id="avatar" class="avatar hidden" />
 
-        <div class="hero-card-meta">
-          <strong>Live Business Profile</strong>
-          <span>SEO-ready • Hosted • Lead-optimized</span>
-        </div>
+<div class="trust-badges hidden" id="trustBadges">
+  <span class="trust-badge">Licensed & Insured</span>
+  <span class="trust-badge">Locally Owned</span>
+  <span class="trust-badge">Google-Verified</span>
+</div>
+
+<div class="business-status hidden" id="businessStatus">
+  <span class="status open">Open now</span>
+  <span class="status accepting">Accepting new clients</span>
+</div>
+
+
       </div>
     </div>
 
@@ -696,6 +713,12 @@
 
 <div class="section"> <h2>Services</h2> <div id="services" class="service-grid"></div> </div>
 
+<div class="quick-contact hidden" id="quickContact">
+  <a id="quickCall" class="quick-action">Call Now</a>
+  <a href="#contact" class="quick-action secondary">Request a Quote</a>
+</div>
+
+
 
   <div class="section hidden" id="towns">
     <h2>Areas We Serve</h2>
@@ -719,11 +742,17 @@
 
 
 
-<div class="mid-cta" id="midCTA">
-  <h3>Want a page like this?</h3>
-  <p>Launch a professional, SEO-optimized business profile — without building a full website.</p>
-  <a href="/create.html">Create Your Enoma Page</a>
+<div class="section hidden" id="faqs">
+  <h2>Frequently Asked Questions</h2>
+
+  <div class="faq-list" id="faqList">
+    <div class="faq">
+      <strong>Do you offer free estimates?</strong>
+      <p>Yes — we’re happy to provide a no-obligation estimate.</p>
+    </div>
+  </div>
 </div>
+
 
 
   <div class="section hidden" id="testimonials">
@@ -747,6 +776,16 @@
     </form>
     <p id="contactStatus"></p>
   </div>
+
+<div class="contact-expectations hidden" id="contactExpectations">
+  <h3>What happens next?</h3>
+  <ul>
+    <li>We review your request</li>
+    <li>You’ll hear back within one business day</li>
+    <li>No obligation or pressure</li>
+  </ul>
+</div>
+
 
 
   <div class="section">
@@ -828,6 +867,147 @@ async function loadProfile() {
     els.avatar.src = p.profile_image;
     els.avatar.classList.remove("hidden");
   }
+
+const primaryAction = document.getElementById("primaryAction");
+const primaryCtaButton = document.getElementById("primaryCtaButton");
+
+if (p.primary_cta_label && p.primary_cta_type && p.primary_cta_value) {
+  let href = "#";
+
+  if (p.primary_cta_type === "call") href = `tel:${p.primary_cta_value}`;
+  if (p.primary_cta_type === "email") href = `mailto:${p.primary_cta_value}`;
+  if (p.primary_cta_type === "form") href = "#contact";
+  if (p.primary_cta_type === "link") href = p.primary_cta_value;
+
+  primaryCtaButton.textContent = p.primary_cta_label;
+  primaryCtaButton.href = href;
+
+  primaryAction.classList.remove("hidden");
+}
+
+/* ================= Contact Information ================= */
+
+const companyDetails = document.getElementById("companyDetails");
+const companyEmail = document.getElementById("companyEmail");
+const companyPhone = document.getElementById("companyPhone");
+const companyWebsite = document.getElementById("companyWebsite");
+
+let hasContactInfo = false;
+
+if (p.email && companyEmail) {
+  companyEmail.innerHTML = `
+    <strong>Email</strong><br>
+    <a href="mailto:${p.email}">${p.email}</a>
+  `;
+  hasContactInfo = true;
+}
+
+if (p.phone && companyPhone) {
+  companyPhone.innerHTML = `
+    <strong>Phone</strong><br>
+    <a href="tel:${p.phone}">${p.phone}</a>
+  `;
+  hasContactInfo = true;
+}
+
+if (p.website && companyWebsite) {
+  companyWebsite.innerHTML = `
+    <strong>Website</strong><br>
+    <a href="${p.website}" target="_blank" rel="noopener">
+      ${p.website.replace(/^https?:\/\//, "")}
+    </a>
+  `;
+  hasContactInfo = true;
+}
+
+if (hasContactInfo && companyDetails) {
+  companyDetails.classList.remove("hidden");
+}
+
+
+const trustBadgesEl = document.getElementById("trustBadges");
+
+if (Array.isArray(p.trust_badges) && p.trust_badges.length) {
+  trustBadgesEl.innerHTML = "";
+
+  p.trust_badges.forEach(badge => {
+    const span = document.createElement("span");
+    span.className = "trust-badge";
+    span.textContent = badge;
+    trustBadgesEl.appendChild(span);
+  });
+
+  trustBadgesEl.classList.remove("hidden");
+}
+
+const statusEl = document.getElementById("businessStatus");
+
+if (p.is_open_now || p.accepting_clients || p.offers_emergency) {
+  statusEl.innerHTML = "";
+
+  if (p.is_open_now) {
+    statusEl.innerHTML += `<span class="status open">Open now</span>`;
+  }
+
+  if (p.accepting_clients) {
+    statusEl.innerHTML += `<span class="status accepting">Accepting new clients</span>`;
+  }
+
+  if (p.offers_emergency) {
+    statusEl.innerHTML += `<span class="status emergency">Emergency service available</span>`;
+  }
+
+  statusEl.classList.remove("hidden");
+}
+
+const faqSection = document.getElementById("faqs");
+const faqList = document.getElementById("faqList");
+
+if (Array.isArray(p.faqs) && p.faqs.length) {
+  faqList.innerHTML = "";
+
+  p.faqs.forEach(faq => {
+    if (!faq.q || !faq.a) return;
+
+    const div = document.createElement("div");
+    div.className = "faq";
+    div.innerHTML = `
+      <strong>${faq.q}</strong>
+      <p>${faq.a}</p>
+    `;
+    faqList.appendChild(div);
+  });
+
+  faqSection.classList.remove("hidden");
+}
+
+const contactExpectations = document.getElementById("contactExpectations");
+
+if (p.contact_expectation_text) {
+  contactExpectations.querySelector("ul").innerHTML = `
+    <li>${p.contact_expectation_text}</li>
+  `;
+  contactExpectations.classList.remove("hidden");
+}
+
+const reviewSummary = document.getElementById("reviewSummary");
+
+if (p.average_rating && p.review_count) {
+  reviewSummary.innerHTML = `
+    <strong>${p.average_rating} ★</strong>
+    <span>Based on ${p.review_count} reviews</span>
+  `;
+  reviewSummary.classList.remove("hidden");
+}
+
+
+const quickContact = document.getElementById("quickContact");
+const quickCall = document.getElementById("quickCall");
+
+if (p.primary_cta_type === "call" && p.primary_cta_value) {
+  quickCall.href = `tel:${p.primary_cta_value}`;
+  quickContact.classList.remove("hidden");
+}
 
 
 const setHeroFact = (id, value) => {
