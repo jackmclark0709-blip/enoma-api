@@ -1042,7 +1042,23 @@ if (Array.isArray(p.services)) {
   } catch {
     servicesData = [];
   }
+} else if (p.services && typeof p.services === "object") {
+  // Handles jsonb object edge-case
+  servicesData = Object.values(p.services);
 }
+
+if (els.services && servicesData.length) {
+  els.services.innerHTML = servicesData.map(s => `
+    <div class="service-card">
+      <h3>${s.service_name || ""}</h3>
+      <p>${s.service_description || ""}</p>
+      ${s.price ? `<div class="service-price">Starting at ${s.price}</div>` : ""}
+    </div>
+  `).join("");
+} else if (els.services) {
+  els.services.closest(".section")?.classList.add("hidden");
+}
+
 
 if (els.services && servicesData.length) {
   els.services.innerHTML = servicesData.map(s => `
