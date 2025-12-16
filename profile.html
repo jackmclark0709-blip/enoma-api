@@ -760,6 +760,9 @@
     <div id="testimonialList"></div>
   </div>
 
+<div class="review-summary hidden" id="reviewSummary"></div>
+
+
   <div class="section hidden" id="attachments">
     <h2>Resources</h2>
     <ul id="attachmentList"></ul>
@@ -992,7 +995,11 @@ if (p.contact_expectation_text) {
 
 const reviewSummary = document.getElementById("reviewSummary");
 
-if (p.average_rating && p.review_count) {
+if (
+  reviewSummary &&
+  p.average_rating &&
+  p.review_count
+) {
   reviewSummary.innerHTML = `
     <strong>${p.average_rating} ★</strong>
     <span>Based on ${p.review_count} reviews</span>
