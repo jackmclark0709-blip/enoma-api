@@ -99,13 +99,28 @@
       width: 100vw;
       margin-left: calc(50% - 50vw);
       background: linear-gradient(135deg, var(--lavender), var(--blue));
+  position: relative;
+  overflow: hidden;
     }
+
+.hero-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      800px 400px at 10% 20%,
+      rgba(255,255,255,0.12),
+      transparent 60%
+    );
+  pointer-events: none;
+}
 
     .hero {
       max-width: 1200px;
       margin: auto;
       padding: .75rem 1.5rem 2.25rem;
-      text-align: center;
+      text-align: left;
       color: white;
     }
 
@@ -519,11 +534,10 @@
 
 .hero-card {
   background: white;
-  border-radius: 20px;
-  padding: 1.25rem;
-  max-width: 260px;
-  text-align: center;
-  box-shadow: 0 18px 40px rgba(0,0,0,0.25);
+  border-radius: 22px;
+  padding: 2rem;
+  box-shadow:
+    0 25px 60px rgba(0,0,0,0.35);
 }
 
 .hero-card .logo {
@@ -575,9 +589,10 @@
 
 /* Typography hierarchy */
 .hero-copy h1 {
-  font-size: clamp(2.6rem, 4vw, 3.2rem);
+  font-size: clamp(2.8rem, 5vw, 3.4rem);
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
+color: #211551;
 }
 
 .section h2 {
@@ -596,7 +611,9 @@
 
 /* Softer hero secondary text */
 .hero-copy p {
-  opacity: 0.85;
+  font-size: 1.25rem;
+  line-height: 1.6;
+  opacity: 0.9;
 }
 
 /* Service cards feel interactive */
@@ -617,8 +634,16 @@
 /* CTA intent clarity */
 .header-cta {
   background: transparent;
-  color: var(--blue);
   border: 1px solid var(--blue);
+  color: var(--blue);
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.header-cta:hover {
+  background: var(--blue);
+  color: white;
 }
 
 .trust-badges,
@@ -715,8 +740,7 @@ body {
 .footer {
   background: var(--blue);
   color: rgba(255,255,255,0.85);
-  margin-top: 5rem;
-  padding: 3rem 1.5rem;
+  padding: 3.5rem 1.5rem;
   text-align: center;
   font-size: 0.9rem;
 }
@@ -838,6 +862,15 @@ body {
   line-height: 1.2;
 }
 
+.hero-facts {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: #4b5563;
+}
+
   </style>
 </head>
 
@@ -893,10 +926,15 @@ body {
 
 <div class="container">
 
-<section class="content-block">
-  <h2>About</h2>
-  <p id="about"></p>
-</section>
+<div class="band band--lavender">
+  <div class="container">
+    <div class="content-block">
+      <h2>About</h2>
+      <p id="about"></p>
+    </div>
+  </div>
+</div>
+
 
 
 <div class="section section--soft">
