@@ -128,6 +128,24 @@ button[type="submit"] {
 
 <input type="hidden" name="google_place_id" />
 
+<label>Hero Details (Optional)</label>
+
+<input
+  name="hero_location"
+  placeholder="Serving Attleboro & Bristol County"
+/>
+
+<input
+  name="hero_availability"
+  placeholder="Open today • 8am–6pm"
+/>
+
+<input
+  name="hero_response_time"
+  placeholder="Same-day responses available"
+/>
+
+
 
 <label>Business Logo</label>
 <input
@@ -245,6 +263,16 @@ form.addEventListener("submit", async (e) => {
     service_description: document.querySelectorAll(".service-description")[i].value.trim(),
     price: document.querySelectorAll(".service-price")[i].value.trim()
   })).filter(s => s.service_name);
+
+// ---- HERO FACTS (optional, safe defaults) ----
+const heroLocation = fd.get("hero_location")?.trim();
+const heroAvailability = fd.get("hero_availability")?.trim();
+const heroResponseTime = fd.get("hero_response_time")?.trim();
+
+if (heroLocation) fd.set("hero_location", heroLocation);
+if (heroAvailability) fd.set("hero_availability", heroAvailability);
+if (heroResponseTime) fd.set("hero_response_time", heroResponseTime);
+
 
   const testimonialsData = [...document.querySelectorAll(".testimonial-quote")].map((_, i) => ({
     quote: document.querySelectorAll(".testimonial-quote")[i].value.trim(),

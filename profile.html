@@ -829,6 +829,28 @@ async function loadProfile() {
     els.avatar.classList.remove("hidden");
   }
 
+
+const setHeroFact = (id, value) => {
+  const el = document.getElementById(id);
+  if (!el || !value) return;
+  el.textContent = value;
+};
+
+setHeroFact("heroLocation", p.hero_location);
+setHeroFact("heroAvailability", p.hero_availability);
+setHeroFact("heroResponseTime", p.hero_response_time);
+
+const heroFacts = document.querySelector(".hero-facts");
+
+if (
+  !p.hero_location &&
+  !p.hero_availability &&
+  !p.hero_response_time
+) {
+  heroFacts?.classList.add("hidden");
+}
+
+
   /* ================= Services ================= */
   const servicesData = safeParse(p.services);
   if (els.services && servicesData.length) {
