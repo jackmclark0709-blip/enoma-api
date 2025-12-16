@@ -73,13 +73,12 @@
 
 
     .header-cta {
-      background: var(--blue);
-      color: white;
-      padding: 0.45rem 1rem;
-      border-radius: 999px;
-      text-decoration: none;
-      font-weight: 600;
-      font-size: 0.9rem;
+  background: var(--blue);
+  color: white;
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.85rem;
     }
 
 .hero-cta {
@@ -220,10 +219,10 @@
 
     /* ================= Contact Details ================= */
     .details-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
-      gap: 1rem;
-      margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.25rem;
     }
 
     .details-grid div {
@@ -812,6 +811,33 @@ body {
   background: linear-gradient(135deg, #f4f2ff, #ffffff);
 }
 
+.content-block {
+  padding: 3rem 0;
+}
+
+.content-block h2 {
+  font-size: 1.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.content-block p {
+  max-width: 760px;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #4b5563;
+}
+
+.detail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: transparent;
+}
+
+.detail-icon {
+  font-size: 1.2rem;
+  line-height: 1.2;
+}
 
   </style>
 </head>
@@ -821,9 +847,10 @@ body {
 <header class="site-header">
   <div class="header-inner">
     <span class="brand">Enoma</span>
-    <a id="headerCTA" class="header-cta hidden"></a>
+    <a id="headerCTA" class="header-cta"></a>
   </div>
 </header>
+
 
 <div class="hero-wrapper">
   <div class="hero hero-split">
@@ -838,11 +865,6 @@ body {
 </div>
 
 
-<div class="hero-facts">
-  <span id="heroLocation"></span>
-  <span id="heroAvailability"></span>
-  <span id="heroResponseTime"></span>
-</div>
     </div>
 
     <!-- RIGHT: Proof Card -->
@@ -857,9 +879,10 @@ body {
   <span class="trust-badge">Google-Verified</span>
 </div>
 
-<div class="business-status hidden" id="businessStatus">
-  <span class="status open">Open now</span>
-  <span class="status accepting">Accepting new clients</span>
+<div class="hero-facts">
+  <span id="heroLocation"></span>
+  <span id="heroAvailability"></span>
+  <span id="heroResponseTime"></span>
 </div>
 
 
@@ -870,12 +893,12 @@ body {
 </div>
 
 
-<div class="container">
 
-<div class="section section--none">
-    <h2>About</h2>
-    <p id="about"></p>
-  </div>
+<section class="content-block">
+  <h2>About</h2>
+  <p id="about"></p>
+</section>
+
 
 <div class="section section--soft">
     <h2>Why Choose Us</h2>
@@ -883,14 +906,16 @@ body {
   </div>
 
 
-  <div class="section hidden" id="companyDetails">
-    <h2>Contact Information</h2>
-    <div class="details-grid">
-      <div id="companyEmail"></div>
-      <div id="companyPhone"></div>
-      <div id="companyWebsite"></div>
-    </div>
+<section class="content-block hidden" id="companyDetails">
+  <h2>Contact Information</h2>
+
+  <div class="details-grid">
+    <div class="detail-item" id="companyEmail"></div>
+    <div class="detail-item" id="companyPhone"></div>
+    <div class="detail-item" id="companyWebsite"></div>
   </div>
+</section>
+
 
 <div class="section-divider"></div>
 
@@ -1085,6 +1110,27 @@ if (p.primary_cta_label && p.primary_cta_type && p.primary_cta_value) {
   primaryAction.classList.remove("hidden");
 }
 
+const headerCTA = document.getElementById("headerCTA");
+
+if (headerCTA) {
+  if (p.phone) {
+    headerCTA.textContent = "Call";
+    headerCTA.href = `tel:${p.phone}`;
+    headerCTA.classList.remove("hidden");
+  } else if (p.email) {
+    headerCTA.textContent = "Email";
+    headerCTA.href = `mailto:${p.email}`;
+    headerCTA.classList.remove("hidden");
+  } else if (p.primary_cta_label && p.primary_cta_value) {
+    headerCTA.textContent = p.primary_cta_label;
+    headerCTA.href = p.primary_cta_value;
+    headerCTA.classList.remove("hidden");
+  } else {
+    headerCTA.classList.add("hidden");
+  }
+}
+
+
 /* ================= Contact Information ================= */
 
 const companyDetails = document.getElementById("companyDetails");
@@ -1095,28 +1141,38 @@ const companyWebsite = document.getElementById("companyWebsite");
 let hasContactInfo = false;
 
 if (p.email && companyEmail) {
-  companyEmail.innerHTML = `
+companyEmail.innerHTML = `
+  <span class="detail-icon">✉️</span>
+  <div>
     <strong>Email</strong><br>
     <a href="mailto:${p.email}">${p.email}</a>
-  `;
+  </div>
+`;
+
   hasContactInfo = true;
 }
 
 if (p.phone && companyPhone) {
-  companyPhone.innerHTML = `
+companyPhone.innerHTML = `
+  <span class="detail-icon">📞</span>
+  <div>
     <strong>Phone</strong><br>
     <a href="tel:${p.phone}">${p.phone}</a>
-  `;
+  </div>
+`;
+
   hasContactInfo = true;
 }
 
 if (p.website && companyWebsite) {
-  companyWebsite.innerHTML = `
+companyWebsite.innerHTML = `
+  <span class="detail-icon">🌐</span>
+  <div>
     <strong>Website</strong><br>
-    <a href="${p.website}" target="_blank" rel="noopener">
-      ${p.website.replace(/^https?:\/\//, "")}
-    </a>
-  `;
+    <a href="${p.website}" target="_blank">${p.website.replace(/^https?:\/\//, "")}</a>
+  </div>
+`;
+
   hasContactInfo = true;
 }
 
