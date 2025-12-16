@@ -1038,6 +1038,14 @@ const safeParse = v => {
   }
 };
 
+const setHTML = (id, html) => {
+  const el = document.getElementById(id);
+  if (!el) return false;
+  el.innerHTML = html;
+  return true;
+};
+
+
 async function loadProfile() {
   // ===== Resolve slug =====
   const params = new URLSearchParams(location.search);
@@ -1248,17 +1256,14 @@ if (p.contact_expectation_text) {
 
 const reviewSummary = document.getElementById("reviewSummary");
 
-if (
-  reviewSummary &&
-  p.average_rating &&
-  p.review_count
-) {
+if (reviewSummary && p.average_rating && p.review_count) {
   reviewSummary.innerHTML = `
     <strong>${p.average_rating} ★</strong>
     <span>Based on ${p.review_count} reviews</span>
   `;
   reviewSummary.classList.remove("hidden");
 }
+
 
 
 const quickContact = document.getElementById("quickContact");
