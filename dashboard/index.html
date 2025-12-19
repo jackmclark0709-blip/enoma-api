@@ -67,8 +67,10 @@
     return session;
   }
 
-  const session = await enforceAuth();
-  if (!session) return;
+const session = await enforceAuth();
+if (!session) {
+  throw new Error('Not authenticated');
+}
 
   // 2️⃣ Load membership (role / permissions)
   const { data: member, error: memberError } = await supabase
