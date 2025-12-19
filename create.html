@@ -233,13 +233,13 @@ button[type="submit"] {
       return;
     }
 
-    const { data: member, error } = await supabase
-      .from("business_members")
-      .select("is_admin")
-      .eq("user_id", session.user.id)
-      .single();
+const { data: member } = await supabase
+  .from("business_members")
+  .select("role")
+  .eq("user_id", session.user.id)
+  .single();
 
-    if (error || !member?.is_admin) {
+if (member?.role !== "admin") {
       document.body.innerHTML = `
         <div style="
           display:flex;
