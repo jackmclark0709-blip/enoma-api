@@ -79,10 +79,11 @@ if (!session) {
     .eq('user_id', session.user.id)
     .single();
 
-  if (memberError) {
-    console.error('Membership lookup failed', memberError);
-    return;
-  }
+if (memberError) {
+  console.error('Membership lookup failed', memberError);
+  throw new Error('Membership lookup failed');
+}
+
 
   // 3️⃣ Drive status pill
   const statusEl = document.getElementById('subscription-status');
