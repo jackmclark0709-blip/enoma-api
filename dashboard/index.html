@@ -70,6 +70,48 @@
   }
 
   await enforceAuth();
+
+const {
+  data: { session }
+} = await supabase.auth.getSession();
+
+const { data: member, error } = await supabase
+  .from('business_members')
+  .select('*')
+  .eq('user_id', session.user.id)
+  .single();
+
+if (error) {
+  console.error('Membership lookup failed', error);
+}
+
+const statusEl = document.getElementById('subscription-status');
+
+if (member.role === 'admin') {
+  statusEl.textContent = 'Admin';
+} else {
+  statusEl.textContent = 'Free';
+}
+
+const publicLink = document.getElementById('public-link');
+
+if (!member.business_id) {
+  publicLink.style.display = 'none';
+} else {
+  publicLink.href = `/profile.html?slug=${member.business_id}`;
+}
+
+
+
+
+  const signOutBtn = document.getElementById('sign-out');
+
+  signOutBtn.addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/dashboard/login.html';
+  });
+
+
 </script>
 
 </body>
