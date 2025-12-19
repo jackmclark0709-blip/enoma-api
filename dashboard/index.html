@@ -81,11 +81,12 @@
     statusEl.textContent = member.role === 'admin' ? 'Admin' : 'Free';
 
     // 4️⃣ Public profile
-    const { data: profile } = await supabase
-      .from('small_business_profiles')
-      .select('username')
-      .eq('owner_id', session.user.id)
-      .maybeSingle();
+const { data: profile } = await supabase
+  .from('small_business_profiles')
+  .select('username')
+  .eq('auth_id', session.user.id)
+  .maybeSingle();
+
 
     const publicLink = document.getElementById('public-link');
     if (!profile?.username) {
