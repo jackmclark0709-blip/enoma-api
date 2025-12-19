@@ -217,8 +217,8 @@ button[type="submit"] {
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <script type="module">
-  const SUPABASE_URL = "https://YOUR_PROJECT_ID.supabase.co";
-  const SUPABASE_ANON_KEY = "YOUR_PUBLIC_ANON_KEY";
+  const SUPABASE_URL = "https://qhsivcenpnxwmvwznqie.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc";
 
   const supabase = window.supabase.createClient(
     SUPABASE_URL,
@@ -229,7 +229,9 @@ button[type="submit"] {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
-      window.location.href = "/dashboard/login.html";
+      const next = encodeURIComponent(window.location.pathname);
+window.location.href = `/dashboard/login.html?next=${next}`;
+
       return;
     }
 
