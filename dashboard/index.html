@@ -87,6 +87,9 @@ const { data: profile } = await supabase
   .eq('auth_id', session.user.id)
   .maybeSingle();
 
+console.log('Profile query result:', profile);
+console.log('Session user id:', session.user.id);
+
 
     const publicLink = document.getElementById('public-link');
     if (!profile?.username) {
