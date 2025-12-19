@@ -214,6 +214,57 @@ button[type="submit"] {
 
 <div id="status"></div>
 
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+<script type="module">
+  const SUPABASE_URL = "https://YOUR_PROJECT_ID.supabase.co";
+  const SUPABASE_ANON_KEY = "YOUR_PUBLIC_ANON_KEY";
+
+  const supabase = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
+
+  async function enforceAdmin() {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      window.location.href = "/dashboard/login.html";
+      return;
+    }
+
+    const { data: member, error } = await supabase
+      .from("business_members")
+      .select("is_admin")
+      .eq("user_id", session.user.id)
+      .single();
+
+    if (error || !member?.is_admin) {
+      document.body.innerHTML = `
+        <div style="
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          height:100vh;
+          font-family:Inter,system-ui;
+          background:#0f0d2b;
+          color:white;
+          text-align:center;
+        ">
+          <div>
+            <h2>Unauthorized</h2>
+            <p>This page is restricted.</p>
+          </div>
+        </div>
+      `;
+      return;
+    }
+  }
+
+  await enforceAdmin();
+</script>
+
+
 <script>
 const form = document.getElementById("form");
 const status = document.getElementById("status");
@@ -340,6 +391,8 @@ autocomplete.addListener("place_changed", () => {
   if (place.website)
     document.querySelector('[name="website"]').value = place.website;
 });
+
+
 </script>
 
 
