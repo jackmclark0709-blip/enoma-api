@@ -67,9 +67,13 @@
 
     if (error) {
       document.getElementById('error').textContent = error.message;
-    } else {
-      window.location.href = '/';
-    }
+} else {
+  const params = new URLSearchParams(window.location.search);
+  const next = params.get('next');
+
+  window.location.href = next || '/dashboard/index.html';
+}
+
   }
 </script>
 
