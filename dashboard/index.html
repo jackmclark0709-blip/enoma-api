@@ -1,0 +1,50 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Enoma — Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="dashboard.css" />
+</head>
+
+<body>
+  <main class="container">
+   <header class="header">
+  <div>
+    <h1 id="business-name">Loading…</h1>
+    <p class="sub">Your Enoma page performance</p>
+  </div>
+
+  <div class="header-actions">
+    <a id="public-link" class="btn" target="_blank">View public page</a>
+    <button id="sign-out" class="btn secondary">Sign out</button>
+  </div>
+</header>
+
+
+    <section class="status">
+      <span id="subscription-status" class="pill">Active</span>
+      <span id="renewal-date" class="muted"></span>
+    </section>
+
+    <section class="kpis">
+      <div class="card">
+        <h3>Page Views (30 days)</h3>
+        <div id="page-views" class="metric">—</div>
+      </div>
+      <div class="card">
+        <h3>Contact Clicks (30 days)</h3>
+        <div id="contact-clicks" class="metric">—</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>Where people found you</h3>
+      <ul id="sources"></ul>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="dashboard.js" defer></script>
+</body>
+</html>

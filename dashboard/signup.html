@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Create account — Enoma</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+</head>
+<body>
+
+  <h1>Create account</h1>
+
+  <!-- IMPORTANT: no form tag -->
+  <input id="email" type="email" placeholder="Email" />
+  <br /><br />
+  <input id="password" type="password" placeholder="Password" />
+  <br /><br />
+
+  <button id="signup-btn" type="button">Create account</button>
+
+  <p>
+    Already have an account?
+    <a href="/login.html">Sign in</a>
+  </p>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    // Wait for DOM
+    document.addEventListener('DOMContentLoaded', () => {
+
+      const SUPABASE_URL = 'https://qhsivcenpnxwmvwznqie.supabase.co';
+      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc';
+
+      const supabase = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY
+      );
+
+      const btn = document.getElementById('signup-btn');
+
+      btn.addEventListener('click', async () => {
+        console.log('Signup clicked'); // 👈 you should see this
+
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password
+        });
+
+        if (error) {
+          alert(error.message);
+          console.error(error);
+          return;
+        }
+
+        alert('Check your email to confirm your account');
+      });
+
+    });
+  </script>
+
+</body>
+</html>
+
