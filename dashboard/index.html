@@ -54,64 +54,56 @@
     SUPABASE_ANON_KEY
   );
 
-  // 1️⃣ Enforce auth ONCE and return session
-  async function enforceAuth() {
+  async function main() {
+    // 1️⃣ Auth
     const { data: { session } } = await supabase.auth.getSession();
-
     if (!session) {
       window.location.href = '/dashboard/login.html';
-      return null;
+      return;
     }
 
     console.log('Authenticated as:', session.user.email);
-    return session;
+
+    // 2️⃣ Membership
+    const { data: member, error: memberError } = await supabase
+      .from('business_members')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .single();
+
+    if (memberError) {
+      console.error('Membership lookup failed', memberError);
+      return;
+    }
+
+    // 3️⃣ Status pill
+    const statusEl = document.getElementById('subscription-status');
+    statusEl.textContent = member.role === 'admin' ? 'Admin' : 'Free';
+
+    // 4️⃣ Public profile
+    const { data: profile } = await supabase
+      .from('small_business_profiles')
+      .select('username')
+      .eq('owner_id', session.user.id)
+      .maybeSingle();
+
+    const publicLink = document.getElementById('public-link');
+    if (!profile?.username) {
+      publicLink.style.display = 'none';
+    } else {
+      publicLink.href = `/p/${profile.username}`;
+      publicLink.style.display = 'inline-block';
+    }
+
+    // 5️⃣ Sign out
+    document.getElementById('sign-out').addEventListener('click', async () => {
+      await supabase.auth.signOut();
+      window.location.href = '/dashboard/login.html';
+    });
   }
 
-const session = await enforceAuth();
-if (!session) {
-  throw new Error('Not authenticated');
-}
-
-  // 2️⃣ Load membership (role / permissions)
-  const { data: member, error: memberError } = await supabase
-    .from('business_members')
-    .select('*')
-    .eq('user_id', session.user.id)
-    .single();
-
-if (memberError) {
-  console.error('Membership lookup failed', memberError);
-  throw new Error('Membership lookup failed');
-}
-
-
-  // 3️⃣ Drive status pill
-  const statusEl = document.getElementById('subscription-status');
-  statusEl.textContent = member.role === 'admin' ? 'Admin' : 'Free';
-
-  // 4️⃣ Look up public profile username
-const { data: profile, error: profileError } = await supabase
-  .from('small_business_profiles')
-  .select('username')
-  .eq('owner_id', session.user.id)
-  .maybeSingle();
-
-  const publicLink = document.getElementById('public-link');
-
-  if (profileError || !profile?.username) {
-    // No public page yet
-    publicLink.style.display = 'none';
-  } else {
-    publicLink.href = `/p/${profile.username}`;
-    publicLink.style.display = 'inline-block';
-  }
-
-  // 5️⃣ Sign out
-  const signOutBtn = document.getElementById('sign-out');
-  signOutBtn.addEventListener('click', async () => {
-    await supabase.auth.signOut();
-    window.location.href = '/dashboard/login.html';
-  });
+  // 🚀 Run dashboard
+  main();
 </script>
 
 
