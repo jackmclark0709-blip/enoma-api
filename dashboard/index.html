@@ -54,64 +54,61 @@
     SUPABASE_ANON_KEY
   );
 
+  // 1️⃣ Enforce auth ONCE and return session
   async function enforceAuth() {
-    // Give Supabase a moment to hydrate the session
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
       window.location.href = '/dashboard/login.html';
-      return;
+      return null;
     }
 
-    // User is authenticated — allow dashboard
     console.log('Authenticated as:', session.user.email);
+    return session;
   }
 
-  await enforceAuth();
+  const session = await enforceAuth();
+  if (!session) return;
 
-const {
-  data: { session }
-} = await supabase.auth.getSession();
+  // 2️⃣ Load membership (role / permissions)
+  const { data: member, error: memberError } = await supabase
+    .from('business_members')
+    .select('*')
+    .eq('user_id', session.user.id)
+    .single();
 
-const { data: member, error } = await supabase
-  .from('business_members')
-  .select('*')
-  .eq('user_id', session.user.id)
-  .single();
+  if (memberError) {
+    console.error('Membership lookup failed', memberError);
+    return;
+  }
 
-if (error) {
-  console.error('Membership lookup failed', error);
-}
+  // 3️⃣ Drive status pill
+  const statusEl = document.getElementById('subscription-status');
+  statusEl.textContent = member.role === 'admin' ? 'Admin' : 'Free';
 
-const statusEl = document.getElementById('subscription-status');
+  // 4️⃣ Look up public profile username
+  const { data: profile, error: profileError } = await supabase
+    .from('small_business_profiles')
+    .select('username')
+    .eq('owner_id', session.user.id)
+    .single();
 
-if (member.role === 'admin') {
-  statusEl.textContent = 'Admin';
-} else {
-  statusEl.textContent = 'Free';
-}
+  const publicLink = document.getElementById('public-link');
 
-const publicLink = document.getElementById('public-link');
+  if (profileError || !profile?.username) {
+    // No public page yet
+    publicLink.style.display = 'none';
+  } else {
+    publicLink.href = `/p/${profile.username}`;
+    publicLink.style.display = 'inline-block';
+  }
 
-if (!member.business_id) {
-  publicLink.style.display = 'none';
-} else {
-  publicLink.href = `/profile.html?slug=${member.business_id}`;
-}
-
-
-
-
+  // 5️⃣ Sign out
   const signOutBtn = document.getElementById('sign-out');
-
   signOutBtn.addEventListener('click', async () => {
     await supabase.auth.signOut();
     window.location.href = '/dashboard/login.html';
   });
-
-
 </script>
 
 </body>
