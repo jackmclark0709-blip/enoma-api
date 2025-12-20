@@ -54,90 +54,57 @@
     SUPABASE_ANON_KEY
   );
 
-  // 🚨 DO NOT run dashboard logic immediately
-  supabase.auth.onAuthStateChange(async (event, session) => {
+  async function main() {
+    // 1️⃣ Auth
+    const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      window.location.href = "/dashboard/login.html";
+      window.location.href = '/dashboard/login.html';
       return;
     }
 
-    console.log("Auth ready:", session.user.email);
+    console.log('Authenticated as:', session.user.email);
 
-    await loadDashboard(session);
-  });
-
-  async function loadDashboard(session) {
-    // 1️⃣ Resolve profile
-    const { data: profile, error } = await supabase
-      .from("small_business_profiles")
-      .select("username, business_name")
-      .eq("auth_id", session.user.id)
+    // 2️⃣ Membership
+    const { data: member, error: memberError } = await supabase
+      .from('business_members')
+      .select('*')
+      .eq('user_id', session.user.id)
       .single();
 
-    console.log("Resolved profile:", profile);
-
-    if (error || !profile) {
-      console.error("Profile lookup failed", error);
+    if (memberError) {
+      console.error('Membership lookup failed', memberError);
       return;
     }
 
-    // Header
-    document.getElementById("business-name").textContent =
-      profile.business_name || profile.username;
+    // 3️⃣ Status pill
+    const statusEl = document.getElementById('subscription-status');
+    statusEl.textContent = member.role === 'admin' ? 'Admin' : 'Free';
 
-    const publicLink = document.getElementById("public-link");
-    publicLink.href = `/p/${profile.username}`;
-    publicLink.style.display = "inline-block";
+    // 4️⃣ Public profile
+const { data: profile } = await supabase
+  .from('small_business_profiles')
+  .select('username')
+  .eq('auth_id', session.user.id)
+  .maybeSingle();
 
-    // 2️⃣ Metrics (30 days)
-    const since = new Date();
-    since.setDate(since.getDate() - 30);
 
-    const { count: pageViews } = await supabase
-      .from("page_events")
-      .select("*", { count: "exact", head: true })
-      .eq("slug", profile.username)
-      .eq("event", "page_view")
-      .gte("created_at", since.toISOString());
+    const publicLink = document.getElementById('public-link');
+    if (!profile?.username) {
+      publicLink.style.display = 'none';
+    } else {
+      publicLink.href = `/p/${profile.username}`;
+      publicLink.style.display = 'inline-block';
+    }
 
-    const { count: contactClicks } = await supabase
-      .from("page_events")
-      .select("*", { count: "exact", head: true })
-      .eq("slug", profile.username)
-      .eq("event", "contact_click")
-      .gte("created_at", since.toISOString());
-
-    document.getElementById("page-views").textContent = pageViews ?? 0;
-    document.getElementById("contact-clicks").textContent = contactClicks ?? 0;
-
-    // 3️⃣ Sources
-    const { data: sources } = await supabase
-      .from("page_events")
-      .select("referrer")
-      .eq("slug", profile.username)
-      .eq("event", "page_view");
-
-    const ul = document.getElementById("sources");
-    ul.innerHTML = "";
-
-    const totals = {};
-    sources?.forEach((s) => {
-      const key = s.referrer || "direct";
-      totals[key] = (totals[key] || 0) + 1;
-    });
-
-    Object.entries(totals).forEach(([source, visits]) => {
-      const li = document.createElement("li");
-      li.innerHTML = `<span>${source}</span><strong>${visits}</strong>`;
-      ul.appendChild(li);
-    });
-
-    // 4️⃣ Sign out
-    document.getElementById("sign-out").addEventListener("click", async () => {
+    // 5️⃣ Sign out
+    document.getElementById('sign-out').addEventListener('click', async () => {
       await supabase.auth.signOut();
-      window.location.href = "/dashboard/login.html";
+      window.location.href = '/dashboard/login.html';
     });
   }
+
+  // 🚀 Run dashboard
+  main();
 </script>
 
 
