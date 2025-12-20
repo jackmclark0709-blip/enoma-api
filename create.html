@@ -347,10 +347,22 @@ if (heroResponseTime) fd.set("hero_response_time", heroResponseTime);
   );
 
   try {
-    const res = await fetch("/api/generate-business", {
-      method: "POST",
-      body: fd
-    });
+const {
+  data: { session }
+} = await supabase.auth.getSession();
+
+if (!session) {
+  alert("You must be logged in");
+  return;
+}
+
+const res = await fetch("/api/generate-business", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${session.access_token}`
+  },
+  body: fd
+});
 
     const profile = await res.json();
     if (profile.error) {

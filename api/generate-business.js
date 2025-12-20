@@ -5,10 +5,11 @@ import formidable from "formidable";
 // ----------------------------------------------------
 // SUPABASE CLIENT
 // ----------------------------------------------------
-const supabase = createClient(
+const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
 );
+
 
 // Disable Next.js bodyParser so FormData works
 export const config = {
@@ -49,6 +50,40 @@ export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "POST only" });
   }
+
+  // ----------------------------------------------------
+  // 🔐 ADMIN AUTHORIZATION CHECK
+  // ----------------------------------------------------
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ error: "Missing Authorization header" });
+  }
+
+  const token = authHeader.replace("Bearer ", "");
+
+  // Verify Supabase session
+  const {
+    data: { user },
+    error: authError
+  } = await supabaseAdmin.auth.getUser(token);
+
+  if (authError || !user) {
+    return res.status(401).json({ error: "Invalid session" });
+  }
+
+  // Verify admin role
+  const { data: member, error: memberError } = await supabaseAdmin
+    .from("business_members")
+    .select("role")
+    .eq("user_id", user.id)
+    .single();
+
+  if (memberError || member?.role !== "admin") {
+    return res.status(403).json({ error: "Admin access required" });
+  }
+
+  // ✅ Admin verified — continue
+
 
   console.log("⚡ generate-business invoked");
 
@@ -180,6 +215,9 @@ ${about_input}
     phone,
     email,
     website,
+
+    auth_id: user.id, // 🔑 CRITICAL
+
 
     about: generated.about || about_input,
     hero_tagline: generated.hero_tagline,
