@@ -96,6 +96,69 @@ const { data: profile } = await supabase
       publicLink.style.display = 'inline-block';
     }
 
+    // 4b️⃣ Metrics (from page_events)
+    const slug = profile?.username;
+    if (slug) {
+      const since = new Date();
+      since.setDate(since.getDate() - 30);
+
+      // Page views
+      const { count: pageViews, error: pvErr } = await supabase
+        .from('page_events')
+        .select('*', { count: 'exact', head: true })
+        .eq('slug', slug)
+        .eq('event', 'page_view')
+        .gte('created_at', since.toISOString());
+
+      if (pvErr) console.error('page_views query failed', pvErr);
+
+      // Contact clicks
+      const { count: contactClicks, error: ccErr } = await supabase
+        .from('page_events')
+        .select('*', { count: 'exact', head: true })
+        .eq('slug', slug)
+        .eq('event', 'contact_click')
+        .gte('created_at', since.toISOString());
+
+      if (ccErr) console.error('contact_clicks query failed', ccErr);
+
+      document.getElementById('page-views').textContent = pageViews ?? 0;
+      document.getElementById('contact-clicks').textContent = contactClicks ?? 0;
+
+      // Sources (referrer breakdown)
+      const { data: srcRows, error: srcErr } = await supabase
+        .from('page_events')
+        .select('referrer')
+        .eq('slug', slug)
+        .eq('event', 'page_view')
+        .gte('created_at', since.toISOString());
+
+      if (srcErr) console.error('sources query failed', srcErr);
+
+      const totals = {};
+      (srcRows || []).forEach(r => {
+        const key = r.referrer || 'direct';
+        totals[key] = (totals[key] || 0) + 1;
+      });
+
+      const ul = document.getElementById('sources');
+      ul.innerHTML = '';
+
+      Object.entries(totals)
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([source, visits]) => {
+          const li = document.createElement('li');
+          li.innerHTML = `<span>${source}</span><strong>${visits}</strong>`;
+          ul.appendChild(li);
+        });
+
+      // If no sources yet, show a friendly empty state
+      if (!Object.keys(totals).length) {
+        ul.innerHTML = `<li><span class="muted">No traffic yet (last 30 days)</span></li>`;
+      }
+    }
+
+
     // 5️⃣ Sign out
     document.getElementById('sign-out').addEventListener('click', async () => {
       await supabase.auth.signOut();
