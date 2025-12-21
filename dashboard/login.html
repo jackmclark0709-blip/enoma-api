@@ -6,26 +6,91 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
    <link rel="stylesheet" href="dashboard.css">
 <link rel="stylesheet" href="/styles/enoma.css">
+<style>
+  /* Page-level auth layout */
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
+
+  .auth-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--card, #16152a);
+    border: 1px solid var(--border, #2a2950);
+    border-radius: 16px;
+    padding: 2.5rem;
+  }
+
+  .auth-card h1,
+  .auth-card h2 {
+    margin: 0 0 0.5rem;
+    font-size: 1.9rem;
+    font-weight: 800;
+  }
+
+  .auth-card p {
+    margin-top: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+
+  .auth-card input {
+    width: 100%;
+    margin-top: 0.75rem;
+    padding: 0.7rem 0.75rem;
+    font-size: 0.95rem;
+    border-radius: 10px;
+    border: 1px solid var(--border, #2a2950);
+    background: #fff;
+    color: #000;
+  }
+
+  .auth-card button {
+    width: 100%;
+    margin-top: 1.25rem;
+  }
+
+  .auth-links {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+  }
+
+  .auth-links a {
+    color: var(--accent, #9aa3ff);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .auth-links a:hover {
+    text-decoration: underline;
+  }
+</style>
+
+
 
 </head>
 
 <body>
-<div class="card">
-  <h2>Sign in to Enoma</h2>
+  <div class="auth-card">
+    <h2>Sign in to Enoma</h2>
 
-  <input id="email" type="email" placeholder="Email address" />
-  <input id="password" type="password" placeholder="Password" />
+    <input id="email" type="email" placeholder="Email address" />
+    <input id="password" type="password" placeholder="Password" />
 
-  <!-- Primary login button -->
-  <button class="btn btn-primary" onclick="login()">Sign in</button>
+    <button class="btn btn-primary" onclick="login()">Sign in</button>
 
-  <!-- Secondary CTA -->
-  <a href="/signup.html" class="btn btn-outline" style="margin-top:0.75rem;">
-    Create your business page
-  </a>
+    <p class="auth-links">
+      Don’t have an account?
+      <a href="/dashboard/signup.html">Create your business page</a>
+    </p>
 
-  <p id="error" style="color:#ff8a8a"></p>
-</div>
+    <p id="error" style="color:#ff8a8a"></p>
+  </div>
+</body>
+
 
 
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -60,6 +125,4 @@
 </script>
 
 
-
-</body>
 </html>
