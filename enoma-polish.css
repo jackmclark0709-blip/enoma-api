@@ -1,0 +1,221 @@
+/* =========================================================
+   ENOMA POLISH LAYER
+   Purpose: Reduce template feel, increase editorial weight
+   Load AFTER base styles
+   ========================================================= */
+
+/* -----------------------------
+   TYPOGRAPHY HIERARCHY
+------------------------------ */
+
+.hero-copy h1 {
+  font-size: clamp(3rem, 6vw, 3.8rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.hero-copy p {
+  font-size: 1.25rem;
+  line-height: 1.6;
+  max-width: 520px;
+  opacity: 0.92;
+}
+
+.section h2,
+.content-block h2 {
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  margin-bottom: 0.75rem;
+}
+
+.section p,
+.content-block p {
+  font-size: 1.02rem;
+  line-height: 1.7;
+  color: #4b5563;
+  max-width: 72ch;
+}
+
+/* -----------------------------
+   DEPTH & SHADOW DISCIPLINE
+------------------------------ */
+
+/* Flatten most surfaces */
+.section,
+.service-card,
+.review,
+.testimonial,
+.details-grid div,
+.location-meta {
+  box-shadow: none;
+  border: 1px solid #eee;
+}
+
+/* Emphasis surfaces only */
+.hero-card,
+.primary-cta,
+.header-cta,
+.band {
+  box-shadow: 0 22px 60px rgba(0,0,0,0.28);
+}
+
+/* Interactive lift */
+.service-card,
+.review,
+.testimonial {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.service-card:hover,
+.review:hover,
+.testimonial:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 36px rgba(0,0,0,0.12);
+}
+
+/* -----------------------------
+   VERTICAL RHYTHM (ANTI-TEMPLATE)
+------------------------------ */
+
+.section {
+  margin-top: 3.25rem;
+}
+
+.section:first-of-type {
+  margin-top: 1.5rem;
+}
+
+.section + .section {
+  margin-top: 4rem;
+}
+
+/* Soft editorial dividers */
+.section:not(:first-of-type)::before {
+  content: "";
+  display: block;
+  height: 1px;
+  width: 100%;
+  margin-bottom: 2.5rem;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(0,0,0,0.08),
+    transparent
+  );
+}
+
+/* -----------------------------
+   CARDS: LESS GRID, MORE HUMAN
+------------------------------ */
+
+.service-card {
+  border-radius: 16px 18px 15px 17px;
+  padding: 1.75rem;
+  background: white;
+}
+
+/* Feature bias (first service feels special) */
+.service-card:first-child {
+  border-left: 4px solid var(--lavender);
+  background: linear-gradient(180deg, #ffffff, #faf9ff);
+}
+
+/* -----------------------------
+   CTA INTENT CLARITY
+------------------------------ */
+
+.primary-cta {
+  padding: 0.95rem 2.2rem;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.primary-cta::after {
+  content: " →";
+  transition: transform 0.15s ease;
+}
+
+.primary-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px rgba(0,0,0,0.3);
+}
+
+.primary-cta:hover::after {
+  transform: translateX(4px);
+}
+
+/* Header CTA feels intentional, not buttony */
+.header-cta {
+  background: transparent;
+  border: 1px solid var(--blue);
+  color: var(--blue);
+}
+
+.header-cta:hover {
+  background: var(--blue);
+  color: white;
+}
+
+/* -----------------------------
+   EDITORIAL TEXT FLOW
+------------------------------ */
+
+.section p + p,
+.content-block p + p {
+  margin-top: 1rem;
+}
+
+/* -----------------------------
+   ENOMA SIGNATURE QUIRK
+------------------------------ */
+
+/* Subtle grain texture (very light) */
+.hero-wrapper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(rgba(255,255,255,0.08) 1px, transparent 0);
+  background-size: 12px 12px;
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+/* -----------------------------
+   FOOTER AUTHORITY
+------------------------------ */
+
+.footer {
+  background: var(--blue);
+  color: rgba(255,255,255,0.85);
+}
+
+.footer strong {
+  color: white;
+}
+
+.footer a {
+  color: white;
+  font-weight: 600;
+}
+
+/* -----------------------------
+   MOBILE TIGHTENING
+------------------------------ */
+
+@media (max-width: 768px) {
+  .hero-copy h1 {
+    font-size: 2.4rem;
+  }
+
+  .section {
+    margin-top: 2.75rem;
+  }
+
+  .primary-cta {
+    padding: 0.85rem 1.9rem;
+  }
+}

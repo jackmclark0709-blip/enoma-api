@@ -4,6 +4,98 @@
   <meta charset="UTF-8" />
   <title>Create account — Enoma</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<style>
+  :root {
+    --blue: #211551;
+    --lavender: #9A8CFF;
+    --green: #50A684;
+    --bg: #f6f7fb;
+    --text: #1c1c1c;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  .container {
+    max-width: 720px;
+    margin: auto;
+    padding: 3rem 1.25rem;
+  }
+
+  h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--blue);
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
+  }
+
+  p {
+    color: #4b5563;
+    line-height: 1.6;
+  }
+
+  /* Buttons */
+  .primary-cta {
+    display: inline-block;
+    background: var(--blue);
+    color: white;
+    padding: 0.85rem 2rem;
+    border-radius: 999px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .primary-cta:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  }
+
+  /* Forms */
+  form {
+    margin-top: 2rem;
+    display: grid;
+    gap: 0.9rem;
+  }
+
+  input, select {
+    padding: 0.75rem 0.8rem;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    font-family: inherit;
+    font-size: 0.95rem;
+  }
+
+  input:focus {
+    outline: none;
+    border-color: var(--lavender);
+  }
+
+  .form-card {
+    background: white;
+    border-radius: 16px;
+    padding: 2.25rem;
+    box-shadow: 0 14px 35px rgba(0,0,0,0.08);
+  }
+
+  .muted {
+    font-size: 0.85rem;
+    color: #6b7280;
+  }
+</style>
+
 </head>
 <body>
 
