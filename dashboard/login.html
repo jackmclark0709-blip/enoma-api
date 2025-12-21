@@ -84,7 +84,7 @@
 
     <p class="auth-links">
       Don’t have an account?
-      <a href="/dashboard/signup.html">Create your business page</a>
+      <a href="/signup">Create your business page</a>
     </p>
 
     <p id="error" style="color:#ff8a8a"></p>
@@ -118,7 +118,7 @@
   const params = new URLSearchParams(window.location.search);
   const next = params.get('next');
 
-  window.location.href = next || '/dashboard/index.html';
+  window.location.href = next || '/dashboard';
 }
 
   }

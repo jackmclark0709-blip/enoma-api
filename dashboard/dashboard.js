@@ -83,7 +83,7 @@ async function bootstrapDashboard() {
   // 5️⃣ Sign out
   document.getElementById("sign-out").addEventListener("click", async () => {
     await supabase.auth.signOut();
-    window.location.href = "/dashboard/login.html";
+    window.location.href = "/login";
   });
 }
 
