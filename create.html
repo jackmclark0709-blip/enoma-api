@@ -10,43 +10,48 @@
   --enoma-blue: #211551;
   --enoma-lavender: #9A8CFF;
   --enoma-green: #50A684;
-  --enoma-bg: #0f0d2b;
-  --enoma-card: #ffffff;
-  --enoma-border: #e6e6ef;
+  --enoma-border: #e5e7eb;
   --enoma-text: #1c1c1c;
-  --enoma-muted: #6f6f85;
+  --enoma-muted: #6b7280;
 }
 
+/* Page layout */
 body {
-  font-family: "Inter", system-ui, sans-serif;
-  background: radial-gradient(circle at top, #1a1450, var(--enoma-bg));
+  font-family: Inter, system-ui, sans-serif;
+  background: #f6f7fb;
   margin: 0;
-  padding: 3.5rem 1rem;
-  color: white;
+  padding: 4rem 1rem;
+  color: var(--enoma-text);
 }
 
+/* Card */
 form {
-  background: var(--enoma-card);
-  max-width: 680px;
+  background: white;
+  max-width: 720px;
   margin: auto;
   border-radius: 16px;
-  padding: 2.5rem 2.75rem;
-  box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+  padding: 2.75rem;
+  border: 1px solid var(--enoma-border);
+  box-shadow: 0 14px 35px rgba(0,0,0,0.08);
 }
 
+/* Headings */
 h1 {
   text-align: center;
   color: var(--enoma-blue);
-  font-weight: 700;
-  margin-bottom: 0.5rem;
+  font-weight: 800;
+  font-size: 2rem;
+  margin-bottom: 0.25rem;
 }
 
 .subtitle {
   text-align: center;
   color: var(--enoma-muted);
-  margin-bottom: 2rem;
+  margin-bottom: 2.25rem;
+  font-size: 0.95rem;
 }
 
+/* Labels & inputs */
 label {
   display: block;
   margin: 1.25rem 0 0.4rem;
@@ -60,16 +65,28 @@ select {
   width: 100%;
   padding: 0.75rem 0.85rem;
   font-size: 0.95rem;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid var(--enoma-border);
+  font-family: inherit;
 }
 
+/* Section breaks */
 hr {
   border: none;
   border-top: 1px dashed var(--enoma-border);
-  margin: 2rem 0;
+  margin: 2.25rem 0;
 }
 
+/* Repeating blocks */
+.block {
+  background: #fafafa;
+  border: 1px solid var(--enoma-border);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+/* Add buttons */
 .add-btn {
   background: none;
   border: none;
@@ -77,28 +94,24 @@ hr {
   font-weight: 600;
   cursor: pointer;
   margin-top: 0.75rem;
+  padding: 0;
 }
 
-.block {
-  background: #fafafa;
-  border: 1px solid var(--enoma-border);
-  border-radius: 10px;
-  padding: 1rem;
-  margin-top: 1rem;
-}
-
+/* Primary submit */
 button[type="submit"] {
-  margin-top: 2rem;
+  margin-top: 2.5rem;
   width: 100%;
-  padding: 0.85rem;
-  border-radius: 10px;
-  font-weight: 600;
+  padding: 0.9rem;
+  border-radius: 999px;
+  font-weight: 700;
   border: none;
   cursor: pointer;
-  background: linear-gradient(135deg, var(--enoma-lavender), var(--enoma-blue));
+  background: var(--enoma-blue);
   color: white;
+  font-size: 0.95rem;
 }
 
+/* Status */
 #status {
   text-align: center;
   margin-top: 1rem;
@@ -106,6 +119,7 @@ button[type="submit"] {
   font-weight: 600;
 }
 </style>
+
 </head>
 
 <body>
