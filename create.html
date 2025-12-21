@@ -244,7 +244,7 @@ button[type="submit"] {
 
     if (!session) {
       const next = encodeURIComponent(window.location.pathname);
-window.location.href = `/dashboard/login.html?next=${next}`;
+window.location.href = `/login?next=${next}`;
 
       return;
     }
@@ -384,7 +384,7 @@ const res = await fetch("/api/generate-business", {
       return;
     }
 
-    window.location.assign(`/profile.html?slug=${profile.username}`);
+    window.location.assign(`/p/?slug=${profile.username}`);
   } catch (err) {
     console.error(err);
     status.textContent = "Failed to create profile. Try again.";
