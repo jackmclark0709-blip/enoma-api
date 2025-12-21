@@ -2,75 +2,90 @@
 <html>
 <head>
   <title>Enoma — Your Public Identity</title>
-  <style>
-    body {
-      font-family: system-ui;
-      padding: 60px;
-      background: #0b0b0d;
-      color: white;
-    }
-    a { color: #7b61ff }
-  </style>
+<style>
+  body {
+    font-family: Inter, system-ui, sans-serif;
+    background: #0f0d2b;
+    color: white;
+    margin: 0;
+    padding: 5rem 1.5rem;
+    display: flex;
+    justify-content: center;
+  }
+
+  .wrap {
+    max-width: 640px;
+  }
+
+  h1 {
+    font-size: 2.8rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .tagline {
+    font-size: 1.25rem;
+    opacity: 0.9;
+    margin-bottom: 2rem;
+  }
+
+  .bullets {
+    margin-bottom: 2rem;
+    padding-left: 1.2rem;
+  }
+
+  .bullets li {
+    margin-bottom: 0.5rem;
+  }
+
+  .primary {
+    display: inline-block;
+    margin-top: 1rem;
+    background: #9a8cff;
+    color: #0f0d2b;
+    padding: 0.85rem 1.75rem;
+    border-radius: 999px;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .secondary {
+    margin-top: 1.25rem;
+    font-size: 0.9rem;
+    opacity: 0.8;
+  }
+
+  a { color: #9a8cff; }
+</style>
+
 </head>
-<body></body>
+<body>
+<div class="wrap">
+
+<h1>Enoma</h1>
+
+<p class="tagline">
+  A simple, professional business page — without building a website.
+</p>
+
+<ul class="bullets">
+  <li>Get found on Google</li>
+  <li>Show up professionally</li>
+  <li>No hosting, no maintenance</li>
+</ul>
+
+<a class="primary" href="/create">
+  Create your business page →
+</a>
+
+<p class="secondary">
+  Or <a href="/login">sign in</a> if you already have one
+</p>
+</div>
+
+</body>
 
 <script>
-const slug = location.pathname.replace("/", "").replace(".html", "");
 
-const knownPages = ["", "index", "create", "profile"];
-
-if (knownPages.includes(slug)) {
-  document.body.innerHTML = `
-    <h1>Enoma</h1>
-    <p>Your professional identity, generated and maintained.</p>
-    <a href="/create.html">Create your profile →</a>
-  `;
-} else {
-  fetch(`/api/get-profile?username=${slug}`)
-    .then(res => {
-      if (!res.ok) throw new Error("Not found");
-      return res.json();
-    })
-    .then(profile => {
-      renderProfile(profile);
-    })
-    .catch(() => {
-      document.body.innerHTML = `
-        <h1>Profile not found</h1>
-        <p>No public profile exists for "${slug}".</p>
-        <a href="/create.html">Create yours →</a>
-      `;
-    });
-}
-
-function renderProfile(profile) {
-  document.body.innerHTML = `
-    <h1>${profile.display_name}</h1>
-    <h3>${profile.headline}</h3>
-    <p>${profile.summary}</p>
-
-    ${
-      profile.expertise?.length ? `
-      <h4>Expertise</h4>
-      <ul>${profile.expertise.map(e => `<li>${e}</li>`).join("")}</ul>`
-      : ""
-    }
-
-    ${
-      profile.timeline?.length ? `
-      <h4>Timeline</h4>
-      <ul>${profile.timeline.map(e => `<li>${e.year} — ${e.event}</li>`).join("")}</ul>`
-      : ""
-    }
-
-    ${
-      profile.links ? `
-      <h4>Links</h4>
-      <ul><li><a href="${profile.links.url}" target="_blank">${profile.links.label}</a></li></ul>`
-      : ""
-    }
-  `;
-}
 </script>
 
 
