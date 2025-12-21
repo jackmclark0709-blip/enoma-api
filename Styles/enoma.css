@@ -1,0 +1,285 @@
+/* =========================================================
+   ENOMA — BASE DESIGN SYSTEM (v1)
+   Used across ALL pages
+   ========================================================= */
+
+/* -------------------------
+   CSS VARIABLES (BRAND)
+------------------------- */
+:root {
+  --blue: #211551;
+  --lavender: #9A8CFF;
+  --green: #50A684;
+
+  --bg: #f6f7fb;
+  --card: #ffffff;
+  --text: #1c1c1c;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+
+  --shadow-sm: 0 6px 18px rgba(0,0,0,0.06);
+  --shadow-md: 0 14px 35px rgba(0,0,0,0.08);
+  --shadow-lg: 0 25px 60px rgba(0,0,0,0.15);
+}
+
+/* -------------------------
+   RESET / GLOBALS
+------------------------- */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+.hidden {
+  display: none;
+}
+
+/* -------------------------
+   LAYOUT
+------------------------- */
+.container {
+  max-width: 1100px;
+  margin: auto;
+  padding: 3rem 1.25rem;
+}
+
+.container--narrow {
+  max-width: 720px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.grid {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.grid-2 {
+  grid-template-columns: repeat(auto-fit, minmax(260px,1fr));
+}
+
+/* -------------------------
+   TYPOGRAPHY
+------------------------- */
+h1 {
+  font-size: clamp(2.2rem, 5vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--blue);
+  margin: 0 0 0.5rem;
+}
+
+h2 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--blue);
+  margin: 0 0 0.5rem;
+}
+
+h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem;
+}
+
+p {
+  color: var(--muted);
+  margin: 0.25rem 0;
+}
+
+.small {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* -------------------------
+   CARDS / SECTIONS
+------------------------- */
+.card {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border);
+}
+
+.section {
+  margin-top: 3rem;
+}
+
+.section-divider {
+  height: 1px;
+  margin: 3rem 0;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(0,0,0,0.08),
+    transparent
+  );
+}
+
+/* -------------------------
+   BUTTONS / CTAs
+------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.85rem 2rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-primary {
+  background: var(--blue);
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--blue);
+  border: 1px solid var(--blue);
+}
+
+.btn-outline:hover {
+  background: var(--blue);
+  color: white;
+}
+
+/* -------------------------
+   FORMS
+------------------------- */
+form {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1.5rem;
+}
+
+input,
+select,
+textarea {
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--lavender);
+}
+
+/* -------------------------
+   HEADER / NAV
+------------------------- */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: white;
+  border-bottom: 1px solid var(--border);
+}
+
+.header-inner {
+  max-width: 1100px;
+  margin: auto;
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  font-weight: 800;
+  color: var(--blue);
+  text-decoration: none;
+}
+
+/* -------------------------
+   HERO (OPTIONAL)
+------------------------- */
+.hero {
+  background: linear-gradient(135deg, var(--lavender), var(--blue));
+  color: white;
+  padding: 4rem 1.5rem;
+}
+
+.hero h1 {
+  color: white;
+}
+
+.hero p {
+  color: rgba(255,255,255,0.9);
+  max-width: 520px;
+}
+
+/* -------------------------
+   FOOTER
+------------------------- */
+.footer {
+  margin-top: 4rem;
+  padding: 3rem 1.5rem;
+  background: var(--blue);
+  color: rgba(255,255,255,0.85);
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.footer a {
+  color: white;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.footer a:hover {
+  text-decoration: underline;
+}
+
+/* -------------------------
+   RESPONSIVE
+------------------------- */
+@media (max-width: 768px) {
+  .container {
+    padding: 2.5rem 1.25rem;
+  }
+
+  h1 {
+    font-size: 2.1rem;
+  }
+}
