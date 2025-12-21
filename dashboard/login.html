@@ -4,17 +4,29 @@
   <meta charset="UTF-8" />
   <title>Login — Enoma</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-   <link rel="stylesheet" href="dashboard.css" />
+   <link rel="stylesheet" href="dashboard.css">
+<link rel="stylesheet" href="/styles/enoma.css">
+
 </head>
 
 <body>
-  <div class="card">
-    <h2>Sign in to Enoma</h2>
-    <input id="email" type="email" placeholder="Email address" />
-    <input id="password" type="password" placeholder="Password" />
-    <button onclick="login()">Sign in</button>
-    <p id="error" style="color:#ff8a8a"></p>
-  </div>
+<div class="card">
+  <h2>Sign in to Enoma</h2>
+
+  <input id="email" type="email" placeholder="Email address" />
+  <input id="password" type="password" placeholder="Password" />
+
+  <!-- Primary login button -->
+  <button class="btn btn-primary" onclick="login()">Sign in</button>
+
+  <!-- Secondary CTA -->
+  <a href="/signup.html" class="btn btn-outline" style="margin-top:0.75rem;">
+    Create your business page
+  </a>
+
+  <p id="error" style="color:#ff8a8a"></p>
+</div>
+
 
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -46,6 +58,8 @@
 
   }
 </script>
+
+
 
 </body>
 </html>
