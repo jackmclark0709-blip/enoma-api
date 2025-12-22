@@ -569,7 +569,7 @@ textarea:focus {
   left: 18px;
   top: 36px;
   bottom: 36px;
-  width: 2px;
+  width: 4px;
   background: rgba(154, 140, 255, 0.25);
 }
 
@@ -624,7 +624,6 @@ min-height: 180px;
   border-radius: 14px;
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 min-height: 200px;
-max-width: 550px;
 }
 
 .progress-step.active .progress-card {
