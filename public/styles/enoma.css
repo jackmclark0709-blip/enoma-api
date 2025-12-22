@@ -380,7 +380,7 @@ textarea:focus {
 }
 
 .nav-logo img {
-  height: 32px;   /* adjust if needed */
+  height: 22px;   /* adjust if needed */
   width: auto;
   display: block;
 }
