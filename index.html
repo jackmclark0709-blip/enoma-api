@@ -1,89 +1,234 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Enoma — Your Public Identity</title>
-<style>
-  body {
-    font-family: Inter, system-ui, sans-serif;
-    background: #0f0d2b;
-    color: white;
-    margin: 0;
-    padding: 5rem 1.5rem;
-    display: flex;
-    justify-content: center;
-  }
+  <meta charset="UTF-8" />
+  <title>Enoma — One authoritative business page</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  .wrap {
-    max-width: 640px;
-  }
+  <!-- SEO -->
+  <meta name="description" content="Enoma creates one SEO-optimized business page designed to get you found, trusted, and contacted." />
 
-  h1 {
-    font-size: 2.8rem;
-    margin-bottom: 0.75rem;
-  }
+  <!-- Styles -->
+  <link rel="stylesheet" href="/styles/enoma.css" />
 
-  .tagline {
-    font-size: 1.25rem;
-    opacity: 0.9;
-    margin-bottom: 2rem;
-  }
+  <style>
+    /* Page-specific layout only */
 
-  .bullets {
-    margin-bottom: 2rem;
-    padding-left: 1.2rem;
-  }
+    .hero {
+      min-height: 80vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 4rem 1.25rem;
+      background: radial-gradient(circle at top, #1a1450, #0b0a14);
+      color: white;
+    }
 
-  .bullets li {
-    margin-bottom: 0.5rem;
-  }
+    .hero-inner {
+      max-width: 760px;
+    }
 
-  .primary {
-    display: inline-block;
-    margin-top: 1rem;
-    background: #9a8cff;
-    color: #0f0d2b;
-    padding: 0.85rem 1.75rem;
-    border-radius: 999px;
-    font-weight: 700;
-    text-decoration: none;
-  }
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 3.4rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+    }
 
-  .secondary {
-    margin-top: 1.25rem;
-    font-size: 0.9rem;
-    opacity: 0.8;
-  }
+    .hero p {
+      font-size: 1.15rem;
+      color: #cfd1ff;
+      line-height: 1.6;
+      margin-bottom: 2rem;
+    }
 
-  a { color: #9a8cff; }
-</style>
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
 
+    .btn-primary {
+      background: #9a8cff;
+      color: #0b0a14;
+      padding: 0.85rem 1.6rem;
+      border-radius: 999px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .btn-secondary {
+      color: #cfd1ff;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .section {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 4rem 1.25rem;
+      text-align: center;
+    }
+
+    .section h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+
+    .section p {
+      color: #6b7280;
+      max-width: 700px;
+      margin: 0.5rem auto 0;
+      line-height: 1.7;
+    }
+
+    .bullets {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2.5rem;
+      text-align: left;
+    }
+
+    .bullet {
+      background: #ffffff;
+      border-radius: 14px;
+      padding: 1.5rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    }
+
+    .bullet h3 {
+      font-size: 1.05rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .divider {
+      height: 1px;
+      background: linear-gradient(to right, transparent, rgba(0,0,0,0.08), transparent);
+      margin: 3rem 0;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 3rem 1.25rem;
+      font-size: 0.85rem;
+      color: #6b7280;
+    }
+
+    .footer a {
+      color: #6b7280;
+      text-decoration: none;
+      font-weight: 600;
+    }
+  </style>
 </head>
+
 <body>
-<div class="wrap">
 
-<h1>Enoma</h1>
+  <!-- NAV (injected later via JS) -->
+  <!-- <script type="module" src="/partials/nav.js"></script> -->
 
-<p class="tagline">
-  A simple, professional business page — without building a website.
-</p>
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-inner">
+      <h1>One SEO-optimized business page.</h1>
+      <p>
+        Enoma creates a single, authoritative page for your business —
+        designed to get you found in search, build trust instantly,
+        and turn visitors into inquiries.
+      </p>
 
-<ul class="bullets">
-  <li>Get found on Google</li>
-  <li>Show up professionally</li>
-  <li>No hosting, no maintenance</li>
-</ul>
+      <div class="hero-actions">
+        <a href="/signup" class="btn-primary">Create your business page</a>
+        <a href="/login" class="btn-secondary">Sign in</a>
+      </div>
+    </div>
+  </section>
 
-<a class="primary" href="/signup">
-  Sign up today to get started →
-</a>
+  <!-- WHAT IT IS -->
+  <section class="section">
+    <h2>One authoritative page. Built for search.</h2>
+    <p>
+      Most small businesses are scattered across Google results,
+      outdated websites, directories, and social profiles.
+      Enoma replaces that fragmentation with one clear, canonical presence.
+    </p>
+  </section>
 
-</div>
+  <div class="divider"></div>
+
+  <!-- WHO IT'S FOR -->
+  <section class="section">
+    <h2>Designed for small businesses that value clarity</h2>
+
+    <div class="bullets">
+      <div class="bullet">
+        <h3>Local & service businesses</h3>
+        <p>Get discovered and contacted without managing a full website.</p>
+      </div>
+
+      <div class="bullet">
+        <h3>Consultants & freelancers</h3>
+        <p>A clean, credible page clients can trust instantly.</p>
+      </div>
+
+      <div class="bullet">
+        <h3>Solo founders & small teams</h3>
+        <p>SEO-ready presence without ongoing maintenance.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- WHAT IT'S NOT -->
+  <section class="section">
+    <h2>Not another website builder</h2>
+    <p>
+      Enoma isn’t trying to replace your brand, your website,
+      or your marketing stack.
+    </p>
+
+    <div class="bullets">
+      <div class="bullet">
+        <h3>❌ Not a website builder</h3>
+        <p>No themes, no drag-and-drop, no maintenance.</p>
+      </div>
+
+      <div class="bullet">
+        <h3>❌ Not a directory</h3>
+        <p>Your page stands alone — not buried among competitors.</p>
+      </div>
+
+      <div class="bullet">
+        <h3>✅ One canonical page</h3>
+        <p>The page search engines understand and customers trust.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section class="section">
+    <h2>Get your business page live in minutes</h2>
+    <p>
+      Create your Enoma page once — we handle structure,
+      SEO, and presentation going forward.
+    </p>
+
+    <div class="hero-actions" style="margin-top:1.75rem">
+      <a href="/signup" class="btn-primary">Create your business page</a>
+      <a href="/login" class="btn-secondary">Already have an account?</a>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <strong>enoma.io</strong><br />
+    One authoritative business page. Built for search.
+  </footer>
 
 </body>
-
-<script>
-
-</script>
-
-
 </html>
