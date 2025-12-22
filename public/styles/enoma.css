@@ -374,5 +374,16 @@ textarea:focus {
   box-shadow: 0 3px 10px rgba(154, 140, 255, 0.35);
 }
 
+.nav-logo {
+  display: flex;
+  align-items: center;
+}
+
+.nav-logo img {
+  height: 32px;   /* adjust if needed */
+  width: auto;
+  display: block;
+}
+
 
 
