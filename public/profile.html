@@ -98,13 +98,7 @@
 
 
     /* ================= Hero ================= */
-    .hero-wrapper {
-      width: 100vw;
-      margin-left: calc(50% - 50vw);
-      background: linear-gradient(135deg, var(--lavender), var(--blue));
-  position: relative;
-  overflow: hidden;
-    }
+
 
 .hero-wrapper::before {
   content: "";
@@ -800,11 +794,6 @@ body {
   max-width: 760px;
 }
 
-.section {
-  background: transparent;
-  box-shadow: none;
-  border-radius: 0;
-}
 
 
 .section-divider {
@@ -874,11 +863,6 @@ body {
   color: #4b5563;
 }
 
-.hero-wrapper {
-  width: 100vw;
-  margin-left: calc(50% - 50vw);
-  background: linear-gradient(135deg, #f4f2ff, #ffffff);
-}
 
 .hero-simple {
   max-width: 760px;
@@ -1016,6 +1000,12 @@ body {
   text-align: center;
 }
 
+.hero-wrapper {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  background: linear-gradient(135deg, #f4f2ff, #ffffff);
+}
+
 
   </style>
 </head>
@@ -1091,8 +1081,6 @@ body {
 <p class="section-intro">
 Contact Us to see how we can help.
 </p>
-</div>
-
 
 
   <div class="section hidden" id="towns">
@@ -1475,31 +1463,24 @@ if (
 
 
 /* ================= Services ================= */
-const servicesData = safeParse(p.services);
+const servicesSection = document.getElementById("servicesSection");
 
 if (els.services && servicesData.length) {
   els.services.innerHTML = servicesData
-    .map(
-      s => `
-        <div class="service-card">
-          <h3>${s.service_name || ""}</h3>
-          <p>${s.service_description || ""}</p>
-          ${
-            s.price
-              ? `<div class="service-price">Starting at ${s.price}</div>`
-              : ""
-          }
-        </div>
-      `
-    )
+    .map(s => `
+      <div class="service-card">
+        <h3>${s.service_name || ""}</h3>
+        <p>${s.service_description || ""}</p>
+        ${s.price ? `<div class="service-price">Starting at ${s.price}</div>` : ""}
+      </div>
+    `)
     .join("");
-const servicesSection = document.getElementById("servicesSection");
 
-if (servicesData.length && els.services) {
   servicesSection?.classList.remove("hidden");
 } else {
   servicesSection?.classList.add("hidden");
 }
+
 
 
   /* ================= Google Data ================= */
@@ -1608,7 +1589,7 @@ if (Array.isArray(p.attachments) && p.attachments.length) {
 }
 
 const whyEl = document.getElementById("why");
-const whySection = whyEl ? whyEl.closest(".band, .section") : null;
+const whySection = document.getElementById("whySection");
 
 if (whyEl && p.why_choose_us) {
   whyEl.textContent = p.why_choose_us;
@@ -1616,6 +1597,7 @@ if (whyEl && p.why_choose_us) {
 } else {
   whySection?.classList.add("hidden");
 }
+
 
 
 
