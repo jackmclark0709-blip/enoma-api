@@ -1331,7 +1331,11 @@ if (hasContactInfo && companyDetails) {
 
 const trustBadgesEl = document.getElementById("trustBadges");
 
-if (Array.isArray(p.trust_badges) && p.trust_badges.length) {
+if (
+  trustBadgesEl &&
+  Array.isArray(p.trust_badges) &&
+  p.trust_badges.length
+) {
   trustBadgesEl.innerHTML = "";
 
   p.trust_badges.forEach(badge => {
@@ -1343,6 +1347,7 @@ if (Array.isArray(p.trust_badges) && p.trust_badges.length) {
 
   trustBadgesEl.classList.remove("hidden");
 }
+
 
 const statusEl = document.getElementById("businessStatus");
 
@@ -1499,8 +1504,8 @@ google = text ? JSON.parse(text) : null;
   }
 
 if (
-  google?.regularOpeningHours?.weekdayDescriptions &&
-  els.hours
+  els.hours &&
+  google?.regularOpeningHours?.weekdayDescriptions
 ) {
   els.hours.innerHTML = `
     <h3>Hours</h3>
@@ -1511,6 +1516,7 @@ if (
     </ul>
   `;
 }
+
 
 
 
@@ -1570,14 +1576,15 @@ if (Array.isArray(p.attachments) && p.attachments.length) {
 }
 
 const whyEl = document.getElementById("why");
-const whySection = whyEl?.closest(".section");
+const whySection = whyEl ? whyEl.closest(".band, .section") : null;
 
-if (p.why_choose_us && whyEl) {
+if (whyEl && p.why_choose_us) {
   whyEl.textContent = p.why_choose_us;
   whySection?.classList.remove("hidden");
 } else {
   whySection?.classList.add("hidden");
 }
+
 
 
 const townsSection = document.getElementById("towns");
