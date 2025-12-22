@@ -231,7 +231,19 @@ button[type="submit"] {
 
 <div id="status"></div>
 
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script type="module">
+  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+  const SUPABASE_URL = "https://qhsivcenpnxwmvwznqie.supabase.co";
+  const SUPABASE_ANON_KEY = "YOUR_PUBLIC_ANON_KEY";
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // expose globally so other scripts can use it
+  window.supabaseClient = supabase;
+</script>
+
+
 
 <script type="module">
   const SUPABASE_URL = "https://qhsivcenpnxwmvwznqie.supabase.co";
@@ -364,9 +376,12 @@ if (heroResponseTime) fd.set("hero_response_time", heroResponseTime);
   );
 
   try {
+const supabase = window.supabaseClient;
+
 const {
   data: { session }
 } = await supabase.auth.getSession();
+
 
 if (!session) {
   alert("You must be logged in");
