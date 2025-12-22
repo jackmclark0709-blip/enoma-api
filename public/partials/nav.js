@@ -24,11 +24,9 @@ async function loadNav() {
     links.innerHTML = `
             <a href="https://marketing.enoma.io" target="_blank">About</a>
 <a href="/dashboard">Dashboard</a>
-      <a href="/create">Create page</a>
-      <button id="logout-btn">Sign out</button>
       <a
         href="https://marketing.enoma.io/contact"
-        class="nav-cta"
+        class="btn-primary"
         target="_blank"
       >
         Get in touch
@@ -49,7 +47,7 @@ async function loadNav() {
       <a href="/login">Sign in</a>
       <a
         href="https://marketing.enoma.io/contact"
-        class="nav-cta"
+        class="btn-primary"
         target="_blank"
       >
         Get in touch
