@@ -95,6 +95,17 @@
     <p id="error" style="color:#ff8a8a"></p>
   </div>
 </main>
+
+<div id="footer"></div>
+
+<script>
+  fetch("/partials/footer.html")
+    .then(res => res.text())
+    .then(html => {
+      document.getElementById("footer").innerHTML = html;
+    });
+</script>
+
 </body>
 
 

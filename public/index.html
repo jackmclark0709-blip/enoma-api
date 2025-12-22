@@ -152,7 +152,6 @@
 
       <div class="hero-actions">
         <a href="/signup" class="btn-primary">Create your business page</a>
-        <a href="/login" class="btn-secondary">Sign in</a>
       </div>
 <p class="hero-meta">No website required • Live in minutes</p>
 
@@ -231,15 +230,19 @@
 
     <div class="hero-actions" style="margin-top:1.75rem">
       <a href="/signup" class="btn-primary">Signup to create your business page</a>
-      <a href="/login" class="btn-secondary">Already have an account?</a>
     </div>
   </section>
 
-  <!-- FOOTER -->
-  <footer class="footer">
-    <strong>enoma.io</strong><br />
-    One authoritative business page. Built for search.
-  </footer>
+<div id="footer"></div>
+
+<script>
+  fetch("/partials/footer.html")
+    .then(res => res.text())
+    .then(html => {
+      document.getElementById("footer").innerHTML = html;
+    });
+</script>
+
 
 </body>
 </html>
