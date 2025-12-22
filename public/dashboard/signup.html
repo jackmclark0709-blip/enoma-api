@@ -9,13 +9,14 @@
 <link rel="stylesheet" href="/styles/enoma.css">
 
 <style>
-  /* Page-level auth layout */
-  body {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-  }
+
+.auth-layout {
+  min-height: calc(100vh - 72px); /* account for navbar height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
 
   .auth-card {
     width: 100%;
