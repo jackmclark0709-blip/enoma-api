@@ -598,11 +598,11 @@ min-height: 180px;
 
 /* dot */
 .progress-dot {
-  width: 36px;
-  height: 36px;
+  width: 50px;
+  height: 50px;
   border-radius: 999px;
   background: #0b0a14;
-  border: 2px solid #9a8cff;
+  border: 3px solid #9a8cff;
   color: #9a8cff;
   font-weight: 700;
   display: flex;
@@ -623,6 +623,8 @@ min-height: 180px;
   padding: 1.25rem 1.75rem;
   border-radius: 14px;
   transition: transform 0.25s ease, box-shadow 0.25s ease;
+min-height: 200px;
+max-width: 550px;
 }
 
 .progress-step.active .progress-card {
@@ -659,7 +661,7 @@ min-height: 180px;
   }
 
   .progress-dot {
-    margin-bottom: 0.5rem;
+    margin-bottom: 1rem;
   }
 }
 
