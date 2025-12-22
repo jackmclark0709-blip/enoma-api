@@ -627,15 +627,16 @@ textarea:focus {
 }
 
 .progress-card h3 {
-  margin: 0 0 0.35rem;
-  font-size: 1.05rem;
+  margin: 0 0 0.5rem;
+  font-size: 1.6rem;           /* ↑ from ~1.05rem */
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 .progress-card p {
-  margin: 0;
-  color: #cfd1ff;
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   line-height: 1.6;
+  color: rgba(207, 209, 255, 0.8);
 }
 
 /* hover = Framer feel */
@@ -658,6 +659,62 @@ textarea:focus {
     margin-bottom: 0.5rem;
   }
 }
+
+/* Base card */
+.progress-card {
+  background: linear-gradient(180deg, #1a1450, #0b0a14);
+  color: white;
+  padding: 1.75rem 2.25rem;
+  border-radius: 16px;
+  transition:
+    transform 0.5s ease,
+    box-shadow 0.5s ease,
+    background 0.5s ease;
+}
+
+/* ACTIVE STEP = HERO MOMENT */
+.progress-step.active .progress-card {
+  transform: translateX(12px) scale(1.02);
+  background: linear-gradient(180deg, #2a1f7a, #0b0a14);
+  box-shadow:
+    0 20px 60px rgba(154, 140, 255, 0.35);
+}
+
+.progress-step.active .progress-card h3 {
+  font-size: 1.85rem;          /* even bigger when active */
+}
+
+.progress-step.active .progress-card p {
+  color: #ffffff;
+}
+
+.progress-dot {
+  transition:
+    background 0.4s ease,
+    color 0.4s ease,
+    transform 0.4s ease;
+}
+
+.progress-step.active .progress-dot {
+  transform: scale(1.15);
+}
+
+.progress-step.active::before {
+  animation: growLine 0.5s ease forwards;
+}
+
+@keyframes growLine {
+  from { height: 0; }
+  to { height: calc(100% + 2rem); }
+}
+
+.how-progress h2 {
+  font-size: clamp(2.2rem, 4vw, 2.6rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+
 
 
 

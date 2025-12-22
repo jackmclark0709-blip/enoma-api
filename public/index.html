@@ -308,6 +308,27 @@
     });
 </script>
 
+<script>
+  const steps = document.querySelectorAll(".progress-step");
+
+  const observer = new IntersectionObserver(
+    entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          steps.forEach(s => s.classList.remove("active"));
+          entry.target.classList.add("active");
+        }
+      });
+    },
+    {
+      threshold: 0.6   // step must be mostly visible
+    }
+  );
+
+  steps.forEach(step => observer.observe(step));
+</script>
+
+
 
 </body>
 </html>
