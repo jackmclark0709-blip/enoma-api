@@ -109,10 +109,13 @@ created_at: existingProfile ? undefined : new Date().toISOString(),
         else resolve({ fields, files });
       });
     }));
-  } catch (err) {
-    console.error("❌ Form parse failed:", err);
-    return res.status(400).json({ error: "Invalid form data" });
-  }
+} catch (err) {
+  console.error("❌ generate-business crashed:", err);
+  return res.status(500).json({
+    error: "Server error",
+    details: err?.message || String(err)
+  });
+}
 
   // ----------------------------------------------------
   // Normalize fields
@@ -257,6 +260,8 @@ ${about_input}
   };
 
   console.log("🧾 Upserting profile:", username);
+console.log("🧪 finalProfile payload:", JSON.stringify(finalProfile, null, 2));
+
 
 const { error } = await supabaseAdmin
   .from("small_business_profiles")
