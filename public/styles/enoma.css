@@ -559,7 +559,7 @@ textarea:focus {
   margin-top: 3rem;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 3.5rem;
 }
 
 /* vertical rail */
@@ -567,8 +567,8 @@ textarea:focus {
   content: "";
   position: absolute;
   left: 18px;
-  top: 0;
-  bottom: 0;
+  top: 36px;
+  bottom: 36px;
   width: 2px;
   background: rgba(154, 140, 255, 0.25);
 }
@@ -580,6 +580,9 @@ textarea:focus {
   gap: 1.25rem;
   align-items: center;
   position: relative;
+  padding: 2.5rem 0;
+min-height: 180px;
+
 }
 
 /* filled rail for active steps */
@@ -587,8 +590,8 @@ textarea:focus {
   content: "";
   position: absolute;
   left: 18px;
-  top: -2rem;
-  height: calc(100% + 2rem);
+  top: -0;
+  height: 100%;
   width: 2px;
   background: #9a8cff;
 }

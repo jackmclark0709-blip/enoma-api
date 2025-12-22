@@ -312,18 +312,22 @@
   const steps = document.querySelectorAll(".progress-step");
 
   const observer = new IntersectionObserver(
-    entries => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          steps.forEach(s => s.classList.remove("active"));
-          entry.target.classList.add("active");
-        }
-      });
-    },
-    {
-      threshold: 0.6   // step must be mostly visible
-    }
-  );
+  entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        document
+          .querySelectorAll(".progress-step")
+          .forEach(s => s.classList.remove("active"));
+
+        entry.target.classList.add("active");
+      }
+    });
+  },
+  {
+    threshold: 0.75   // 👈 key change
+  }
+);
+
 
   steps.forEach(step => observer.observe(step));
 </script>
