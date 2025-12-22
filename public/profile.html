@@ -1054,7 +1054,7 @@ body {
 
 
 
-<div class="section section--soft">
+<div class="band band--lavender">
     <h2>Why Choose Us</h2>
     <div id="why"></div>
   </div>
@@ -1461,8 +1461,9 @@ if (els.services && servicesData.length) {
     )
     .join("");
 } else if (els.services) {
-  els.services.closest(".section")?.classList.add("hidden");
+  els.services.closest(".band")?.classList.add("hidden");
 }
+
 
   /* ================= Google Data ================= */
   let google = null;
@@ -1568,12 +1569,14 @@ if (Array.isArray(p.attachments) && p.attachments.length) {
   attachmentsSection.classList.remove("hidden");
 }
 
-const highlightsSection = document.getElementById("highlights");
 const whyEl = document.getElementById("why");
+const whySection = whyEl?.closest(".section");
 
 if (p.why_choose_us && whyEl) {
   whyEl.textContent = p.why_choose_us;
-  highlightsSection.classList.remove("hidden");
+  whySection?.classList.remove("hidden");
+} else {
+  whySection?.classList.add("hidden");
 }
 
 
