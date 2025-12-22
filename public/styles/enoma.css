@@ -345,23 +345,26 @@ textarea:focus {
 
 /* NAV CTA BUTTON */
 .nav-cta {
-  background: #9a8cff;              /* Enoma lavender */
-  color: #0b0a14;                   /* dark text for contrast */
+  background-color: #9a8cff !important;
+  color: #0b0a14 !important;
+
   padding: 0.55rem 1.2rem;
-  border-radius: 999px;             /* pill shape */
+  border-radius: 999px;
   font-weight: 700;
   font-size: 0.9rem;
   text-decoration: none;
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: 
-    transform 0.15s ease,
-    box-shadow 0.15s ease,
-    background 0.15s ease;
+
+  border: none;
 }
+
+
 .nav-cta:hover {
-  background: #b2a8ff;
+  background-color: #b2a8ff !important;
+  color: #0b0a14 !important;
   transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(154, 140, 255, 0.45);
 }
