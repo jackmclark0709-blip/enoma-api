@@ -990,6 +990,31 @@ body {
   opacity: 1;
 }
 
+/* === Layout normalization (post-refactor) === */
+
+.band {
+  padding: 3rem 1.5rem;
+}
+
+.band .container {
+  max-width: 900px;
+}
+
+.section {
+  max-width: 900px;
+  margin: 3rem auto;
+  padding: 0;
+}
+
+.section-divider {
+  margin: 2.5rem auto;
+}
+
+.section-intro {
+  max-width: 900px;
+  margin: 0 auto 2.5rem;
+  text-align: center;
+}
 
 
   </style>
@@ -1468,8 +1493,12 @@ if (els.services && servicesData.length) {
       `
     )
     .join("");
-} else if (els.services) {
-  els.services.closest(".band")?.classList.add("hidden");
+const servicesSection = document.getElementById("servicesSection");
+
+if (servicesData.length && els.services) {
+  servicesSection?.classList.remove("hidden");
+} else {
+  servicesSection?.classList.add("hidden");
 }
 
 
