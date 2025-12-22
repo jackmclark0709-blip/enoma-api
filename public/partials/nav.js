@@ -12,6 +12,7 @@ async function loadNav() {
   document.body.insertAdjacentHTML("afterbegin", html);
 
   const links = document.getElementById("nav-links");
+  if (!links) return; // ⛑ safety guard
 
   // 2. Check auth session
   const {
@@ -20,28 +21,22 @@ async function loadNav() {
 
   // 3. Render nav based on auth state
   if (session) {
-    // ✅ Logged IN
     links.innerHTML = `
-            <a href="https://marketing.enoma.io" target="_blank">About</a>
-<a href="/dashboard">Dashboard</a>
-      <a
-        href="https://marketing.enoma.io/contact"
-        class="nav-cta"
-        target="_blank"
-      >
-        Get in touch
-      </a>
+      <a href="https://marketing.enoma.io" target="_blank">About</a>
+      <a href="/dashboard">Dashboard</a>
+      <button id="logout-btn" class="nav-cta">Log out</button>
     `;
 
-    document
-      .getElementById("logout-btn")
-      .addEventListener("click", async () => {
+    // ⛑ Guarded logout handler
+    const logoutBtn = document.getElementById("logout-btn");
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", async () => {
         await supabase.auth.signOut();
         window.location.href = "/";
       });
+    }
 
   } else {
-    // ❌ Logged OUT
     links.innerHTML = `
       <a href="https://marketing.enoma.io" target="_blank">About</a>
       <a href="/login">Sign in</a>
