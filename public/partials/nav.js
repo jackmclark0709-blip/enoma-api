@@ -26,7 +26,7 @@ async function loadNav() {
 <a href="/dashboard">Dashboard</a>
       <a
         href="https://marketing.enoma.io/contact"
-        class="btn-primary"
+        class="nav-cta"
         target="_blank"
       >
         Get in touch
@@ -47,7 +47,7 @@ async function loadNav() {
       <a href="/login">Sign in</a>
       <a
         href="https://marketing.enoma.io/contact"
-        class="btn-primary"
+        class="nav-cta"
         target="_blank"
       >
         Get in touch

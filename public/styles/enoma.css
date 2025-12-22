@@ -343,12 +343,33 @@ textarea:focus {
   text-decoration: none;
 }
 
+/* NAV CTA BUTTON */
 .nav-cta {
-  background: #9a8cff;
-  color: #0b0a14;
-  padding: 0.45rem 0.9rem;
-  border-radius: 999px;
+  background: #9a8cff;              /* Enoma lavender */
+  color: #0b0a14;                   /* dark text for contrast */
+  padding: 0.55rem 1.2rem;
+  border-radius: 999px;             /* pill shape */
   font-weight: 700;
+  font-size: 0.9rem;
   text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: 
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
 }
+.nav-cta:hover {
+  background: #b2a8ff;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(154, 140, 255, 0.45);
+}
+
+.nav-cta:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 10px rgba(154, 140, 255, 0.35);
+}
+
+
 
