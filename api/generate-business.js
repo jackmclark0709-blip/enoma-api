@@ -47,6 +47,9 @@ function slugify(text) {
 // Handler
 // ----------------------------------------------------
 export default async function handler(req, res) {
+  res.setHeader("Content-Type", "application/json");
+
+  try {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "POST only" });
   }
@@ -72,23 +75,13 @@ export default async function handler(req, res) {
   }
 
   // Verify admin role
-  const { data: member, error: memberError } = await supabaseAdmin
-    .from("business_members")
-    .select("role")
-    .eq("user_id", user.id)
-    .single();
+ if (user.email !== "jack@enoma.io") {
+  return res.status(403).json({ error: "Unauthorized" });
+}
 
-  if (memberError || member?.role !== "admin") {
-    return res.status(403).json({ error: "Admin access required" });
-  }
 
   // ✅ Admin verified — continue
 
-if (existingProfile && existingProfile.auth_id !== user.id) {
-  return res.status(403).json({ error: "Not authorized to update this profile" });
-}
-
-created_at: existingProfile ? undefined : new Date().toISOString(),
 
 
   console.log("⚡ generate-business invoked");
@@ -140,7 +133,8 @@ const { data: existingProfile } = await supabaseAdmin
   .from("small_business_profiles")
   .select("username, auth_id")
   .eq("auth_id", user.id)
-  .single();
+  .maybeSingle();
+
 
 const username = existingProfile?.username || slugify(business_name);
 
@@ -212,8 +206,13 @@ ${about_input}
     })
   });
 
-  const ai = await aiResponse.json();
-
+let ai;
+try {
+  ai = await aiResponse.json();
+} catch (e) {
+  console.error("❌ OpenAI non-JSON response");
+  return res.status(500).json({ error: "OpenAI returned invalid response" });
+}
   if (!aiResponse.ok || ai.error) {
     console.error("❌ OpenAI error:", ai);
     return res.status(500).json({ error: "AI generation failed" });
@@ -278,4 +277,13 @@ res.json({
   success: true,
   username,
   url: `/p/${username}`
-});}
+});
+  } catch (err) {
+    console.error("🔥 generate-business fatal error:", err);
+
+    return res.status(500).json({
+      error: "Server error",
+      message: err?.message || String(err)
+    });
+  }
+}
