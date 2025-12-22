@@ -1464,6 +1464,7 @@ if (
 
 /* ================= Services ================= */
 const servicesSection = document.getElementById("servicesSection");
+const servicesData = safeParse(p.services);
 
 if (els.services && servicesData.length) {
   els.services.innerHTML = servicesData
@@ -1480,6 +1481,7 @@ if (els.services && servicesData.length) {
 } else {
   servicesSection?.classList.add("hidden");
 }
+
 
 
 
