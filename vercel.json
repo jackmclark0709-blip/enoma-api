@@ -1,4 +1,7 @@
 {
+
+ "outputDirectory": "public",
+
   "rewrites": [
     { "source": "/login", "destination": "/dashboard/login.html" },
     { "source": "/signup", "destination": "/dashboard/signup.html" },
