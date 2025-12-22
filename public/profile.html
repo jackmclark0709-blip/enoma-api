@@ -932,6 +932,65 @@ body {
   font-weight: 600;
 }
 
+.contact-strip {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  padding: 1.25rem 1rem;
+  background: white;
+  border-bottom: 1px solid #eee;
+  position: sticky;
+  top: 56px; /* below header */
+  z-index: 90;
+}
+
+.contact-pill {
+  padding: 0.55rem 1.25rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  background: #f4f4f8;
+  color: var(--blue);
+  border: 1px solid #e5e7eb;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.contact-pill:hover {
+  background: var(--lavender);
+  color: white;
+  transform: translateY(-1px);
+}
+
+.contact-pill.call {
+  background: var(--blue);
+  color: white;
+}
+
+.contact-pill.call:hover {
+  background: #1a1245;
+}
+
+.service-card {
+  position: relative;
+}
+
+.service-card::after {
+  content: "Learn more →";
+  position: absolute;
+  bottom: 1rem;
+  right: 1.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--blue);
+  opacity: 0.6;
+}
+
+.service-card:hover::after {
+  opacity: 1;
+}
+
+
 
   </style>
 </head>
@@ -961,6 +1020,14 @@ body {
   </section>
 </div>
 
+<div class="contact-strip hidden" id="contactStrip">
+  <a id="contactCall" class="contact-pill call">📞 Call</a>
+  <a id="contactEmail" class="contact-pill email">✉️ Email</a>
+  <a href="#contact" class="contact-pill form">📝 Contact form</a>
+</div>
+
+
+
 
 <div class="container">
 
@@ -973,28 +1040,6 @@ body {
   </div>
 </div>
 
-
-
-<div class="section section--soft">
-    <h2>Why Choose Us</h2>
-    <div id="why"></div>
-  </div>
-
-
-<section class="content-block hidden" id="companyDetails">
-  <h2>Contact Information</h2>
-
-  <div class="details-grid">
-    <div class="detail-item" id="companyEmail"></div>
-    <div class="detail-item" id="companyPhone"></div>
-    <div class="detail-item" id="companyWebsite"></div>
-  </div>
-</section>
-
-
-<div class="section-divider"></div>
-
-
 <div class="band band--lavender">
   <div class="container">
 <h2>Features Services</h2> 
@@ -1005,6 +1050,19 @@ body {
   <a id="quickCall" class="quick-action">Call Now</a>
   <a href="#contact" class="quick-action secondary">Request a Quote</a>
 </div>
+
+
+
+
+<div class="section section--soft">
+    <h2>Why Choose Us</h2>
+    <div id="why"></div>
+  </div>
+
+
+
+<div class="section-divider"></div>
+
 
 <p class="section-intro">
 Contact Us to see how we can help.
