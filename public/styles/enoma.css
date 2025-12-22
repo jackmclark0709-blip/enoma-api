@@ -549,6 +549,117 @@ textarea:focus {
   }
 }
 
+/* PROGRESS MODULE */
+.how-progress {
+  max-width: 900px;
+}
+
+.progress-steps {
+  position: relative;
+  margin-top: 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* vertical rail */
+.progress-steps::before {
+  content: "";
+  position: absolute;
+  left: 18px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(154, 140, 255, 0.25);
+}
+
+/* step */
+.progress-step {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 1.25rem;
+  align-items: center;
+  position: relative;
+}
+
+/* filled rail for active steps */
+.progress-step.active::before {
+  content: "";
+  position: absolute;
+  left: 18px;
+  top: -2rem;
+  height: calc(100% + 2rem);
+  width: 2px;
+  background: #9a8cff;
+}
+
+/* dot */
+.progress-dot {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: #0b0a14;
+  border: 2px solid #9a8cff;
+  color: #9a8cff;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.progress-step.active .progress-dot {
+  background: #9a8cff;
+  color: #0b0a14;
+}
+
+/* card */
+.progress-card {
+  background: linear-gradient(180deg, #1a1450, #0b0a14);
+  color: white;
+  padding: 1.25rem 1.75rem;
+  border-radius: 14px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.progress-step.active .progress-card {
+  box-shadow: 0 10px 30px rgba(154, 140, 255, 0.25);
+}
+
+.progress-card h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+
+.progress-card p {
+  margin: 0;
+  color: #cfd1ff;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+/* hover = Framer feel */
+.progress-card:hover {
+  transform: translateX(4px);
+}
+
+/* mobile */
+@media (max-width: 640px) {
+  .progress-step {
+    grid-template-columns: 1fr;
+  }
+
+  .progress-steps::before,
+  .progress-step.active::before {
+    display: none;
+  }
+
+  .progress-dot {
+    margin-bottom: 0.5rem;
+  }
+}
+
+
 
 
 
