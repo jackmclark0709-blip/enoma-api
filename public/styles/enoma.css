@@ -345,8 +345,10 @@ textarea:focus {
 
 .nav-cta {
   background: #9a8cff;
-  color: #0b0b0d;
-  padding: 8px 14px;
-  border-radius: 8px;
-  font-weight: 600;
+  color: #0b0a14;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  font-weight: 700;
+  text-decoration: none;
 }
+

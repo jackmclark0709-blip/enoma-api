@@ -6,18 +6,21 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkXVCJ9.eyJpc3MiOiJzdXBhY
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function loadNav() {
-  // 1. Inject HTML
+  // 1. Inject nav HTML
   const res = await fetch("/partials/nav.html");
   const html = await res.text();
   document.body.insertAdjacentHTML("afterbegin", html);
 
   const links = document.getElementById("nav-links");
 
-  // 2. Get session
-  const { data: { session } } = await supabase.auth.getSession();
+  // 2. Check auth session
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  // 3. Render links
+  // 3. Render nav based on auth state
   if (session) {
+    // ✅ Logged IN
     links.innerHTML = `
       <a href="/dashboard">Dashboard</a>
       <a href="/create">Create page</a>
@@ -32,11 +35,20 @@ async function loadNav() {
       });
 
   } else {
+    // ❌ Logged OUT
     links.innerHTML = `
+      <a href="https://marketing.enoma.io" target="_blank">About</a>
       <a href="/login">Sign in</a>
-      <a href="/signup" class="nav-cta">Get started</a>
+      <a
+        href="https://marketing.enoma.io/contact"
+        class="nav-cta"
+        target="_blank"
+      >
+        Get in touch
+      </a>
     `;
   }
 }
 
 loadNav();
+
