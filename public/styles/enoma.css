@@ -313,7 +313,7 @@ textarea:focus {
   width: 100%;
   border-bottom: 1px solid rgba(255,255,255,0.08);
   backdrop-filter: blur(8px);
-  background: rgba(10, 8, 30, 0.6);
+  background: white;
 
 }
 
@@ -327,7 +327,7 @@ textarea:focus {
 }
 
 .nav-logo {
-  color: white;
+  color: #211551;
   font-weight: 700;
   text-decoration: none;
 }
@@ -335,7 +335,7 @@ textarea:focus {
 .nav-links a,
 .nav-links button {
   margin-left: 16px;
-  color: white;
+  color: #211551;
   background: none;
   border: none;
   cursor: pointer;
