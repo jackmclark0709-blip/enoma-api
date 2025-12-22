@@ -387,7 +387,7 @@ const res = await fetch("/api/generate-business", {
       return;
     }
 
-    window.location.assign(`/p/?slug=${profile.username}`);
+    window.location.assign(`/p/${profile.username}`);
   } catch (err) {
     console.error(err);
     status.textContent = "Failed to create profile. Try again.";

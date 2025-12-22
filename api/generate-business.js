@@ -84,6 +84,12 @@ export default async function handler(req, res) {
 
   // ✅ Admin verified — continue
 
+if (existingProfile && existingProfile.auth_id !== user.id) {
+  return res.status(403).json({ error: "Not authorized to update this profile" });
+}
+
+created_at: existingProfile ? undefined : new Date().toISOString(),
+
 
   console.log("⚡ generate-business invoked");
 
@@ -124,7 +130,22 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Business name and email required." });
   }
 
-  const username = slugify(business_name);
+// ----------------------------------------------------
+// Determine canonical username (slug)
+// ----------------------------------------------------
+const { data: existingProfile } = await supabaseAdmin
+  .from("small_business_profiles")
+  .select("username, auth_id")
+  .eq("auth_id", user.id)
+  .single();
+
+const username = existingProfile?.username || slugify(business_name);
+
+// Safety check: prevent overwriting someone else's profile
+if (existingProfile && existingProfile.auth_id !== user.id) {
+  return res.status(403).json({ error: "Unauthorized update" });
+}
+
 
   // JSON fields from form
   const service_area = safeJSON(fields.service_area);
@@ -237,9 +258,10 @@ ${about_input}
 
   console.log("🧾 Upserting profile:", username);
 
-  const { error } = await supabase
-    .from("small_business_profiles")
-    .upsert(finalProfile, { onConflict: "username" });
+const { error } = await supabaseAdmin
+  .from("small_business_profiles")
+  .upsert(finalProfile, { onConflict: "username" });
+
 
   if (error) {
     console.error("❌ Supabase error:", error);
@@ -247,5 +269,8 @@ ${about_input}
   }
 
   console.log("✅ Business profile created:", username);
-  res.json({ success: true, username });
-}
+res.json({
+  success: true,
+  username,
+  url: `/p/${username}`
+});}
