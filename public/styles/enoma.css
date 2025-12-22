@@ -235,7 +235,13 @@ textarea:focus {
    HERO (OPTIONAL)
 ------------------------- */
 .hero {
-  background: linear-gradient(135deg, var(--lavender), var(--blue));
+  background:
+    radial-gradient(
+      80% 60% at 50% 0%,
+      #2a2270 0%,
+      #120f33 45%,
+      #0b0a14 100%
+    );
   color: white;
   padding: 4rem 1.5rem;
 }
@@ -248,6 +254,25 @@ textarea:focus {
   color: rgba(255,255,255,0.9);
   max-width: 520px;
 }
+
+.hero-actions {
+  align-items: center;
+}
+.hero-actions a:not(.btn-primary) {
+  opacity: 0.85;
+  transition: opacity .2s;
+}
+.hero-actions a:not(.btn-primary):hover {
+  opacity: 1;
+}
+
+.hero-meta {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: #aab0ff;
+}
+
+
 
 /* -------------------------
    FOOTER
@@ -286,8 +311,10 @@ textarea:focus {
 
 .nav {
   width: 100%;
-  background: #0b0b0d;
   border-bottom: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(8px);
+  background: rgba(10, 8, 30, 0.6);
+
 }
 
 .nav-inner {
