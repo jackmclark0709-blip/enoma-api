@@ -244,33 +244,25 @@ button[type="submit"] {
 </script>
 
 
-
 <script type="module">
-  const SUPABASE_URL = "https://qhsivcenpnxwmvwznqie.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc";
-
-  const supabase = window.supabaseClient(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY
-  );
+  const supabase = window.supabaseClient;
 
   async function enforceAdmin() {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
       const next = encodeURIComponent(window.location.pathname);
-window.location.href = `/login?next=${next}`;
-
+      window.location.href = `/login?next=${next}`;
       return;
     }
 
-const { data: member } = await supabase
-  .from("business_members")
-  .select("role")
-  .eq("user_id", session.user.id)
-  .single();
+    const { data: member } = await supabase
+      .from("business_members")
+      .select("role")
+      .eq("user_id", session.user.id)
+      .single();
 
-if (member?.role !== "admin") {
+    if (member?.role !== "admin") {
       document.body.innerHTML = `
         <div style="
           display:flex;
@@ -288,12 +280,12 @@ if (member?.role !== "admin") {
           </div>
         </div>
       `;
-      return;
     }
   }
 
   await enforceAdmin();
 </script>
+
 
 
 <script>
