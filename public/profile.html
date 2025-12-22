@@ -874,6 +874,65 @@ body {
   color: #4b5563;
 }
 
+.hero-wrapper {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  background: linear-gradient(135deg, #f4f2ff, #ffffff);
+}
+
+.hero-simple {
+  max-width: 760px;
+  margin: auto;
+  padding: 5rem 1.5rem 4rem;
+  text-align: center;
+}
+
+.hero-simple h1 {
+  font-size: clamp(2.6rem, 5vw, 3.4rem);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--blue);
+  margin-bottom: 0.75rem;
+}
+
+.hero-tagline {
+  font-size: 1.25rem;
+  line-height: 1.6;
+  color: #4b5563;
+  max-width: 560px;
+  margin: 0 auto 2rem;
+}
+
+.hero-actions {
+  margin-bottom: 1.5rem;
+}
+
+.primary-cta {
+  background: var(--blue);
+  color: white;
+  padding: 0.9rem 2.1rem;
+  border-radius: 999px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 14px 35px rgba(0,0,0,0.18);
+}
+
+.hero-meta {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.hero-meta span {
+  background: rgba(0,0,0,0.04);
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+
   </style>
 </head>
 
@@ -886,46 +945,22 @@ body {
   </div>
 </header>
 
-
 <div class="hero-wrapper">
-  <div class="hero hero-split">
+  <section class="hero-simple">
+    <h1 id="name"></h1>
+    <p id="tagline" class="hero-tagline"></p>
 
-    <!-- LEFT: Messaging -->
-    <div class="hero-copy">
-      <h1 id="name"></h1>
-      <p id="tagline"></p>
-
-<div class="primary-action hidden" id="primaryAction">
-  <a id="primaryCtaButton" class="primary-cta"></a>
-</div>
-
-
+    <div class="hero-actions hidden" id="primaryAction">
+      <a id="primaryCtaButton" class="primary-cta"></a>
     </div>
 
-    <!-- RIGHT: Proof Card -->
-    <div class="hero-visual">
-      <div class="hero-card">
-        <img id="logo" class="logo hidden" />
-        <img id="avatar" class="avatar hidden" />
-
-<div class="trust-badges hidden" id="trustBadges">
-  <span class="trust-badge">Licensed & Insured</span>
-  <span class="trust-badge">Locally Owned</span>
-  <span class="trust-badge">Google-Verified</span>
-</div>
-
-<div class="hero-facts">
-  <span id="heroLocation"></span>
-  <span id="heroAvailability"></span>
-  <span id="heroResponseTime"></span>
-</div>
-
-
-      </div>
+    <div class="hero-meta">
+      <span id="heroLocation"></span>
+      <span id="heroAvailability"></span>
     </div>
-
-  </div>
+  </section>
 </div>
+
 
 <div class="container">
 
