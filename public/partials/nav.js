@@ -22,9 +22,17 @@ async function loadNav() {
   if (session) {
     // ✅ Logged IN
     links.innerHTML = `
-      <a href="/dashboard">Dashboard</a>
+            <a href="https://marketing.enoma.io" target="_blank">About</a>
+<a href="/dashboard">Dashboard</a>
       <a href="/create">Create page</a>
       <button id="logout-btn">Sign out</button>
+      <a
+        href="https://marketing.enoma.io/contact"
+        class="nav-cta"
+        target="_blank"
+      >
+        Get in touch
+      </a>
     `;
 
     document
