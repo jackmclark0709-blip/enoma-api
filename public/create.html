@@ -246,42 +246,37 @@ button[type="submit"] {
 
 <script type="module">
   const supabase = window.supabaseClient;
+async function enforceAdmin() {
+  const { data: { session } } = await supabase.auth.getSession();
 
-  async function enforceAdmin() {
-    const { data: { session } } = await supabase.auth.getSession();
-
-    if (!session) {
-      const next = encodeURIComponent(window.location.pathname);
-      window.location.href = `/login?next=${next}`;
-      return;
-    }
-
-    const { data: member } = await supabase
-      .from("business_members")
-      .select("role")
-      .eq("user_id", session.user.id)
-      .single();
-
-    if (member?.role !== "admin") {
-      document.body.innerHTML = `
-        <div style="
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          height:100vh;
-          font-family:Inter,system-ui;
-          background:#0f0d2b;
-          color:white;
-          text-align:center;
-        ">
-          <div>
-            <h2>Unauthorized</h2>
-            <p>This page is restricted.</p>
-          </div>
-        </div>
-      `;
-    }
+  if (!session) {
+    const next = encodeURIComponent(window.location.pathname);
+    window.location.href = `/login?next=${next}`;
+    return;
   }
+
+  // 🔒 TEMP: Allow only you
+  if (session.user.email !== "jack@enoma.io") {
+    document.body.innerHTML = `
+      <div style="
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        height:100vh;
+        font-family:Inter,system-ui;
+        background:#0f0d2b;
+        color:white;
+        text-align:center;
+      ">
+        <div>
+          <h2>Unauthorized</h2>
+          <p>This page is restricted.</p>
+        </div>
+      </div>
+    `;
+    return;
+  }
+}
 
   await enforceAdmin();
 </script>
