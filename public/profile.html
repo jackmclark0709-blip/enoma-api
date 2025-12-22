@@ -1004,8 +1004,8 @@ body {
   </div>
 </header>
 
-<div class="hero-wrapper">
-  <section class="hero-simple">
+<section class="hero-wrapper">
+  <div class="hero-simple">
     <h1 id="name"></h1>
     <p id="tagline" class="hero-tagline"></p>
 
@@ -1017,57 +1017,44 @@ body {
       <span id="heroLocation"></span>
       <span id="heroAvailability"></span>
     </div>
-  </section>
-</div>
-
-<div class="contact-strip hidden" id="contactStrip">
-  <a id="contactCall" class="contact-pill call">📞 Call</a>
-  <a id="contactEmail" class="contact-pill email">✉️ Email</a>
-  <a href="#contact" class="contact-pill form">📝 Contact form</a>
-</div>
-
-
-
-
-<div class="container">
-
-<div class="band band--lavender">
-  <div class="container">
-    <div class="content-block">
-      <h2>About</h2>
-      <p id="about"></p>
-    </div>
   </div>
-</div>
+</section>
 
-<div class="band band--lavender">
+<nav class="contact-strip hidden" id="contactStrip">
+  <a id="contactCall" class="contact-pill call">📞 Call</a>
+  <a id="contactEmail" class="contact-pill">✉️ Email</a>
+  <a href="#contact" class="contact-pill">📝 Contact form</a>
+</nav>
+
+
+<section class="band band--lavender" id="aboutSection">
   <div class="container">
-<h2>Features Services</h2> 
+    <h2>About</h2>
+    <p id="about"></p>
+  </div>
+</section>
 
-<div id="services" class="service-grid"></div> </div>
+<section class="band band--lavender hidden" id="servicesSection">
+  <div class="container">
+    <h2>Services</h2>
+    <div id="services" class="service-grid"></div>
 
 <div class="quick-contact hidden" id="quickContact">
   <a id="quickCall" class="quick-action">Call Now</a>
   <a href="#contact" class="quick-action secondary">Request a Quote</a>
 </div>
+</section>
 
 
 
 
-<div class="band band--lavender">
+
+<section class="band band--lavender hidden" id="whySection">
+  <div class="container">
     <h2>Why Choose Us</h2>
     <div id="why"></div>
   </div>
-
-
-
-<div class="section-divider"></div>
-
-
-<p class="section-intro">
-Contact Us to see how we can help.
-</p>
-</div>
+</section>
 
 
 
@@ -1122,17 +1109,21 @@ Contact Us to see how we can help.
     <ul id="attachmentList"></ul>
   </div>
 
-<div class="section contact" id="contact">
+<section class="section contact" id="contact">
+  <div class="container">
     <h2>Contact</h2>
-<p>No obligation. We’ll respond within one business day.</p>
+    <p>No obligation. We’ll respond within one business day.</p>
+
     <form id="contactForm">
       <input name="name" placeholder="Your name" required />
       <input name="email" type="email" placeholder="Your email" required />
       <textarea name="message" placeholder="Message" required></textarea>
       <button type="submit">Send message</button>
     </form>
+
     <p id="contactStatus"></p>
   </div>
+</section>
 
 <div class="contact-expectations hidden" id="contactExpectations">
   <h3>What happens next?</h3>
