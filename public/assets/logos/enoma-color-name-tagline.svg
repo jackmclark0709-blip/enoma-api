@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 641.2 284.2">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #211551;
+      }
+
+      .cls-2 {
+        fill: #838bc5;
+        font-size: 35px;
+        letter-spacing: .05em;
+      }
+
+      .cls-2, .cls-3 {
+        font-family: Poppins-Regular, Poppins;
+      }
+
+      .cls-3 {
+        font-size: 200px;
+        letter-spacing: -.1em;
+      }
+
+      .cls-4 {
+        fill: #9a8cff;
+      }
+    </style>
+  </defs>
+  <g id="Layer_1-2" data-name="Layer 1">
+    <text class="cls-3" transform="translate(0 169.8)"><tspan class="cls-4" x="0" y="0">e</tspan><tspan class="cls-1" x="104" y="0">noma</tspan></text>
+    <text class="cls-2" transform="translate(74.95 220.73)"><tspan x="0" y="0">Your business, online.</tspan></text>
+  </g>
+</svg>
