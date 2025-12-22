@@ -7,13 +7,13 @@
    <link rel="stylesheet" href="dashboard/dashboard.css">
 <link rel="stylesheet" href="/styles/enoma.css">
 <style>
-  /* Page-level auth layout */
-  body {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-  }
+.auth-layout {
+  min-height: calc(100vh - 72px); /* account for navbar height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
 
   .auth-card {
     width: 100%;
@@ -74,6 +74,11 @@
 </head>
 
 <body>
+
+  <script type="module" src="/partials/nav.js"></script>
+  <main class="auth-layout">
+
+
   <div class="auth-card">
     <h2>Sign in to Enoma</h2>
 
@@ -89,6 +94,7 @@
 
     <p id="error" style="color:#ff8a8a"></p>
   </div>
+</main>
 </body>
 
 
