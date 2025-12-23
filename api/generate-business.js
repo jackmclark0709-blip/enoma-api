@@ -33,6 +33,13 @@ const slugify = text =>
 /* ---------------- HANDLER ---------------- */
 
 export default async function handler(req, res) {
+  console.log("🔥 handler reached", {
+    method: req.method,
+    hasAuth: !!req.headers.authorization
+  });
+
+
+export default async function handler(req, res) {
   res.setHeader("Content-Type", "application/json");
 
   try {
@@ -61,12 +68,16 @@ export default async function handler(req, res) {
     }
 
     /* ---------- PARSE FORM ---------- */
-    const form = formidable({ allowEmptyFiles: true });
-    const { fields, files } = await new Promise((resolve, reject) => {
-      form.parse(req, (err, fields, files) =>
-        err ? reject(err) : resolve({ fields, files })
-      );
-    });
+const form = formidable({
+  multiples: true,
+  keepExtensions: true,
+  allowEmptyFiles: true,
+  minFileSize: 0,
+  filter: ({ originalFilename }) => {
+    // Ignore empty file inputs entirely
+    return !!originalFilename;
+  }
+});
 
     const business_name = first(fields.business_name);
     const email = first(fields.email);
@@ -78,6 +89,22 @@ export default async function handler(req, res) {
     }
 
     const slug = slugify(business_name);
+
+let images = [];
+
+if (files?.images) {
+  const arr = Array.isArray(files.images)
+    ? files.images
+    : [files.images];
+
+  images = arr
+    .filter(f => f && f.size > 0)
+    .map(f => ({
+      filename: f.originalFilename,
+      mimetype: f.mimetype
+    }));
+}
+
 
     /* ---------- BUSINESS ---------- */
 
