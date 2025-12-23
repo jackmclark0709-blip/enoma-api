@@ -328,7 +328,6 @@ const form = document.getElementById("form");
 const status = document.getElementById("status");
 const servicesEl = document.getElementById("services");
 const testimonialsEl = document.getElementById("testimonials");
-const attachmentsEl = document.getElementById("attachments");
 
 /* ----------------------------------------
    EDIT MODE DETECTION
@@ -351,7 +350,6 @@ if (editBusinessId) {
 async function loadBusinessForEdit(businessId) {
   servicesEl.innerHTML = "";
   testimonialsEl.innerHTML = "";
-  attachmentsEl.innerHTML = "";
 
   const { data, error } = await supabase
     .from("small_business_profiles")
@@ -389,12 +387,7 @@ async function loadBusinessForEdit(businessId) {
     last.querySelector(".testimonial-author").value = t.author || "";
   });
 
-  (data.attachments || []).forEach(a => {
-    addAttachment();
-    const last = attachmentsEl.lastElementChild;
-    last.querySelector(".attachment-label").value = a.label || "";
-    last.querySelector(".attachment-url").value = a.url || "";
-  });
+
 }
 /* ----------------------------------------
    REPEATING BLOCK HELPERS
@@ -420,15 +413,7 @@ window.addTestimonial = function () {
   testimonialsEl.appendChild(div);
 };
 
-window.addAttachment = function () {
-  const div = document.createElement("div");
-  div.className = "block";
-  div.innerHTML = `
-    <input placeholder="Label (e.g. Company Brochure)" class="attachment-label"/>
-    <input placeholder="URL (PDF, Drive, Dropbox, etc.)" class="attachment-url"/>
-  `;
-  attachmentsEl.appendChild(div);
-};
+
 
 
 if (editBusinessId) {
@@ -488,16 +473,9 @@ form.addEventListener("submit", async (e) => {
     }))
     .filter(t => t.quote);
 
-  const attachmentsData = [...attachmentsEl.querySelectorAll(".block")]
-    .map(block => ({
-      label: block.querySelector(".attachment-label")?.value.trim(),
-      url: block.querySelector(".attachment-url")?.value.trim()
-    }))
-    .filter(a => a.url);
-
+  
   fd.set("services", JSON.stringify(servicesData));
   fd.set("testimonials", JSON.stringify(testimonialsData));
-  fd.set("attachments", JSON.stringify(attachmentsData));
 
   /* ----------------------------------------
      SUBMIT
