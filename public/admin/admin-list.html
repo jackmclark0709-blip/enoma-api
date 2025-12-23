@@ -42,10 +42,10 @@ async function enforceAdmin() {
 }
 
 async function loadBusinesses() {
-  const { data, error } = await supabase
-    .from("small_business_profiles")
-    .select("id,business_name,email,created_at")
-    .order("created_at", { ascending: false });
+const { data, error } = await supabase
+  .from("small_business_profiles")
+  .select("business_id,business_name,email,created_at")
+  .order("created_at", { ascending: false });
 
   if (error) {
     alert("Failed to load businesses");
@@ -60,7 +60,7 @@ async function loadBusinesses() {
       <td>${b.email}</td>
       <td>${new Date(b.created_at).toLocaleDateString()}</td>
       <td>
-        <a href="/create.html?business_id=${b.id}">Edit</a>
+<a href="/create.html?business_id=${b.business_id}">Edit</a>
       </td>
     `;
     tbody.appendChild(tr);

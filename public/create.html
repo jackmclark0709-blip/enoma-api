@@ -319,12 +319,13 @@ if (editBusinessId) {
 /* ---------- LOAD EXISTING DATA (✅ ADDITION) ---------- */
 async function loadBusinessForEdit(id) {
   const supabase = window.supabaseClient;
-  const { data, error } = await supabase
-    .from("business_profiles")
-    .select("*")
-    .eq("id", id)
-    .single();
+const { data, error } = await supabase
+  .from("small_business_profiles")
+  .select("*")
+  .eq("business_id", businessId)
+  .single();
 
+ 
   if (error || !data) {
     status.textContent = "Failed to load business profile.";
     return;
