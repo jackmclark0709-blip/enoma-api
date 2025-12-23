@@ -209,21 +209,91 @@ if (incomingBusinessId) {
 
 
     /* ---------- AI COPY ---------- */
-    const prompt = `
-Return valid JSON only:
+const prompt = `
+You are an expert local-business marketer and SEO copywriter.
+
+Your task is to transform raw business input into polished, trustworthy,
+SEO-optimized website content for a single-page business profile.
+
+Return ONLY valid JSON that matches the schema below.
+Do not include markdown, comments, or explanations.
+
+--------------------------------
+JSON SCHEMA (MUST MATCH EXACTLY)
+--------------------------------
 {
   "seo_title": "",
   "seo_description": "",
   "hero_tagline": "",
-  "about": ""
+  "about": "",
+  "why_choose_us": "",
+  "trust_badges": [],
+  "faqs": [
+    { "question": "", "answer": "" }
+  ],
+  "services": [
+    {
+      "service_name": "",
+      "service_description": "",
+      "benefits": []
+    }
+  ],
+  "primary_cta": {
+    "label": "",
+    "type": "phone|form|link",
+    "value": ""
+  }
 }
 
-Business: ${business_name}
-Tone: ${tone}
+--------------------------------
+BUSINESS INPUT
+--------------------------------
+Business name: ${business_name}
+Tone preference: ${tone}
 
-Description:
+Raw description from owner:
 ${about_input}
+
+Why choose us (raw):
+${first(fields.why_choose_us)}
+
+Services (raw JSON):
+${first(fields.services)}
+
+FAQs (raw text):
+${first(fields.faqs)}
+
+Trust badges (raw):
+${first(fields.trust_badges)}
+
+Phone number:
+${first(fields.phone)}
+
+--------------------------------
+CONTENT RULES
+--------------------------------
+- Write clear, customer-facing language
+- Prioritize trust and clarity
+- Assume visitors are comparing providers
+- Fill gaps intelligently if inputs are weak
+- Rewrite services cleanly even if provided
+- Default CTA to phone if phone exists
+
+--------------------------------
+SEO RULES
+--------------------------------
+- seo_title ≤ 60 characters
+- seo_description ≤ 160 characters
+- Use natural local-service SEO phrasing
+
+--------------------------------
+OUTPUT REQUIREMENTS
+--------------------------------
+- Return ONLY the JSON object
+- All arrays must exist
+- No null values
 `;
+
 
     const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -242,63 +312,124 @@ ${about_input}
 
     /* ---------- PROFILE UPSERT ---------- */
 const profilePayload = {
-  // Identity
+  /* ----------------------------------
+     Identity
+  ---------------------------------- */
   business_id,
   auth_id,
   username: slug,
   business_name,
   owner_name,
 
-  // Contact
+  /* ----------------------------------
+     Contact
+  ---------------------------------- */
   email,
   phone: first(fields.phone),
   address: first(fields.address),
   website: first(fields.website),
 
-  // Branding
+  /* ----------------------------------
+     Branding
+  ---------------------------------- */
   logo_url,
   images,
 
-  // Hero
-  hero_tagline: generated.hero_tagline,
+  /* ----------------------------------
+     Hero
+  ---------------------------------- */
+  hero_tagline:
+    first(fields.hero_tagline) ||
+    generated.hero_tagline,
+
   hero_location: first(fields.hero_location),
   hero_availability: first(fields.hero_availability),
   hero_response_time: first(fields.hero_response_time),
 
-  // Content
-  about: generated.about || about_input,
-  why_choose_us,
+  /* ----------------------------------
+     Main Content
+  ---------------------------------- */
+  about:
+    first(fields.about)?.trim() ||
+    generated.about,
 
-  // SEO
-  seo_title: generated.seo_title,
-  seo_description: generated.seo_description,
+  why_choose_us:
+    first(fields.why_choose_us)?.trim() ||
+    generated.why_choose_us,
 
-  // Structured sections
-service_area: parseCSV(fields.service_area),
-services:
-  fields.services
-    ? safeJSON(fields.services)
-    : existingProfile?.services ?? [],
+  /* ----------------------------------
+     SEO
+  ---------------------------------- */
+  seo_title:
+    first(fields.seo_title)?.trim() ||
+    generated.seo_title,
 
-testimonials:
-  fields.testimonials
-    ? safeJSON(fields.testimonials)
-    : existingProfile?.testimonials ?? [],
+  seo_description:
+    first(fields.seo_description)?.trim() ||
+    generated.seo_description,
 
-attachments:
-  fields.attachments
-    ? safeJSON(fields.attachments)
-    : existingProfile?.attachments ?? [],
+  /* ----------------------------------
+     Structured Sections
+  ---------------------------------- */
 
-  faqs,
-  trust_badges,
+  // Services: AI-cleaned, unless user explicitly edited
+  services:
+    fields.services
+      ? safeJSON(fields.services)
+      : generated.services,
 
-  // CTAs
-  primary_cta_label,
-  primary_cta_type,
-  primary_cta_value,
+  // FAQs: AI-structured
+  faqs:
+    Array.isArray(generated.faqs)
+      ? generated.faqs
+      : [],
 
-  // Meta
+  // Trust badges: AI-normalized array
+  trust_badges:
+    Array.isArray(generated.trust_badges)
+      ? generated.trust_badges
+      : [],
+
+  service_area: safeJSON(fields.service_area),
+
+  testimonials:
+    fields.testimonials
+      ? safeJSON(fields.testimonials)
+      : existingProfile?.testimonials ?? [],
+
+  attachments:
+    fields.attachments
+      ? safeJSON(fields.attachments)
+      : existingProfile?.attachments ?? [],
+
+  /* ----------------------------------
+     Primary CTA
+  ---------------------------------- */
+  primary_cta_label:
+    first(fields.primary_cta_label) ||
+    generated.primary_cta?.label ||
+
+    // fallback
+    "Call Now",
+
+  primary_cta_type:
+    first(fields.primary_cta_type) ||
+    generated.primary_cta?.type ||
+
+    "phone",
+
+  primary_cta_value:
+    first(fields.primary_cta_value) ||
+    generated.primary_cta?.value ||
+    first(fields.phone),
+
+  /* ----------------------------------
+     Flags & Meta
+  ---------------------------------- */
+  is_open_now: fields.is_open_now === "on",
+  accepting_clients: fields.accepting_clients === "on",
+  offers_emergency: fields.offers_emergency === "on",
+
   is_public: true,
   updated_at: new Date().toISOString()
 };
