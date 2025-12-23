@@ -174,6 +174,22 @@ const primary_cta_value = first(fields.primary_cta_value);
       });
     }
 
+/* --------------------------------------------------
+   LOAD EXISTING PROFILE (EDIT MODE SAFETY)
+-------------------------------------------------- */
+let existingProfile = null;
+
+if (incomingBusinessId) {
+  const { data } = await supabaseAdmin
+    .from("small_business_profiles")
+    .select("services, testimonials, attachments")
+    .eq("business_id", business_id)
+    .single();
+
+  existingProfile = data;
+}
+
+
     /* ---------- AI COPY ---------- */
     const prompt = `
 Return valid JSON only:
@@ -241,9 +257,21 @@ const profilePayload = {
 
   // Structured sections
   service_area: safeJSON(fields.service_area),
-  services: safeJSON(fields.services),
-  testimonials: safeJSON(fields.testimonials),
-  attachments: safeJSON(fields.attachments),
+services:
+  fields.services
+    ? safeJSON(fields.services)
+    : existingProfile?.services ?? [],
+
+testimonials:
+  fields.testimonials
+    ? safeJSON(fields.testimonials)
+    : existingProfile?.testimonials ?? [],
+
+attachments:
+  fields.attachments
+    ? safeJSON(fields.attachments)
+    : existingProfile?.attachments ?? [],
+
   faqs,
   trust_badges,
 
