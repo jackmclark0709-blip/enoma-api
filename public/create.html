@@ -5,6 +5,9 @@
 <title>Create Business Profile — Enoma</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 
+
+  <link rel="stylesheet" href="/styles/enoma.css" />
+
 <style>
 :root {
   --enoma-blue: #211551;
@@ -127,11 +130,12 @@ button[type="submit"] {
   <script type="module" src="/partials/nav.js"></script>
 
 
-<h1>Create Your Business Page</h1>
-<p class="subtitle">We turn your business info into a polished, lead-generating webpage.</p>
+<h1 id="pageTitle">Create Your Business Page</h1>
+<p class="subtitle" id="pageSubtitle">
+  We turn your business info into a polished, lead-generating webpage.
+</p>
 
 <form id="form">
-
 <input type="hidden" name="type" value="business" />
 <input type="hidden" name="business_id" id="business_id" />
 
@@ -244,11 +248,10 @@ button[type="submit"] {
   import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
   const SUPABASE_URL = "https://qhsivcenpnxwmvwznqie.supabase.co";
-  const SUPABASE_ANON_KEY = "YOUR_PUBLIC_ANON_KEY";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc";
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // expose globally so other scripts can use it
   window.supabaseClient = supabase;
 </script>
 
@@ -299,6 +302,72 @@ const servicesEl = document.getElementById("services");
 const testimonialsEl = document.getElementById("testimonials");
 const attachmentsEl = document.getElementById("attachments");
 
+
+/* ---------- EDIT MODE DETECTION (✅ ADDITION) ---------- */
+const params = new URLSearchParams(window.location.search);
+const editBusinessId = params.get("business_id");
+
+if (editBusinessId) {
+  document.getElementById("business_id").value = editBusinessId;
+  document.getElementById("createBtn").style.display = "none";
+  document.getElementById("updateBtn").style.display = "block";
+  document.getElementById("pageTitle").textContent = "Edit Business Page";
+  document.getElementById("pageSubtitle").textContent =
+    "Update the information for this business profile.";
+}
+
+/* ---------- LOAD EXISTING DATA (✅ ADDITION) ---------- */
+async function loadBusinessForEdit(id) {
+  const supabase = window.supabaseClient;
+  const { data, error } = await supabase
+    .from("business_profiles")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error || !data) {
+    status.textContent = "Failed to load business profile.";
+    return;
+  }
+
+  form.business_name.value = data.business_name || "";
+  form.email.value = data.email || "";
+  form.phone.value = data.phone || "";
+  form.address.value = data.address || "";
+  form.website.value = data.website || "";
+  form.about.value = data.about || "";
+  form.service_area.value = (data.service_area || []).join(", ");
+
+  (data.services || []).forEach(s => {
+    addService();
+    const last = servicesEl.lastElementChild;
+    last.querySelector(".service-name").value = s.service_name || "";
+    last.querySelector(".service-description").value = s.service_description || "";
+    last.querySelector(".service-price").value = s.price || "";
+  });
+
+  (data.testimonials || []).forEach(t => {
+    addTestimonial();
+    const last = testimonialsEl.lastElementChild;
+    last.querySelector(".testimonial-quote").value = t.quote || "";
+    last.querySelector(".testimonial-author").value = t.author || "";
+  });
+
+  (data.attachments || []).forEach(a => {
+    addAttachment();
+    const last = attachmentsEl.lastElementChild;
+    last.querySelector(".attachment-label").value = a.label || "";
+    last.querySelector(".attachment-url").value = a.url || "";
+  });
+}
+
+if (editBusinessId) {
+  loadBusinessForEdit(editBusinessId);
+}
+
+
+
+
 function addService() {
   const div = document.createElement("div");
   div.className = "block";
@@ -332,65 +401,31 @@ function addAttachment() {
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
-  status.textContent = "Creating your business profile…";
+
+  const isEdit = Boolean(editBusinessId);
+  status.textContent = isEdit
+    ? "Updating business profile…"
+    : "Creating your business profile…";
 
   const fd = new FormData(form);
 
-  const servicesData = [...document.querySelectorAll(".service-name")].map((_, i) => ({
-    service_name: document.querySelectorAll(".service-name")[i].value.trim(),
-    service_description: document.querySelectorAll(".service-description")[i].value.trim(),
-    price: document.querySelectorAll(".service-price")[i].value.trim()
-  })).filter(s => s.service_name);
-
-// ---- HERO FACTS (optional, safe defaults) ----
-const heroLocation = fd.get("hero_location")?.trim();
-const heroAvailability = fd.get("hero_availability")?.trim();
-const heroResponseTime = fd.get("hero_response_time")?.trim();
-
-if (heroLocation) fd.set("hero_location", heroLocation);
-if (heroAvailability) fd.set("hero_availability", heroAvailability);
-if (heroResponseTime) fd.set("hero_response_time", heroResponseTime);
-
-
-  const testimonialsData = [...document.querySelectorAll(".testimonial-quote")].map((_, i) => ({
-    quote: document.querySelectorAll(".testimonial-quote")[i].value.trim(),
-    author: document.querySelectorAll(".testimonial-author")[i].value.trim()
-  })).filter(t => t.quote);
-
-  const attachmentsData = [...document.querySelectorAll(".attachment-url")].map((_, i) => ({
-    label: document.querySelectorAll(".attachment-label")[i].value.trim(),
-    url: document.querySelectorAll(".attachment-url")[i].value.trim()
-  })).filter(a => a.url);
-
-  fd.set("services", JSON.stringify(servicesData));
-  fd.set("testimonials", JSON.stringify(testimonialsData));
-  fd.set("attachments", JSON.stringify(attachmentsData));
-
-  const area = fd.get("service_area") || "";
-  fd.set("service_area",
-    JSON.stringify(area.split(",").map(x => x.trim()).filter(Boolean))
-  );
-
   try {
-const supabase = window.supabaseClient;
+    const supabase = window.supabaseClient;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      alert("You must be logged in");
+      return;
+    }
 
-const {
-  data: { session }
-} = await supabase.auth.getSession();
+    const endpoint = isEdit
+      ? "/api/update-business"
+      : "/api/generate-business";
 
-
-if (!session) {
-  alert("You must be logged in");
-  return;
-}
-
-const res = await fetch("/api/generate-business", {
-  method: "POST",
-  headers: {
-    Authorization: `Bearer ${session.access_token}`
-  },
-  body: fd
-});
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${session.access_token}` },
+      body: fd
+    });
 
     const profile = await res.json();
     if (profile.error) {
@@ -401,21 +436,11 @@ const res = await fetch("/api/generate-business", {
     window.location.assign(`/p/${profile.username}`);
   } catch (err) {
     console.error(err);
-    status.textContent = "Failed to create profile. Try again.";
+    status.textContent = "Failed to save profile.";
   }
 });
 
-// Put form into UPDATE MODE
-document.getElementById("business_id").value = profile.business_id;
-
-document.getElementById("createBtn").style.display = "none";
-document.getElementById("updateBtn").style.display = "block";
-
-// Optional: prefill fields
-document.querySelector('[name="business_name"]').value = profile.business_name;
-document.querySelector('[name="email"]').value = profile.email;
-document.querySelector('[name="about"]').value = profile.about || "";
-
+ 
 </script>
 
 <script

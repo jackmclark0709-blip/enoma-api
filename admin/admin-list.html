@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Admin — Business Profiles</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="/styles/enoma.css" />
+</head>
+
+<body style="padding:2rem;font-family:Inter,system-ui">
+
+<h1>All Business Profiles</h1>
+<p>Private admin view</p>
+
+<table border="1" cellpadding="10" cellspacing="0" width="100%">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Email</th>
+      <th>Created</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody id="rows"></tbody>
+</table>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const supabase = createClient(
+  "https://qhsivcenpnxwmvwznqie.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc"
+);
+
+async function enforceAdmin() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session || session.user.email !== "jack@enoma.io") {
+    document.body.innerHTML = "<h2>Unauthorized</h2>";
+    return false;
+  }
+  return true;
+}
+
+async function loadBusinesses() {
+  const { data, error } = await supabase
+    .from("business_profiles")
+    .select("id,business_name,email,created_at")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    alert("Failed to load businesses");
+    return;
+  }
+
+  const tbody = document.getElementById("rows");
+  data.forEach(b => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${b.business_name}</td>
+      <td>${b.email}</td>
+      <td>${new Date(b.created_at).toLocaleDateString()}</td>
+      <td>
+        <a href="/create.html?business_id=${b.id}">Edit</a>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+if (await enforceAdmin()) {
+  loadBusinesses();
+}
+</script>
+
+</body>
+</html>
