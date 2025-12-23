@@ -324,7 +324,21 @@ OUTPUT REQUIREMENTS
     });
 
     const ai = await aiRes.json();
-    const generated = JSON.parse(ai.choices[0].message.content);
+
+let generated;
+
+try {
+  const raw = ai.choices?.[0]?.message?.content;
+  generated = JSON.parse(raw);
+} catch (err) {
+  console.error("❌ AI JSON parse failed:", ai.choices?.[0]?.message?.content);
+
+  return res.status(500).json({
+    error: "AI generation failed",
+    details: "Invalid JSON returned from OpenAI"
+  });
+}
+
 
     /* ---------- PROFILE UPSERT ---------- */
 const profilePayload = {

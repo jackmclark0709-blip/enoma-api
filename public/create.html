@@ -489,7 +489,13 @@ form.addEventListener("submit", async (e) => {
       body: fd
     });
 
-    const json = await res.json();
+let json;
+try {
+  json = await res.json();
+} catch {
+  status.textContent = "Server error. Please try again.";
+  return;
+}
 
     if (!res.ok) {
       console.error(json);
