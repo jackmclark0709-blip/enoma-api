@@ -1,3 +1,4 @@
+
 import fetch from "node-fetch";
 import { createClient } from "@supabase/supabase-js";
 import formidable from "formidable";
@@ -47,14 +48,16 @@ export default async function handler(req, res) {
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } =
-      await supabaseAdmin.auth.getUser(token);
+    const {
+      data: { user },
+      error: authError
+    } = await supabaseAdmin.auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ error: "Invalid session" });
     }
 
-    // TEMP hard lock
+    // TEMP hard lock (safe for now)
     if (user.email !== "jack@enoma.io") {
       return res.status(403).json({ error: "Unauthorized" });
     }
@@ -87,8 +90,6 @@ export default async function handler(req, res) {
       });
     }
 
-    const slug = slugify(business_name);
-
     /* ---------- IMAGES ---------- */
     let images = [];
     if (files?.images) {
@@ -104,33 +105,47 @@ export default async function handler(req, res) {
         }));
     }
 
-    /* ---------- BUSINESS ---------- */
+    /* ---------- BUSINESS (SOURCE OF TRUTH) ---------- */
+
+    const candidateSlug = slugify(business_name);
+
     const { data: existingBusiness } = await supabaseAdmin
       .from("businesses")
-      .select("id")
-      .eq("slug", slug)
+      .select("id, slug")
+      .eq("slug", candidateSlug)
       .maybeSingle();
 
     let business_id;
+    let slug;
 
     if (!existingBusiness) {
+      // CREATE business
       const { data: newBiz, error } = await supabaseAdmin
         .from("businesses")
-        .insert({ name: business_name, slug })
-        .select("id")
+        .insert({
+          name: business_name,
+          slug: candidateSlug
+        })
+        .select("id, slug")
         .single();
 
       if (error) throw error;
-      business_id = newBiz.id;
 
+      business_id = newBiz.id;
+      slug = newBiz.slug;
+
+      // creator becomes admin
       await supabaseAdmin.from("business_members").insert({
         user_id: user.id,
         business_id,
         role: "admin"
       });
     } else {
+      // UPDATE existing business
       business_id = existingBusiness.id;
+      slug = existingBusiness.slug;
 
+      // 🔐 AUTH CHECK (ONLY place this happens)
       const { data: membership } = await supabaseAdmin
         .from("business_members")
         .select("id")
@@ -177,10 +192,10 @@ ${about_input}
     const ai = await aiRes.json();
     const generated = JSON.parse(ai.choices[0].message.content);
 
-    /* ---------- PROFILE ---------- */
+    /* ---------- PROFILE (BUSINESS-LOCKED) ---------- */
     const profilePayload = {
-      business_id,
-      username: slug,
+      business_id,           // 🔒 PRIMARY AUTHORITY
+      username: slug,        // display only
       email,
       about: generated.about || about_input,
       hero_tagline: generated.hero_tagline,
