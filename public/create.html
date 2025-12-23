@@ -169,22 +169,6 @@ button[type="submit"],
 
 <input type="hidden" name="google_place_id" />
 
-<label>Hero Details (Optional)</label>
-
-<input
-  name="hero_location"
-  placeholder="Serving Attleboro & Bristol County"
-/>
-
-<input
-  name="hero_availability"
-  placeholder="Open today • 8am–6pm"
-/>
-
-<input
-  name="hero_response_time"
-  placeholder="Same-day responses available"
-/>
 
 
 
@@ -216,6 +200,7 @@ button[type="submit"],
 
 <label>Describe Your Business</label>
 <textarea name="about"></textarea>
+<p>“In your own words — rough notes are fine.”</p>
 
 <label>Preferred Tone</label>
 <select name="tone">
@@ -228,24 +213,9 @@ button[type="submit"],
 
 <hr/>
 
-<label>Why Choose You?</label>
-<textarea
-  name="why_choose_us"
-  placeholder="What makes your business different? Experience, guarantees, approach, etc."
-></textarea>
 
 
-<label>FAQs (one per line, format: Question | Answer)</label>
-<textarea
-  name="faqs"
-  placeholder="Do you offer free estimates? | Yes, always free and no obligation"
-></textarea>
 
-<label>Trust Badges</label>
-<input
-  name="trust_badges"
-  placeholder="Locally owned, Fully insured, 10+ years experience"
-/>
 
 <label>
   <input type="checkbox" name="is_open_now" />
@@ -276,14 +246,6 @@ button[type="submit"],
 
 <hr/>
 
-<h3>Attachments (brochures, PDFs, case studies)</h3>
-<div id="attachments"></div>
-<button type="button" class="add-btn" onclick="addAttachment()">+ Add Attachment</button>
-
-<hr/>
-
-<label>Upload Images (optional)</label>
-<input type="file" name="images" accept="image/*" multiple />
 
 <button type="button" id="createBtn">Create Business Page</button>
 <button
