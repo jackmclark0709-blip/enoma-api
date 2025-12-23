@@ -295,15 +295,28 @@ async function enforceAdmin() {
 
 
 
-<script>
+<script type="module">
+/* ----------------------------------------
+   WAIT FOR SUPABASE TO BE READY
+---------------------------------------- */
+let supabase;
+while (!window.supabaseClient) {
+  await new Promise(r => setTimeout(r, 10));
+}
+supabase = window.supabaseClient;
+
+/* ----------------------------------------
+   ELEMENT REFERENCES
+---------------------------------------- */
 const form = document.getElementById("form");
 const status = document.getElementById("status");
 const servicesEl = document.getElementById("services");
 const testimonialsEl = document.getElementById("testimonials");
 const attachmentsEl = document.getElementById("attachments");
 
-
-/* ---------- EDIT MODE DETECTION (✅ ADDITION) ---------- */
+/* ----------------------------------------
+   EDIT MODE DETECTION
+---------------------------------------- */
 const params = new URLSearchParams(window.location.search);
 const editBusinessId = params.get("business_id");
 
@@ -316,14 +329,18 @@ if (editBusinessId) {
     "Update the information for this business profile.";
 }
 
-/* ---------- LOAD EXISTING DATA (✅ ADDITION) ---------- */
+/* ----------------------------------------
+   LOAD EXISTING DATA (EDIT MODE)
+---------------------------------------- */
 async function loadBusinessForEdit(businessId) {
-  const supabase = window.supabaseClient;
+  servicesEl.innerHTML = "";
+  testimonialsEl.innerHTML = "";
+  attachmentsEl.innerHTML = "";
 
   const { data, error } = await supabase
     .from("small_business_profiles")
     .select("*")
-    .eq("business_id", businessId)   // ← THIS IS CRITICAL
+    .eq("business_id", businessId)
     .single();
 
   console.log("EDIT LOAD RESULT:", { data, error });
@@ -365,12 +382,12 @@ async function loadBusinessForEdit(businessId) {
 }
 
 if (editBusinessId) {
-  loadBusinessForEdit(editBusinessId);
+  await loadBusinessForEdit(editBusinessId);
 }
 
-
-
-
+/* ----------------------------------------
+   REPEATING BLOCK HELPERS
+---------------------------------------- */
 function addService() {
   const div = document.createElement("div");
   div.className = "block";
@@ -402,6 +419,9 @@ function addAttachment() {
   attachmentsEl.appendChild(div);
 }
 
+/* ----------------------------------------
+   SUBMIT HANDLER
+---------------------------------------- */
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
@@ -412,18 +432,17 @@ form.addEventListener("submit", async (e) => {
 
   const fd = new FormData(form);
 
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    alert("You must be logged in");
+    return;
+  }
+
+  const endpoint = isEdit
+    ? "/api/update-business"
+    : "/api/generate-business";
+
   try {
-    const supabase = window.supabaseClient;
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      alert("You must be logged in");
-      return;
-    }
-
-    const endpoint = isEdit
-      ? "/api/update-business"
-      : "/api/generate-business";
-
     const res = await fetch(endpoint, {
       method: "POST",
       headers: { Authorization: `Bearer ${session.access_token}` },
@@ -442,9 +461,8 @@ form.addEventListener("submit", async (e) => {
     status.textContent = "Failed to save profile.";
   }
 });
-
- 
 </script>
+
 
 <script
   src="https://maps.googleapis.com/maps/api/js?key=GOOGLE_PUBLIC_MAPS_KEY&libraries=places">
