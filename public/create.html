@@ -438,9 +438,7 @@ form.addEventListener("submit", async (e) => {
     return;
   }
 
-  const endpoint = isEdit
-    ? "/api/update-business"
-    : "/api/generate-business";
+const endpoint = "/api/generate-business";
 
   try {
     const res = await fetch(endpoint, {
