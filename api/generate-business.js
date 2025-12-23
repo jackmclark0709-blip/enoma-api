@@ -59,6 +59,9 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: "Invalid session" });
     }
 
+const auth_id = user.id;
+
+
     // TEMP: Enoma-only admin access
     if (user.email !== "jack@enoma.io") {
       return res.status(403).json({ error: "Unauthorized" });
@@ -86,6 +89,17 @@ export default async function handler(req, res) {
     const about_input   = first(fields.about);
     const tone          = first(fields.tone);
     const incomingBusinessId = first(fields.business_id);
+const owner_name = first(fields.owner_name);
+const logo_url = first(fields.logo_url); // temp: URL-based logo
+const why_choose_us = first(fields.why_choose_us);
+const faqs = safeJSON(fields.faqs);
+const trust_badges = safeJSON(fields.trust_badges);
+
+// CTA fields
+const primary_cta_label = first(fields.primary_cta_label);
+const primary_cta_type  = first(fields.primary_cta_type);
+const primary_cta_value = first(fields.primary_cta_value);
+
 
     if (!business_name || !email) {
       return res.status(400).json({
@@ -194,32 +208,57 @@ ${about_input}
 
     /* ---------- PROFILE UPSERT ---------- */
 const profilePayload = {
+  // Identity
   business_id,
+  auth_id,
   username: slug,
+  business_name,
+  owner_name,
+
+  // Contact
   email,
   phone: first(fields.phone),
   address: first(fields.address),
   website: first(fields.website),
 
-  about: generated.about || about_input,
+  // Branding
+  logo_url,
+  images,
 
+  // Hero
   hero_tagline: generated.hero_tagline,
   hero_location: first(fields.hero_location),
   hero_availability: first(fields.hero_availability),
   hero_response_time: first(fields.hero_response_time),
 
+  // Content
+  about: generated.about || about_input,
+  why_choose_us,
+
+  // SEO
   seo_title: generated.seo_title,
   seo_description: generated.seo_description,
 
+  // Structured sections
   service_area: safeJSON(fields.service_area),
   services: safeJSON(fields.services),
   testimonials: safeJSON(fields.testimonials),
   attachments: safeJSON(fields.attachments),
+  faqs,
+  trust_badges,
 
-  images,
+  // CTAs
+  primary_cta_label,
+  primary_cta_type,
+  primary_cta_value,
+
+  // Meta
   is_public: true,
   updated_at: new Date().toISOString()
 };
+
+console.log("PROFILE PAYLOAD →", profilePayload);
+
 
 
 const { error: profileError } = await supabaseAdmin
