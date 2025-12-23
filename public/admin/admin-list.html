@@ -43,7 +43,7 @@ async function enforceAdmin() {
 
 async function loadBusinesses() {
   const { data, error } = await supabase
-    .from("business_profiles")
+    .from("small_business_profiles")
     .select("id,business_name,email,created_at")
     .order("created_at", { ascending: false });
 
