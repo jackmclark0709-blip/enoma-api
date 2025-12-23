@@ -13,8 +13,7 @@ const supabaseAdmin = createClient(
 
 /* ---------------- HELPERS ---------------- */
 
-const first = v =>
-  Array.isArray(v) ? v[0] : v || "";
+const first = v => (Array.isArray(v) ? v[0] : v || "");
 
 const safeJSON = (v, fallback = []) => {
   try {
@@ -25,19 +24,12 @@ const safeJSON = (v, fallback = []) => {
 };
 
 const slugify = text =>
-  text
+  String(text)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
 /* ---------------- HANDLER ---------------- */
-
-export default async function handler(req, res) {
-  console.log("🔥 handler reached", {
-    method: req.method,
-    hasAuth: !!req.headers.authorization
-  });
-
 
 export default async function handler(req, res) {
   res.setHeader("Content-Type", "application/json");
@@ -62,53 +54,57 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: "Invalid session" });
     }
 
-    // TEMP: hard lock to you
+    // TEMP hard lock
     if (user.email !== "jack@enoma.io") {
       return res.status(403).json({ error: "Unauthorized" });
     }
 
     /* ---------- PARSE FORM ---------- */
-const form = formidable({
-  multiples: true,
-  keepExtensions: true,
-  allowEmptyFiles: true,
-  minFileSize: 0,
-  filter: ({ originalFilename }) => {
-    // Ignore empty file inputs entirely
-    return !!originalFilename;
-  }
-});
+    const form = formidable({
+      multiples: true,
+      keepExtensions: true,
+      allowEmptyFiles: true,
+      minFileSize: 0,
+      filter: ({ originalFilename }) => !!originalFilename
+    });
 
+    const { fields, files } = await new Promise((resolve, reject) => {
+      form.parse(req, (err, fields, files) => {
+        if (err) reject(err);
+        else resolve({ fields, files });
+      });
+    });
+
+    /* ---------- FIELDS ---------- */
     const business_name = first(fields.business_name);
     const email = first(fields.email);
     const about_input = first(fields.about);
     const tone = first(fields.tone);
 
     if (!business_name || !email) {
-      return res.status(400).json({ error: "Business name and email required" });
+      return res.status(400).json({
+        error: "Business name and email required"
+      });
     }
 
     const slug = slugify(business_name);
 
-let images = [];
+    /* ---------- IMAGES ---------- */
+    let images = [];
+    if (files?.images) {
+      const arr = Array.isArray(files.images)
+        ? files.images
+        : [files.images];
 
-if (files?.images) {
-  const arr = Array.isArray(files.images)
-    ? files.images
-    : [files.images];
-
-  images = arr
-    .filter(f => f && f.size > 0)
-    .map(f => ({
-      filename: f.originalFilename,
-      mimetype: f.mimetype
-    }));
-}
-
+      images = arr
+        .filter(f => f && f.size > 0)
+        .map(f => ({
+          filename: f.originalFilename,
+          mimetype: f.mimetype
+        }));
+    }
 
     /* ---------- BUSINESS ---------- */
-
-    // 1. Does a business already exist with this slug?
     const { data: existingBusiness } = await supabaseAdmin
       .from("businesses")
       .select("id")
@@ -118,7 +114,6 @@ if (files?.images) {
     let business_id;
 
     if (!existingBusiness) {
-      // Create business
       const { data: newBiz, error } = await supabaseAdmin
         .from("businesses")
         .insert({ name: business_name, slug })
@@ -128,7 +123,6 @@ if (files?.images) {
       if (error) throw error;
       business_id = newBiz.id;
 
-      // Link creator
       await supabaseAdmin.from("business_members").insert({
         user_id: user.id,
         business_id,
@@ -137,7 +131,6 @@ if (files?.images) {
     } else {
       business_id = existingBusiness.id;
 
-      // Verify permission
       const { data: membership } = await supabaseAdmin
         .from("business_members")
         .select("id")
@@ -146,12 +139,13 @@ if (files?.images) {
         .maybeSingle();
 
       if (!membership) {
-        return res.status(403).json({ error: "Not a member of this business" });
+        return res.status(403).json({
+          error: "Not authorized for this business"
+        });
       }
     }
 
-    /* ---------- AI COPY ---------- */
-
+    /* ---------- AI ---------- */
     const prompt = `
 Return valid JSON only:
 {
@@ -184,7 +178,6 @@ ${about_input}
     const generated = JSON.parse(ai.choices[0].message.content);
 
     /* ---------- PROFILE ---------- */
-
     const profilePayload = {
       business_id,
       username: slug,
@@ -193,6 +186,7 @@ ${about_input}
       hero_tagline: generated.hero_tagline,
       seo_title: generated.seo_title,
       seo_description: generated.seo_description,
+      images,
       is_public: true,
       updated_at: new Date().toISOString()
     };
