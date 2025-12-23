@@ -193,24 +193,34 @@ ${about_input}
     const generated = JSON.parse(ai.choices[0].message.content);
 
     /* ---------- PROFILE UPSERT ---------- */
-    const profilePayload = {
-      business_id,
-      username: slug,
-      email,
-      about: generated.about || about_input,
-      hero_tagline: generated.hero_tagline,
-      seo_title: generated.seo_title,
-      seo_description: generated.seo_description,
-      images,
-      is_public: true,
-      updated_at: new Date().toISOString()
-    };
+const profilePayload = {
+  business_id,
+  username: slug,
+  email,
+  phone: first(fields.phone),
+  address: first(fields.address),
+  website: first(fields.website),
 
-    const { error: profileError } = await supabaseAdmin
-      .from("small_business_profiles")
-      .upsert(profilePayload, {
-        onConflict: "business_id"
-      });
+  about: generated.about || about_input,
+
+  hero_tagline: generated.hero_tagline,
+  hero_location: first(fields.hero_location),
+  hero_availability: first(fields.hero_availability),
+  hero_response_time: first(fields.hero_response_time),
+
+  seo_title: generated.seo_title,
+  seo_description: generated.seo_description,
+
+  service_area: safeJSON(fields.service_area),
+  services: safeJSON(fields.services),
+  testimonials: safeJSON(fields.testimonials),
+  attachments: safeJSON(fields.attachments),
+
+  images,
+  is_public: true,
+  updated_at: new Date().toISOString()
+};
+
 
     if (profileError) throw profileError;
 
