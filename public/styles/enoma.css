@@ -778,6 +778,38 @@ min-height: 200px;
   transform: rotate(45deg);
 }
 
+.hero-meta {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.hero-pill {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 999px;
+  background: #f1f2f6;
+  font-size: 0.9rem;
+  line-height: 1.1;
+}
+
+.hero-pill small {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+}
+
+.hero-pill span {
+  font-weight: 500;
+  color: #111;
+}
+
+.hero-pill.location { background:#eef2ff; }
+.hero-pill.availability { background:#ecfdf5; }
+
 
 
 

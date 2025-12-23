@@ -757,7 +757,6 @@ body {
 }
 
 .quick-contact {
-  position: sticky;
   bottom: 1rem;
   z-index: 50;
 }
@@ -1034,10 +1033,18 @@ body {
       <a id="primaryCtaButton" class="primary-cta"></a>
     </div>
 
-    <div class="hero-meta">
-      <span id="heroLocation"></span>
-      <span id="heroAvailability"></span>
-    </div>
+<div class="hero-meta">
+  <span class="hero-pill">
+    <small>Location</small>
+    <span id="heroLocation"></span>
+  </span>
+
+  <span class="hero-pill">
+    <small>Availability</small>
+    <span id="heroAvailability"></span>
+  </span>
+</div>
+
   </div>
 </section>
 
@@ -1097,7 +1104,7 @@ body {
 
     <div class="quick-contact hidden" id="quickContact">
       <a id="quickCall" class="quick-action">Call Now</a>
-      <a href="#contact" class="quick-action secondary">Request a Quote</a>
+      <a href="#contact" class="quick-action secondary">If you are looking for something that isn't listed, we still may able to help. Give us a call to inquire.</a>
     </div>
   </div>
 </section>
@@ -1113,15 +1120,6 @@ body {
 </section>
 
 
-
-
-
-<div class="section-divider"></div>
-
-
-<p class="section-intro">
-Contact Us to see how we can help.
-</p>
 
 
   <div class="section hidden" id="towns">
@@ -1150,6 +1148,9 @@ Contact Us to see how we can help.
   <h2>Frequently Asked Questions</h2>
 
  <div class="faq-list" id="faqList"></div>
+
+</div>
+
 
 
 
