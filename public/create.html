@@ -431,22 +431,58 @@ form.addEventListener("submit", async (e) => {
     ? "Updating business profile…"
     : "Creating your business profile…";
 
-  const fd = new FormData(form);
+ const fd = new FormData(form);
 
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    alert("You must be logged in");
-    return;
-  }
+// ✅ Auth check (KEEP THIS)
+const { data: { session } } = await supabase.auth.getSession();
+if (!session) {
+  alert("You must be logged in");
+  return;
+}
 
+/* ----------------------------------------
+   COLLECT + APPEND DYNAMIC DATA (ADD THIS)
+---------------------------------------- */
+const servicesData = [...document.querySelectorAll(".service-name")]
+  .map((_, i) => ({
+    service_name: document.querySelectorAll(".service-name")[i].value.trim(),
+    service_description: document.querySelectorAll(".service-description")[i].value.trim(),
+    price: document.querySelectorAll(".service-price")[i].value.trim()
+  }))
+  .filter(s => s.service_name);
+
+const testimonialsData = [...document.querySelectorAll(".testimonial-quote")]
+  .map((_, i) => ({
+    quote: document.querySelectorAll(".testimonial-quote")[i].value.trim(),
+    author: document.querySelectorAll(".testimonial-author")[i].value.trim()
+  }))
+  .filter(t => t.quote);
+
+const attachmentsData = [...document.querySelectorAll(".attachment-url")]
+  .map((_, i) => ({
+    label: document.querySelectorAll(".attachment-label")[i].value.trim(),
+    url: document.querySelectorAll(".attachment-url")[i].value.trim()
+  }))
+  .filter(a => a.url);
+
+fd.set("services", JSON.stringify(servicesData));
+fd.set("testimonials", JSON.stringify(testimonialsData));
+fd.set("attachments", JSON.stringify(attachmentsData));
+
+/* ----------------------------------------
+   SUBMIT
+---------------------------------------- */
 const endpoint = "/api/generate-business";
 
-  try {
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${session.access_token}` },
-      body: fd
-    });
+try {
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${session.access_token}`
+    },
+    body: fd
+  });
+
 
     const profile = await res.json();
     if (profile.error) {
