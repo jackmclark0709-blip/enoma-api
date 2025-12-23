@@ -2,288 +2,195 @@ import fetch from "node-fetch";
 import { createClient } from "@supabase/supabase-js";
 import formidable from "formidable";
 
-// ----------------------------------------------------
-// SUPABASE CLIENT
-// ----------------------------------------------------
+export const config = {
+  api: { bodyParser: false }
+};
+
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
 );
 
+/* ---------------- HELPERS ---------------- */
 
-// Disable Next.js bodyParser so FormData works
-export const config = {
-  api: { bodyParser: false }
-};
+const first = v =>
+  Array.isArray(v) ? v[0] : v || "";
 
-// ----------------------------------------------------
-// Helpers
-// ----------------------------------------------------
-function first(val) {
-  if (!val) return "";
-  if (Array.isArray(val)) return val[0];
-  if (typeof val === "object" && val._fields?.[0]) return val._fields[0];
-  return val;
-}
-
-function safeJSON(val, fallback = []) {
+const safeJSON = (v, fallback = []) => {
   try {
-    if (!val) return fallback;
-    return typeof val === "string" ? JSON.parse(val) : val;
+    return v ? JSON.parse(v) : fallback;
   } catch {
     return fallback;
   }
-}
+};
 
-function slugify(text) {
-  if (!text) return "";
-  return String(text)
+const slugify = text =>
+  text
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
-}
 
-// ----------------------------------------------------
-// Handler
-// ----------------------------------------------------
+/* ---------------- HANDLER ---------------- */
+
 export default async function handler(req, res) {
   res.setHeader("Content-Type", "application/json");
 
   try {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "POST only" });
-  }
+    /* ---------- METHOD ---------- */
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "POST only" });
+    }
 
-  // ----------------------------------------------------
-  // 🔐 ADMIN AUTHORIZATION CHECK
-  // ----------------------------------------------------
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({ error: "Missing Authorization header" });
-  }
+    /* ---------- AUTH ---------- */
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: "Missing Authorization header" });
+    }
 
-  const token = authHeader.replace("Bearer ", "");
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } =
+      await supabaseAdmin.auth.getUser(token);
 
-  // Verify Supabase session
-  const {
-    data: { user },
-    error: authError
-  } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !user) {
+      return res.status(401).json({ error: "Invalid session" });
+    }
 
-  if (authError || !user) {
-    return res.status(401).json({ error: "Invalid session" });
-  }
+    // TEMP: hard lock to you
+    if (user.email !== "jack@enoma.io") {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
 
-  // Verify admin role
- if (user.email !== "jack@enoma.io") {
-  return res.status(403).json({ error: "Unauthorized" });
-}
+    /* ---------- PARSE FORM ---------- */
+    const form = formidable({ allowEmptyFiles: true });
+    const { fields, files } = await new Promise((resolve, reject) => {
+      form.parse(req, (err, fields, files) =>
+        err ? reject(err) : resolve({ fields, files })
+      );
+    });
 
+    const business_name = first(fields.business_name);
+    const email = first(fields.email);
+    const about_input = first(fields.about);
+    const tone = first(fields.tone);
 
-  // ✅ Admin verified — continue
+    if (!business_name || !email) {
+      return res.status(400).json({ error: "Business name and email required" });
+    }
 
+    const slug = slugify(business_name);
 
+    /* ---------- BUSINESS ---------- */
 
-  console.log("⚡ generate-business invoked");
+    // 1. Does a business already exist with this slug?
+    const { data: existingBusiness } = await supabaseAdmin
+      .from("businesses")
+      .select("id")
+      .eq("slug", slug)
+      .maybeSingle();
 
-  // ✅ FIX: allow empty files
-  const form = formidable({
-    multiples: true,
-    keepExtensions: true,
-    allowEmptyFiles: true,
-    minFileSize: 0
-  });
+    let business_id;
 
-  let fields, files;
-  try {
-    ({ fields, files } = await new Promise((resolve, reject) => {
-      form.parse(req, (err, fields, files) => {
-        if (err) reject(err);
-        else resolve({ fields, files });
+    if (!existingBusiness) {
+      // Create business
+      const { data: newBiz, error } = await supabaseAdmin
+        .from("businesses")
+        .insert({ name: business_name, slug })
+        .select("id")
+        .single();
+
+      if (error) throw error;
+      business_id = newBiz.id;
+
+      // Link creator
+      await supabaseAdmin.from("business_members").insert({
+        user_id: user.id,
+        business_id,
+        role: "admin"
       });
-    }));
-} catch (err) {
-  console.error("❌ generate-business crashed:", err);
-  return res.status(500).json({
-    error: "Server error",
-    details: err?.message || String(err)
-  });
-}
+    } else {
+      business_id = existingBusiness.id;
 
-  // ----------------------------------------------------
-  // Normalize fields
-  // ----------------------------------------------------
-  const business_name = first(fields.business_name);
-  const owner_name    = first(fields.name);
-  const address       = first(fields.address);
-  const phone         = first(fields.phone);
-  const email         = first(fields.email);
-  const website       = first(fields.website);
-  const about_input   = first(fields.about);
-  const tone          = first(fields.tone);
+      // Verify permission
+      const { data: membership } = await supabaseAdmin
+        .from("business_members")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("business_id", business_id)
+        .maybeSingle();
 
-  if (!business_name || !email) {
-    return res.status(400).json({ error: "Business name and email required." });
-  }
+      if (!membership) {
+        return res.status(403).json({ error: "Not a member of this business" });
+      }
+    }
 
-// ----------------------------------------------------
-// Determine canonical username (slug)
-// ----------------------------------------------------
-const { data: existingProfile } = await supabaseAdmin
-  .from("small_business_profiles")
-  .select("username, auth_id")
-  .eq("auth_id", user.id)
-  .maybeSingle();
+    /* ---------- AI COPY ---------- */
 
-
-const username = existingProfile?.username || slugify(business_name);
-
-// Safety check: prevent overwriting someone else's profile
-if (existingProfile && existingProfile.auth_id !== user.id) {
-  return res.status(403).json({ error: "Unauthorized update" });
-}
-
-
-  // JSON fields from form
-  const service_area = safeJSON(fields.service_area);
-  const services     = safeJSON(fields.services);
-  const testimonials = safeJSON(fields.testimonials);
-  const attachments  = safeJSON(fields.attachments);
-
-  // ----------------------------------------------------
-  // Handle images (metadata only for now)
-  // ----------------------------------------------------
-  let images = [];
-  if (files?.images) {
-    const arr = Array.isArray(files.images) ? files.images : [files.images];
-    images = arr
-      .filter(f => f.size > 0)
-      .map(f => ({
-        filename: f.originalFilename,
-        mimetype: f.mimetype
-      }));
-  }
-
-  // ----------------------------------------------------
-  // AI ENRICHMENT (augment, not overwrite)
-  // ----------------------------------------------------
-  const prompt = `
-Create SEO-optimized copy for a business profile.
-
-Return ONLY valid JSON:
+    const prompt = `
+Return valid JSON only:
 {
   "seo_title": "",
   "seo_description": "",
   "hero_tagline": "",
-  "about": "",
-  "why_choose_us": ""
+  "about": ""
 }
 
-Business Name: ${business_name}
-Owner: ${owner_name}
-Address: ${address}
-Phone: ${phone}
-Website: ${website}
-
+Business: ${business_name}
 Tone: ${tone}
-Service Area: ${service_area.join(", ")}
 
-Business Description:
+Description:
 ${about_input}
 `;
 
-  console.log("🤖 Calling OpenAI");
+    const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
 
-  const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.OPENAI_KEY}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }]
-    })
-  });
+    const ai = await aiRes.json();
+    const generated = JSON.parse(ai.choices[0].message.content);
 
-let ai;
-try {
-  ai = await aiResponse.json();
-} catch (e) {
-  console.error("❌ OpenAI non-JSON response");
-  return res.status(500).json({ error: "OpenAI returned invalid response" });
-}
-  if (!aiResponse.ok || ai.error) {
-    console.error("❌ OpenAI error:", ai);
-    return res.status(500).json({ error: "AI generation failed" });
-  }
+    /* ---------- PROFILE ---------- */
 
-  let generated = {};
-  try {
-    generated = JSON.parse(
-      ai.choices[0].message.content.replace(/```json|```/g, "").trim()
-    );
-  } catch {
-    console.error("❌ AI JSON invalid:", ai.choices[0].message.content);
-  }
+    const profilePayload = {
+      business_id,
+      username: slug,
+      email,
+      about: generated.about || about_input,
+      hero_tagline: generated.hero_tagline,
+      seo_title: generated.seo_title,
+      seo_description: generated.seo_description,
+      is_public: true,
+      updated_at: new Date().toISOString()
+    };
 
-  // ----------------------------------------------------
-  // Final profile object
-  // ----------------------------------------------------
-  const finalProfile = {
-    username,
-    business_name,
-    owner_name,
-    address,
-    phone,
-    email,
-    website,
+    const { error: profileError } = await supabaseAdmin
+      .from("small_business_profiles")
+      .upsert(profilePayload, {
+        onConflict: "business_id"
+      });
 
-    auth_id: user.id, // 🔑 CRITICAL
+    if (profileError) throw profileError;
 
+    /* ---------- DONE ---------- */
+    return res.json({
+      success: true,
+      business_id,
+      username: slug,
+      url: `/p/${slug}`
+    });
 
-    about: generated.about || about_input,
-    hero_tagline: generated.hero_tagline,
-    seo_title: generated.seo_title,
-    seo_description: generated.seo_description,
-    why_choose_us: generated.why_choose_us,
-
-    services,        // includes pricing
-    testimonials,
-    attachments,
-    service_area,
-
-    images,
-    is_public: true,
-    updated_at: new Date().toISOString()
-  };
-
-  console.log("🧾 Upserting profile:", username);
-console.log("🧪 finalProfile payload:", JSON.stringify(finalProfile, null, 2));
-
-
-const { error } = await supabaseAdmin
-  .from("small_business_profiles")
-  .upsert(finalProfile, { onConflict: "username" });
-
-
-  if (error) {
-    console.error("❌ Supabase error:", error);
-    return res.status(500).json({ error: "Database error", details: error });
-  }
-
-  console.log("✅ Business profile created:", username);
-res.json({
-  success: true,
-  username,
-  url: `/p/${username}`
-});
   } catch (err) {
-    console.error("🔥 generate-business fatal error:", err);
-
+    console.error("🔥 generate-business error:", err);
     return res.status(500).json({
       error: "Server error",
-      message: err?.message || String(err)
+      message: err.message
     });
   }
 }
