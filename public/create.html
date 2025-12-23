@@ -434,11 +434,6 @@ async function loadBusinessForEdit(businessId) {
     last.querySelector(".attachment-url").value = a.url || "";
   });
 }
-
-if (editBusinessId) {
-  await loadBusinessForEdit(editBusinessId);
-}
-
 /* ----------------------------------------
    REPEATING BLOCK HELPERS
 ---------------------------------------- */
@@ -472,6 +467,12 @@ window.addAttachment = function () {
   `;
   attachmentsEl.appendChild(div);
 };
+
+
+if (editBusinessId) {
+  await loadBusinessForEdit(editBusinessId);
+}
+
 
 
 /* ----------------------------------------
