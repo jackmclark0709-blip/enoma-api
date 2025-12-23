@@ -311,34 +311,49 @@ OUTPUT REQUIREMENTS
 - No null values
 `;
 
-    const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_KEY}`,
-        "Content-Type": "application/json"
+const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.OPENAI_KEY}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    model: "gpt-4o-mini",
+    messages: [
+      {
+        role: "system",
+        content: "You are a JSON API. You ONLY return valid JSON. No text."
       },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: prompt }]
-      })
-    });
+      {
+        role: "user",
+        content: prompt
+      }
+    ]
+  })
+});
 
-    const ai = await aiRes.json();
+const ai = await aiRes.json();
+
+if (!ai.choices || !ai.choices[0]?.message?.content) {
+  console.error("❌ OpenAI API error:", ai);
+  return res.status(500).json({
+    error: "AI generation failed",
+    details: ai.error?.message || "Invalid OpenAI response"
+  });
+}
 
 let generated;
-
 try {
-  const raw = ai.choices?.[0]?.message?.content;
-  generated = JSON.parse(raw);
+  generated = JSON.parse(ai.choices[0].message.content);
 } catch (err) {
-  console.error("❌ AI JSON parse failed:", ai.choices?.[0]?.message?.content);
-
+  console.error("❌ AI returned invalid JSON:", ai.choices[0].message.content);
   return res.status(500).json({
     error: "AI generation failed",
     details: "Invalid JSON returned from OpenAI"
   });
 }
 
+   
 
     /* ---------- PROFILE UPSERT ---------- */
 const profilePayload = {
