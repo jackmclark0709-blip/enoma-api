@@ -33,21 +33,7 @@ const slugify = text =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
-const parseCSV = v =>
-  first(v)
-    ? first(v).split(",").map(s => s.trim()).filter(Boolean)
-    : [];
 
-const parseFAQs = v =>
-  first(v)
-    ? first(v)
-        .split("\n")
-        .map(line => {
-          const [q, a] = line.split("|").map(s => s?.trim());
-          return q && a ? { q, a } : null;
-        })
-        .filter(Boolean)
-    : [];
 
 /* --------------------------------------------------
    HANDLER
@@ -107,16 +93,6 @@ const auth_id = user.id;
     const incomingBusinessId = first(fields.business_id);
 const owner_name = first(fields.owner_name);
 const logo_url = first(fields.logo_url);
-const why_choose_us = first(fields.why_choose_us);
-
-const faqs = parseFAQs(fields.faqs);
-const trust_badges = parseCSV(fields.trust_badges);
-
-
-// CTA fields
-const primary_cta_label = first(fields.primary_cta_label);
-const primary_cta_type  = first(fields.primary_cta_type);
-const primary_cta_value = first(fields.primary_cta_value);
 
 
     if (!business_name || !email) {
@@ -248,26 +224,67 @@ JSON SCHEMA (MUST MATCH EXACTLY)
 --------------------------------
 BUSINESS INPUT
 --------------------------------
+const prompt = `
+You are an expert local-business marketer and SEO copywriter.
+
+Your task is to transform raw business input into polished, trustworthy,
+SEO-optimized website content for a single-page business profile.
+
+Return ONLY valid JSON that matches the schema below.
+Do not include markdown, comments, or explanations.
+
+--------------------------------
+JSON SCHEMA (MUST MATCH EXACTLY)
+--------------------------------
+{
+  "seo_title": "",
+  "seo_description": "",
+  "hero_tagline": "",
+  "about": "",
+  "why_choose_us": "",
+  "trust_badges": [],
+  "faqs": [
+    { "question": "", "answer": "" }
+  ],
+  "services": [
+    {
+      "service_name": "",
+      "service_description": "",
+      "benefits": []
+    }
+  ],
+  "primary_cta": {
+    "label": "",
+    "type": "phone|form|link",
+    "value": ""
+  }
+}
+
+--------------------------------
+BUSINESS INPUT
+--------------------------------
 Business name: ${business_name}
 Tone preference: ${tone}
 
-Raw description from owner:
+Owner notes (raw, unedited):
 ${about_input}
-
-Why choose us (raw):
-${first(fields.why_choose_us)}
 
 Services (raw JSON):
 ${first(fields.services)}
 
-FAQs (raw text):
-${first(fields.faqs)}
+Location:
+${first(fields.address)}
 
-Trust badges (raw):
-${first(fields.trust_badges)}
-
-Phone number:
+Phone:
 ${first(fields.phone)}
+
+Website:
+${first(fields.website)}
+
+Operational flags:
+- Open now: ${fields.is_open_now === "on"}
+- Accepting clients: ${fields.accepting_clients === "on"}
+- Emergency services: ${fields.offers_emergency === "on"}
 
 --------------------------------
 CONTENT RULES
@@ -294,7 +311,6 @@ OUTPUT REQUIREMENTS
 - No null values
 `;
 
-
     const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -312,120 +328,51 @@ OUTPUT REQUIREMENTS
 
     /* ---------- PROFILE UPSERT ---------- */
 const profilePayload = {
-  /* ----------------------------------
-     Identity
-  ---------------------------------- */
+  /* Identity */
   business_id,
   auth_id,
   username: slug,
   business_name,
   owner_name,
 
-  /* ----------------------------------
-     Contact
-  ---------------------------------- */
+  /* Contact */
   email,
   phone: first(fields.phone),
   address: first(fields.address),
   website: first(fields.website),
 
-  /* ----------------------------------
-     Branding
-  ---------------------------------- */
+  /* Branding */
   logo_url,
-  images,
 
-  /* ----------------------------------
-     Hero
-  ---------------------------------- */
-  hero_tagline:
-    first(fields.hero_tagline) ||
-    generated.hero_tagline,
+  /* Core content (AI-owned) */
+  hero_tagline: generated.hero_tagline,
+  about: generated.about,
+  why_choose_us: generated.why_choose_us,
 
-  hero_location: first(fields.hero_location),
-  hero_availability: first(fields.hero_availability),
-  hero_response_time: first(fields.hero_response_time),
+  /* SEO (AI-owned) */
+  seo_title: generated.seo_title,
+  seo_description: generated.seo_description,
 
-  /* ----------------------------------
-     Main Content
-  ---------------------------------- */
-  about:
-    first(fields.about)?.trim() ||
-    generated.about,
+  /* Structured sections */
+  services: generated.services,
+  faqs: generated.faqs,
+  trust_badges: generated.trust_badges,
 
-  why_choose_us:
-    first(fields.why_choose_us)?.trim() ||
-    generated.why_choose_us,
+  /* CTA */
+  primary_cta_label: generated.primary_cta.label,
+  primary_cta_type: generated.primary_cta.type,
+  primary_cta_value: generated.primary_cta.value,
 
-  /* ----------------------------------
-     SEO
-  ---------------------------------- */
-  seo_title:
-    first(fields.seo_title)?.trim() ||
-    generated.seo_title,
+  /* Geography */
+  service_area: parseCSV(fields.service_area),
 
-  seo_description:
-    first(fields.seo_description)?.trim() ||
-    generated.seo_description,
-
-  /* ----------------------------------
-     Structured Sections
-  ---------------------------------- */
-
-  // Services: AI-cleaned, unless user explicitly edited
-  services:
-    fields.services
-      ? safeJSON(fields.services)
-      : generated.services,
-
-  // FAQs: AI-structured
-  faqs:
-    Array.isArray(generated.faqs)
-      ? generated.faqs
-      : [],
-
-  // Trust badges: AI-normalized array
-  trust_badges:
-    Array.isArray(generated.trust_badges)
-      ? generated.trust_badges
-      : [],
-
-  service_area: safeJSON(fields.service_area),
-
+  /* Social proof (user-owned but optional) */
   testimonials:
     fields.testimonials
       ? safeJSON(fields.testimonials)
       : existingProfile?.testimonials ?? [],
 
-  attachments:
-    fields.attachments
-      ? safeJSON(fields.attachments)
-      : existingProfile?.attachments ?? [],
-
-  /* ----------------------------------
-     Primary CTA
-  ---------------------------------- */
-  primary_cta_label:
-    first(fields.primary_cta_label) ||
-    generated.primary_cta?.label ||
-
-    // fallback
-    "Call Now",
-
-  primary_cta_type:
-    first(fields.primary_cta_type) ||
-    generated.primary_cta?.type ||
-
-    "phone",
-
-  primary_cta_value:
-    first(fields.primary_cta_value) ||
-    generated.primary_cta?.value ||
-    first(fields.phone),
-
-  /* ----------------------------------
-     Flags & Meta
-  ---------------------------------- */
+  /* Flags */
   is_open_now: fields.is_open_now === "on",
   accepting_clients: fields.accepting_clients === "on",
   offers_emergency: fields.offers_emergency === "on",
@@ -433,7 +380,6 @@ const profilePayload = {
   is_public: true,
   updated_at: new Date().toISOString()
 };
-
 console.log("PROFILE PAYLOAD →", profilePayload);
 
 
