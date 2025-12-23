@@ -1149,13 +1149,8 @@ Contact Us to see how we can help.
 <div class="section hidden" id="faqs">
   <h2>Frequently Asked Questions</h2>
 
-  <div class="faq-list" id="faqList">
-    <div class="faq">
-      <strong>Do you offer free estimates?</strong>
-      <p>Yes — we’re happy to provide a no-obligation estimate.</p>
-    </div>
-  </div>
-</div>
+ <div class="faq-list" id="faqList"></div>
+
 
 
 
@@ -1209,12 +1204,6 @@ Contact Us to see how we can help.
 
 </div>
   
-
-<div class="footer">
-  <strong>Enoma</strong><br />
-  Simple, search-optimized business pages built to convert.<br /><br />
-  <a href="/create">Create your page</a>
-</div>
 
 
 </div>
@@ -1437,20 +1426,47 @@ const faqList = document.getElementById("faqList");
 if (Array.isArray(p.faqs) && p.faqs.length) {
   faqList.innerHTML = "";
 
-  p.faqs.forEach(faq => {
+  p.faqs.forEach((faq, index) => {
     if (!faq.q || !faq.a) return;
 
-    const div = document.createElement("div");
-    div.className = "faq";
-    div.innerHTML = `
-      <strong>${faq.q}</strong>
-      <p>${faq.a}</p>
+    const wrapper = document.createElement("div");
+    wrapper.className = "faq-item-wrapper";
+
+    wrapper.innerHTML = `
+      <button class="faq-item" aria-expanded="false">
+        <span class="faq-question">${faq.q}</span>
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-answer">
+        <p>${faq.a}</p>
+      </div>
     `;
-    faqList.appendChild(div);
+
+    faqList.appendChild(wrapper);
   });
 
   faqSection.classList.remove("hidden");
+
+  // Accordion behavior
+  faqList.querySelectorAll(".faq-item").forEach(item => {
+    item.addEventListener("click", () => {
+      const isOpen = item.classList.contains("active");
+
+      // Close all
+      faqList.querySelectorAll(".faq-item").forEach(i => {
+        i.classList.remove("active");
+        i.setAttribute("aria-expanded", "false");
+      });
+
+      // Open current if closed
+      if (!isOpen) {
+        item.classList.add("active");
+        item.setAttribute("aria-expanded", "true");
+      }
+    });
+  });
 }
+
 
 const contactExpectations = document.getElementById("contactExpectations");
 
@@ -1668,6 +1684,7 @@ if (Array.isArray(p.service_area) && p.service_area.length) {
 document.addEventListener("DOMContentLoaded", loadProfile);
 </script>
 
+<div id="footer"></div>
 
 
 </body>
