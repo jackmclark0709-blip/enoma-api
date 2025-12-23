@@ -135,7 +135,7 @@ button[type="submit"] {
   We turn your business info into a polished, lead-generating webpage.
 </p>
 
-<form id="form">
+<form id="form" action="javascript:void(0);" novalidate>
 <input type="hidden" name="type" value="business" />
 <input type="hidden" name="business_id" id="business_id" />
 
@@ -267,14 +267,15 @@ button[type="submit"] {
 <label>Upload Images (optional)</label>
 <input type="file" name="images" accept="image/*" multiple />
 
-<button type="submit" id="createBtn">Create Business Page</button>
+<button type="button" id="createBtn">Create Business Page</button>
 <button
-  type="submit"
+  type="button"
   id="updateBtn"
   style="display:none;background:#111;color:#fff;"
 >
   Update Existing Page
 </button>
+
 </form>
 
 <div id="status"></div>
@@ -456,7 +457,20 @@ window.addAttachment = function () {
 
 
 /* ----------------------------------------
-   SUBMIT HANDLER
+   BUTTON → FORM SUBMISSION WIRING
+---------------------------------------- */
+document.getElementById("createBtn")?.addEventListener("click", () => {
+  form.requestSubmit();
+});
+
+document.getElementById("updateBtn")?.addEventListener("click", () => {
+  form.requestSubmit();
+});
+
+
+
+ /* ----------------------------------------
+   SUBMIT HANDLER (ONLY ONE)
 ---------------------------------------- */
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -466,71 +480,72 @@ form.addEventListener("submit", async (e) => {
     ? "Updating business profile…"
     : "Creating your business profile…";
 
- const fd = new FormData(form);
+  const fd = new FormData(form);
 
-// ✅ Auth check (KEEP THIS)
-const { data: { session } } = await supabase.auth.getSession();
-if (!session) {
-  alert("You must be logged in");
-  return;
-}
+  // 🔐 Auth
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    alert("You must be logged in");
+    return;
+  }
 
-/* ----------------------------------------
-   COLLECT + APPEND DYNAMIC DATA (ADD THIS)
----------------------------------------- */
-const servicesData = [...document.querySelectorAll(".service-name")]
-  .map((_, i) => ({
-    service_name: document.querySelectorAll(".service-name")[i].value.trim(),
-    service_description: document.querySelectorAll(".service-description")[i].value.trim(),
-    price: document.querySelectorAll(".service-price")[i].value.trim()
-  }))
-  .filter(s => s.service_name);
+  /* ----------------------------------------
+     COLLECT + APPEND DYNAMIC DATA
+  ---------------------------------------- */
+  const servicesData = [...servicesEl.querySelectorAll(".block")]
+    .map(block => ({
+      service_name: block.querySelector(".service-name")?.value.trim(),
+      service_description: block.querySelector(".service-description")?.value.trim(),
+      price: block.querySelector(".service-price")?.value.trim()
+    }))
+    .filter(s => s.service_name);
 
-const testimonialsData = [...document.querySelectorAll(".testimonial-quote")]
-  .map((_, i) => ({
-    quote: document.querySelectorAll(".testimonial-quote")[i].value.trim(),
-    author: document.querySelectorAll(".testimonial-author")[i].value.trim()
-  }))
-  .filter(t => t.quote);
+  const testimonialsData = [...testimonialsEl.querySelectorAll(".block")]
+    .map(block => ({
+      quote: block.querySelector(".testimonial-quote")?.value.trim(),
+      author: block.querySelector(".testimonial-author")?.value.trim()
+    }))
+    .filter(t => t.quote);
 
-const attachmentsData = [...document.querySelectorAll(".attachment-url")]
-  .map((_, i) => ({
-    label: document.querySelectorAll(".attachment-label")[i].value.trim(),
-    url: document.querySelectorAll(".attachment-url")[i].value.trim()
-  }))
-  .filter(a => a.url);
+  const attachmentsData = [...attachmentsEl.querySelectorAll(".block")]
+    .map(block => ({
+      label: block.querySelector(".attachment-label")?.value.trim(),
+      url: block.querySelector(".attachment-url")?.value.trim()
+    }))
+    .filter(a => a.url);
 
-fd.set("services", JSON.stringify(servicesData));
-fd.set("testimonials", JSON.stringify(testimonialsData));
-fd.set("attachments", JSON.stringify(attachmentsData));
+  fd.set("services", JSON.stringify(servicesData));
+  fd.set("testimonials", JSON.stringify(testimonialsData));
+  fd.set("attachments", JSON.stringify(attachmentsData));
 
-/* ----------------------------------------
-   SUBMIT
----------------------------------------- */
-const endpoint = "/api/generate-business";
+  /* ----------------------------------------
+     SUBMIT
+  ---------------------------------------- */
+  try {
+    const res = await fetch("/api/generate-business", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`
+      },
+      body: fd
+    });
 
-try {
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${session.access_token}`
-    },
-    body: fd
-  });
+    const json = await res.json();
 
-
-    const profile = await res.json();
-    if (profile.error) {
-      status.textContent = profile.error;
+    if (!res.ok) {
+      console.error(json);
+      status.textContent = json.error || "Save failed";
       return;
     }
 
-    window.location.assign(`/p/${profile.username}`);
+    window.location.href = json.url;
   } catch (err) {
     console.error(err);
     status.textContent = "Failed to save profile.";
   }
 });
+
+ 
 </script>
 
 
