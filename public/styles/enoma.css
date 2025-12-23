@@ -186,6 +186,8 @@ form {
   display: grid;
   gap: 0.9rem;
   margin-top: 1.5rem;
+  position: relative;
+  z-index: 10;
 }
 
 input,
@@ -211,7 +213,7 @@ textarea:focus {
 .site-header {
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 1;
   background: white;
   border-bottom: 1px solid var(--border);
 }

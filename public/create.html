@@ -36,6 +36,8 @@ form {
   padding: 2.75rem;
   border: 1px solid var(--enoma-border);
   box-shadow: 0 14px 35px rgba(0,0,0,0.08);
+  position: relative;
+  z-index: 10;
 }
 
 /* Headings */
@@ -121,6 +123,22 @@ button[type="submit"] {
   color: var(--enoma-green);
   font-weight: 600;
 }
+
+button[type="submit"],
+#createBtn,
+#updateBtn {
+  margin-top: 2.5rem;
+  width: 100%;
+  padding: 0.9rem;
+  border-radius: 999px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  background: var(--enoma-blue);
+  color: white;
+  font-size: 0.95rem;
+}
+
 </style>
 
 </head>
