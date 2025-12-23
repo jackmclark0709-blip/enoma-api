@@ -170,15 +170,14 @@ button[type="submit"] {
 
 
 
-<label>Business Logo</label>
+<label>Business Logo URL</label>
 <input
-  type="file"
-  name="logo"
-  accept="image/*"
+  name="logo_url"
+  placeholder="https://example.com/logo.png"
 />
 
 <label>Owner Name</label>
-<input name="name" />
+<input name="owner_name" />
 
 <label>Business Address</label>
 <input name="address" />
@@ -210,6 +209,42 @@ button[type="submit"] {
 </select>
 
 <hr/>
+
+<label>Why Choose You?</label>
+<textarea
+  name="why_choose_us"
+  placeholder="What makes your business different? Experience, guarantees, approach, etc."
+></textarea>
+
+
+<label>FAQs (one per line, format: Question | Answer)</label>
+<textarea
+  name="faqs"
+  placeholder="Do you offer free estimates? | Yes, always free and no obligation"
+></textarea>
+
+<label>Trust Badges</label>
+<input
+  name="trust_badges"
+  placeholder="Locally owned, Fully insured, 10+ years experience"
+/>
+
+<label>
+  <input type="checkbox" name="is_open_now" />
+  Open now
+</label>
+
+<label>
+  <input type="checkbox" name="accepting_clients" />
+  Accepting new clients
+</label>
+
+<label>
+  <input type="checkbox" name="offers_emergency" />
+  Emergency services available
+</label>
+
+
 
 <h3>Services</h3>
 <div id="services"></div>

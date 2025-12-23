@@ -33,6 +33,22 @@ const slugify = text =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
+const parseCSV = v =>
+  first(v)
+    ? first(v).split(",").map(s => s.trim()).filter(Boolean)
+    : [];
+
+const parseFAQs = v =>
+  first(v)
+    ? first(v)
+        .split("\n")
+        .map(line => {
+          const [q, a] = line.split("|").map(s => s?.trim());
+          return q && a ? { q, a } : null;
+        })
+        .filter(Boolean)
+    : [];
+
 /* --------------------------------------------------
    HANDLER
 -------------------------------------------------- */
@@ -90,10 +106,12 @@ const auth_id = user.id;
     const tone          = first(fields.tone);
     const incomingBusinessId = first(fields.business_id);
 const owner_name = first(fields.owner_name);
-const logo_url = first(fields.logo_url); // temp: URL-based logo
+const logo_url = first(fields.logo_url);
 const why_choose_us = first(fields.why_choose_us);
-const faqs = safeJSON(fields.faqs);
-const trust_badges = safeJSON(fields.trust_badges);
+
+const faqs = parseFAQs(fields.faqs);
+const trust_badges = parseCSV(fields.trust_badges);
+
 
 // CTA fields
 const primary_cta_label = first(fields.primary_cta_label);
@@ -256,7 +274,7 @@ const profilePayload = {
   seo_description: generated.seo_description,
 
   // Structured sections
-  service_area: safeJSON(fields.service_area),
+service_area: parseCSV(fields.service_area),
 services:
   fields.services
     ? safeJSON(fields.services)
