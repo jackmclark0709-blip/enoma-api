@@ -1,8 +1,10 @@
-
 import fetch from "node-fetch";
 import { createClient } from "@supabase/supabase-js";
 import formidable from "formidable";
 
+/* --------------------------------------------------
+   CONFIG
+-------------------------------------------------- */
 export const config = {
   api: { bodyParser: false }
 };
@@ -12,8 +14,9 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
-/* ---------------- HELPERS ---------------- */
-
+/* --------------------------------------------------
+   HELPERS
+-------------------------------------------------- */
 const first = v => (Array.isArray(v) ? v[0] : v || "");
 
 const safeJSON = (v, fallback = []) => {
@@ -30,8 +33,9 @@ const slugify = text =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
-/* ---------------- HANDLER ---------------- */
-
+/* --------------------------------------------------
+   HANDLER
+-------------------------------------------------- */
 export default async function handler(req, res) {
   res.setHeader("Content-Type", "application/json");
 
@@ -48,16 +52,14 @@ export default async function handler(req, res) {
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const {
-      data: { user },
-      error: authError
-    } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authError } =
+      await supabaseAdmin.auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ error: "Invalid session" });
     }
 
-    // TEMP hard lock (safe for now)
+    // TEMP: Enoma-only admin access
     if (user.email !== "jack@enoma.io") {
       return res.status(403).json({ error: "Unauthorized" });
     }
@@ -78,11 +80,12 @@ export default async function handler(req, res) {
       });
     });
 
-    /* ---------- FIELDS ---------- */
+    /* ---------- CORE FIELDS ---------- */
     const business_name = first(fields.business_name);
-    const email = first(fields.email);
-    const about_input = first(fields.about);
-    const tone = first(fields.tone);
+    const email         = first(fields.email);
+    const about_input   = first(fields.about);
+    const tone          = first(fields.tone);
+    const incomingBusinessId = first(fields.business_id);
 
     if (!business_name || !email) {
       return res.status(400).json({
@@ -105,50 +108,19 @@ export default async function handler(req, res) {
         }));
     }
 
-    /* ---------- BUSINESS (SOURCE OF TRUTH) ---------- */
-
-    const candidateSlug = slugify(business_name);
-
-    const { data: existingBusiness } = await supabaseAdmin
-      .from("businesses")
-      .select("id, slug")
-      .eq("slug", candidateSlug)
-      .maybeSingle();
-
+    /* --------------------------------------------------
+       BUSINESS RESOLUTION (CRITICAL LOGIC)
+    -------------------------------------------------- */
     let business_id;
     let slug;
 
-    if (!existingBusiness) {
-      // CREATE business
-      const { data: newBiz, error } = await supabaseAdmin
-        .from("businesses")
-        .insert({
-          name: business_name,
-          slug: candidateSlug
-        })
-        .select("id, slug")
-        .single();
+    if (incomingBusinessId) {
+      // 🔁 UPDATE EXISTING BUSINESS
+      business_id = incomingBusinessId;
 
-      if (error) throw error;
-
-      business_id = newBiz.id;
-      slug = newBiz.slug;
-
-      // creator becomes admin
-      await supabaseAdmin.from("business_members").insert({
-        user_id: user.id,
-        business_id,
-        role: "admin"
-      });
-    } else {
-      // UPDATE existing business
-      business_id = existingBusiness.id;
-      slug = existingBusiness.slug;
-
-      // 🔐 AUTH CHECK (ONLY place this happens)
       const { data: membership } = await supabaseAdmin
         .from("business_members")
-        .select("id")
+        .select("role")
         .eq("user_id", user.id)
         .eq("business_id", business_id)
         .maybeSingle();
@@ -158,9 +130,37 @@ export default async function handler(req, res) {
           error: "Not authorized for this business"
         });
       }
+
+      const { data: biz } = await supabaseAdmin
+        .from("businesses")
+        .select("slug")
+        .eq("id", business_id)
+        .single();
+
+      slug = biz.slug;
+
+    } else {
+      // 🆕 CREATE NEW BUSINESS
+      slug = slugify(business_name);
+
+      const { data: newBiz, error } = await supabaseAdmin
+        .from("businesses")
+        .insert({ name: business_name, slug })
+        .select("id, slug")
+        .single();
+
+      if (error) throw error;
+
+      business_id = newBiz.id;
+
+      await supabaseAdmin.from("business_members").insert({
+        user_id: user.id,
+        business_id,
+        role: "admin"
+      });
     }
 
-    /* ---------- AI ---------- */
+    /* ---------- AI COPY ---------- */
     const prompt = `
 Return valid JSON only:
 {
@@ -192,10 +192,10 @@ ${about_input}
     const ai = await aiRes.json();
     const generated = JSON.parse(ai.choices[0].message.content);
 
-    /* ---------- PROFILE (BUSINESS-LOCKED) ---------- */
+    /* ---------- PROFILE UPSERT ---------- */
     const profilePayload = {
-      business_id,           // 🔒 PRIMARY AUTHORITY
-      username: slug,        // display only
+      business_id,
+      username: slug,
       email,
       about: generated.about || about_input,
       hero_tagline: generated.hero_tagline,
