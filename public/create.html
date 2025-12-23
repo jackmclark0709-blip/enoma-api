@@ -133,6 +133,8 @@ button[type="submit"] {
 <form id="form">
 
 <input type="hidden" name="type" value="business" />
+<input type="hidden" name="business_id" id="business_id" />
+
 
 <label>Business Name</label>
 <input name="business_name" required />
@@ -226,7 +228,14 @@ button[type="submit"] {
 <label>Upload Images (optional)</label>
 <input type="file" name="images" accept="image/*" multiple />
 
-<button type="submit">Create Business Page</button>
+<button type="submit" id="createBtn">Create Business Page</button>
+<button
+  type="submit"
+  id="updateBtn"
+  style="display:none;background:#111;color:#fff;"
+>
+  Update Existing Page
+</button>
 </form>
 
 <div id="status"></div>
@@ -395,6 +404,18 @@ const res = await fetch("/api/generate-business", {
     status.textContent = "Failed to create profile. Try again.";
   }
 });
+
+// Put form into UPDATE MODE
+document.getElementById("business_id").value = profile.business_id;
+
+document.getElementById("createBtn").style.display = "none";
+document.getElementById("updateBtn").style.display = "block";
+
+// Optional: prefill fields
+document.querySelector('[name="business_name"]').value = profile.business_name;
+document.querySelector('[name="email"]').value = profile.email;
+document.querySelector('[name="about"]').value = profile.about || "";
+
 </script>
 
 <script
