@@ -1023,7 +1023,7 @@ body {
 
 <script src="/partials/profile-nav.js"></script>
 
-
+<!-- ================= HERO ================= -->
 <section class="hero-wrapper">
   <div class="hero-simple">
     <h1 id="name"></h1>
@@ -1033,21 +1033,21 @@ body {
       <a id="primaryCtaButton" class="primary-cta"></a>
     </div>
 
-<div class="hero-meta">
-  <span class="hero-pill">
-    <small>Location</small>
-    <span id="heroLocation"></span>
-  </span>
+    <div class="hero-meta">
+      <span class="hero-pill">
+        <small>Location</small>
+        <span id="heroLocation"></span>
+      </span>
 
-  <span class="hero-pill">
-    <small>Availability</small>
-    <span id="heroAvailability"></span>
-  </span>
-</div>
-
+      <span class="hero-pill">
+        <small>Availability</small>
+        <span id="heroAvailability"></span>
+      </span>
+    </div>
   </div>
 </section>
 
+<!-- ================= QUICK CONTACT STRIP ================= -->
 <nav class="contact-strip hidden" id="contactStrip">
   <a id="contactCall" class="contact-pill call">
     <svg
@@ -1090,21 +1090,23 @@ body {
 
 
 
+<!-- ================= WHAT WE DO ================= -->
 <section class="band band--lavender" id="aboutSection">
   <div class="container">
     <h2>About</h2>
     <p id="about"></p>
-  </div>
-</section>
 
-<section class="band band--lavender hidden" id="servicesSection">
-  <div class="container">
-    <h2>Services</h2>
-    <div id="services" class="service-grid"></div>
+    <!-- SERVICES live with ABOUT -->
+    <div class="hidden" id="servicesSection">
+      <h2 style="margin-top:3rem;">Services</h2>
+      <div id="services" class="service-grid"></div>
 
-    <div class="quick-contact hidden" id="quickContact">
-      <a id="quickCall" class="quick-action">Call Now</a>
-      <a href="#contact" class="quick-action secondary">If you are looking for something that isn't listed, we still may able to help. Give us a call to inquire.</a>
+      <div class="quick-contact hidden" id="quickContact">
+        <a id="quickCall" class="quick-action">Call Now</a>
+        <a href="#contact" class="quick-action secondary">
+          Don’t see what you need? Reach out — we may still be able to help.
+        </a>
+      </div>
     </div>
   </div>
 </section>
@@ -1112,65 +1114,55 @@ body {
 
 
 
-<section class="band band--lavender hidden" id="whySection">
+<!-- ================= TRUST & REASSURANCE ================= -->
+<section class="band band--plain" id="whySection">
   <div class="container">
     <h2>Why Choose Us</h2>
     <div id="why"></div>
+
+    <!-- FAQs -->
+    <div class="hidden" id="faqs" style="margin-top:3rem;">
+      <h3>Frequently Asked Questions</h3>
+      <div class="faq-list" id="faqList"></div>
+    </div>
+
+    <!-- Testimonials -->
+    <div class="hidden" id="testimonials" style="margin-top:3rem;">
+      <h3>What Clients Say</h3>
+      <div id="testimonialList"></div>
+    </div>
+
+    <div class="review-summary hidden" id="reviewSummary"></div>
   </div>
 </section>
 
 
 
+<section class="band band--lavender">
+  <div class="container">
+    <div class="hidden" id="towns">
+      <h2>Areas We Serve</h2>
+      <div id="townList"></div>
+    </div>
 
-  <div class="section hidden" id="towns">
-    <h2>Areas We Serve</h2>
-    <div id="townList"></div>
-  </div>
+    <div class="section alt" id="googleSection">
+      <h2>Location & Reviews</h2>
 
-<div class="section alt" id="googleSection">
-  <h2>Location & Reviews</h2>
+      <div class="location-grid">
+        <div class="map-wrap" id="map"></div>
 
-  <div class="location-grid">
-    <div class="map-wrap" id="map"></div>
+        <div class="location-meta">
+          <div id="rating" class="rating"></div>
+          <div id="hours"></div>
+        </div>
+      </div>
 
-    <div class="location-meta">
-      <div id="rating" class="rating"></div>
-      <div id="hours"></div>
+      <div id="reviews" class="reviews"></div>
     </div>
   </div>
+</section>
 
-  <div id="reviews" class="reviews"></div>
-</div>
-
-
-
-<div class="section hidden" id="faqs">
-  <h2>Frequently Asked Questions</h2>
-
- <div class="faq-list" id="faqList"></div>
-
-</div>
-
-
-
-
-
-  <div class="section hidden" id="testimonials">
-    <h2>What Clients Say</h2>
-    <div id="testimonialList"></div>
-  </div>
-
-<div class="review-summary hidden" id="reviewSummary"></div>
-
-<div class="section-divider"></div>
-
-
-
-  <div class="section hidden" id="attachments">
-    <h2>Resources</h2>
-    <ul id="attachmentList"></ul>
-  </div>
-
+<!-- ================= CONTACT ================= -->
 <section class="section contact" id="contact">
   <div class="container">
     <h2>Contact</h2>
@@ -1184,30 +1176,37 @@ body {
     </form>
 
     <p id="contactStatus"></p>
+
+    <div class="contact-expectations hidden" id="contactExpectations">
+      <h3>What happens next?</h3>
+      <ul>
+        <li>We review your request</li>
+        <li>You’ll hear back within one business day</li>
+        <li>No obligation or pressure</li>
+      </ul>
+    </div>
   </div>
 </section>
 
-<div class="contact-expectations hidden" id="contactExpectations">
-  <h3>What happens next?</h3>
-  <ul>
-    <li>We review your request</li>
-    <li>You’ll hear back within one business day</li>
-    <li>No obligation or pressure</li>
-  </ul>
-</div>
 
 
-
-  <div class="section">
+<!-- ================= EXTRAS ================= -->
+<section class="section">
+  <div class="container">
     <h2>Gallery</h2>
     <div id="gallery" class="image-grid"></div>
   </div>
+</section>
 
-</div>
-  
+<section class="section hidden" id="attachments">
+  <div class="container">
+    <h2>Resources</h2>
+    <ul id="attachmentList"></ul>
+  </div>
+</section>
 
-
-</div>
+<script src="/partials/profile-footer.js"></script>
+</body>
 
 <script>
 console.log("script loaded");
@@ -1691,8 +1690,5 @@ if (Array.isArray(p.service_area) && p.service_area.length) {
 document.addEventListener("DOMContentLoaded", loadProfile);
 </script>
 
-<script src="/partials/profile-footer.js"></script>
 
-
-</body>
 </html>
