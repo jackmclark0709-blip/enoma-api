@@ -222,7 +222,13 @@ const profilePayload = {
 };
 
 
-    if (profileError) throw profileError;
+const { error: profileError } = await supabaseAdmin
+  .from("small_business_profiles")
+  .upsert(profilePayload, {
+    onConflict: "business_id"
+  });
+
+if (profileError) throw profileError;
 
     /* ---------- DONE ---------- */
     return res.json({
