@@ -388,7 +388,7 @@ if (editBusinessId) {
 /* ----------------------------------------
    REPEATING BLOCK HELPERS
 ---------------------------------------- */
-function addService() {
+window.addService = function () {
   const div = document.createElement("div");
   div.className = "block";
   div.innerHTML = `
@@ -397,9 +397,9 @@ function addService() {
     <input placeholder="Price (e.g. $1,500+)" class="service-price"/>
   `;
   servicesEl.appendChild(div);
-}
+};
 
-function addTestimonial() {
+window.addTestimonial = function () {
   const div = document.createElement("div");
   div.className = "block";
   div.innerHTML = `
@@ -407,9 +407,9 @@ function addTestimonial() {
     <input placeholder="Author (name, role, company)" class="testimonial-author"/>
   `;
   testimonialsEl.appendChild(div);
-}
+};
 
-function addAttachment() {
+window.addAttachment = function () {
   const div = document.createElement("div");
   div.className = "block";
   div.innerHTML = `
@@ -417,7 +417,8 @@ function addAttachment() {
     <input placeholder="URL (PDF, Drive, Dropbox, etc.)" class="attachment-url"/>
   `;
   attachmentsEl.appendChild(div);
-}
+};
+
 
 /* ----------------------------------------
    SUBMIT HANDLER

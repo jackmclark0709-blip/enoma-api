@@ -82,18 +82,21 @@
     const statusEl = document.getElementById('subscription-status');
     statusEl.textContent = member.role === 'admin' ? 'Admin' : 'Free';
 
-    // 4️⃣ Public profile
-const { data: profile } = await supabase
+// 4️⃣ Public profile (via business_id)
+const { data: profile, error: profileError } = await supabase
   .from('small_business_profiles')
-.select('username, business_name')
-  .eq('auth_id', session.user.id)
-  .maybeSingle();
+  .select('username, business_name')
+  .eq('business_id', member.business_id)
+  .single();
+
+if (profileError || !profile) {
+  console.error('Profile lookup failed', profileError);
+  return;
+}
 
 const businessNameEl = document.getElementById('business-name');
-
 businessNameEl.textContent =
   profile.business_name || profile.username || 'Your business';
-
 
 
     const publicLink = document.getElementById('public-link');

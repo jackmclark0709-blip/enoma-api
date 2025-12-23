@@ -2,10 +2,13 @@
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc";
 
-const supabase = window.supabase.createClient(
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const supabase = createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY
 );
+
 
 async function bootstrapDashboard() {
   // 1️⃣ Auth
@@ -18,11 +21,30 @@ async function bootstrapDashboard() {
   console.log("Logged in as:", session.user.email);
 
   // 2️⃣ Resolve profile owned by this user
-  const { data: profile, error } = await supabase
-    .from("small_business_profiles")
-    .select("username, business_name")
-    .eq("auth_id", session.user.id)
-    .single();
+// 2️⃣ Resolve business owned by this user
+const { data: membership, error: memberError } = await supabase
+  .from("business_members")
+  .select("business_id")
+  .eq("user_id", session.user.id)
+  .single();
+
+if (memberError || !membership) {
+  console.error("No business membership found");
+  return;
+}
+
+// 3️⃣ Load profile for that business
+const { data: profile, error: profileError } = await supabase
+  .from("small_business_profiles")
+  .select("username, business_name")
+  .eq("business_id", membership.business_id)
+  .single();
+
+if (profileError || !profile) {
+  console.error("No profile found for business");
+  return;
+}
+
 
   if (error || !profile) {
     console.error("No profile found for user");
