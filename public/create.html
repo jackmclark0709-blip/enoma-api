@@ -565,47 +565,7 @@ autocomplete.addListener("place_changed", () => {
 
 </script>
 
-<script>
 
-const form = document.getElementById("form");
-
-form.addEventListener("submit", async (e) => {
-  e.preventDefault(); // 🚨 THIS IS THE KEY LINE
-
-  const status = document.getElementById("status");
-  if (status) status.textContent = "Saving…";
-
-  const fd = new FormData(form);
-
-  // Get auth session
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    alert("You must be logged in");
-    return;
-  }
-
-  const res = await fetch("/api/generate-business", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${session.access_token}`
-    },
-    body: fd
-  });
-
-  const json = await res.json();
-
-  if (!res.ok) {
-    console.error(json);
-    alert(json.error || "Save failed");
-    return;
-  }
-
-  // ✅ Success behavior
-  window.location.href = json.url; // redirect to profile page
-});
-
-
-</script>
 
 
 </body>
