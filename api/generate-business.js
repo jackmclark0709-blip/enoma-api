@@ -401,6 +401,21 @@ OUTPUT REQUIREMENTS
 `;
 
 const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+…and before you reference ai.choices, you must add:
+
+js
+Copy code
+if (!aiRes.ok) {
+  const text = await aiRes.text();
+  console.error("❌ OpenAI HTTP error:", text);
+  return res.status(500).json({ error: "AI request failed" });
+}
+
+const ai = await aiRes.json();
+✅ Correct full OpenAI handling block (copy/paste safe)
+js
+Copy code
+const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
   method: "POST",
   headers: {
     Authorization: `Bearer ${process.env.OPENAI_KEY}`,
@@ -408,8 +423,7 @@ const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
   },
   body: JSON.stringify({
     model: "gpt-4o",
-  temperature: 0.2,
-
+    temperature: 0.2,
     messages: [
       {
         role: "system",
@@ -422,6 +436,19 @@ const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
     ]
   })
 });
+
+if (!aiRes.ok) {
+  const text = await aiRes.text();
+  console.error("❌ OpenAI HTTP error:", text);
+  return res.status(500).json({ error: "AI request failed" });
+}
+
+const ai = await aiRes.json();
+
+if (!ai.choices?.[0]?.message?.content) {
+  console.error("❌ OpenAI malformed response:", ai);
+  return res.status(500).json({ error: "AI generation failed" });
+}
 
 const rawAI = ai.choices[0].message.content;
 const cleanedAI = extractJSON(rawAI);
