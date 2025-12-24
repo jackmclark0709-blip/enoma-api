@@ -1054,6 +1054,13 @@ body {
   padding: 3rem 1.5rem;
 }
 
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
 
   </style>
 </head>
@@ -1129,24 +1136,28 @@ body {
   </div>
 </section>
 
+
 <!-- ================= WHAT WE DO ================= -->
-<section class="services-section" id="servicesSection">
-  <header class="services-header">
-    <h2>Our Services</h2>
-    <p id="services-intro" class="services-intro"></p>
-  </header>
+<section class="section services-section" id="servicesSection">
+  <div class="container">
 
-  <div id="services-grid" class="services-grid">
+    <header class="services-header">
+      <h2>Our Services</h2>
+<p id="services-intro" class="services-intro"></p>
+    </header>
 
-      <div class="quick-contact hidden" id="quickContact">
-        <a id="quickCall" class="quick-action">Call Now</a>
-        <a href="#contact" class="quick-action secondary">
-          Don’t see what you need? Reach out — we may still be able to help.
-        </a>
-      </div>
+    <div id="services-grid" class="service-grid"></div>
+
+    <div class="quick-contact hidden" id="quickContact">
+      <a id="quickCall" class="quick-action">Call Now</a>
+      <a href="#contact" class="quick-action secondary">
+        Don’t see what you need? Reach out — we may still be able to help.
+      </a>
     </div>
+
   </div>
 </section>
+
 
 
 

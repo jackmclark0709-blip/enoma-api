@@ -816,6 +816,18 @@ min-height: 200px;
 
 
 
+.services-header {
+  max-width: 720px;
+  margin-bottom: 1.25rem;
+}
+
+.services-header h2 {
+  margin-bottom: 0.35rem;
+}
+
+.services-intro {
+  color: #4b5563;
+}
 
 
 
