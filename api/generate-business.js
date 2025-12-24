@@ -106,7 +106,7 @@ const auth_id = user.id;
 const owner_name = first(fields.owner_name);
 const logo_url = first(fields.logo_url);
 
-if (!incomingBusinessId) {
+if (!incomingBusinessId && process.env.RESEND_API_KEY) {
 try {
   await resend.emails.send({
     from: "Enoma <notifications@enoma.io>",
