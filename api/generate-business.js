@@ -50,6 +50,25 @@ const extractJSON = text => {
     .trim();
 };
 
+async function generateUniqueSlug(base, supabase) {
+  let slug = base;
+  let i = 1;
+
+  while (true) {
+    const { data } = await supabase
+      .from("businesses")
+      .select("id")
+      .eq("slug", slug)
+      .maybeSingle();
+
+    if (!data) return slug;
+
+    slug = `${base}-${i}`;
+    i++;
+  }
+}
+
+
 
 
 /* --------------------------------------------------
@@ -196,7 +215,8 @@ try {
 
     } else {
       // 🆕 CREATE NEW BUSINESS
-      slug = slugify(business_name);
+const baseSlug = slugify(business_name);
+slug = await generateUniqueSlug(baseSlug, supabaseAdmin);
 
       const { data: newBiz, error } = await supabaseAdmin
         .from("businesses")
@@ -224,13 +244,41 @@ const isEdit = Boolean(incomingBusinessId);
 let existingProfile = null;
 
 if (incomingBusinessId) {
-  const { data } = await supabaseAdmin
-    .from("small_business_profiles")
-    .select("services, testimonials, attachments")
-    .eq("business_id", business_id)
-    .single();
+const { data } = await supabaseAdmin
+  .from("small_business_profiles")
+  .select("services, testimonials, attachments")
+  .eq("business_id", business_id)
+  .maybeSingle();
+
 
   existingProfile = data;
+}
+
+/* --------------------------------------------------
+   SANITIZE SERVICES INPUT FOR AI
+-------------------------------------------------- */
+let servicesJSON = "[]";
+const rawServices = first(fields.services);
+
+if (rawServices) {
+  try {
+    // If already valid JSON, keep it
+    JSON.parse(rawServices);
+    servicesJSON = rawServices;
+  } catch {
+    // Otherwise, coerce comma-separated or free text into JSON
+    servicesJSON = JSON.stringify(
+      rawServices
+        .split(",")
+        .map(s => s.trim())
+        .filter(Boolean)
+        .map(name => ({
+          service_name: name,
+          service_description: "",
+          benefits: []
+        }))
+    );
+  }
 }
 
 
@@ -281,8 +329,9 @@ Tone preference: ${tone}
 Owner notes (raw, unedited):
 ${about_input}
 
-Services (raw JSON):
-${first(fields.services) || "[]"}
+Services (structured JSON):
+${servicesJSON}
+
 
 Location:
 ${first(fields.address)}
@@ -374,39 +423,26 @@ const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
   })
 });
 
-const ai = await aiRes.json();
-
-if (!ai.choices || !ai.choices[0]?.message?.content) {
-  console.error("❌ OpenAI API error:", ai);
-  return res.status(500).json({
-    error: "AI generation failed",
-    details: ai.error?.message || "Invalid OpenAI response"
-  });
-}
-if (!aiRes.ok) {
-  const text = await aiRes.text();
-  console.error("❌ OpenAI HTTP error:", text);
-  return res.status(500).json({
-    error: "AI request failed"
-  });
-}
-
-
 const rawAI = ai.choices[0].message.content;
 const cleanedAI = extractJSON(rawAI);
 
 const generated = safeJSON(cleanedAI, null);
-if (!Array.isArray(generated.services)) generated.services = [];
-if (!Array.isArray(generated.faqs)) generated.faqs = [];
-if (!Array.isArray(generated.trust_badges)) generated.trust_badges = [];
 
-
-if (!generated) {
+// 🚨 FIRST: validate object existence
+if (!generated || typeof generated !== "object") {
   console.error("❌ AI returned invalid JSON:", rawAI);
   return res.status(500).json({
     error: "AI generation failed",
     details: "Invalid JSON returned from OpenAI"
   });
+}
+
+// ✅ THEN: normalize structure safely
+if (!Array.isArray(generated.services)) generated.services = [];
+if (!Array.isArray(generated.faqs)) generated.faqs = [];
+if (!Array.isArray(generated.trust_badges)) generated.trust_badges = [];
+if (!generated.primary_cta || typeof generated.primary_cta !== "object") {
+  generated.primary_cta = {};
 }
 
      /* CTA */
