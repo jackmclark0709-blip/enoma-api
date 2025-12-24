@@ -1033,6 +1033,27 @@ body {
   color: #4b5563;
 }
 
+/* === Layout stabilization fix === */
+
+.hero-wrapper + section,
+.hero-wrapper + .band {
+  margin-top: 0;
+}
+
+.section,
+.band {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.band > .container {
+  max-width: 900px;
+}
+
+.section {
+  padding: 3rem 1.5rem;
+}
+
 
   </style>
 </head>
@@ -1054,13 +1075,11 @@ body {
 <div class="hero-meta" id="heroMeta"></div>
 
 
-      <span class="hero-pill">
-        <small>Availability</small>
-        <span id="heroAvailability"></span>
-      </span>
-    </div>
+         </div>
   </div>
 </section>
+
+
 
 <!-- ================= QUICK CONTACT STRIP ================= -->
 <nav class="contact-strip hidden" id="contactStrip">
@@ -1103,7 +1122,12 @@ body {
   </a>
 </nav>
 
-
+<section class="section" id="aboutSection">
+  <div class="container">
+    <h2>About</h2>
+    <p id="about"></p>
+  </div>
+</section>
 
 <!-- ================= WHAT WE DO ================= -->
 <section class="services-section" id="servicesSection">
@@ -1552,8 +1576,26 @@ if (els.services && servicesData.length) {
     .map(s => `
       <div class="service-card">
         <h3>${s.service_name || ""}</h3>
-els.services.innerHTML = servicesData
-  .map(s => `
+
+        ${s.service_description ? `<p>${s.service_description}</p>` : ""}
+
+        ${
+          Array.isArray(s.benefits) && s.benefits.length
+            ? `<ul class="service-benefits">
+                ${s.benefits.map(b => `<li>${b}</li>`).join("")}
+              </ul>`
+            : ""
+        }
+
+        ${s.price ? `<div class="service-price">Starting at ${s.price}</div>` : ""}
+      </div>
+    `)
+    .join("");
+
+  servicesSection.classList.remove("hidden");
+} else {
+  servicesSection.classList.add("hidden");
+}
     <div class="service-card">
       <h3>${s.service_name || ""}</h3>
 
