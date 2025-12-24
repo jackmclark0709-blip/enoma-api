@@ -19,6 +19,7 @@
     "formidable": "^3.5.4",
     "mammoth": "^1.11.0",
     "node-fetch": "^3.3.2",
-    "pdf-parse": "^2.4.5"
+    "pdf-parse": "^2.4.5",
+    "resend": "^6.6.0"
   }
 }
