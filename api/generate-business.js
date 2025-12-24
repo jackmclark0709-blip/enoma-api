@@ -401,21 +401,6 @@ OUTPUT REQUIREMENTS
 `;
 
 const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-…and before you reference ai.choices, you must add:
-
-js
-Copy code
-if (!aiRes.ok) {
-  const text = await aiRes.text();
-  console.error("❌ OpenAI HTTP error:", text);
-  return res.status(500).json({ error: "AI request failed" });
-}
-
-const ai = await aiRes.json();
-✅ Correct full OpenAI handling block (copy/paste safe)
-js
-Copy code
-const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
   method: "POST",
   headers: {
     Authorization: `Bearer ${process.env.OPENAI_KEY}`,
@@ -472,9 +457,7 @@ if (!generated.primary_cta || typeof generated.primary_cta !== "object") {
   generated.primary_cta = {};
 }
 
-     /* CTA */
-const primaryCTA = generated.primary_cta || {};
-
+const primaryCTA = generated.primary_cta;
     /* ---------- PROFILE UPSERT ---------- */
 const profilePayload = {
   /* Identity */
