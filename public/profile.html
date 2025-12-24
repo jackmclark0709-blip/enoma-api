@@ -1239,7 +1239,7 @@ body {
 
 
 <!-- ================= EXTRAS ================= -->
-<section class="section">
+<section class="section hidden" id="gallerySection">
   <div class="container">
     <h2>Gallery</h2>
     <div id="gallery" class="image-grid"></div>
@@ -1619,6 +1619,27 @@ if (servicesIntroEl && p.services_intro && p.services_intro.trim()) {
 }
 
 
+/* ================= Gallery ================= */
+const gallerySection = document.getElementById("gallerySection");
+const galleryEl = document.getElementById("gallery");
+
+// Support both `images` and `gallery` just in case
+const galleryImages =
+  Array.isArray(p.images) && p.images.length
+    ? p.images
+    : Array.isArray(p.gallery) && p.gallery.length
+    ? p.gallery
+    : [];
+
+if (galleryImages.length && galleryEl) {
+  galleryEl.innerHTML = galleryImages
+    .map(src => `<img src="${src}" alt="Gallery image" />`)
+    .join("");
+
+  gallerySection?.classList.remove("hidden");
+} else {
+  gallerySection?.classList.add("hidden");
+}
 
 
 
