@@ -1022,6 +1022,16 @@ body {
   color: #444;
 }
 
+.service-benefits {
+  margin-top: 0.75rem;
+  padding-left: 1.25rem;
+}
+
+.service-benefits li {
+  margin-bottom: 0.35rem;
+  font-size: 0.95rem;
+  color: #4b5563;
+}
 
 
   </style>
@@ -1041,11 +1051,8 @@ body {
       <a id="primaryCtaButton" class="primary-cta"></a>
     </div>
 
-    <div class="hero-meta">
-      <span class="hero-pill">
-        <small>Location</small>
-        <span id="heroLocation"></span>
-      </span>
+<div class="hero-meta" id="heroMeta"></div>
+
 
       <span class="hero-pill">
         <small>Availability</small>
@@ -1509,25 +1516,30 @@ if (p.primary_cta_type === "call" && p.primary_cta_value) {
   quickContact.classList.remove("hidden");
 }
 
+const heroMeta = document.getElementById("heroMeta");
 
-const setHeroFact = (id, value) => {
-  const el = document.getElementById(id);
-  if (!el || !value) return;
-  el.textContent = value;
-};
+if (heroMeta) {
+  heroMeta.innerHTML = "";
 
-setHeroFact("heroLocation", p.hero_location);
-setHeroFact("heroAvailability", p.hero_availability);
-setHeroFact("heroResponseTime", p.hero_response_time);
+  const addHeroMeta = (label, value) => {
+    if (!value) return;
+    heroMeta.innerHTML += `
+      <span class="hero-pill">
+        <small>${label}</small>
+        <span>${value}</span>
+      </span>
+    `;
+  };
 
-const heroFacts = document.querySelector(".hero-facts");
+  addHeroMeta("Location", p.hero_location);
+  addHeroMeta("Availability", p.hero_availability);
+  addHeroMeta("Response Time", p.hero_response_time);
 
-if (
-  !p.hero_location &&
-  !p.hero_availability &&
-  !p.hero_response_time
-) {
-  heroFacts?.classList.add("hidden");
+  if (heroMeta.innerHTML.trim()) {
+    heroMeta.classList.remove("hidden");
+  } else {
+    heroMeta.classList.add("hidden");
+  }
 }
 
 
@@ -1540,11 +1552,29 @@ if (els.services && servicesData.length) {
     .map(s => `
       <div class="service-card">
         <h3>${s.service_name || ""}</h3>
-        <p>${s.service_description || ""}</p>
-        ${s.price ? `<div class="service-price">Starting at ${s.price}</div>` : ""}
-      </div>
-    `)
-    .join("");
+els.services.innerHTML = servicesData
+  .map(s => `
+    <div class="service-card">
+      <h3>${s.service_name || ""}</h3>
+
+      ${s.service_description
+        ? `<p>${s.service_description}</p>`
+        : ""
+      }
+
+      ${
+        Array.isArray(s.benefits) && s.benefits.length
+          ? `<ul class="service-benefits">
+              ${s.benefits.map(b => `<li>${b}</li>`).join("")}
+            </ul>`
+          : ""
+      }
+
+      ${s.price ? `<div class="service-price">Starting at ${s.price}</div>` : ""}
+    </div>
+  `)
+  .join("");
+
 
   servicesSection?.classList.remove("hidden");
 } else {
@@ -1674,7 +1704,10 @@ const whyEl = document.getElementById("why");
 const whySection = document.getElementById("whySection");
 
 if (whyEl && p.why_choose_us) {
-  whyEl.textContent = p.why_choose_us;
+whyEl.innerHTML = p.why_choose_us
+  .split("\n")
+  .map(p => `<p>${p}</p>`)
+  .join("");
   whySection?.classList.remove("hidden");
 } else {
   whySection?.classList.add("hidden");
