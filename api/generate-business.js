@@ -42,6 +42,14 @@ const parseCSV = v =>
     ? first(v).split(",").map(s => s.trim()).filter(Boolean)
     : [];
 
+const extractJSON = text => {
+  if (!text || typeof text !== "string") return "";
+  return text
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
+};
+
 
 
 /* --------------------------------------------------
@@ -206,6 +214,9 @@ try {
         role: "admin"
       });
     }
+
+const isEdit = Boolean(incomingBusinessId);
+
 
 /* --------------------------------------------------
    LOAD EXISTING PROFILE (EDIT MODE SAFETY)
@@ -381,11 +392,17 @@ if (!aiRes.ok) {
 }
 
 
-let generated;
-try {
-  generated = JSON.parse(ai.choices[0].message.content);
-} catch (err) {
-  console.error("❌ AI returned invalid JSON:", ai.choices[0].message.content);
+const rawAI = ai.choices[0].message.content;
+const cleanedAI = extractJSON(rawAI);
+
+const generated = safeJSON(cleanedAI, null);
+if (!Array.isArray(generated.services)) generated.services = [];
+if (!Array.isArray(generated.faqs)) generated.faqs = [];
+if (!Array.isArray(generated.trust_badges)) generated.trust_badges = [];
+
+
+if (!generated) {
+  console.error("❌ AI returned invalid JSON:", rawAI);
   return res.status(500).json({
     error: "AI generation failed",
     details: "Invalid JSON returned from OpenAI"
@@ -413,15 +430,16 @@ const profilePayload = {
   logo_url,
 
     /* Core content (AI-owned) */
-  hero_tagline: generated.hero_tagline,
-  about: generated.about,
-  why_choose_us: generated.why_choose_us,
-  services_intro: generated.services_intro,
+hero_tagline: isEdit ? undefined : generated.hero_tagline,
+about: isEdit ? undefined : generated.about,
+why_choose_us: isEdit ? undefined : generated.why_choose_us,
+services_intro: isEdit ? undefined : generated.services_intro,
 
 
   /* SEO (AI-owned) */
-  seo_title: generated.seo_title,
-  seo_description: generated.seo_description,
+seo_title: isEdit ? undefined : generated.seo_title,
+seo_description: isEdit ? undefined : generated.seo_description,
+
 
   /* Structured sections */
   services: generated.services,
@@ -429,13 +447,16 @@ const profilePayload = {
   trust_badges: generated.trust_badges,
 
   /* CTA */
-  primary_cta_label: generated.primary_cta.label,
-  primary_cta_type: generated.primary_cta.type,
+const primaryCTA = generated.primary_cta || {};
+
+primary_cta_label: primaryCTA.label || "Contact Us",
+primary_cta_type: primaryCTA.type || "phone",
 primary_cta_value:
-  generated.primary_cta.value ||
+  primaryCTA.value ||
   first(fields.phone) ||
   first(fields.website) ||
   "",
+
 
   /* Geography */
   service_area: parseCSV(fields.service_area),
