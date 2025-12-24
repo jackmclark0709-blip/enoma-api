@@ -409,7 +409,8 @@ if (!generated) {
   });
 }
 
-   
+     /* CTA */
+const primaryCTA = generated.primary_cta || {};
 
     /* ---------- PROFILE UPSERT ---------- */
 const profilePayload = {
@@ -446,8 +447,7 @@ seo_description: isEdit ? undefined : generated.seo_description,
   faqs: generated.faqs,
   trust_badges: generated.trust_badges,
 
-  /* CTA */
-const primaryCTA = generated.primary_cta || {};
+
 
 primary_cta_label: primaryCTA.label || "Contact Us",
 primary_cta_type: primaryCTA.type || "phone",
