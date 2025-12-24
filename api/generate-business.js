@@ -1,6 +1,10 @@
 import fetch from "node-fetch";
 import { createClient } from "@supabase/supabase-js";
 import formidable from "formidable";
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 
 /* --------------------------------------------------
    CONFIG
@@ -90,6 +94,9 @@ const auth_id = user.id;
       });
     });
 
+
+
+
     /* ---------- CORE FIELDS ---------- */
     const business_name = first(fields.business_name);
     const email         = first(fields.email);
@@ -98,6 +105,33 @@ const auth_id = user.id;
     const incomingBusinessId = first(fields.business_id);
 const owner_name = first(fields.owner_name);
 const logo_url = first(fields.logo_url);
+
+if (!incomingBusinessId) {
+try {
+  await resend.emails.send({
+    from: "Enoma <notifications@enoma.io>",
+    to: "jack@enoma.io",
+    reply_to: email, // 🔥 very useful
+    subject: `New Enoma submission: ${business_name || "Unknown business"}`,
+    html: `
+      <h2>New Business Submission</h2>
+      <p><strong>Business:</strong> ${business_name || "—"}</p>
+      <p><strong>Owner:</strong> ${owner_name || "—"}</p>
+      <p><strong>Email:</strong> ${email || "—"}</p>
+      <p><strong>Phone:</strong> ${first(fields.phone) || "—"}</p>
+      <p><strong>City:</strong> ${first(fields.city) || "—"}</p>
+      <p><strong>Service Areas:</strong> ${first(fields.service_area) || "—"}</p>
+      <p><strong>Submitted at:</strong> ${new Date().toLocaleString()}</p>
+      <hr />
+      <p><strong>Raw About Notes:</strong></p>
+      <pre style="white-space:pre-wrap">${about_input || "—"}</pre>
+    `
+  });
+} catch (err) {
+  console.warn("⚠️ Submission email failed:", err);
+}
+}
+
 
 
     if (!business_name || !email) {
