@@ -1186,7 +1186,7 @@ body {
 
 
 
-<section class="band band--lavender">
+<section class="band band--lavender hidden" id="locationBand">
   <div class="container">
     <div class="hidden" id="towns">
       <h2>Areas We Serve</h2>
@@ -1710,6 +1710,23 @@ if (
     `).join("")}
   `;
 }
+
+/* ================= Location Band Visibility ================= */
+const locationBand = document.getElementById("locationBand");
+
+const hasTowns =
+  Array.isArray(p.service_area) && p.service_area.length > 0;
+
+const hasGoogle =
+  !!p.google_place_id ||
+  (google?.reviews?.length || google?.rating);
+
+if (hasTowns || hasGoogle) {
+  locationBand?.classList.remove("hidden");
+} else {
+  locationBand?.classList.add("hidden");
+}
+
 
 const testimonialsSection = document.getElementById("testimonials");
 const testimonialList = document.getElementById("testimonialList");
