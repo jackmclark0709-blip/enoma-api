@@ -1607,33 +1607,8 @@ if (els.services && servicesData.length) {
 } else {
   servicesSection.classList.add("hidden");
 }
-    <div class="service-card">
-      <h3>${s.service_name || ""}</h3>
 
-      ${s.service_description
-        ? `<p>${s.service_description}</p>`
-        : ""
-      }
-
-      ${
-        Array.isArray(s.benefits) && s.benefits.length
-          ? `<ul class="service-benefits">
-              ${s.benefits.map(b => `<li>${b}</li>`).join("")}
-            </ul>`
-          : ""
-      }
-
-      ${s.price ? `<div class="service-price">Starting at ${s.price}</div>` : ""}
-    </div>
-  `)
-  .join("");
-
-
-  servicesSection?.classList.remove("hidden");
-} else {
-  servicesSection?.classList.add("hidden");
-}
-
+/* Services intro */
 const servicesIntroEl = document.getElementById("services-intro");
 
 if (servicesIntroEl && p.services_intro && p.services_intro.trim()) {
