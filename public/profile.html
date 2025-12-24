@@ -1014,6 +1014,15 @@ body {
   vertical-align: middle;
 }
 
+.services-intro {
+  max-width: 720px;
+  margin: 0.5rem 0 1.5rem;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #444;
+}
+
+
 
   </style>
 </head>
@@ -1090,15 +1099,13 @@ body {
 
 
 <!-- ================= WHAT WE DO ================= -->
-<section class="band band--lavender" id="aboutSection">
-  <div class="container">
-    <h2>About</h2>
-    <p id="about"></p>
+<section class="services-section" id="servicesSection">
+  <header class="services-header">
+    <h2>Our Services</h2>
+    <p id="services-intro" class="services-intro"></p>
+  </header>
 
-    <!-- SERVICES live with ABOUT -->
-    <div class="hidden" id="servicesSection">
-      <h2 style="margin-top:3rem;">Services</h2>
-      <div id="services" class="service-grid"></div>
+  <div id="services-grid" class="services-grid">
 
       <div class="quick-contact hidden" id="quickContact">
         <a id="quickCall" class="quick-action">Call Now</a>
@@ -1250,7 +1257,7 @@ async function loadProfile() {
     about: document.getElementById("about"),
     logo: document.getElementById("logo"),
     avatar: document.getElementById("avatar"),
-    services: document.getElementById("services"),
+    services: document.getElementById("services-grid"),
     gallery: document.getElementById("gallery"),
     map: document.getElementById("map"),
     hours: document.getElementById("hours"),
@@ -1543,6 +1550,17 @@ if (els.services && servicesData.length) {
 } else {
   servicesSection?.classList.add("hidden");
 }
+
+const servicesIntroEl = document.getElementById("services-intro");
+
+if (servicesIntroEl && p.services_intro && p.services_intro.trim()) {
+  servicesIntroEl.textContent = p.services_intro;
+  servicesIntroEl.style.display = "block";
+} else if (servicesIntroEl) {
+  servicesIntroEl.style.display = "none";
+}
+
+
 
 
 

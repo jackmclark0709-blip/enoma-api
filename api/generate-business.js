@@ -33,6 +33,11 @@ const slugify = text =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
+const parseCSV = v =>
+  first(v)
+    ? first(v).split(",").map(s => s.trim()).filter(Boolean)
+    : [];
+
 
 
 /* --------------------------------------------------
@@ -203,45 +208,7 @@ JSON SCHEMA (MUST MATCH EXACTLY)
   "hero_tagline": "",
   "about": "",
   "why_choose_us": "",
-  "trust_badges": [],
-  "faqs": [
-    { "question": "", "answer": "" }
-  ],
-  "services": [
-    {
-      "service_name": "",
-      "service_description": "",
-      "benefits": []
-    }
-  ],
-  "primary_cta": {
-    "label": "",
-    "type": "phone|form|link",
-    "value": ""
-  }
-}
-
---------------------------------
-BUSINESS INPUT
---------------------------------
-const prompt = `
-You are an expert local-business marketer and SEO copywriter.
-
-Your task is to transform raw business input into polished, trustworthy,
-SEO-optimized website content for a single-page business profile.
-
-Return ONLY valid JSON that matches the schema below.
-Do not include markdown, comments, or explanations.
-
---------------------------------
-JSON SCHEMA (MUST MATCH EXACTLY)
---------------------------------
-{
-  "seo_title": "",
-  "seo_description": "",
-  "hero_tagline": "",
-  "about": "",
-  "why_choose_us": "",
+ "services_intro": "",
   "trust_badges": [],
   "faqs": [
     { "question": "", "answer": "" }
@@ -270,7 +237,7 @@ Owner notes (raw, unedited):
 ${about_input}
 
 Services (raw JSON):
-${first(fields.services)}
+${first(fields.services) || "[]"}
 
 Location:
 ${first(fields.address)}
@@ -280,6 +247,16 @@ ${first(fields.phone)}
 
 Website:
 ${first(fields.website)}
+
+Primary city (if available):
+${first(fields.city)}
+
+State / Region:
+${first(fields.state)}
+
+Service areas (CSV):
+${first(fields.service_area)}
+
 
 Operational flags:
 - Open now: ${fields.is_open_now === "on"}
@@ -295,6 +272,10 @@ CONTENT RULES
 - Fill gaps intelligently if inputs are weak
 - Rewrite services cleanly even if provided
 - Default CTA to phone if phone exists
+- Include one concise sentence indicating the primary service area when appropriate
+- Write a concise 1–2 sentence introduction summarizing services and service area for use above the service list
+
+
 
 --------------------------------
 SEO RULES
@@ -302,6 +283,20 @@ SEO RULES
 - seo_title ≤ 60 characters
 - seo_description ≤ 160 characters
 - Use natural local-service SEO phrasing
+--------------------------------
+LOCAL SEO ENHANCEMENT RULES
+--------------------------------
+- Use natural "near me" phrasing sparingly (max 1–2 times total)
+- Prioritize city and service-area mentions over generic keywords
+- If service areas are provided:
+  - Mention the primary city once
+  - Reference surrounding areas collectively (e.g., "serving the greater [City] area")
+- Do NOT invent cities or neighborhoods
+- Avoid keyword stuffing or repetitive location phrases
+- Write as if the business is competing in Google local results
+- Use city or service-area context naturally in services_intro when available
+
+
 
 --------------------------------
 OUTPUT REQUIREMENTS
@@ -318,7 +313,9 @@ const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
     "Content-Type": "application/json"
   },
   body: JSON.stringify({
-    model: "gpt-4o-mini",
+    model: "gpt-4o",
+  temperature: 0.2,
+
     messages: [
       {
         role: "system",
@@ -341,6 +338,14 @@ if (!ai.choices || !ai.choices[0]?.message?.content) {
     details: ai.error?.message || "Invalid OpenAI response"
   });
 }
+if (!aiRes.ok) {
+  const text = await aiRes.text();
+  console.error("❌ OpenAI HTTP error:", text);
+  return res.status(500).json({
+    error: "AI request failed"
+  });
+}
+
 
 let generated;
 try {
@@ -373,10 +378,12 @@ const profilePayload = {
   /* Branding */
   logo_url,
 
-  /* Core content (AI-owned) */
+    /* Core content (AI-owned) */
   hero_tagline: generated.hero_tagline,
   about: generated.about,
   why_choose_us: generated.why_choose_us,
+  services_intro: generated.services_intro,
+
 
   /* SEO (AI-owned) */
   seo_title: generated.seo_title,
@@ -390,7 +397,11 @@ const profilePayload = {
   /* CTA */
   primary_cta_label: generated.primary_cta.label,
   primary_cta_type: generated.primary_cta.type,
-  primary_cta_value: generated.primary_cta.value,
+primary_cta_value:
+  generated.primary_cta.value ||
+  first(fields.phone) ||
+  first(fields.website) ||
+  "",
 
   /* Geography */
   service_area: parseCSV(fields.service_area),
