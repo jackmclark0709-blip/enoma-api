@@ -1310,7 +1310,14 @@ async function loadProfile() {
   };
 
   // ===== Fetch profile =====
-  const res = await fetch(`/api/get-business?slug=${slug}`);
+const params = new URLSearchParams(location.search);
+const businessId = params.get("business_id");
+
+const res = await fetch(
+  businessId
+    ? `/api/get-business?id=${businessId}`
+    : `/api/get-business?slug=${slug}`
+);
   const p = await res.json();
 
 

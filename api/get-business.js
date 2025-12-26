@@ -6,25 +6,41 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  // Canonical identifier
-  const slug = req.query.slug || req.query.username;
+  const { id, slug, username } = req.query;
 
-  if (!slug) {
-    return res.status(400).json({ error: "No slug provided" });
-  }
-
-  const { data, error } = await supabase
+  let query = supabase
     .from("small_business_profiles")
     .select("*")
-    .eq("username", slug)
-    .single();
+    .limit(1);
+
+  // =============================
+  // CANONICAL FETCH PRIORITY
+  // =============================
+  if (id) {
+    query = query.eq("id", id);
+  } else if (slug || username) {
+    query = query
+      .eq("username", slug || username)
+      .eq("is_public", true);
+  } else {
+    return res.status(400).json({ error: "No identifier provided" });
+  }
+
+  const { data, error } = await query.single();
 
   if (error || !data) {
-    console.error("❌ Business profile not found:", error);
+    console.error("❌ Business profile not found:", {
+      id,
+      slug,
+      username,
+      error
+    });
     return res.status(404).json({ error: "Business profile not found" });
   }
 
-  // 🔐 HARD NORMALIZATION LAYER
+  // =============================
+  // HARD NORMALIZATION LAYER
+  // =============================
   const clean = {
     ...data,
     services: normalizeArray(data.services),
@@ -32,6 +48,7 @@ export default async function handler(req, res) {
     attachments: normalizeArray(data.attachments),
     service_area: normalizeArray(data.service_area),
     town_sections: normalizeArray(data.town_sections),
+    faqs: normalizeArray(data.faqs)
   };
 
   return res.status(200).json(clean);
@@ -48,9 +65,8 @@ export default async function handler(req, res) {
 function normalizeArray(val) {
   if (!val) return [];
 
-  // Already an array
   if (Array.isArray(val)) {
-    // Handle array of JSON strings (YOUR CURRENT CASE)
+    // Handle array of JSON strings
     if (val.length === 1 && typeof val[0] === "string") {
       try {
         const parsed = JSON.parse(val[0]);
@@ -62,12 +78,10 @@ function normalizeArray(val) {
     return val;
   }
 
-  // Object (legacy form submissions)
   if (typeof val === "object") {
     return Object.values(val);
   }
 
-  // Stringified JSON
   if (typeof val === "string") {
     try {
       const parsed = JSON.parse(val);
