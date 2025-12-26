@@ -22,7 +22,11 @@
 
     // CTA
     if (cta) {
-      if (profile.primary_cta_type === "call" && profile.primary_cta_value) {
+if (
+  (profile.primary_cta_type === "call" ||
+   profile.primary_cta_type === "phone") &&
+  profile.primary_cta_value
+) {
         cta.href = `tel:${profile.primary_cta_value}`;
         cta.textContent = "Call";
       } else if (profile.primary_cta_type === "email" && profile.primary_cta_value) {
