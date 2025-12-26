@@ -17,6 +17,9 @@
     <p class="sub">Your Enoma page performance</p>
   </div>
 
+<select id="business-select" class="business-select"></select>
+
+
   <div class="header-actions">
     <a id="public-link" class="btn" target="_blank">View public page</a>
     <button id="sign-out" class="btn secondary">Sign out</button>
@@ -67,107 +70,110 @@
     console.log('Authenticated as:', session.user.email);
 
     // 2️⃣ Membership
-    const { data: member, error: memberError } = await supabase
-      .from('business_members')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .single();
+const { data: memberships, error: memberError } = await supabase
+  .from('business_members')
+  .select('*')
+  .eq('user_id', session.user.id);
 
-    if (memberError) {
-      console.error('Membership lookup failed', memberError);
-      return;
-    }
-
-    // 3️⃣ Status pill
-    const statusEl = document.getElementById('subscription-status');
-    statusEl.textContent = member.role === 'admin' ? 'Admin' : 'Free';
-
-// 4️⃣ Public profile (via business_id)
-const { data: profile, error: profileError } = await supabase
-  .from('small_business_profiles')
-  .select('username, business_name')
-  .eq('business_id', member.business_id)
-  .single();
-
-if (profileError || !profile) {
-  console.error('Profile lookup failed', profileError);
+if (memberError || !memberships?.length) {
+  console.error('No memberships found', memberError);
   return;
 }
 
-const businessNameEl = document.getElementById('business-name');
-businessNameEl.textContent =
-  profile.business_name || profile.username || 'Your business';
+const businessIds = memberships.map(m => m.business_id);
+
+const { data: profiles, error: profilesError } = await supabase
+  .from('small_business_profiles')
+  .select('business_id, username, business_name')
+  .in('business_id', businessIds);
+
+if (profilesError || !profiles?.length) {
+  console.error('Profile lookup failed', profilesError);
+  return;
+}
+
+const selectEl = document.getElementById('business-select');
+
+// Populate dropdown
+profiles.forEach(p => {
+  const option = document.createElement('option');
+  option.value = p.business_id;
+  option.textContent = p.business_name || p.username;
+  selectEl.appendChild(option);
+});
+
+// Default selection
+const params = new URLSearchParams(window.location.search);
+let activeBusinessId =
+  params.get('business_id') || profiles[0].business_id;
+
+selectEl.value = activeBusinessId;
+
+async function loadMetricsForBusiness(profile) {
+  document.getElementById('business-name').textContent =
+    profile.business_name || profile.username;
+
+  const publicLink = document.getElementById('public-link');
+  publicLink.href = `/p/${profile.username}`;
+  publicLink.style.display = 'inline-block';
+
+  const slug = profile.username;
+  const since = new Date();
+  since.setDate(since.getDate() - 30);
+
+  // Page views
+  const { count: pageViews } = await supabase
+    .from('page_events')
+    .select('*', { count: 'exact', head: true })
+    .eq('slug', slug)
+    .eq('event', 'page_view')
+    .gte('created_at', since.toISOString());
+
+  // Contact clicks
+  const { count: contactClicks } = await supabase
+    .from('page_events')
+    .select('*', { count: 'exact', head: true })
+    .eq('slug', slug)
+    .eq('event', 'contact_click')
+    .gte('created_at', since.toISOString());
+
+  document.getElementById('page-views').textContent = pageViews ?? 0;
+  document.getElementById('contact-clicks').textContent = contactClicks ?? 0;
+}
+
+function getProfileByBusinessId(id) {
+  return profiles.find(p => p.business_id === id);
+}
+
+function updateStatusPill(businessId) {
+  const statusEl = document.getElementById('subscription-status');
+  const membership = memberships.find(
+    m => m.business_id === businessId
+  );
+
+  statusEl.textContent =
+    membership?.role === 'admin' ? 'Admin' : 'Member';
+}
+
+// Initial load
+updateStatusPill(activeBusinessId);
+await loadMetricsForBusiness(getProfileByBusinessId(activeBusinessId));
+
+// Handle changes
+selectEl.addEventListener('change', async e => {
+  const newId = e.target.value;
+  const profile = getProfileByBusinessId(newId);
+
+  const url = new URL(window.location);
+  url.searchParams.set('business_id', newId);
+  window.history.replaceState({}, '', url);
+
+  updateStatusPill(newId);
+  await loadMetricsForBusiness(profile);
+});
 
 
-    const publicLink = document.getElementById('public-link');
-    if (!profile?.username) {
-      publicLink.style.display = 'none';
-    } else {
-      publicLink.href = `/p/${profile.username}`;
-      publicLink.style.display = 'inline-block';
-    }
 
-    // 4b️⃣ Metrics (from page_events)
-    const slug = profile?.username;
-    if (slug) {
-      const since = new Date();
-      since.setDate(since.getDate() - 30);
-
-      // Page views
-      const { count: pageViews, error: pvErr } = await supabase
-        .from('page_events')
-        .select('*', { count: 'exact', head: true })
-        .eq('slug', slug)
-        .eq('event', 'page_view')
-        .gte('created_at', since.toISOString());
-
-      if (pvErr) console.error('page_views query failed', pvErr);
-
-      // Contact clicks
-      const { count: contactClicks, error: ccErr } = await supabase
-        .from('page_events')
-        .select('*', { count: 'exact', head: true })
-        .eq('slug', slug)
-        .eq('event', 'contact_click')
-        .gte('created_at', since.toISOString());
-
-      if (ccErr) console.error('contact_clicks query failed', ccErr);
-
-      document.getElementById('page-views').textContent = pageViews ?? 0;
-      document.getElementById('contact-clicks').textContent = contactClicks ?? 0;
-
-      // Sources (referrer breakdown)
-      const { data: srcRows, error: srcErr } = await supabase
-        .from('page_events')
-        .select('referrer')
-        .eq('slug', slug)
-        .eq('event', 'page_view')
-        .gte('created_at', since.toISOString());
-
-      if (srcErr) console.error('sources query failed', srcErr);
-
-      const totals = {};
-      (srcRows || []).forEach(r => {
-        const key = r.referrer || 'direct';
-        totals[key] = (totals[key] || 0) + 1;
-      });
-
-      const ul = document.getElementById('sources');
-      ul.innerHTML = '';
-
-      Object.entries(totals)
-        .sort((a, b) => b[1] - a[1])
-        .forEach(([source, visits]) => {
-          const li = document.createElement('li');
-          li.innerHTML = `<span>${source}</span><strong>${visits}</strong>`;
-          ul.appendChild(li);
-        });
-
-      // If no sources yet, show a friendly empty state
-      if (!Object.keys(totals).length) {
-        ul.innerHTML = `<li><span class="muted">No traffic yet (last 30 days)</span></li>`;
-      }
-    }
 
 
     // 5️⃣ Sign out
