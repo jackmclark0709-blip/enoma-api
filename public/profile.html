@@ -1324,6 +1324,11 @@ const res = await fetch(
 // Expose profile data for nav/footer partials
 window.profileData = p;
 
+window.dispatchEvent(
+  new CustomEvent("profileDataReady", { detail: p })
+);
+
+
 
 
   /* ================= SEO ================= */
