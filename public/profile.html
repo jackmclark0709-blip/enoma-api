@@ -1282,15 +1282,18 @@ const getEl = id => document.getElementById(id);
 
 async function loadProfile() {
   // ===== Resolve slug =====
-  const params = new URLSearchParams(location.search);
-  let slug = params.get("slug");
+// ===== Resolve URL params ONCE =====
+const urlParams = new URLSearchParams(location.search);
+const businessId = urlParams.get("business_id");
+let slug = urlParams.get("slug");
 
-  if (!slug) {
-    const parts = location.pathname.split("/").filter(Boolean);
-    if (parts[0] === "p" && parts[1]) slug = parts[1];
-  }
+if (!slug) {
+  const parts = location.pathname.split("/").filter(Boolean);
+  if (parts[0] === "p" && parts[1]) slug = parts[1];
+}
 
-  if (!slug) return;
+if (!slug && !businessId) return;
+
 
   // ===== Bind DOM elements ONCE =====
   const els = {
@@ -1310,15 +1313,13 @@ async function loadProfile() {
   };
 
   // ===== Fetch profile =====
-const params = new URLSearchParams(location.search);
-const businessId = params.get("business_id");
-
 const res = await fetch(
   businessId
     ? `/api/get-business?id=${businessId}`
     : `/api/get-business?slug=${slug}`
 );
-  const p = await res.json();
+
+const p = await res.json();
 
 
 // Expose profile data for nav/footer partials
