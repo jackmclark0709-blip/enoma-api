@@ -57,53 +57,6 @@
      </div>
 </nav>
 
-<script>
-  function initProfileNav(profile) {
-    const logo = document.getElementById("businessLogo");
-    const cta = document.getElementById("profileCTA");
-
-    if (!profile) return;
-
-    // Logo
-    if (profile.logo_url && logo) {
-      logo.src = profile.logo_url;
-      logo.alt = profile.business_name || "";
-      logo.style.display = "block";
-    } else {
-      logo.style.display = "none";
-    }
-
-    // CTA
-    if (profile.primary_cta_type && profile.primary_cta_value) {
-      if (profile.primary_cta_type === "call") {
-        cta.href = `tel:${profile.primary_cta_value}`;
-        cta.textContent = "Call";
-      } else if (profile.primary_cta_type === "email") {
-        cta.href = `mailto:${profile.primary_cta_value}`;
-        cta.textContent = "Email";
-      } else if (profile.primary_cta_type === "link") {
-        cta.href = profile.primary_cta_value;
-        cta.textContent = profile.primary_cta_label || "Contact";
-      } else {
-        cta.href = "#contact";
-        cta.textContent = "Contact";
-      }
-    } else {
-      cta.href = "#contact";
-      cta.textContent = "Contact";
-    }
-  }
-
-  /* ✅ If profile data already exists */
-  if (window.profileData) {
-    initProfileNav(window.profileData);
-  }
-
-  /* ✅ Otherwise wait for it */
-  window.addEventListener("profileDataReady", e => {
-    initProfileNav(e.detail);
-  });
-</script>
 
 
 

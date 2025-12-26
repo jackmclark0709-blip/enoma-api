@@ -5,31 +5,50 @@
   const res = await fetch("/partials/profile-nav.html");
   navWrapper.innerHTML = await res.text();
 
-  // Wait until profileData exists (max ~2s)
-  let tries = 0;
-  while (!window.profileData && tries < 20) {
-    await new Promise(r => setTimeout(r, 100));
-    tries++;
+  function initProfileNav(profile) {
+    if (!profile) return;
+
+    const logo = document.getElementById("businessLogo");
+    const cta = document.getElementById("profileCTA");
+
+    // Logo
+    if (profile.logo_url && logo) {
+      logo.src = profile.logo_url;
+      logo.alt = profile.business_name || "Business logo";
+      logo.style.display = "block";
+    } else if (logo) {
+      logo.style.display = "none";
+    }
+
+    // CTA
+    if (cta) {
+      if (profile.primary_cta_type === "call" && profile.primary_cta_value) {
+        cta.href = `tel:${profile.primary_cta_value}`;
+        cta.textContent = "Call";
+      } else if (profile.primary_cta_type === "email" && profile.primary_cta_value) {
+        cta.href = `mailto:${profile.primary_cta_value}`;
+        cta.textContent = "Email";
+      } else if (profile.primary_cta_type === "link" && profile.primary_cta_value) {
+        cta.href = profile.primary_cta_value;
+        cta.textContent = profile.primary_cta_label || "Contact";
+      } else {
+        cta.href = "#contact";
+        cta.textContent = "Contact";
+      }
+    }
+
+    console.log("✅ Profile nav initialized for:", profile.username);
   }
 
-  const logo = document.getElementById("businessLogo");
-  const cta = document.getElementById("profileCTA");
-
-  if (!window.profileData) {
-    console.warn("profileData not available for nav");
-    return;
+  // ✅ Initialize immediately if data already exists
+  if (window.profileData) {
+    initProfileNav(window.profileData);
   }
 
-  // ✅ Logo
-  if (profileData.logo_url) {
-    logo.src = profileData.logo_url;
-    logo.alt = profileData.business_name || "Business logo";
-    logo.style.display = "block";
-  } else {
-    logo.style.display = "none";
-  }
-
-  // ✅ CTA
-  cta.href = "#contact";
+  // ✅ Otherwise wait for it
+  window.addEventListener("profileDataReady", e => {
+    initProfileNav(e.detail);
+  });
 })();
+
 
