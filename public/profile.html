@@ -1269,6 +1269,21 @@ const safeParse = v => {
   }
 };
 
+function trackContactClick(type) {
+  if (!window.profileData?.username) return;
+
+  fetch("/api/track", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      slug: window.profileData.username,
+      event: "contact_click",
+      metadata: { type }
+    })
+  }).catch(() => {});
+};
+
+
 const setHTML = (id, html) => {
   const el = document.getElementById(id);
   if (!el) return false;
@@ -1332,23 +1347,29 @@ window.dispatchEvent(
 /* ================= Contact Strip CTA Wiring ================= */
 
 const contactCall = document.getElementById("contactCall");
-const contactEmail = document.getElementById("contactEmail");
 
 // Call button
 if (contactCall && p.phone) {
   contactCall.href = `tel:${p.phone}`;
   contactCall.classList.remove("hidden");
-} else if (contactCall) {
-  contactCall.classList.add("hidden");
+
+  contactCall.addEventListener("click", () => {
+    trackContactClick("call");
+  });
 }
 
+const contactEmail = document.getElementById("contactEmail");
 // Email button
 if (contactEmail && p.email) {
   contactEmail.href = `mailto:${p.email}`;
   contactEmail.classList.remove("hidden");
-} else if (contactEmail) {
-  contactEmail.classList.add("hidden");
+
+  contactEmail.addEventListener("click", () => {
+    trackContactClick("email");
+  });
 }
+
+
 
 
 
@@ -1378,6 +1399,13 @@ if (contactEmail && p.email) {
 
 const primaryAction = document.getElementById("primaryAction");
 const primaryCtaButton = document.getElementById("primaryCtaButton");
+if (primaryCtaButton) {
+  primaryCtaButton.addEventListener("click", () => {
+    trackContactClick(p.primary_cta_type || "primary_cta");
+  });
+}
+
+
 
 if (p.primary_cta_label && p.primary_cta_type && p.primary_cta_value) {
   let href = "#";
@@ -1410,7 +1438,36 @@ if (headerCTA) {
     headerCTA.classList.remove("hidden");
   } else {
     headerCTA.classList.add("hidden");
+  }; 
+
+if (headerCTA) {
+  if (p.phone) {
+    headerCTA.textContent = "Call";
+    headerCTA.href = `tel:${p.phone}`;
+    headerCTA.classList.remove("hidden");
+
+    headerCTA.onclick = () => trackContactClick("call");
+
+  } else if (p.email) {
+    headerCTA.textContent = "Email";
+    headerCTA.href = `mailto:${p.email}`;
+    headerCTA.classList.remove("hidden");
+
+    headerCTA.onclick = () => trackContactClick("email");
+
+  } else if (p.primary_cta_label && p.primary_cta_value) {
+    headerCTA.textContent = p.primary_cta_label;
+    headerCTA.href = p.primary_cta_value;
+    headerCTA.classList.remove("hidden");
+
+    headerCTA.onclick = () => trackContactClick("primary_cta");
+
+  } else {
+    headerCTA.classList.add("hidden");
   }
+}
+
+
 }
 
 
@@ -1836,7 +1893,11 @@ const contactStatus = document.getElementById("contactStatus");
 
 if (contactForm) {
   contactForm.addEventListener("submit", async e => {
-    e.preventDefault();
+ e.preventDefault();
+
+  trackContactClick("contact_form");
+
+
 
     contactStatus.textContent = "Sending...";
     
