@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Pricing Page — Enoma</title>
+  <title>Pricing — Enoma</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="/styles/enoma.css" />
 
@@ -15,185 +15,91 @@
     gtag('config', 'G-S8XTG72Y2Y');
   </script>
 
-<style>
+  <!-- Page-specific styles (OK for now) -->
+  <style>
+    .pricing--hero {
+      background: linear-gradient(180deg, #f7f6ff, #ffffff);
+      padding: 6rem 1.5rem;
+    }
 
-.pricing {
-  padding: 6rem 1.5rem;
-  max-width: 1100px;
-  margin: 0 auto;
-}
+    .pricing-header {
+      text-align: center;
+      max-width: 640px;
+      margin: 0 auto 3rem;
+    }
 
-.pricing-header {
-  text-align: center;
-  margin-bottom: 3.5rem;
-}
+    .pricing-grid {
+      display: grid;
+      gap: 2rem;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      max-width: 1100px;
+      margin: 0 auto;
+    }
 
-.pricing-header h1 {
-  font-size: 2.4rem;
-  margin-bottom: 0.5rem;
-}
+    .pricing-card {
+      position: relative;
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 2rem;
+      cursor: pointer;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
 
-.pricing-header p {
-  color: #555;
-}
+    .pricing-card:hover {
+      transform: translateY(-4px);
+    }
 
-.pricing-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 2rem;
-}
+    .pricing-card input {
+      display: none;
+    }
 
-.pricing-card {
-  background: #f5f6f8;
-  border-radius: 20px;
-  padding: 2rem;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.05);
-}
+    .pricing-card:has(input:checked) {
+      border: 2px solid #6b5cff;
+    }
 
-.pricing-card h3 {
-  margin-bottom: 0.25rem;
-}
+    .featured {
+      border: 2px solid #6b5cff;
+      transform: translateY(-8px);
+    }
 
-.pricing-sub {
-  color: #666;
-  font-size: 0.9rem;
-}
+    .badge {
+      position: absolute;
+      top: -12px;
+      right: 16px;
+      background: #6b5cff;
+      color: #fff;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+    }
 
-.price {
-  font-size: 2.2rem;
-  font-weight: 700;
-  margin: 1rem 0;
-}
+    .price {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin: 1rem 0;
+    }
 
-.price span {
-  font-size: 1rem;
-  font-weight: 400;
-  color: #666;
-}
+    .price span {
+      font-size: 1rem;
+      font-weight: 400;
+      color: #666;
+    }
 
-.pricing-card ul {
-  list-style: none;
-  padding: 0;
-  margin-top: 1.5rem;
-}
+    .pricing-cta {
+      text-align: center;
+      margin-top: 3.5rem;
+    }
 
-.pricing-card li {
-  margin-bottom: 0.6rem;
-  font-size: 0.9rem;
-}
-
-.btn {
-  display: inline-block;
-  margin-top: 1rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: 999px;
-  background: #222;
-  color: #fff;
-  text-decoration: none;
-  text-align: center;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, #6b5cff, #8a7dff);
-}
-
-.featured {
-  background: #ffffff;
-  border: 2px solid #6b5cff;
-  transform: translateY(-8px);
-}
-
-.pricing--hero {
-  background: linear-gradient(180deg, #f7f6ff, #ffffff);
-  padding: 6rem 1.5rem;
-}
-
-.pricing-header {
-  text-align: center;
-  max-width: 640px;
-  margin: 0 auto 3rem;
-}
-
-.pricing-grid {
-  display: grid;
-  gap: 2rem;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  max-width: 1100px;
-  margin: 0 auto;
-}
-
-.pricing-card {
-  position: relative;
-  background: #ffffff;
-  border-radius: 20px;
-  padding: 2rem;
-  cursor: pointer;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.06);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.pricing-card:hover {
-  transform: translateY(-4px);
-}
-
-.pricing-card input {
-  display: none;
-}
-
-.pricing-card input:checked + * {
-  /* noop – label wrapper handles it */
-}
-
-.pricing-card:has(input:checked) {
-  border: 2px solid #6b5cff;
-}
-
-.featured {
-  border: 2px solid #6b5cff;
-}
-
-.badge {
-  position: absolute;
-  top: -12px;
-  right: 16px;
-  background: #6b5cff;
-  color: #fff;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 0.75rem;
-}
-
-.price {
-  font-size: 2.2rem;
-  font-weight: 700;
-  margin: 1rem 0;
-}
-
-.price span {
-  font-size: 1rem;
-  font-weight: 400;
-  color: #666;
-}
-
-.pricing-cta {
-  text-align: center;
-  margin-top: 3.5rem;
-}
-
-.pricing-note {
-  margin-top: 0.75rem;
-  font-size: 0.9rem;
-  color: #666;
-}
-
-
-
-</style>
+    .pricing-note {
+      margin-top: 0.75rem;
+      font-size: 0.9rem;
+      color: #666;
+    }
+  </style>
 </head>
+
 <body>
-<script type="module" src="/scripts/nav.js"></script>
-
-
 
 <section class="pricing pricing--hero">
   <div class="pricing-header">
@@ -257,8 +163,8 @@
     </p>
   </div>
 </section>
-</body>
 
+<!-- Page logic -->
 <script>
   const radios = document.querySelectorAll('input[name="plan"]');
   const link = document.getElementById('requestLink');
@@ -270,3 +176,9 @@
   });
 </script>
 
+<!-- Shared UI -->
+<script type="module" src="/scripts/nav.js"></script>
+<script src="/scripts/footer.js"></script>
+
+</body>
+</html>

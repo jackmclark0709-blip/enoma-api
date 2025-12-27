@@ -22,7 +22,6 @@ async function loadNav() {
   // 3. Render nav based on auth state
   if (session) {
     links.innerHTML = `
-      <a href="/about">About</a>
       <a href="/pricing">Pricing</a>
       <a href="/contact">Contact</a>
       <a href="/dashboard">Dashboard</a>
@@ -39,7 +38,6 @@ async function loadNav() {
 
   } else {
     links.innerHTML = `
-      <a href="/about">About</a>
       <a href="/pricing">Pricing</a>
       <a href="/contact">Contact</a>
       <a href="/request" class="nav-cta">Request a Page</a>
@@ -48,4 +46,3 @@ async function loadNav() {
 }
 
 loadNav();
-

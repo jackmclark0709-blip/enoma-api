@@ -6,68 +6,70 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="/styles/enoma.css" />
 
-<!-- Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-S8XTG72Y2Y');
-</script>
-
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S8XTG72Y2Y');
+  </script>
 </head>
+
 <body>
-<script type="module" src="/scripts/nav.js"></script>
 
+<main class="container">
+  <h1>Contact Enoma</h1>
+  <p>Questions about Enoma, pricing, or onboarding?</p>
 
-  <main class="container">
-    <h1>Contact Enoma</h1>
-    <p>Questions about Enoma, pricing, or onboarding?</p>
-
-    <form id="contactForm">
-      <input name="name" placeholder="Your name" required />
-      <input name="email" placeholder="Your email" required />
-      <textarea name="message" placeholder="How can we help?" required></textarea>
-      <button type="submit">Send message</button>
-      <div id="status"></div>
-    </form>
-  </main>
+  <form id="contactForm">
+    <input name="name" placeholder="Your name" required />
+    <input name="email" placeholder="Your email" required />
+    <textarea name="message" placeholder="How can we help?" required></textarea>
+    <button type="submit">Send message</button>
+    <div id="status"></div>
+  </form>
+</main>
 
 <script>
-document.getElementById("contactForm").addEventListener("submit", async e => {
-  e.preventDefault();
+  document.getElementById("contactForm").addEventListener("submit", async e => {
+    e.preventDefault();
 
-  gtag('event', 'generate_lead', {
-    event_category: 'contact',
-    event_label: 'enoma_contact'
-  });
-
-  const status = document.getElementById("status");
-  status.textContent = "Sending...";
-
-  const formData = new FormData(e.target);
-  const payload = Object.fromEntries(formData.entries());
-
-  try {
-    const res = await fetch("/api/send-contact", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...payload,
-        to: "hello@enoma.io",
-        source: "enoma_site"
-      })
+    gtag('event', 'generate_lead', {
+      event_category: 'contact',
+      event_label: 'enoma_contact'
     });
 
-    if (!res.ok) throw new Error();
+    const status = document.getElementById("status");
+    status.textContent = "Sending...";
 
-    status.textContent = "Message sent!";
-    e.target.reset();
-  } catch {
-    status.textContent = "Something went wrong.";
-  }
-});
+    const formData = new FormData(e.target);
+    const payload = Object.fromEntries(formData.entries());
+
+    try {
+      const res = await fetch("/api/send-contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...payload,
+          to: "hello@enoma.io",
+          source: "enoma_site"
+        })
+      });
+
+      if (!res.ok) throw new Error();
+
+      status.textContent = "Message sent!";
+      e.target.reset();
+    } catch {
+      status.textContent = "Something went wrong.";
+    }
+  });
 </script>
+
+<!-- Shared UI -->
+<script type="module" src="/scripts/nav.js"></script>
+<script src="/scripts/footer.js"></script>
 
 </body>
 </html>
