@@ -21,11 +21,12 @@ async function loadNav() {
 
   // 3. Render nav based on auth state
   if (session) {
-    links.innerHTML = `
-      <a href="https://marketing.enoma.io" target="_blank">About</a>
-      <a href="/dashboard">Dashboard</a>
-      <button id="logout-btn" class="nav-cta">Log out</button>
-    `;
+links.innerHTML = `
+  <a href="/about">About</a>
+  <a href="/contact">Contact</a>
+  <a href="/dashboard">Dashboard</a>
+  <button id="logout-btn" class="nav-cta">Log out</button>
+`;
 
     // ⛑ Guarded logout handler
     const logoutBtn = document.getElementById("logout-btn");
@@ -38,16 +39,12 @@ async function loadNav() {
 
   } else {
     links.innerHTML = `
-      <a href="https://marketing.enoma.io" target="_blank">About</a>
-      <a href="/login">Sign in</a>
-      <a
-        href="https://marketing.enoma.io/contact"
-        class="nav-cta"
-        target="_blank"
-      >
-        Get in touch
-      </a>
-    `;
+     links.innerHTML = `
+  <a href="/about">About</a>
+  <a href="/contact">Contact</a>
+  <a href="/login">Sign in</a>
+`;
+
   }
 }
 

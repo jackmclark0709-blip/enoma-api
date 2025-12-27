@@ -1,0 +1,155 @@
+<style>
+
+.pricing {
+  padding: 6rem 1.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.pricing-header {
+  text-align: center;
+  margin-bottom: 3.5rem;
+}
+
+.pricing-header h1 {
+  font-size: 2.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.pricing-header p {
+  color: #555;
+}
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+}
+
+.pricing-card {
+  background: #f5f6f8;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.05);
+}
+
+.pricing-card h3 {
+  margin-bottom: 0.25rem;
+}
+
+.pricing-sub {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.price {
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin: 1rem 0;
+}
+
+.price span {
+  font-size: 1rem;
+  font-weight: 400;
+  color: #666;
+}
+
+.pricing-card ul {
+  list-style: none;
+  padding: 0;
+  margin-top: 1.5rem;
+}
+
+.pricing-card li {
+  margin-bottom: 0.6rem;
+  font-size: 0.9rem;
+}
+
+.btn {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 999px;
+  background: #222;
+  color: #fff;
+  text-decoration: none;
+  text-align: center;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #6b5cff, #8a7dff);
+}
+
+.featured {
+  background: #ffffff;
+  border: 2px solid #6b5cff;
+  transform: translateY(-8px);
+}
+
+
+</style>
+
+<section class="pricing">
+  <div class="pricing-header">
+    <h1>Flexible pricing plans</h1>
+    <p>Choose a plan that grows with you. Start anytime and upgrade as your business scales.</p>
+  </div>
+
+  <div class="pricing-grid">
+
+    <!-- Starter -->
+    <div class="pricing-card">
+      <h3>Starter</h3>
+      <p class="pricing-sub">For individuals & solo businesses</p>
+      <div class="price">$29<span>/month</span></div>
+
+      <a href="/create?plan=starter" class="btn">Get Started</a>
+
+      <ul>
+        <li>SEO-optimized business page on enoma.io</li>
+        <li>Clean, structured layout for search visibility</li>
+        <li>Branded business description</li>
+        <li>Contact & inquiry links</li>
+        <li>Fast, mobile-friendly performance</li>
+        <li>Simple updates without managing a full website</li>
+      </ul>
+    </div>
+
+    <!-- Pro (featured) -->
+    <div class="pricing-card featured">
+      <h3>Pro</h3>
+      <p class="pricing-sub">For freelancers & small teams</p>
+      <div class="price">$49<span>/month</span></div>
+
+      <a href="/create?plan=pro" class="btn btn-primary">Get Started</a>
+
+      <ul>
+        <li>Everything in Starter</li>
+        <li>Enhanced SEO structure & metadata</li>
+        <li>Priority placement within Enoma</li>
+        <li>Lead-focused layout for conversion</li>
+        <li>Multiple contact paths (email, forms)</li>
+        <li>Faster indexing & visibility improvements</li>
+      </ul>
+    </div>
+
+    <!-- Business -->
+    <div class="pricing-card">
+      <h3>Business</h3>
+      <p class="pricing-sub">For growing teams & agencies</p>
+      <div class="price">$99<span>/month</span></div>
+
+      <a href="/create?plan=business" class="btn">Get Started</a>
+
+      <ul>
+        <li>Everything in Pro</li>
+        <li>Multiple business pages per account</li>
+        <li>Team access & permissions</li>
+        <li>Advanced SEO & structured content</li>
+        <li>Priority support</li>
+        <li>Early access to lead-generation features</li>
+      </ul>
+    </div>
+
+  </div>
+</section>
