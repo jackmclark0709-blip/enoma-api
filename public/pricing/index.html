@@ -86,70 +86,164 @@
   transform: translateY(-8px);
 }
 
+.pricing--hero {
+  background: linear-gradient(180deg, #f7f6ff, #ffffff);
+  padding: 6rem 1.5rem;
+}
+
+.pricing-header {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto 3rem;
+}
+
+.pricing-grid {
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.pricing-card {
+  position: relative;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 2rem;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pricing-card:hover {
+  transform: translateY(-4px);
+}
+
+.pricing-card input {
+  display: none;
+}
+
+.pricing-card input:checked + * {
+  /* noop – label wrapper handles it */
+}
+
+.pricing-card:has(input:checked) {
+  border: 2px solid #6b5cff;
+}
+
+.featured {
+  border: 2px solid #6b5cff;
+}
+
+.badge {
+  position: absolute;
+  top: -12px;
+  right: 16px;
+  background: #6b5cff;
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+}
+
+.price {
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin: 1rem 0;
+}
+
+.price span {
+  font-size: 1rem;
+  font-weight: 400;
+  color: #666;
+}
+
+.pricing-cta {
+  text-align: center;
+  margin-top: 3.5rem;
+}
+
+.pricing-note {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+
 
 </style>
 
-<section class="pricing">
+<section class="pricing pricing--hero">
   <div class="pricing-header">
-    <h1>Flexible pricing plans</h1>
-    <p>Choose a plan that grows with you. Start anytime and upgrade as your business scales.</p>
+    <h2>Simple, transparent pricing</h2>
+    <p>
+      We create and maintain a high-quality business page for you.
+      You only pay once you’ve reviewed the first version.
+    </p>
   </div>
 
   <div class="pricing-grid">
 
-    <!-- Starter -->
-    <div class="pricing-card">
+    <label class="pricing-card">
+      <input type="radio" name="plan" value="starter" />
       <h3>Starter</h3>
-      <p class="pricing-sub">For individuals & solo businesses</p>
+      <p class="pricing-sub">For solo businesses</p>
       <div class="price">$29<span>/month</span></div>
-
-      <a href="/create?plan=starter" class="btn">Get Started</a>
-
       <ul>
-        <li>SEO-optimized business page on enoma.io</li>
-        <li>Clean, structured layout for search visibility</li>
-        <li>Branded business description</li>
-        <li>Contact & inquiry links</li>
+        <li>SEO-optimized business page</li>
         <li>Fast, mobile-friendly performance</li>
-        <li>Simple updates without managing a full website</li>
+        <li>Contact & inquiry links</li>
+        <li>Simple updates handled for you</li>
       </ul>
-    </div>
+    </label>
 
-    <!-- Pro (featured) -->
-    <div class="pricing-card featured">
+    <label class="pricing-card featured">
+      <input type="radio" name="plan" value="pro" checked />
+      <span class="badge">Most popular</span>
       <h3>Pro</h3>
-      <p class="pricing-sub">For freelancers & small teams</p>
+      <p class="pricing-sub">For service businesses that want leads</p>
       <div class="price">$49<span>/month</span></div>
-
-      <a href="/create?plan=pro" class="btn btn-primary">Get Started</a>
-
       <ul>
         <li>Everything in Starter</li>
-        <li>Enhanced SEO structure & metadata</li>
-        <li>Priority placement within Enoma</li>
-        <li>Lead-focused layout for conversion</li>
-        <li>Multiple contact paths (email, forms)</li>
-        <li>Faster indexing & visibility improvements</li>
+        <li>Enhanced SEO & structure</li>
+        <li>Lead-focused layout</li>
+        <li>Priority visibility within Enoma</li>
       </ul>
-    </div>
+    </label>
 
-    <!-- Business -->
-    <div class="pricing-card">
+    <label class="pricing-card">
+      <input type="radio" name="plan" value="business" />
       <h3>Business</h3>
-      <p class="pricing-sub">For growing teams & agencies</p>
+      <p class="pricing-sub">For teams & agencies</p>
       <div class="price">$99<span>/month</span></div>
-
-      <a href="/create?plan=business" class="btn">Get Started</a>
-
       <ul>
-        <li>Everything in Pro</li>
-        <li>Multiple business pages per account</li>
+        <li>Multiple business pages</li>
         <li>Team access & permissions</li>
-        <li>Advanced SEO & structured content</li>
+        <li>Advanced SEO options</li>
         <li>Priority support</li>
-        <li>Early access to lead-generation features</li>
       </ul>
-    </div>
+    </label>
 
   </div>
+
+  <div class="pricing-cta">
+    <a id="requestLink" href="/request?plan=pro" class="btn btn-primary">
+      Request my business page
+    </a>
+    <p class="pricing-note">
+      No payment required until you review your page.
+    </p>
+  </div>
 </section>
+
+<script>
+  const radios = document.querySelectorAll('input[name="plan"]');
+  const link = document.getElementById('requestLink');
+
+  radios.forEach(radio => {
+    radio.addEventListener('change', () => {
+      link.href = `/request?plan=${radio.value}`;
+    });
+  });
+</script>
+

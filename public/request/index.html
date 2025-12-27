@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Request a Business Page — Enoma</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/styles/enoma.css" />
+
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S8XTG72Y2Y');
+  </script>
+</head>
+<body>
+
+<main class="container">
+  <h1>Request your business page</h1>
+  <p>
+    We’ll create the first version of your Enoma business page for review.
+    <strong>No payment required</strong> until you’ve seen it.
+  </p>
+
+  <form id="requestForm">
+    <input name="name" placeholder="Your name" required />
+    <input name="email" placeholder="Your email" required />
+
+    <input name="business_name" placeholder="Business name" required />
+    <input name="city" placeholder="City & state" required />
+    <input name="industry" placeholder="Industry (e.g. Tree service, Plumbing)" />
+
+    <!-- Hidden plan field -->
+    <input type="hidden" name="plan" id="planField" value="pro" />
+
+    <button type="submit">Request my page</button>
+    <div id="status"></div>
+  </form>
+
+  <p class="note">
+    After you submit, we’ll generate your page and share a live preview for feedback.
+  </p>
+</main>
+
+<script>
+  // Pull ?plan= from URL if present
+  const params = new URLSearchParams(window.location.search);
+  const plan = params.get("plan");
+  if (plan) {
+    document.getElementById("planField").value = plan;
+  }
+
+  document.getElementById("requestForm").addEventListener("submit", async e => {
+    e.preventDefault();
+
+    gtag('event', 'generate_lead', {
+      event_category: 'request',
+      event_label: 'business_p
