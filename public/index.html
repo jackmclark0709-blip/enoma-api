@@ -216,6 +216,29 @@ margin-top: 1.5rem;
   margin: 0 auto 1rem;
 }
 
+.section-left {
+  text-align: left;
+}
+
+.section-left h2,
+.section-left .section-label,
+.section-left p,
+.section-left .bridge {
+  text-align: left;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* Keep section width visually grounded */
+.section-left {
+  max-width: 900px;
+}
+
+/* Bridge line alignment tweak for left sections */
+.section-left .bridge::before {
+  margin-left: 0;
+}
+
 
   </style>
 
@@ -292,14 +315,14 @@ without managing a full website or marketing stack.</p>
 
       <div class="bullet">
         <h3>Consultants & freelancers</h3>
-        <p>A single, credible page you can share with clients,
+        <p>A single, credible page you can share with clients,S
 proposals, and search results.
 </p>
       </div>
 
       <div class="bullet">
         <h3>Solo founders & small teams</h3>
-        An SEO-ready presence that works on day one,
+     <p>   An SEO-ready presence that works on day one,
 without ongoing maintenance.
 </p>
       </div>
@@ -314,7 +337,7 @@ If you only ever share one link to your business, this is the one.</p>
 
 
 <!-- HOW IT WORKS -->
-<section class="section how-progress">
+<section class="section how-progress section-left">
 <div class="section-label">How it works</div>
 
   <h2>How it works</h2>
@@ -363,7 +386,7 @@ If you only ever share one link to your business, this is the one.</p>
   <div class="divider"></div>
 
   <!-- WHAT IT'S NOT -->
-  <section class="section">
+<section class="section section-left">
 <div class="section-label">What it’s not</div>
 
 <h2>Not another website builder — and that’s the point</h2>
