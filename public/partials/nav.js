@@ -5,44 +5,41 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkXVCJ9.eyJpc3MiOiJzdXBhY
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+
 async function loadNav() {
-  // 1. Inject nav HTML
-  const res = await fetch("/partials/nav.html");
-  const html = await res.text();
-  document.body.insertAdjacentHTML("afterbegin", html);
-
-  const links = document.getElementById("nav-links");
-  if (!links) return;
-
-  // 2. Check auth session
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  // 3. Render nav based on auth state
-  if (session) {
-    links.innerHTML = `
-      <a href="/pricing">Pricing</a>
-      <a href="/contact">Contact</a>
-      <a href="/dashboard">Dashboard</a>
-      <button id="logout-btn" class="nav-cta">Log out</button>
-    `;
-
-    const logoutBtn = document.getElementById("logout-btn");
-    if (logoutBtn) {
-      logoutBtn.addEventListener("click", async () => {
-        await supabase.auth.signOut();
-        window.location.href = "/";
-      });
+  try {
+    // Fetch nav partial
+    const res = await fetch("/partials/nav.html");
+    if (!res.ok) {
+      console.error("Failed to load nav.html:", res.status);
+      return;
     }
 
-  } else {
+    const html = await res.text();
+
+    // Inject nav at top of body
+    document.body.insertAdjacentHTML("afterbegin", html);
+
+    // Populate links
+    const links = document.getElementById("nav-links");
+    if (!links) {
+      console.error("nav-links container not found");
+      return;
+    }
+
     links.innerHTML = `
       <a href="/pricing">Pricing</a>
       <a href="/contact">Contact</a>
       <a href="/request" class="nav-cta">Request a Page</a>
     `;
+  } catch (err) {
+    console.error("Error loading nav:", err);
   }
 }
 
-loadNav();
+// Run after DOM is ready (extra safety)
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", loadNav);
+} else {
+  loadNav();
+}
