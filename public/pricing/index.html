@@ -72,6 +72,32 @@
       font-size: 0.9rem;
       color: #666;
     }
+.pricing-card--featured {
+  border: 2px solid #9A8CFF; /* lavender */
+  box-shadow: 0 12px 35px rgba(154, 140, 255, 0.25);
+}
+
+.pricing-faqs {
+  max-width: 720px;
+  margin: 3.5rem auto 0;
+  padding: 0 1rem;
+}
+
+.faq {
+  margin-bottom: 1.75rem;
+}
+
+.faq h4 {
+  margin-bottom: 0.25rem;
+  font-size: 1rem;
+}
+
+.faq p {
+  font-size: 0.95rem;
+  color: #555;
+}
+
+
   </style>
 </head>
 
@@ -86,7 +112,7 @@
     </p>
   </div>
 
-  <div class="pricing-card">
+  <div class="pricing-card pricing-card--featured">
     <h3>Enoma Business Page</h3>
 
     <div class="price">
@@ -108,6 +134,33 @@
       </a>
       <p class="pricing-note">
         You’ll review your page before anything is charged.
+      </p>
+    </div>
+  </div>
+
+  <!-- FAQs -->
+  <div class="pricing-faqs">
+    <div class="faq">
+      <h4>Is there a contract?</h4>
+      <p>
+        No long-term contracts. Enoma is month-to-month, and you can cancel
+        anytime.
+      </p>
+    </div>
+
+    <div class="faq">
+      <h4>When do I pay?</h4>
+      <p>
+        Only after you’ve reviewed your business page and are happy with it.
+        Nothing is charged upfront.
+      </p>
+    </div>
+
+    <div class="faq">
+      <h4>How does payment work?</h4>
+      <p>
+        Payments are handled securely through Stripe. Enoma never stores your
+        payment details.
       </p>
     </div>
   </div>
