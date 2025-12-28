@@ -1641,16 +1641,6 @@ if (reviewSummary && p.average_rating && p.review_count) {
 
 
 
-const quickContact = document.getElementById("quickContact");
-const quickCall = document.getElementById("quickCall");
-
-if (
-  (p.primary_cta_type === "call" || p.primary_cta_type === "phone") &&
-  p.primary_cta_value
-) {
-  quickCall.href = `tel:${p.primary_cta_value}`;
-  quickContact.classList.remove("hidden");
-}
 
 const heroMeta = document.getElementById("heroMeta");
 
@@ -1688,9 +1678,7 @@ if (els.services && servicesData.length) {
     .map(s => `
       <div class="service-card">
         <h3>${s.service_name || ""}</h3>
-
         ${s.service_description ? `<p>${s.service_description}</p>` : ""}
-
         ${
           Array.isArray(s.benefits) && s.benefits.length
             ? `<ul class="service-benefits">
@@ -1698,15 +1686,12 @@ if (els.services && servicesData.length) {
               </ul>`
             : ""
         }
-
         ${s.price ? `<div class="service-price">Starting at ${s.price}</div>` : ""}
       </div>
     `)
     .join("");
 
-  servicesSection.classList.remove("hidden");
-} else {
-  servicesSection.classList.add("hidden");
+  servicesSection?.classList.remove("hidden");
 }
 
 /* Services intro */
@@ -1718,6 +1703,23 @@ if (servicesIntroEl && p.services_intro && p.services_intro.trim()) {
 } else if (servicesIntroEl) {
   servicesIntroEl.style.display = "none";
 }
+
+/* ================= Services CTA ================= */
+const quickCall = document.getElementById("quickCall");
+
+if (quickCall) {
+  if (p.phone) {
+    quickCall.href = `tel:${p.phone}`;
+    quickCall.onclick = () => trackContactClick("services_cta_call");
+  } else if (p.email) {
+    quickCall.href = `mailto:${p.email}`;
+    quickCall.onclick = () => trackContactClick("services_cta_email");
+  } else {
+    quickCall.href = "#contact";
+    quickCall.onclick = () => trackContactClick("services_cta_form");
+  }
+}
+
 
 
 /* ================= Gallery ================= */
