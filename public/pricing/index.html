@@ -28,56 +28,20 @@
       margin: 0 auto 3rem;
     }
 
-    .pricing-grid {
-      display: grid;
-      gap: 2rem;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      max-width: 1100px;
-      margin: 0 auto;
-    }
-
     .pricing-card {
-      position: relative;
+      max-width: 420px;
+      margin: 0 auto;
       background: #ffffff;
       border-radius: 20px;
-      padding: 2rem;
-      cursor: pointer;
+      padding: 2.5rem;
       box-shadow: 0 10px 30px rgba(0,0,0,0.06);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .pricing-card:hover {
-      transform: translateY(-4px);
-    }
-
-    .pricing-card input {
-      display: none;
-    }
-
-    .pricing-card:has(input:checked) {
-      border: 2px solid #6b5cff;
-    }
-
-    .featured {
-      border: 2px solid #6b5cff;
-      transform: translateY(-8px);
-    }
-
-    .badge {
-      position: absolute;
-      top: -12px;
-      right: 16px;
-      background: #6b5cff;
-      color: #fff;
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 0.75rem;
+      text-align: center;
     }
 
     .price {
-      font-size: 2.2rem;
+      font-size: 2.6rem;
       font-weight: 700;
-      margin: 1rem 0;
+      margin: 1.5rem 0 0.5rem;
     }
 
     .price span {
@@ -86,9 +50,21 @@
       color: #666;
     }
 
+    .pricing-card ul {
+      list-style: none;
+      padding: 0;
+      margin: 2rem 0;
+      text-align: left;
+    }
+
+    .pricing-card li {
+      margin-bottom: 0.75rem;
+      font-size: 0.95rem;
+    }
+
     .pricing-cta {
       text-align: center;
-      margin-top: 3.5rem;
+      margin-top: 2.5rem;
     }
 
     .pricing-note {
@@ -106,61 +82,34 @@
     <h2>Simple, transparent pricing</h2>
     <p>
       We create and maintain a high-quality business page for you.
-      You only pay once you’ve reviewed the first version.
+      <strong>No payment required</strong> until you’ve reviewed it.
     </p>
   </div>
 
-  <div class="pricing-grid">
+  <div class="pricing-card">
+    <h3>Enoma Business Page</h3>
 
-    <label class="pricing-card">
-      <input type="radio" name="plan" value="starter" />
-      <h3>Starter</h3>
-      <p class="pricing-sub">For solo businesses</p>
-      <div class="price">$29<span>/month</span></div>
-      <ul>
-        <li>SEO-optimized business page</li>
-        <li>Fast, mobile-friendly performance</li>
-        <li>Contact & inquiry links</li>
-        <li>Simple updates handled for you</li>
-      </ul>
-    </label>
+    <div class="price">
+      $49.99 <span>/ month</span>
+    </div>
 
-    <label class="pricing-card featured">
-      <input type="radio" name="plan" value="pro" checked />
-      <span class="badge">Most popular</span>
-      <h3>Pro</h3>
-      <p class="pricing-sub">For service businesses that want leads</p>
-      <div class="price">$49<span>/month</span></div>
-      <ul>
-        <li>Everything in Starter</li>
-        <li>Enhanced SEO & structure</li>
-        <li>Lead-focused layout</li>
-        <li>Priority visibility within Enoma</li>
-      </ul>
-    </label>
+    <ul>
+      <li>SEO-optimized business page on enoma.io</li>
+      <li>Human-reviewed content tailored to your business</li>
+      <li>Fast, mobile-friendly performance</li>
+      <li>Contact & inquiry links</li>
+      <li>Hosting, maintenance, and updates included</li>
+      <li>Ongoing improvements as Enoma evolves</li>
+    </ul>
 
-    <label class="pricing-card">
-      <input type="radio" name="plan" value="business" />
-      <h3>Business</h3>
-      <p class="pricing-sub">For teams & agencies</p>
-      <div class="price">$99<span>/month</span></div>
-      <ul>
-        <li>Multiple business pages</li>
-        <li>Team access & permissions</li>
-        <li>Advanced SEO options</li>
-        <li>Priority support</li>
-      </ul>
-    </label>
-
-  </div>
-
-  <div class="pricing-cta">
-    <a id="requestLink" href="/request?plan=pro" class="btn btn-primary">
-      Request my business page
-    </a>
-    <p class="pricing-note">
-      No payment required until you review your page.
-    </p>
+    <div class="pricing-cta">
+      <a href="/request" class="btn btn-primary">
+        Request my business page
+      </a>
+      <p class="pricing-note">
+        You’ll review your page before anything is charged.
+      </p>
+    </div>
   </div>
 </section>
 
