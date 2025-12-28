@@ -189,6 +189,33 @@ margin-top: 1.5rem;
   );
 }
 
+.section-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9a8cff;
+  margin-bottom: 0.75rem;
+}
+
+.bridge {
+  margin-top: 2rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-style: italic;
+  color: #4b5563;  letter-spacing: 0.01em;
+}
+
+.bridge::before {
+  content: "";
+  display: block;
+  width: 32px;
+  height: 3px;
+  background: #9a8cff;
+  border-radius: 2px;
+  margin: 0 auto 1rem;
+}
+
 
   </style>
 
@@ -220,7 +247,7 @@ Enoma creates a single, authoritative page for your business —
 designed to be found in search, trusted instantly, and shared everywhere.
       </p>
 <p class="hero-meta">
-  No website • No maintenance • One link that works everywher • Live in minutes
+  No website • No maintenance • One link that works everywhere
 </p>
 
       <div class="hero-actions">
@@ -231,6 +258,8 @@ designed to be found in search, trusted instantly, and shared everywhere.
 
   <!-- WHAT IT IS -->
   <section class="section">
+  <div class="section-label">What it is</div>
+
     <h2>One authoritative page. Built for search.</h2>
 <p>
 Most small businesses are scattered across Google results, outdated websites,
@@ -250,6 +279,8 @@ the page search engines prioritize and customers trust.
 
   <!-- WHO IT'S FOR -->
 <section class="section alt">
+<div class="section-label">Who it’s for</div>
+
     <h2>Designed for small businesses that want one clear online presence</h2>
 
     <div class="bullets">
@@ -268,13 +299,14 @@ proposals, and search results.
 
       <div class="bullet">
         <h3>Solo founders & small teams</h3>
-        <p>An SEO-ready presence that works on day one,
+        An SEO-ready presence that works on day one,
 without ongoing maintenance.
 </p>
       </div>
     </div>
 
-<p>“If you only ever share one link to your business, this is the one.”</p>
+<p class="bridge">
+If you only ever share one link to your business, this is the one.</p>
   </section>
 
   <div class="divider"></div>
@@ -283,6 +315,8 @@ without ongoing maintenance.
 
 <!-- HOW IT WORKS -->
 <section class="section how-progress">
+<div class="section-label">How it works</div>
+
   <h2>How it works</h2>
   <p class="how-subhead">
     A short setup, then one clean, authoritative page you can share everywhere.
@@ -330,6 +364,8 @@ without ongoing maintenance.
 
   <!-- WHAT IT'S NOT -->
   <section class="section">
+<div class="section-label">What it’s not</div>
+
 <h2>Not another website builder — and that’s the point</h2>
     <p>
       Enoma isn’t trying to replace your brand, your website,
@@ -361,7 +397,7 @@ without ongoing maintenance.
     </p>
   </div>
 </div>
-<p>Less to manage. More clarity. That’s the point.</p>
+<p class="bridge">Less to manage. More clarity. That’s the point.</p>
   </section>
 
   <!-- FINAL CTA -->
