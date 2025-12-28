@@ -373,6 +373,17 @@
   border-bottom: 1px solid #e5e7eb;
 }
 
+/* HERO LOGO / PROFILE IMAGE */
+.profile-avatar {
+  width: 220px;        /* ← increase this */
+  height: 220px;       /* ← increase this */
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 
 @media (max-width: 768px) {
@@ -918,8 +929,9 @@ body {
 }
 
 .profile-avatar img {
-  max-width: 80%;
-  max-height: 80%;
+    width: 100%;
+  height: auto;
+  object-fit: contain;
 }
 
 /* Initials fallback */
@@ -1064,13 +1076,15 @@ body {
 
 .hero-layout {
   display: grid;
-  grid-template-columns: 30% 70%;
+  grid-template-columns: 35% 65%;
   align-items: center;
   gap: 3rem;
 }
 .hero-profile {
   display: flex;
   justify-content: flex-start;
+  align-items: flex-start;
+  padding-top: 0.5rem;
 }
 
 .hero-content {
