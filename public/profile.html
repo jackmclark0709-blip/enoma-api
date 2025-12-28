@@ -1008,7 +1008,11 @@ body {
   .hero-profile {
     margin-bottom: 1rem;
   }
+.hero-profile {
+  justify-self: center;
 }
+
+
 
 
   </style>
@@ -1029,29 +1033,28 @@ body {
 <script src="/partials/profile-nav.js"></script>
 
 <section class="hero-wrapper">
-  <div class="hero-layout">
   <div class="hero-inner">
+    <div class="hero-layout">
 
-
-    <!-- Left: Profile card -->
-    <div class="hero-profile">
-
-      <div class="profile-avatar hidden" id="heroLogo">
-        <img id="logoImage" alt="" />
+      <!-- Left: Profile card -->
+      <div class="hero-profile">
+        <div class="profile-avatar hidden" id="heroLogo">
+          <img id="logoImage" alt="" />
+        </div>
       </div>
 
-    </div>
+      <!-- Right: Content -->
+      <div class="hero-content">
+        <h1 id="name"></h1>
+        <p id="tagline" class="hero-tagline"></p>
 
-    <!-- Right: Content -->
-    <div class="hero-content">
-      <h1 id="name"></h1>
-      <p id="tagline" class="hero-tagline"></p>
+        <div class="hero-actions hidden" id="primaryAction">
+          <a id="primaryCtaButton" class="primary-cta"></a>
+        </div>
 
-      <div class="hero-actions hidden" id="primaryAction">
-        <a id="primaryCtaButton" class="primary-cta"></a>
+        <div class="hero-meta" id="heroMeta"></div>
       </div>
 
-      <div class="hero-meta" id="heroMeta"></div>
     </div>
   </div>
 </section>
