@@ -375,15 +375,23 @@
 
 /* HERO LOGO / PROFILE IMAGE */
 .profile-avatar {
-  width: 220px;        /* ← increase this */
-  height: 220px;       /* ← increase this */
+  width: 200px;
+  height: 200px;
   background: white;
-  border-radius: 20px;
+  border-radius: 16px;
   box-shadow: 0 12px 30px rgba(0,0,0,0.08);
   display: flex;
   align-items: center;
   justify-content: center;
 }
+
+@media (max-width: 768px) {
+  .profile-avatar {
+    width: 140px;
+    height: 140px;
+  }
+}
+
 
 
 @media (max-width: 768px) {
@@ -1074,14 +1082,7 @@ body {
   text-align: left;
 }
 
-.profile-avatar,
-.profile-fallback {
-  width: 120px;
-  height: 120px;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-}
+
 @media (max-width: 768px) {
   .hero-layout {
     grid-template-columns: 1fr;
