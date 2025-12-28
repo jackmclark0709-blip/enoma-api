@@ -5,10 +5,9 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkXVCJ9.eyJpc3MiOiJzdXBhY
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-
 async function loadNav() {
   try {
-    // Fetch nav partial
+    // 1. Load nav shell
     const res = await fetch("/partials/nav.html");
     if (!res.ok) {
       console.error("Failed to load nav.html:", res.status);
@@ -16,30 +15,58 @@ async function loadNav() {
     }
 
     const html = await res.text();
-
-    // Inject nav at top of body
     document.body.insertAdjacentHTML("afterbegin", html);
 
-    // Populate links
     const links = document.getElementById("nav-links");
     if (!links) {
-      console.error("nav-links container not found");
+      console.error("nav-links not found");
       return;
     }
 
-    links.innerHTML = `
-      <a href="/pricing">Pricing</a>
-      <a href="/contact">Contact</a>
-      <a href="/request" class="nav-cta">Request a Page</a>
-    `;
+    // 2. Check auth state
+    const {
+      data: { session },
+      error
+    } = await supabase.auth.getSession();
+
+    if (error) {
+      console.error("Error fetching session:", error);
+    }
+
+    // 3. Render nav links
+    if (session) {
+      // Logged in
+      links.innerHTML = `
+        <a href="/pricing">Pricing</a>
+        <a href="/contact">Contact</a>
+        <a href="/dashboard">Dashboard</a>
+        <button id="logout-btn" class="nav-cta">Log out</button>
+      `;
+
+      const logoutBtn = document.getElementById("logout-btn");
+      logoutBtn?.addEventListener("click", async () => {
+        await supabase.auth.signOut();
+        window.location.href = "/";
+      });
+
+    } else {
+      // Logged out
+      links.innerHTML = `
+        <a href="/pricing">Pricing</a>
+        <a href="/contact">Contact</a>
+        <a href="/login" class="nav-cta">Sign in</a>
+      `;
+    }
+
   } catch (err) {
-    console.error("Error loading nav:", err);
+    console.error("Nav failed to load:", err);
   }
 }
 
-// Run after DOM is ready (extra safety)
+// Ensure DOM exists
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", loadNav);
 } else {
   loadNav();
 }
+
