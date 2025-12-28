@@ -7,7 +7,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function loadNav() {
   try {
-    // 1. Load nav shell
+    // Load nav shell
     const res = await fetch("/partials/nav.html");
     if (!res.ok) {
       console.error("Failed to load nav.html:", res.status);
@@ -23,7 +23,7 @@ async function loadNav() {
       return;
     }
 
-    // 2. Check auth state
+    // Check auth state
     const {
       data: { session },
       error
@@ -33,7 +33,7 @@ async function loadNav() {
       console.error("Error fetching session:", error);
     }
 
-    // 3. Render nav links
+    // Render nav
     if (session) {
       // Logged in
       links.innerHTML = `
@@ -43,18 +43,20 @@ async function loadNav() {
         <button id="logout-btn" class="nav-cta">Log out</button>
       `;
 
-      const logoutBtn = document.getElementById("logout-btn");
-      logoutBtn?.addEventListener("click", async () => {
-        await supabase.auth.signOut();
-        window.location.href = "/";
-      });
+      document
+        .getElementById("logout-btn")
+        ?.addEventListener("click", async () => {
+          await supabase.auth.signOut();
+          window.location.href = "/";
+        });
 
     } else {
       // Logged out
       links.innerHTML = `
         <a href="/pricing">Pricing</a>
         <a href="/contact">Contact</a>
-        <a href="/login" class="nav-cta">Sign in</a>
+        <a href="/request" class="nav-cta">Request a Page</a>
+        <a href="/login">Sign in</a>
       `;
     }
 
@@ -69,4 +71,3 @@ if (document.readyState === "loading") {
 } else {
   loadNav();
 }
-
