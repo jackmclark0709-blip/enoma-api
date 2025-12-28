@@ -26,25 +26,41 @@
     }
 
     .hero-inner {
-  max-width: 1100px;
+  max-width: 800px;
     }
 
     .hero h1 {
       font-size: clamp(2.5rem, 6vw, 3.4rem);
       font-weight: 800;
       letter-spacing: -0.02em;
-      margin-bottom: 1rem;
+      margin-bottom: 1.25rem;
   max-width: 14ch;
   margin-inline: auto;
+  line-height: 1.05;
+
     }
 
 .hero h1 span {
   color: #9a8cff;
+  display: inline-block;
+  padding: 0.1em 0.25em;
+  border-radius: 6px;
+  background: rgba(154, 140, 255, 0.12);
+}
+
+.hero-inner > p:first-of-type {
+  margin-bottom: 2.25rem;
+}
+
+.hero-meta {
+  margin-top: 1.25rem;
+  font-size: 0.95rem;
+  opacity: 0.85;
 }
 
     .hero p {
       font-size: 1.15rem;
-      color: #cfd1ff;
+  color: #e4e6ff; /* instead of #cfd1ff */
       line-height: 1.6;
       margin-bottom: 2rem;
     }
@@ -54,6 +70,7 @@
       gap: 1rem;
       justify-content: center;
       flex-wrap: wrap;
+margin-top: 1.5rem;
     }
 
     .btn-primary {
@@ -63,7 +80,23 @@
       border-radius: 999px;
       font-weight: 700;
       text-decoration: none;
+  position: relative;
+  box-shadow:
+    0 0 0 0 rgba(154, 140, 255, 0.6);
     }
+
+.btn-primary::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 999px;
+  background: radial-gradient(
+    circle,
+    rgba(154,140,255,0.35),
+    transparent 70%
+  );
+  z-index: -1;
+}
 
     .btn-secondary {
       color: #cfd1ff;
@@ -144,6 +177,17 @@
   margin-bottom: 12px;
 }
 
+.hero-accent {
+  width: 64px;
+  height: 4px;
+  margin: 1.75rem auto 2.25rem;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    #9a8cff,
+    rgba(154,140,255,0.4)
+  );
+}
 
 
   </style>
@@ -169,13 +213,15 @@
   <section class="hero">
     <div class="hero-inner">
       <h1>One <span>SEO-optimized</span> business page.</h1>
-      <p>
+      <div class="hero-accent">
+<p>
 Enoma creates a single, authoritative page for your business —
 designed to be found in search, trusted instantly, and shared everywhere.
       </p>
 <p class="hero-meta">
   No website. No maintenance. One link that works everywhere.
 </p>
+</div>
 
       <div class="hero-actions">
         <a href="/signup" class="btn-primary">Create your business page</a>
