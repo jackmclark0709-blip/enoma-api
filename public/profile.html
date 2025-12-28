@@ -1061,6 +1061,25 @@ body {
   margin-top: 1.5rem;
 }
 
+.hero-simple {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.75rem;
+}
+
+/* Logo container */
+.hero-logo {
+  margin-bottom: 0.5rem;
+}
+
+.hero-logo img {
+  max-height: 64px;
+  width: auto;
+  display: block;
+}
+
 
   </style>
 
@@ -1082,19 +1101,27 @@ body {
 <!-- ================= HERO ================= -->
 <section class="hero-wrapper">
   <div class="hero-simple">
+
+    <!-- Logo slot (optional) -->
+    <div class="hero-logo hidden" id="heroLogo">
+      <img id="logoImage" alt="" />
+    </div>
+
+    <!-- Main text -->
     <h1 id="name"></h1>
     <p id="tagline" class="hero-tagline"></p>
 
+    <!-- Primary CTA -->
     <div class="hero-actions hidden" id="primaryAction">
       <a id="primaryCtaButton" class="primary-cta"></a>
     </div>
 
-<div class="hero-meta" id="heroMeta"></div>
+    <!-- Meta info -->
+    <div class="hero-meta" id="heroMeta"></div>
 
-
-         </div>
   </div>
 </section>
+
 
 
 
@@ -1321,21 +1348,24 @@ if (!slug && !businessId) return;
 
 
   // ===== Bind DOM elements ONCE =====
-  const els = {
-    name: document.getElementById("name"),
-    tagline: document.getElementById("tagline"),
-    about: document.getElementById("about"),
-    logo: document.getElementById("logo"),
-    avatar: document.getElementById("avatar"),
-    services: document.getElementById("services-grid"),
-    gallery: document.getElementById("gallery"),
-    map: document.getElementById("map"),
-    hours: document.getElementById("hours"),
-    rating: document.getElementById("rating"),
-    reviews: document.getElementById("reviews"),
-    googleSection: document.getElementById("googleSection"),
-    midCTA: document.getElementById("midCTA")
-  };
+const els = {
+  name: document.getElementById("name"),
+  tagline: document.getElementById("tagline"),
+  about: document.getElementById("about"),
+
+  heroLogoWrap: document.getElementById("heroLogo"),
+  heroLogoImg: document.getElementById("logoImage"),
+
+  services: document.getElementById("services-grid"),
+  gallery: document.getElementById("gallery"),
+  map: document.getElementById("map"),
+  hours: document.getElementById("hours"),
+  rating: document.getElementById("rating"),
+  reviews: document.getElementById("reviews"),
+  googleSection: document.getElementById("googleSection"),
+  midCTA: document.getElementById("midCTA")
+};
+
 
   // ===== Fetch profile =====
 const res = await fetch(
@@ -1399,13 +1429,13 @@ if (contactEmail && p.email) {
   if (els.about) els.about.textContent = p.about || "";
 
   /* ================= Media ================= */
-  if (p.logo_url && els.logo) {
-    els.logo.src = p.logo_url;
-    els.logo.classList.remove("hidden");
-  } else if (p.profile_image && els.avatar) {
-    els.avatar.src = p.profile_image;
-    els.avatar.classList.remove("hidden");
-  }
+/* ================= Hero Logo ================= */
+if (p.logo_url && els.heroLogoImg && els.heroLogoWrap) {
+  els.heroLogoImg.src = p.logo_url;
+  els.heroLogoImg.alt = `${p.business_name} logo`;
+  els.heroLogoWrap.classList.remove("hidden");
+}
+
 
 const primaryAction = document.getElementById("primaryAction");
 const primaryCtaButton = document.getElementById("primaryCtaButton");
