@@ -22,6 +22,10 @@
 
 <link rel="stylesheet" href="/styles/enoma.css">
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
 
  <style>
 /* =========================================================
@@ -61,6 +65,7 @@ body {
   margin: 3.5rem auto;
   padding: 3rem 1.5rem;
   background: white;
+  border-radius: 20px;
 }
 
 .section h2 {
@@ -68,7 +73,8 @@ body {
   font-weight: 700;
   color: var(--blue);
   margin-bottom: 0.75rem;
-  font-family: 'Poppins', sans-serif;
+    font-family: 'Poppins', sans-serif;
+  letter-spacing: -0.02em;
 
 }
 
@@ -78,6 +84,21 @@ body {
   color: #4b5563;
   max-width: 900px;
 }
+
+.section:nth-of-type(even) {
+  background: #fcfcff;
+}
+
+.section::before {
+  content: "";
+  display: block;
+  width: 48px;
+  height: 4px;
+  background: linear-gradient(90deg, var(--lavender), var(--blue));
+  border-radius: 999px;
+  margin-bottom: 1.25rem;
+}
+
 
 
 
@@ -100,8 +121,8 @@ body {
 
 .hero-layout {
   display: grid;
-  grid-template-columns: 35% 65%;
-  gap: 3rem;
+  grid-template-columns: 320px 1fr;
+  gap: 4rem;
   align-items: center;
 }
 
@@ -129,12 +150,12 @@ body {
 }
 
 .hero-content h1 {
-  font-size: clamp(2rem, 4vw, 2.6rem);
+  font-size: clamp(2.2rem, 4vw, 3rem);
+  line-height: 1.15;
   font-weight: 700;
-  letter-spacing: -0.02em;
   margin-bottom: 0.5rem;
   font-family: 'Poppins', sans-serif;
-
+  letter-spacing: -0.02em;
 }
 
 .hero-tagline {
@@ -159,6 +180,19 @@ body {
   border-radius: 999px;
   font-weight: 600;
 }
+
+#aboutSection .container {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 3rem;
+}
+
+#aboutSection p {
+  background: #f8f7ff;
+  padding: 1.75rem;
+  border-radius: 16px;
+}
+
 
 /* =========================================================
    BUTTONS & CTAs
@@ -201,7 +235,12 @@ body {
   border: 1px solid #eee;
   border-radius: 16px;
   padding: 1.75rem;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.service-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.08);
 }
 
 .service-card:first-child {
@@ -212,6 +251,8 @@ body {
 .service-card h3 {
   font-size: 1.05rem;
   margin-bottom: 0.5rem;
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: -0.02em;
 }
 
 .service-price {
@@ -285,6 +326,8 @@ body {
   font-size: 1.2rem;
   margin-bottom: 1.25rem;
   color: var(--blue);
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: -0.02em;
 }
 
 /* Testimonials */
@@ -378,11 +421,20 @@ body {
   top: 0;
   z-index: 1000;
   width: 100%;
-  background: white;
+ backdrop-filter: saturate(180%) blur(6px);
+  background: rgba(255,255,255,0.85);
   border-bottom: 1px solid #eee;
   height: 64px;
   display: flex;
   align-items: center;
+}
+
+a, button {
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+
+a:hover {
+  transform: translateY(-1px);
 }
 
 /* Pills */
