@@ -364,6 +364,45 @@ body {
   border: none;
 }
 
+.contact-strip { 
+display: flex; 
+gap: 1rem; 
+justify-content: center; 
+padding: 1.25rem 1rem; 
+background: white; 
+border-bottom: 1px solid #eee; 
+position: sticky; 
+top: 56px; /* below header */ 
+z-index: 90; 
+} 
+
+.contact-pill { 
+padding: 0.55rem 1.25rem; 
+border-radius: 999px; 
+font-weight: 600; 
+font-size: 0.9rem; 
+text-decoration: none; 
+background: #f4f4f8; 
+color: var(--blue); 
+border: 1px solid #e5e7eb; 
+transition: background 0.15s ease, transform 0.15s ease; 
+} 
+
+.contact-pill:hover { 
+background: var(--lavender); 
+color: white; 
+transform: translateY(-1px); 
+} 
+
+.contact-pill.call { 
+background: var(--blue); 
+color: white; 
+} 
+
+.contact-pill.call:hover { 
+background: #1a1245; 
+}
+
 /* =========================================================
    RESPONSIVE
    ========================================================= */
