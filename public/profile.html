@@ -609,6 +609,14 @@ a:hover {
   padding: 0 1.5rem;
 }
 
+.contactStrip h1 {
+color: var(--brand-primary);
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+
+
 .contact-brand {
   display: flex;
   align-items: center;
@@ -643,8 +651,8 @@ a:hover {
   }
 
   .profile-avatar {
-    width: 140px;
-    height: 140px;
+    width: 220px;
+    height: 220px;
   }
 }
 
@@ -880,7 +888,7 @@ color: #1f2329;
 
     <!-- LEFT: Brand -->
     <div class="contact-brand">
-      <img id="businessLogo" alt="" />
+        <h1 id="name"></h1>
     </div>
 
     <!-- RIGHT: Actions -->
@@ -929,8 +937,7 @@ color: #1f2329;
 
       <!-- Right: Content -->
       <div class="hero-content">
-        <h1 id="name"></h1>
-        <p id="tagline" class="hero-tagline"></p>
+        <h1 id="tagline" class="hero-tagline"></h1>
 
         <div class="hero-actions hidden" id="primaryAction">
           <a id="primaryCtaButton" class="primary-cta"></a>
