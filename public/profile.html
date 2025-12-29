@@ -1123,6 +1123,23 @@ body {
   margin-top: 0.75rem;
 }
 
+.service-card--primary {
+  border: 2px solid #9A8CFF;
+  box-shadow: 0 12px 30px rgba(154,140,255,.2);
+}
+
+.service-badge {
+  display: inline-block;
+  font-size: .75rem;
+  font-weight: 600;
+  color: #4B3EFF;
+  margin-bottom: .5rem;
+}
+.social-links a {
+  margin-right: 1rem;
+  font-weight: 500;
+}
+
 
   </style>
 
@@ -1209,7 +1226,7 @@ body {
       <path d="M9 16h6"/>
       <path d="M9 20h4"/>
     </svg>
-    Contact form
+    Request a Quote
   </a>
 </nav>
 
@@ -1274,7 +1291,8 @@ body {
 <section class="band band--lavender hidden" id="locationBand">
   <div class="container">
     <div class="hidden" id="towns">
-      <h2>Areas We Serve</h2>
+<h2>Areas We Serve</h2>
+<p class="muted">Serving residential and commercial properties in:</p>
       <div id="townList"></div>
     </div>
 
@@ -1294,6 +1312,14 @@ body {
     </div>
   </div>
 </section>
+
+<section class="section hidden" id="socialSection">
+  <div class="container">
+    <h3>Find us on social media</h3>
+    <div class="social-links" id="socialLinks"></div>
+  </div>
+</section>
+
 
 <!-- ================= CONTACT ================= -->
 <section class="section contact" id="contact">
@@ -1474,7 +1500,16 @@ if (contactEmail && p.email) {
   /* ================= Core Content ================= */
   if (els.name) els.name.textContent = p.business_name || "";
   if (els.tagline) els.tagline.textContent = p.hero_tagline || "";
-  if (els.about) els.about.textContent = p.about || "";
+if (els.about && p.about) {
+  const parts = p.about.split(". ");
+  if (parts.length > 1) {
+    els.about.innerHTML = `
+      <strong>${parts[0]}.</strong> ${parts.slice(1).join(". ")}
+    `;
+  } else {
+    els.about.textContent = p.about;
+  }
+}
 
   /* ================= Media ================= */
 /* ================= Hero Logo ================= */
@@ -1652,6 +1687,28 @@ if (
   statusEl.classList.remove("hidden");
 }
 
+const socialSection = document.getElementById("socialSection");
+const socialLinks = document.getElementById("socialLinks");
+
+if (socialSection && socialLinks) {
+  const socials = [];
+
+  if (p.facebook_url) socials.push({ label: "Facebook", url: p.facebook_url });
+  if (p.instagram_url) socials.push({ label: "Instagram", url: p.instagram_url });
+  if (p.google_place_id)
+    socials.push({
+      label: "Google",
+      url: `https://www.google.com/maps/place/?q=place_id:${p.google_place_id}`
+    });
+
+  if (socials.length) {
+    socialLinks.innerHTML = socials
+      .map(s => `<a href="${s.url}" target="_blank" rel="noopener">${s.label}</a>`)
+      .join("");
+    socialSection.classList.remove("hidden");
+  }
+}
+
 
 
 const faqSection = document.getElementById("faqs");
@@ -1756,22 +1813,24 @@ const servicesSection = document.getElementById("servicesSection");
 const servicesData = safeParse(p.services);
 
 if (els.services && servicesData.length) {
-  els.services.innerHTML = servicesData
-    .map(s => `
-      <div class="service-card">
-        <h3>${s.service_name || ""}</h3>
-        ${s.service_description ? `<p>${s.service_description}</p>` : ""}
-        ${
-          Array.isArray(s.benefits) && s.benefits.length
-            ? `<ul class="service-benefits">
-                ${s.benefits.map(b => `<li>${b}</li>`).join("")}
-              </ul>`
-            : ""
-        }
-        ${s.price ? `<div class="service-price">Starting at ${s.price}</div>` : ""}
-      </div>
-    `)
-    .join("");
+ els.services.innerHTML = servicesData
+  .map((s, i) => `
+    <div class="service-card ${i === 0 ? "service-card--primary" : ""}">
+      ${i === 0 ? `<span class="service-badge">Most requested</span>` : ""}
+      <h3>${s.service_name || ""}</h3>
+      ${s.service_description ? `<p>${s.service_description}</p>` : ""}
+      ${
+        Array.isArray(s.benefits) && s.benefits.length
+          ? `<ul class="service-benefits">
+              ${s.benefits.map(b => `<li>${b}</li>`).join("")}
+            </ul>`
+          : ""
+      }
+      ${s.price ? `<div class="service-price">Starting at ${s.price}</div>` : ""}
+    </div>
+  `)
+  .join("");
+
 
   servicesSection?.classList.remove("hidden");
 }
