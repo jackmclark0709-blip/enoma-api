@@ -1113,6 +1113,40 @@ const safeParse = v => {
   }
 };
 
+function extractDominantColor(img, callback) {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+
+  const size = 64;
+  canvas.width = size;
+  canvas.height = size;
+
+  ctx.drawImage(img, 0, 0, size, size);
+
+  const data = ctx.getImageData(0, 0, size, size).data;
+  const colors = {};
+
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const a = data[i + 3];
+
+    // Ignore transparent & near-white pixels
+    if (a < 200) continue;
+    if (r > 235 && g > 235 && b > 235) continue;
+
+    const key = `${Math.round(r / 16) * 16},${Math.round(g / 16) * 16},${Math.round(b / 16) * 16}`;
+    colors[key] = (colors[key] || 0) + 1;
+  }
+
+  const dominant = Object.entries(colors).sort((a, b) => b[1] - a[1])[0];
+  if (!dominant) return;
+
+  callback(`rgb(${dominant[0]})`);
+}
+
+
 
 function trackContactClick(type) {
   if (!window.profileData?.username) return;
@@ -1257,12 +1291,34 @@ if (els.about && p.about) {
 
   /* ================= Media ================= */
 /* ================= Hero Logo ================= */
+/* ================= Hero Logo + Brand Color ================= */
 if (p.logo_url && els.heroLogoImg && els.heroLogoWrap) {
-  els.heroLogoImg.src = p.logo_url;
-  els.heroLogoImg.alt = `${p.business_name} logo`;
+  const img = els.heroLogoImg;
+
+  img.crossOrigin = "anonymous";
+  img.src = p.logo_url;
+  img.alt = `${p.business_name} logo`;
+
+  img.onload = () => {
+    extractDominantColor(img, color => {
+      const root = document.documentElement;
+
+      const finalColor = color || "#2f8f3a"; // fallback
+
+      root.style.setProperty("--brand-primary", finalColor);
+      root.style.setProperty(
+        "--brand-primary-10",
+        `color-mix(in srgb, ${finalColor} 10%, transparent)`
+      );
+      root.style.setProperty(
+        "--brand-primary-30",
+        `color-mix(in srgb, ${finalColor} 30%, transparent)`
+      );
+    });
+  };
+
   els.heroLogoWrap.classList.remove("hidden");
 }
-
 
 const primaryAction = document.getElementById("primaryAction");
 const primaryCtaButton = document.getElementById("primaryCtaButton");
