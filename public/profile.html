@@ -264,12 +264,43 @@ body {
 }
 
 .service-card {
+ position: relative;
+  padding-top: 2.25rem; /* create room for badge overlap */
   background: white;
   border: 1px solid #eee;
   border-radius: 16px;
   padding: 1.75rem;
   transition: transform .2s ease, box-shadow .2s ease;
 }
+
+.service-badge {
+  display: inline-block;
+  padding: 0.35rem 0.85rem;
+
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+
+  color: var(--brand-primary);
+  background: var(--surface);
+  border: 1px solid var(--brand-primary);
+
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+
+}
+
+
+
+.service-badge-wrap {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
 
 .service-card:hover {
   transform: translateY(-4px);
@@ -533,7 +564,7 @@ a:hover {
 
 .service-card--primary {
   background: var(--brand-primary-soft);
-  border-color: var(--brand-primary);
+  border: 1.5px solid var(--brand-primary);
 }
 
 .contact-pill:hover {
@@ -1560,8 +1591,9 @@ const servicesData = safeParse(p.services);
 if (els.services && servicesData.length) {
  els.services.innerHTML = servicesData
   .map((s, i) => `
-    <div class="service-card ${i === 0 ? "service-card--primary" : ""}">
-      ${i === 0 ? `<span class="service-badge">Most requested</span>` : ""}
+  <div class="service-card ${i === 0 ? "service-card--primary" : ""}">
+  ${i === 0 ? `<div class="service-badge-wrap"><span class="service-badge">Most requested</span></div>` : ""}
+
       <h3>${s.service_name || ""}</h3>
       ${s.service_description ? `<p>${s.service_description}</p>` : ""}
       ${
