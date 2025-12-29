@@ -476,10 +476,6 @@
   padding: 2.25rem;
 }
 
-.section + .section {
-  margin-top: 3rem;
-}
-
 
 
 /* Service cards feel interactive */
@@ -1191,6 +1187,79 @@ body {
 .contact p {
   max-width: 520px;
 }
+.services-area {
+  margin-top: 3.5rem;
+  padding-top: 2.5rem;
+  border-top: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+.services-area h2 {
+  font-size: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.trust-block {
+  margin-top: 3.5rem;
+}
+
+.trust-block h3 {
+  font-size: 1.2rem;
+  margin-bottom: 1.25rem;
+  color: var(--blue);
+}
+#testimonialList {
+  display: flex;
+  justify-content: center;
+}
+
+.testimonial {
+  margin: 0 auto;
+}
+.testimonial::before {
+  content: "“";
+  font-size: 3rem;
+  line-height: 1;
+  color: var(--lavender);
+  display: block;
+  margin-bottom: -0.5rem;
+}
+#socialSection {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px dashed #e5e7eb;
+}
+
+#socialSection h3 {
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+#faqs {
+  padding-top: 2.5rem;
+  border-top: 1px solid #ececf3;
+}
+.section {
+  margin: 3.5rem auto;
+}
+
+.band {
+  margin-top: 4rem;
+}
+
+.section:not(:first-of-type)::before {
+  content: "";
+  display: block;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(0,0,0,0.08),
+    transparent
+  );
+  margin-bottom: 3rem;
+}
+
+
 
 
   </style>
@@ -1314,7 +1383,7 @@ body {
   </p>
 </div>
 
-    <div class="hidden" id="towns">
+<div class="services-area hidden" id="towns">
 <h2>Areas We Serve</h2>
 <p class="muted">Serving residential and commercial properties in:</p>
       <div id="townList"></div>
@@ -1336,7 +1405,7 @@ body {
 
 
     <!-- Testimonials -->
-    <div class="hidden" id="testimonials" style="margin-top:3rem;">
+<div class="trust-block hidden" id="testimonials">
       <h3>What Clients Say</h3>
       <div id="testimonialList"></div>
     </div>
