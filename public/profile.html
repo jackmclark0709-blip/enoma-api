@@ -1102,6 +1102,8 @@ body {
 
 .services-cta {
   margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid #ececf3;
   text-align: center;
 }
 
@@ -1111,9 +1113,34 @@ body {
 }
 
 .services-cta-note {
+  margin-top: 0.75rem;
   font-size: 0.9rem;
   color: #6b7280;
 }
+
+.services-cta-card {
+  margin-top: 3rem;
+  padding: 2rem;
+  background: #f7f6ff;
+  border-radius: 16px;
+  text-align: center;
+}
+
+.services-cta-card h3 {
+  margin-bottom: 0.5rem;
+}
+
+.services-cta-card p {
+  margin-bottom: 1.25rem;
+  color: #555;
+}
+
+.services-cta-note {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: #666;
+}
+
 
 .service-card h3 {
   margin-bottom: 0.5rem;
@@ -1280,12 +1307,20 @@ body {
 
     <div id="services-grid" class="service-grid"></div>
 
-<div class="services-cta">
-  <a id="quickCall" class="primary-cta">Get a Free Quote</a>
+<div class="services-cta-card">
+  <h3>Need help choosing a service?</h3>
+
+  <div class="services-cta-actions">
+    <a id="quickCall" class="primary-cta">Call for a Free Quote</a>
+    <a href="#contact" class="secondary-cta">Request a Quote Online</a>
+  </div>
+
   <p class="services-cta-note">
-    Don’t see your service listed? We offer custom solutions.
+    No obligation • Fast response • Local service
   </p>
 </div>
+
+
 
 
   </div>
