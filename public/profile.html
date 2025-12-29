@@ -47,15 +47,28 @@
   /* ===============================
      BUSINESS BRAND COLORS (DYNAMIC)
      =============================== */
-  --brand-primary: #2f8f3a;        /* derived from logo */
-  --brand-primary-soft: #e9f6ec;
+  --brand-primary: #2f8f3a;
   --brand-primary-contrast: #ffffff;
+
+  /* ⬇️ ADD THESE (derived from brand-primary) */
+  --brand-primary-30: color-mix(
+    in srgb,
+    var(--brand-primary) 30%,
+    transparent
+  );
+
+  --brand-primary-10: color-mix(
+    in srgb,
+    var(--brand-primary) 10%,
+    transparent
+  );
 
   /* ===============================
      ENOMA ACCENT (RARE USE ONLY)
      =============================== */
   --enoma-accent: #9A8CFF;
 }
+
 
 body {
   margin: 0;
@@ -264,8 +277,8 @@ body {
 }
 
 .service-card:first-child {
-  border-left: 4px solid var(--lavender);
-  background: linear-gradient(180deg, #ffffff, #faf9ff);
+  border-left: 4px solid var(--brand-primary);
+  background: var(--brand-primary-10);
 }
 
 .service-card h3 {
@@ -399,7 +412,7 @@ body {
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
   border-radius: 8px;
-  background: var(--surface-alt);
+  background: var(--brand-primary-10);
   font-weight: 500;
   text-decoration: none;
   color: var(--blue);
@@ -566,7 +579,7 @@ a:hover {
 }
 
 .hero-status span {
-  background: var(--surface-alt);
+  background: var(--brand-primary-10);
   padding: 0.35rem 0.75rem;
   border-radius: 999px;
   font-weight: 600;
