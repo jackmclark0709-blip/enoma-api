@@ -101,7 +101,7 @@ body {
 .hero-inner {
   max-width: 900px;
   margin: 0 auto;
-  padding: 7rem 1.5rem 6rem;
+  padding: 5.5rem 1.5rem 6rem;
 }
 
 .hero-layout {
@@ -364,19 +364,15 @@ body {
   border: none;
 }
 
-.contact-strip { 
-  top: 0; /* replaces profile-nav */
+.contact-strip {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  display: flex;
+  background: white;
+  border-bottom: 1px solid #eee;
+}
 
-display: flex; 
-gap: 1rem; 
-justify-content: center; 
-padding: 1.25rem 1rem; 
-background: white; 
-border-bottom: 1px solid #eee; 
-position: sticky; 
-top: 56px; /* below header */ 
-z-index: 90; 
-} 
 
 .contact-pill { 
 padding: 0.55rem 1.25rem; 
@@ -402,6 +398,8 @@ transform: translateY(-1px);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  height: 64px;
+
 }
 
 .contact-brand img {
@@ -777,6 +775,15 @@ window.dispatchEvent(
 );
 
 /* ================= Contact Strip CTA Wiring ================= */
+
+const navLogo = document.getElementById("businessLogo");
+
+if (navLogo && p.logo_url) {
+  navLogo.src = p.logo_url;
+  navLogo.alt = p.business_name || "Business logo";
+  navLogo.style.display = "block";
+}
+
 
 
 const contactCall = document.getElementById("contactCall");
