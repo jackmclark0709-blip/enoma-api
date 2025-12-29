@@ -865,6 +865,34 @@ color: #1f2329;
   color: var(--brand-primary);
 }
 
+.brand-text {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.brand-text::after {
+  content: "";
+  display: block;
+  height: 3px;
+  width: 22px;
+  margin-top: 4px;
+  background: var(--brand-primary);
+  border-radius: 999px;
+}
+
+.hero-headline {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+}
 
 
 
@@ -889,10 +917,9 @@ color: #1f2329;
   <div class="contact-strip-inner">
 
     <!-- LEFT: Brand -->
-    <div class="contact-brand">
-        <h1 id="name"></h1>
-    </div>
-
+<div class="contact-brand">
+  <span id="businessName" class="brand-text"></span>
+</div>
     <!-- RIGHT: Actions -->
     <div class="contact-actions">
       <a id="contactCall" class="contact-pill call">
@@ -939,7 +966,8 @@ color: #1f2329;
 
       <!-- Right: Content -->
       <div class="hero-content">
-        <h1 id="tagline" class="hero-tagline"></h1>
+<h1 id="heroHeadline" class="hero-headline"></h1>
+<p id="tagline" class="hero-tagline"></p>
 
         <div class="hero-actions hidden" id="primaryAction">
           <a id="primaryCtaButton" class="primary-cta"></a>
@@ -1285,8 +1313,8 @@ if (contactEmail && p.email) {
   twitter_description.content = seo_description.content;
 
   /* ================= Core Content ================= */
-  if (els.name) els.name.textContent = p.business_name || "";
-  if (els.tagline) els.tagline.textContent = p.hero_tagline || "";
+const navBrand = document.getElementById("businessName");
+if (navBrand) navBrand.textContent = p.business_name || "";  if (els.tagline) els.tagline.textContent = p.hero_tagline || "";
 if (els.about && p.about) {
   const parts = p.about.split(". ");
   if (parts.length > 1) {
@@ -1297,6 +1325,19 @@ if (els.about && p.about) {
     els.about.textContent = p.about;
   }
 }
+
+const heroHeadline = document.getElementById("heroHeadline");
+
+if (heroHeadline) {
+  heroHeadline.textContent =
+    p.hero_headline ||
+    `Reliable ${p.primary_service || "local services"} in ${p.hero_location || "your area"}`;
+}
+
+if (els.tagline) {
+  els.tagline.textContent = p.hero_tagline || "";
+}
+
 
   /* ================= Media ================= */
 /* ================= Hero Logo ================= */
