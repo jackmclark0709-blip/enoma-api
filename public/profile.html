@@ -1140,6 +1140,33 @@ body {
   font-weight: 500;
 }
 
+.social-links {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.social-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: #f6f6fb;
+  font-weight: 500;
+  text-decoration: none;
+  color: #211551;
+}
+
+.social-link:hover {
+  background: #ecebff;
+}
+
+.social-link svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
 
   </style>
 
@@ -1692,18 +1719,47 @@ if (
 const socialSection = document.getElementById("socialSection");
 const socialLinksEl = document.getElementById("socialLinks");
 
+const SOCIAL_ICONS = {
+  facebook: `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M22 12a10 10 0 1 0-11.5 9.9v-7h-2v-3h2V9.8c0-2 1.2-3.1 3-3.1.9 0 1.8.1 1.8.1v2h-1c-1 0-1.3.6-1.3 1.2V12h2.6l-.4 3h-2.2v7A10 10 0 0 0 22 12z"/>
+    </svg>
+  `,
+  instagram: `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="2" y="2" width="20" height="20" rx="5"/>
+      <circle cx="12" cy="12" r="4"/>
+      <circle cx="18" cy="6" r="1"/>
+    </svg>
+  `,
+  google: `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/>
+    </svg>
+  `
+};
+
 if (socialSection && socialLinksEl) {
   const socials = safeParse(p.social_links);
 
   if (socials && typeof socials === "object") {
     const entries = Object.entries(socials).filter(
-      ([, url]) => typeof url === "string" && url.trim()
+      ([platform, url]) =>
+        SOCIAL_ICONS[platform] &&
+        typeof url === "string" &&
+        url.trim()
     );
 
     if (entries.length) {
       socialLinksEl.innerHTML = entries
         .map(([platform, url]) => `
-          <a href="${url}" target="_blank" rel="noopener">
+          <a
+            href="${url}"
+            class="social-link"
+            target="_blank"
+            rel="noopener"
+          >
+            ${SOCIAL_ICONS[platform]}
             ${platform.charAt(0).toUpperCase() + platform.slice(1)}
           </a>
         `)
@@ -1713,6 +1769,7 @@ if (socialSection && socialLinksEl) {
     }
   }
 }
+
 
 
 
