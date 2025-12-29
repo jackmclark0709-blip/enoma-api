@@ -1688,24 +1688,27 @@ if (
 }
 
 const socialSection = document.getElementById("socialSection");
-const socialLinks = document.getElementById("socialLinks");
+const socialLinksEl = document.getElementById("socialLinks");
 
-if (socialSection && socialLinks) {
-  const socials = [];
+if (socialSection && socialLinksEl) {
+  const socials = safeParse(p.social_links);
 
-  if (p.facebook_url) socials.push({ label: "Facebook", url: p.facebook_url });
-  if (p.instagram_url) socials.push({ label: "Instagram", url: p.instagram_url });
-  if (p.google_place_id)
-    socials.push({
-      label: "Google",
-      url: `https://www.google.com/maps/place/?q=place_id:${p.google_place_id}`
-    });
+  if (socials && typeof socials === "object") {
+    const entries = Object.entries(socials).filter(
+      ([, url]) => typeof url === "string" && url.trim()
+    );
 
-  if (socials.length) {
-    socialLinks.innerHTML = socials
-      .map(s => `<a href="${s.url}" target="_blank" rel="noopener">${s.label}</a>`)
-      .join("");
-    socialSection.classList.remove("hidden");
+    if (entries.length) {
+      socialLinksEl.innerHTML = entries
+        .map(([platform, url]) => `
+          <a href="${url}" target="_blank" rel="noopener">
+            ${platform.charAt(0).toUpperCase() + platform.slice(1)}
+          </a>
+        `)
+        .join("");
+
+      socialSection.classList.remove("hidden");
+    }
   }
 }
 
