@@ -530,6 +530,49 @@ a:hover {
     height: 140px;
   }
 }
+
+
+
+.hero-status {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1.25rem;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.hero-status span {
+  background: #f1f0ff;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+#aboutSection p strong {
+  display: block;
+  font-size: 1.15rem;
+  color: var(--blue);
+  margin-bottom: 0.75rem;
+}
+
+.trust-divider {
+  margin: 4rem auto;
+  padding: 1.75rem 1.5rem;
+  max-width: 900px;
+  text-align: center;
+  background: linear-gradient(
+    90deg,
+    rgba(154,140,255,0.08),
+    rgba(33,21,81,0.08)
+  );
+  border-radius: 16px;
+  font-weight: 600;
+  color: var(--blue);
+}
+
+
+
 </style>
 
 
@@ -607,6 +650,13 @@ a:hover {
           <a id="primaryCtaButton" class="primary-cta"></a>
         </div>
 
+<div class="hero-status">
+  <span>✔ Accepting new clients</span>
+  <span>✔ Locally owned</span>
+  <span>✔ Fast response</span>
+</div>
+
+
         <div class="hero-meta" id="heroMeta"></div>
       </div>
 
@@ -646,14 +696,16 @@ a:hover {
   </p>
 </div>
 
+  </div>
+</section>
+
+<section class="trust-divider">
+
 <div class="services-area hidden" id="towns">
 <h2>Areas We Serve</h2>
 <p class="muted">Serving residential and commercial properties in:</p>
       <div id="townList"></div>
     </div>
-
-
-  </div>
 </section>
 
 
