@@ -174,7 +174,6 @@ body {
   margin-bottom: 0.5rem;
   font-family: 'Poppins', sans-serif;
   letter-spacing: -0.02em;
-color: #FFC0CB
 }
 
 .hero-tagline {
@@ -207,7 +206,7 @@ color: #FFC0CB
 }
 
 #aboutSection p {
-  background: #f8f7ff;
+  background: var(--surface-alt);
   padding: 1.75rem;
   border-radius: 16px;
 }
@@ -367,7 +366,7 @@ color: #FFC0CB
 .testimonial::before {
   content: "“";
   font-size: 3rem;
-  color: var(--lavender);
+  color: var(--brand-primary);
   display: block;
   margin-bottom: -0.5rem;
 }
@@ -400,7 +399,7 @@ color: #FFC0CB
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
   border-radius: 8px;
-  background: #f6f6fb;
+  background: var(--surface-alt);
   font-weight: 500;
   text-decoration: none;
   color: var(--blue);
@@ -470,22 +469,27 @@ a:hover {
   font-size: 0.9rem;
   text-decoration: none;
 
-  background: var(--brand-primary);
-  color: var(--brand-primary-contrast);
-  border: 1px solid #e5e7eb;
+  background: var(--surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
 
   transition: background 0.15s ease, transform 0.15s ease;
 }
 
+.service-card--primary {
+  background: var(--brand-primary-soft);
+  border-color: var(--brand-primary);
+}
+
 .contact-pill:hover {
   background: var(--brand-primary);
-  color: white;
+  color: var(--brand-primary-contrast);
   transform: translateY(-1px);
 }
 
 .contact-pill.call {
-  background: var(--blue);
-  color: white;
+  background: var(--brand-primary);
+  color: var(--brand-primary-contrast);
 }
 
 .contact-pill.call:hover {
@@ -562,7 +566,7 @@ a:hover {
 }
 
 .hero-status span {
-  background: #f1f0ff;
+  background: var(--surface-alt);
   padding: 0.35rem 0.75rem;
   border-radius: 999px;
   font-weight: 600;
@@ -615,7 +619,7 @@ a:hover {
   transform: translateX(-50%);
   width: 60px;
   height: 3px;
-  background: #9a8cff; /* Enoma lavender */
+  background: var(--brand-primary);
   border-radius: 2px;
 }
 #whySection h2 {
@@ -631,7 +635,7 @@ a:hover {
 #testimonials {
   margin-top: 3rem;
   padding: 2rem;
-  background: #f6f7fb;
+  background: var(--surface-alt);
   border-radius: 12px;
   border: 1px solid rgba(0,0,0,0.05);
 }
