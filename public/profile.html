@@ -537,51 +537,6 @@ vertical-align: middle;
   </div>
 </section>
 
-
-
-
-
-<!-- ================= QUICK CONTACT STRIP ================= -->
-<nav class="contact-strip hidden" id="contactStrip">
-  <a id="contactCall" class="contact-pill call">
-    <svg
-      class="icon"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-    >
-      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.08 4.18 2 2 0 0 1 4.06 2h3a2 2 0 0 1 2 1.72c.12.86.31 1.7.57 2.5a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.58-1.09a2 2 0 0 1 2.11-.45c.8.26 1.64.45 2.5.57A2 2 0 0 1 22 16.92z"/>
-    </svg>
-    Call
-  </a>
-
-  <a id="contactEmail" class="contact-pill">
-    <svg
-      class="icon"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-    >
-      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-      <path d="m22 6-10 7L2 6"/>
-    </svg>
-    Email
-  </a>
-
-  <a href="#contact" class="contact-pill">
-    <svg
-      class="icon"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-    >
-      <path d="M9 5H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
-      <path d="M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2H9V5z"/>
-      <path d="M9 12h6"/>
-      <path d="M9 16h6"/>
-      <path d="M9 20h4"/>
-    </svg>
-    Request a Quote
-  </a>
-</nav>
-
 <section class="section" id="aboutSection">
   <div class="container">
     <h2>About</h2>
@@ -822,14 +777,6 @@ window.dispatchEvent(
 );
 
 /* ================= Contact Strip CTA Wiring ================= */
-
-const navLogo = document.getElementById("businessLogo");
-
-if (profile.logo_url && navLogo) {
-  navLogo.src = profile.logo_url;
-  navLogo.alt = profile.business_name || "Business logo";
-  navLogo.style.display = "block";
-}
 
 
 const contactCall = document.getElementById("contactCall");
