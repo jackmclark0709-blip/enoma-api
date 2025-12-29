@@ -258,13 +258,24 @@
 
     /* ================= Testimonials ================= */
     .testimonial {
-      background: #fafafa;
-      padding: 1.25rem;
-      border-radius: 12px;
-      border: 1px solid #eee;
-      margin-top: 1rem;
+     background: white;
+  border-left: 4px solid var(--lavender);
+  padding: 1.5rem 1.75rem;
+  border-radius: 14px;
+  max-width: 720px;
       font-style: italic;
     }
+
+.testimonial p {
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.testimonial strong {
+  display: block;
+  margin-top: 0.75rem;
+  font-style: normal;
+}
 
     /* ================= Contact ================= */
     .contact form {
@@ -360,6 +371,8 @@
 #towns {
   padding-bottom: 2.5rem;
   border-bottom: 1px solid #e5e7eb;
+  text-align: center;
+
 }
 
 /* HERO LOGO / PROFILE IMAGE */
@@ -706,6 +719,8 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
+  justify-content: center;
+
 }
 
 .town {
@@ -1120,6 +1135,13 @@ body {
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
+  justify-content: center;
+}
+
+#socialSection {
+  background: transparent;
+  padding: 0;
+  margin-top: 2rem;
 }
 
 .social-link {
@@ -1161,6 +1183,13 @@ body {
 .primary-cta:hover {
   transform: translateY(-2px);
   box-shadow: 0 18px 45px rgba(0,0,0,0.28);
+}
+.contact {
+  background: #f9fafb;
+}
+
+.contact p {
+  max-width: 520px;
 }
 
 
