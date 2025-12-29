@@ -32,11 +32,29 @@
    DESIGN TOKENS
    ========================================================= */
 :root {
-  --blue: #211551;
-  --lavender: #9A8CFF;
-  --green: #50A684;
+  /* ===============================
+     SYSTEM / NEUTRAL COLORS (NEVER CHANGE)
+     =============================== */
   --bg: #f6f7fb;
-  --text: #1c1c1c;
+  --surface: #ffffff;
+  --surface-alt: #fcfcff;
+  --border: #e5e7eb;
+
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-muted: #6b7280;
+
+  /* ===============================
+     BUSINESS BRAND COLORS (DYNAMIC)
+     =============================== */
+  --brand-primary: #2f8f3a;        /* derived from logo */
+  --brand-primary-soft: #e9f6ec;
+  --brand-primary-contrast: #ffffff;
+
+  /* ===============================
+     ENOMA ACCENT (RARE USE ONLY)
+     =============================== */
+  --enoma-accent: #9A8CFF;
 }
 
 body {
@@ -71,7 +89,7 @@ body {
 .section h2 {
   font-size: 1.6rem;
   font-weight: 700;
-  color: var(--blue);
+  color: var(--text-primary);
   margin-bottom: 0.75rem;
     font-family: 'Poppins', sans-serif;
   letter-spacing: -0.02em;
@@ -94,7 +112,7 @@ body {
   display: block;
   width: 48px;
   height: 4px;
-  background: linear-gradient(90deg, var(--lavender), var(--blue));
+  background: var(--brand-primary);
   border-radius: 999px;
   margin-bottom: 1.25rem;
 }
@@ -198,8 +216,8 @@ body {
    BUTTONS & CTAs
    ========================================================= */
 .primary-cta {
-  background: var(--blue);
-  color: white;
+  background: var(--brand-primary);
+  color: var(--brand-primary-contrast);
   padding: 0.9rem 2.1rem;
   border-radius: 999px;
   font-weight: 700;
@@ -211,6 +229,8 @@ body {
 .primary-cta:hover {
   transform: translateY(-2px);
   box-shadow: 0 18px 45px rgba(0,0,0,0.28);
+  background: color-mix(in srgb, var(--brand-primary), black 12%);
+
 }
 
 /* =========================================================
@@ -265,7 +285,7 @@ body {
 .services-cta-card {
   margin-top: 3rem;
   padding: 2rem;
-  background: #f7f6ff;
+  background: var(--surface-alt);
   border-radius: 16px;
   text-align: center;
 }
@@ -336,7 +356,7 @@ body {
 
 .testimonial {
   background: white;
-  border-left: 4px solid var(--lavender);
+  border-left: 4px solid var(--brand-primary);
   border-radius: 16px;
   padding: 1.75rem;
   max-width: 720px;
@@ -457,7 +477,7 @@ a:hover {
 }
 
 .contact-pill:hover {
-  background: var(--lavender);
+  background: var(--brand-primary);
   color: white;
   transform: translateY(-1px);
 }
