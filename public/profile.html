@@ -1373,12 +1373,14 @@ console.log("script loaded");
 const safeParse = v => {
   try {
     if (Array.isArray(v)) return v;
+    if (v && typeof v === "object") return v;
     if (typeof v === "string") return JSON.parse(v);
-    return [];
+    return null;
   } catch {
-    return [];
+    return null;
   }
 };
+
 
 function trackContactClick(type) {
   if (!window.profileData?.username) return;
