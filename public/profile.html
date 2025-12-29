@@ -368,7 +368,8 @@ body {
   position: sticky;
   top: 0;
   z-index: 1000;
-  display: flex;
+
+  width: 100%;
   background: white;
   border-bottom: 1px solid #eee;
 }
@@ -393,18 +394,24 @@ transform: translateY(-1px);
 } 
 
 .contact-strip-inner {
-  max-width: 900px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 64px;
 
+  padding: 0 1.5rem; /* edge breathing room */
+}
+
+.contact-brand {
+  display: flex;
+  align-items: center;
 }
 
 .contact-brand img {
   height: 36px;
-  max-width: 160px;
+  max-width: 180px;
   display: block;
 }
 
