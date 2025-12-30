@@ -272,15 +272,27 @@ body {
 }
 
 .service-card {
- position: relative;
-  padding-top: 2.25rem; /* create room for badge overlap */
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
   background: white;
   border: 1px solid #eee;
   border-radius: 16px;
   padding: 1.75rem;
+
   transition: transform .2s ease, box-shadow .2s ease;
 }
 
+.service-card .service-cta {
+  margin-top: auto;
+}
+
+@media (max-width: 640px) {
+  .service-card {
+    min-height: unset;
+  }
+}
 .service-badge {
   display: inline-block;
   padding: 0.35rem 0.85rem;
@@ -298,6 +310,32 @@ body {
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 
 }
+
+@media (max-width: 768px) {
+  #aboutSection .container {
+    display: block;
+  }
+
+  #aboutSection h2 {
+    margin-bottom: 1rem;
+  }
+
+  #aboutSection p {
+    max-width: 100%;
+    padding: 1.5rem;
+  }
+}
+@media (max-width: 640px) {
+  #aboutSection p {
+    font-size: 1.05rem;
+    line-height: 1.75;
+  }
+}
+.card,
+.service-card {
+  overflow: hidden;
+}
+
 
 
 
