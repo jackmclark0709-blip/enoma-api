@@ -435,11 +435,12 @@ body {
 }
 
 .trust-block h3 {
-  font-size: 1.2rem;
-  margin-bottom: 1rem;
-  color: var(--text-primary);
+  font-size: 0.8rem;
+ color: var(--text-muted);
   font-family: 'Poppins', sans-serif;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+
 }
 
 /* Testimonials */
@@ -456,6 +457,10 @@ color: #6b7280;
   padding: 1.75rem;
   max-width: 720px;
   font-style: italic;
+  margin-top: 0.75rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+
+
 }
 
 .testimonial::before {
@@ -497,12 +502,18 @@ color: #545964;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: 8px;
+  border-radius: 999px;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--brand-primary-30);
   background: var(--brand-primary-10);
   font-weight: 500;
   text-decoration: none;
   color: var(--blue);
+}
+
+.social-link:hover {
+  background: var(--brand-primary);
+  color: var(--brand-primary-contrast);
 }
 
 /* =========================================================
@@ -516,6 +527,10 @@ color: #545964;
   display: grid;
   gap: 0.75rem;
   max-width: 700px;
+  background: var(--surface);
+  padding: 2rem;
+  border-radius: 16px;
+  border: 1px solid var(--border);
 }
 
 .contact input,
@@ -525,6 +540,20 @@ color: #545964;
   border: 1px solid var(--brand-primary);
 }
 
+.contact input:focus,
+.contact textarea:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px var(--brand-primary-10);
+}
+
+.contact-note {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+}
+
+
 .contact button {
   background: var(--brand-primary);
   color: var(--brand-primary-contrast);
@@ -532,6 +561,8 @@ color: #545964;
   border-radius: 8px;
   font-weight: 600;
   border: none;
+  margin-top: 0.5rem;
+  font-size: 0.95rem;
 }
 
 .contact-strip {
@@ -732,6 +763,19 @@ background: var(--brand-primary-30);
 }
 #whySection h2 {
   margin-bottom: 1rem;
+color: var(--brand-primary);
+  font-weight: 700;
+  text-align: center;
+}
+
+#whySection h2::after {
+  content: "";
+  display: block;
+  width: 36px;
+  height: 3px;
+  background: var(--brand-primary);
+  margin: 0.75rem auto 0;
+  border-radius: 999px;
 }
 
 #why {
@@ -742,10 +786,10 @@ background: var(--brand-primary-30);
 }
 #testimonials {
   margin-top: 1rem;
-  padding: 2rem;
   background: var(--surface-alt);
-  border-radius: 12px;
-  border: 1px solid rgba(0,0,0,0.05);
+  border: none;
+  background: transparent;
+  padding: 0;
 }
 
 #testimonials h3 {
@@ -859,11 +903,10 @@ color: #1f2329;
 }
 
 .faq-icon {
-  font-size: 1.1rem;
+  font-size: 1.2rem;
+  transition: transform 0.25s ease;
   font-weight: 700;
   color: var(--text-muted);
-
-  transition: transform 0.25s ease, color 0.25s ease;
 }
 
 .faq-answer {
@@ -882,6 +925,12 @@ color: #1f2329;
   padding: 0.75rem 0 1rem;
   font-size: 0.9rem;
   line-height: 1.6;
+}
+
+.faq-question::before {
+  content: "❓";
+  margin-right: 0.5rem;
+  opacity: 0.6;
 }
 
 .faq-item.active + .faq-answer {
@@ -933,7 +982,7 @@ color: #1f2329;
     var(--surface-alt),
     #ffffff
   );  
-padding: 4rem 1.5rem;
+  padding-top: 2.5rem;
   margin-top: 1rem;
 }
 
@@ -941,12 +990,17 @@ padding: 4rem 1.5rem;
   font-family: 'Poppins', sans-serif;
   font-weight: 600;
   max-width: 620px;
+  font-size: 1.1rem;
   color: var(--text-secondary);
-  font-size: 1.05rem;
   line-height: 1.6;
-  margin-bottom: 0.5rem;
+  margin: 0 auto 1.25rem;
   text-align: center;
+}
 
+.contact-intro {
+  max-width: 520px;
+  margin-bottom: 1.5rem;
+  color: var(--text-secondary);
 }
 
 
@@ -1151,8 +1205,9 @@ Built on consistent results, clear communication, and local trust.
 <section class="section contact" id="contact">
   <div class="container">
     <h2>Contact</h2>
-    <p>No obligation. We’ll respond within one business day.</p>
-
+<p class="contact-intro">
+  Have a question or need a quote? Reach out anytime — we typically respond within one business day.
+</p>
     <form id="contactForm">
       <input name="name" placeholder="Your name" required />
       <input name="email" type="email" placeholder="Your email" required />
