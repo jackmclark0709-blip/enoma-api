@@ -25,6 +25,12 @@
   font-weight: 500;
   text-decoration: none;
   color: white;
+  opacity: 0.85;
+}
+
+.footer-cta:hover {
+  opacity: 1;
+  text-decoration: underline;
 }
 
 .footer-logo {
@@ -49,6 +55,14 @@
   align-items: center;
 }
 
+.profile-footer::before {
+  content: "";
+  display: block;
+  height: 4px;
+  width: 100%;
+  background: var(--brand-primary);
+}
+
 
 
 </style>
@@ -61,11 +75,10 @@
       class="footer-logo"
     />
 
-    <p>
-      This page was built with
-      <strong>Enoma</strong> —
-      SEO-optimized business pages that turn search into leads.
-    </p>
+   <p>
+  Powered by <strong>Enoma</strong> —
+  SEO-optimized business pages for local companies.
+</p>
 
     <a href="https://enoma.io" class="footer-cta">
       Get one for your business →
