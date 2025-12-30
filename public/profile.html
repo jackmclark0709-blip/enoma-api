@@ -139,9 +139,14 @@ body {
 .hero-wrapper {
   width: 100vw;
   margin-left: calc(50% - 50vw);
-  background: white;
-  border-bottom: 1px solid #eee;
+  background: linear-gradient(
+    to bottom,
+    #ffffff,
+    var(--surface-alt)
+  );  border-bottom: 1px solid #eee;
   position: relative;
+  padding-bottom: 1.5rem;
+
 }
 
 .hero-inner {
@@ -163,11 +168,11 @@ body {
 }
 
 .profile-avatar {
-  width: 200px;
-  height: 200px;
+  width: 240px;
+  height: 240px;
   background: white;
   border-radius: 16px;
-  box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+  box-shadow: 0 18px 45px rgba(0,0,0,0.10);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -202,26 +207,28 @@ body {
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
-  font-size: 0.8rem;
-  color: var(--brand-primary-30);
+  margin-top: 0.75rem;
 }
 
 .hero-meta span {
-  color: var(--brand-primary-10);
-  padding: 0.35rem 0.75rem;
+  background: var(--brand-primary-10);
+  color: var(--brand-primary);
+  padding: 0.45rem 0.85rem;
   border-radius: 999px;
+  font-size: 0.8rem;
   font-weight: 600;
+  border: 1px solid var(--brand-primary-30);
 }
 
 #aboutSection .container {
   display: grid;
-  grid-template-columns: 1fr 2fr;
-  gap: 3rem;
+  grid-template-columns: 1.1fr 2.2fr;
+  gap: 3.5rem;
 }
 
 #aboutSection p {
   background: var(--surface-alt);
-  padding: 1.75rem;
+  padding: 2rem;
   border-radius: 16px;
 }
 
@@ -587,7 +594,7 @@ a:hover {
 }
 
 .contact-pill.call:hover {
-  background: #1a1245;
+  background: color-mix(in srgb, var(--brand-primary), black 12%);
 }
 
 /* SVG icons — lock them down */
@@ -652,10 +659,10 @@ a:hover {
     margin-bottom: 1rem;
   }
 
-  .profile-avatar {
-    width: 220px;
-    height: 220px;
-  }
+.profile-avatar {
+  width: 240px;
+  height: 240px;
+}
 }
 
 
@@ -899,7 +906,9 @@ color: #1f2329;
   margin-bottom: 0.75rem;
 }
 
-
+.hero-actions {
+  margin-bottom: 1.5rem;
+}
 
 </style>
 
@@ -1329,11 +1338,10 @@ if (els.about && p.about) {
 
 const heroHeadline = document.getElementById("heroHeadline");
 
-if (heroHeadline) {
-  heroHeadline.textContent =
-    p.hero_headline ||
-    `Reliable ${p.primary_service || "local services"} in ${p.hero_location || "your area"}`;
+if (heroHeadline && p.hero_headline) {
+  heroHeadline.textContent = p.hero_headline;
 }
+
 
 if (els.tagline) {
   els.tagline.textContent = p.hero_tagline || "";

@@ -296,12 +296,14 @@ Do not include markdown, comments, or explanations.
 JSON SCHEMA (MUST MATCH EXACTLY)
 --------------------------------
 {
+  {
   "seo_title": "",
   "seo_description": "",
+  "hero_headline": "",
   "hero_tagline": "",
   "about": "",
   "why_choose_us": "",
- "services_intro": "",
+  "services_intro": "",
   "trust_badges": [],
   "faqs": [
     { "question": "", "answer": "" }
@@ -319,6 +321,7 @@ JSON SCHEMA (MUST MATCH EXACTLY)
     "value": ""
   }
 }
+
 
 --------------------------------
 BUSINESS INPUT
@@ -369,7 +372,16 @@ CONTENT RULES
 - Include one concise sentence indicating the primary service area when appropriate
 - Write a concise 1–2 sentence introduction summarizing services and service area for use above the service list
 
-
+--------------------------------
+HERO HEADLINE RULES
+--------------------------------
+- 6–12 words max
+- Do NOT include the business name
+- Focus on primary service + location
+- Confident, local, trustworthy
+- No punctuation at the end
+- Title Case (headline capitalization)
+- Avoid marketing clichés
 
 --------------------------------
 SEO RULES
@@ -457,6 +469,12 @@ if (!generated.primary_cta || typeof generated.primary_cta !== "object") {
   generated.primary_cta = {};
 }
 
+if (!generated.hero_headline || typeof generated.hero_headline !== "string") {
+  generated.hero_headline =
+    `Reliable ${first(fields.primary_service) || "Local Services"} in ${first(fields.city) || "Your Area"}`;
+}
+
+
 const primaryCTA = generated.primary_cta;
     /* ---------- PROFILE UPSERT ---------- */
 const profilePayload = {
@@ -477,10 +495,13 @@ const profilePayload = {
   logo_url,
 
     /* Core content (AI-owned) */
+/* Core content (AI-owned) */
+hero_headline: isEdit ? undefined : generated.hero_headline,
 hero_tagline: isEdit ? undefined : generated.hero_tagline,
 about: isEdit ? undefined : generated.about,
 why_choose_us: isEdit ? undefined : generated.why_choose_us,
 services_intro: isEdit ? undefined : generated.services_intro,
+
 
 
   /* SEO (AI-owned) */
