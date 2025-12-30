@@ -900,6 +900,8 @@ color: #1f2329;
   text-align: left;
   font-size: 0.95rem;
   line-height: 1.4;
+  display: inline-flex;
+  align-items: center;
 }
 
 .faq-icon {
@@ -928,9 +930,23 @@ color: #1f2329;
 }
 
 .faq-question::before {
-  content: "❓";
-  margin-right: 0.5rem;
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 0.6rem;
+
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+
+  transform: rotate(-45deg); /* right-facing chevron */
+  transition: transform 0.25s ease, opacity 0.25s ease;
   opacity: 0.6;
+}
+
+.faq-item.active .faq-question::before {
+  transform: rotate(45deg); /* down-facing chevron */
+  opacity: 1;
 }
 
 .faq-item.active + .faq-answer {
