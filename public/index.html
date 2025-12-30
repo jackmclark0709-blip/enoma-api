@@ -14,64 +14,77 @@
   <style>
     /* Page-specific layout only */
 
-    .hero {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
- padding-top: 80px;
-  padding-bottom: 80px;
-      background: radial-gradient(circle at top, #1a1450, #0b0a14);
-      color: white;
-    }
+ /* HERO */
+.hero {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 80px 20px;
+  background: radial-gradient(circle at top, #1a1450, #0b0a14);
+  color: white;
+}
 
-    .hero-inner {
+.hero-inner {
   max-width: 900px;
-    }
+}
 
-    .hero h1 {
-      font-size: clamp(2rem, 5vw, 3rem);
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      margin-bottom: .75rem;
+.hero h1 {
+  font-size: clamp(2.2rem, 5vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.75rem;
   max-width: 800px;
   margin-inline: auto;
-  line-height: 1.02;
-
-    }
+  line-height: 1.05;
+}
 
 .hero h1 span {
   color: #9a8cff;
-  display: inline-block;
 }
 
-.hero-inner > p:first-of-type {
+.hero p {
+  font-size: 1.1rem;
+  color: #e4e6ff;
+  line-height: 1.5;
   margin-bottom: 1.25rem;
 }
 
-.hero-meta {
-  margin-top: .75rem;
-  font-size: 0.95rem;
-  opacity: 0.85;
+.hero-accent {
+  width: 56px;
+  height: 4px;
+  margin: 1.25rem auto 1.75rem;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #9a8cff, rgba(154,140,255,0.4));
 }
 
-    .hero p {
-      font-size: 1.15rem;
-  color: #e4e6ff; /* instead of #cfd1ff */
-      line-height: 1.02;
-      margin-bottom: 1.25rem;
-      text-align: center;
-      justify-content: center;
+.hero-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+}
 
-    }
+/* HERO TRUST STRIP */
+.hero-trust {
+  background: #f7f8fc;
+  text-align: center;
+  padding: 1.5rem 1.25rem 2rem;
+}
 
-    .hero-actions {
-      display: flex;
-      gap: 1rem;
-      justify-content: center;
-      flex-wrap: wrap;
-margin-top: 1.5rem;
-    }
+.hero-trust p {
+  font-size: 0.9rem;
+  color: #4b5563;
+  margin: 0.35rem auto;
+  max-width: 800px;
+}
+
+.hero-proof {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
 
     .btn-primary {
       background: #9a8cff;
@@ -177,17 +190,7 @@ margin-top: 1.5rem;
   margin-bottom: 12px;
 }
 
-.hero-accent {
-  width: 64px;
-  height: 4px;
-  margin: 1.75rem auto 2.25rem;
-  border-radius: 2px;
-  background: linear-gradient(
-    90deg,
-    #9a8cff,
-    rgba(154,140,255,0.4)
-  );
-}
+
 
 .section-label {
   font-size: 0.75rem;
@@ -243,7 +246,7 @@ margin-top: 1.5rem;
   margin-top: 1rem;
   font-size: 0.8rem;
   opacity: 0.7;
-
+}
 
   </style>
 
