@@ -73,16 +73,28 @@
 .hero-trust {
   background: #f7f8fc;
   text-align: center;
-  padding: 1.5rem 1.25rem 2rem;
+  padding: 1.75rem 1.25rem;
+}
+
+.hero-trust::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 48px;
+  background: linear-gradient(
+    to bottom,
+    rgba(11,10,20,0.35),
+    rgba(247,248,252,0)
+  );
 }
 
 .hero-trust p {
   font-size: 0.9rem;
   color: #4b5563;
-  margin: 0.35rem auto;
+  margin: 0.4rem auto;
   max-width: 800px;
-  text-align: center;
-
 }
 
 .hero-proof {
@@ -90,6 +102,34 @@
   opacity: 0.7;
 }
 
+.trust-items {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem 1.25rem;
+  font-size: 0.85rem;
+  color: #4b5563;
+}
+
+.trust-items span {
+  position: relative;
+  padding-left: 1rem;
+}
+
+.trust-items span::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #9a8cff;
+}
+
+.trust-items span:first-child::before {
+  content: "";
+}
+
+.trust-items .muted {
+  opacity: 0.7;
+}
 
     .btn-primary {
       background: #9a8cff;
@@ -295,14 +335,13 @@ Enoma creates one authoritative page for your business — the page search engin
   </section>
 
 <section class="hero-trust">
-  <p>
-    No website • No maintenance • One link that works everywhere
-  </p>
-  <p class="hero-proof">
-    Live pages already ranking for local services • Built for real businesses, not templates
-  </p>
+  <div class="trust-items">
+    <span>No website</span>
+    <span>No maintenance</span>
+    <span>One link that works everywhere</span>
+    <span class="muted">Live pages already ranking for local services</span>
+  </div>
 </section>
-
 
   <!-- WHAT IT IS -->
   <section class="section">
