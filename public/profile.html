@@ -762,7 +762,8 @@ background: var(--brand-primary-30);
 #aboutSection p strong {
   display: block;
   font-size: 1.15rem;
-  color: var(--blue);
+  font-weight: 700;
+  color: var(--brand-primary);
   margin-bottom: 0.75rem;
 }
 
@@ -1845,15 +1846,13 @@ if (socialSection && socialLinksEl) {
 }
 
 
-
-
 const faqSection = document.getElementById("faqs");
 const faqList = document.getElementById("faqList");
 
 if (Array.isArray(p.faqs) && p.faqs.length) {
   faqList.innerHTML = "";
 
-  p.faqs.forEach((faq, index) => {
+  p.faqs.forEach(faq => {
     if (!faq.q || !faq.a) return;
 
     const wrapper = document.createElement("div");
@@ -1879,20 +1878,23 @@ if (Array.isArray(p.faqs) && p.faqs.length) {
     item.addEventListener("click", () => {
       const isOpen = item.classList.contains("active");
 
-      // Close all
       faqList.querySelectorAll(".faq-item").forEach(i => {
         i.classList.remove("active");
         i.setAttribute("aria-expanded", "false");
       });
 
-      // Open current if closed
       if (!isOpen) {
         item.classList.add("active");
         item.setAttribute("aria-expanded", "true");
       }
     });
   });
+
+} else {
+  faqSection.classList.add("hidden");
 }
+
+
 
 
 const contactExpectations = document.getElementById("contactExpectations");
@@ -2078,20 +2080,24 @@ if (
   if (google?.rating && els.rating) {
     els.rating.textContent = `⭐ ${google.rating} on Google`;
   }
-
-  if (google?.reviews?.length && els.reviews) {
+if (google?.reviews?.length && els.reviews) {
   els.reviews.innerHTML = `
     <h3>Reviews</h3>
-    ${google.reviews.slice(0,3).map(r => `
-      <div class="review">
-        <strong>${r.authorAttribution?.displayName || "Google User"}</strong>
-        <span>⭐ ${r.rating}</span>
-        <p>${r.text?.text || ""}</p>
-      </div>
-    `).join("")}
+    ${google.reviews
+      .filter(r => r.rating >= 3)
+      .slice(0, 3)
+      .map(r => `
+        <div class="review">
+          <strong>${r.authorAttribution?.displayName || "Google User"}</strong>
+          <span>⭐ ${r.rating}</span>
+          <p>${r.text?.text || ""}</p>
+        </div>
+      `)
+      .join("")}
   `;
 }
 
+ 
 /* ================= Location Band Visibility ================= */
 const locationBand = document.getElementById("locationBand");
 
