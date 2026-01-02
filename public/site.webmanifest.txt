@@ -1,0 +1,19 @@
+{
+  "name": "Enoma",
+  "short_name": "Enoma",
+  "icons": [
+    {
+      "src": "/favicon-64.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#9a8cff",
+  "background_color": "#ffffff",
+  "display": "standalone"
+}
