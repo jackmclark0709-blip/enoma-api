@@ -490,6 +490,55 @@ width: 350px;
   );
 }
 
+.steps {
+  list-style: none;
+  padding: 0;
+  margin: 2.5rem 0 0;
+  max-width: 560px;
+}
+
+.steps li {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+.steps li::before {
+  content: counter(step);
+}
+
+.steps {
+  counter-reset: step;
+}
+
+.steps li::before {
+  counter-increment: step;
+  content: counter(step);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #9a8cff;
+  color: #0b0a14;
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.steps strong {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+}
+
+.steps span {
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
 
   </style>
 
@@ -848,54 +897,41 @@ you get one clear destination that represents your business everywhere.
 
 
 <!-- HOW IT WORKS -->
-<section class="section how-progress section-left">
-<div class="section-label">How it works</div>
+<section class="section section-left">
+  <div class="section-label">How it works</div>
 
   <h2>From request to live page — in four simple steps</h2>
   <p class="how-subhead">
-   A short request, a quick conversation, and a page you can review before anything goes live.
+    A short request, a quick conversation, and a page you can review before anything goes live.
   </p>
 
-  <div class="progress-steps">
+  <ol class="steps">
+    <li>
+      <strong>Request your business page</strong>
+      <span>Tell us a few basics so we can prepare your page.</span>
+    </li>
 
-    <div class="progress-step active">
-      <span class="progress-dot">1</span>
-      <div class="progress-card">
-        <h3>Request your business page</h3>
-        <p>Tell us a few basics about your business so we can prepare your page.</p>
-      </div>
-    </div>
+    <li>
+      <strong>Meet for a short kickoff call</strong>
+      <span>A 15–30 minute conversation to capture your services and location.</span>
+    </li>
 
-    <div class="progress-step active">
-      <span class="progress-dot">2</span>
-      <div class="progress-card">
-        <h3>Meet for a short kickoff call</h3>
-        <p>A 15–30 minute conversation to capture your services, location, and story.</p>
-      </div>
-    </div>
+    <li>
+      <strong>Review your page preview</strong>
+      <span>We build your SEO-optimized page and send it for review.</span>
+    </li>
 
-    <div class="progress-step">
-      <span class="progress-dot">3</span>
-      <div class="progress-card">
-        <h3>Review your page preview</h3>
-        <p>We build your SEO-optimized page and send it to you for review.</p>
-      </div>
-    </div>
+    <li>
+      <strong>Greenlight your page</strong>
+      <span>Once approved, subscribe to publish and keep your page live.</span>
+    </li>
+  </ol>
 
-    <div class="progress-step">
-      <span class="progress-dot">4</span>
-      <div class="progress-card">
-        <h3>Greenlight your page</h3>
-        <p>Once approved, subscribe to publish and keep your page live.</p>
-      </div>
-    </div>
-
-<p class="bridge">
-  No contracts. No obligation. You only subscribe once you’re happy with your page.
-</p>
-
-  </div>
+  <p class="bridge">
+    No contracts. No obligation. You only subscribe once you’re happy with your page.
+  </p>
 </section>
+
 
 
   <div class="divider"></div>
