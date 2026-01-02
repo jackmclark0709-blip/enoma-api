@@ -532,14 +532,17 @@ body {
 }
 
 .steps li {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
+ display: grid;
+  grid-template-columns: 28px 220px 1fr;
+  column-gap: 1.25rem;
+  align-items: start;
+  margin-bottom: 1.5rem;
   line-height: 1.5;
 }
 
 .steps li::before {
-  content: counter(step);
+  grid-column: 1;
+  grid-row: 1 / span 2;
 }
 
 .steps {
@@ -563,15 +566,30 @@ body {
 }
 
 .steps strong {
-  display: block;
+  grid-column: 2;
   font-weight: 600;
+  display: block;
   margin-bottom: 0.15rem;
 }
 
 .steps span {
   color: #6b7280;
   font-size: 0.95rem;
+  grid-column: 3;
+  line-height: 1.5;
 }
+
+@media (max-width: 640px) {
+  .steps li {
+    grid-template-columns: 28px 1fr;
+    row-gap: 0.25rem;
+  }
+
+  .steps span {
+    grid-column: 2;
+  }
+}
+
 
 
   </style>
