@@ -166,12 +166,11 @@
     }
 
     .section {
-  background: #ffffff;
-
-      max-width: 900px;
-      margin: 0 auto;
-  padding: 5rem 1.25rem;
-      text-align: center;
+  background: transparent;
+  padding: 4.5rem 1.25rem;
+  max-width: 900px;
+  margin: 0 auto;
+  text-align: center;
     }
 
     .section h2 {
@@ -232,6 +231,12 @@ width: 350px;
 
 .section.alt {
   background: #f8f9fd;
+  margin-top: 2.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.section + .section {
+  margin-top: 1rem;
 }
 
 .section:not(.alt) .bullet::before {
@@ -244,12 +249,28 @@ width: 350px;
   margin-bottom: 12px;
 }
 
+body {
+  background: linear-gradient(
+    180deg,
+    #f7f8fc 0%,
+    #ffffff 40%,
+    #f7f8fc 100%
+  );
+}
+
+
 .section.alt .bullet::before {
   display: none;
 }
 
 .section.bordered {
-  background: #ffffff;
+ background: linear-gradient(
+    180deg,
+    #ffffff,
+    #f8f9fd
+  );
+  border-radius: 20px;
+  padding: 5rem 2rem;
   border-top: 1px solid rgba(0,0,0,0.05);
   border-bottom: 1px solid rgba(0,0,0,0.05);
 }
@@ -259,6 +280,10 @@ width: 350px;
 }
 
 
+.section.bordered .bullet {
+  background: white;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.06);
+}
 
 
 .comparison-table-wrap {
@@ -267,6 +292,9 @@ width: 350px;
   border-radius: 16px;
 }
 
+.section.alt .bullet {
+  box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+}
 
 
 
@@ -436,9 +464,9 @@ width: 350px;
 }
 
 .bullet-icon {
-  width: 32px;
-  height: 32px;
-  margin-bottom: 0.9rem;
+  width: 36px;
+  height: 36px;
+  margin-bottom: 1rem;
   color: #9A8CFF;
   opacity: 0.9;
   transition: transform 0.2s ease, opacity 0.2s ease;
@@ -488,12 +516,25 @@ width: 350px;
   padding: 0;
   margin: 2.5rem 0 0;
   max-width: 560px;
+  position: relative;
+}
+
+@media (min-width: 768px) {
+  .steps::before {
+    content: "";
+    position: absolute;
+    left: 14px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: rgba(154,140,255,0.25);
+  }
 }
 
 .steps li {
   display: flex;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
   line-height: 1.5;
 }
 
@@ -668,8 +709,6 @@ you get one clear destination that represents your business everywhere.
 
   </section>
 
-  <div class="divider"></div>
-
 
 <!-- ICON DEFINITIONS (add once per page) -->
 <svg style="display:none;" xmlns="http://www.w3.org/2000/svg">
@@ -823,7 +862,6 @@ you get one clear destination that represents your business everywhere.
   </p>
 </section>
 
-  <div class="divider"></div>
 
 
 <!-- WHO IT'S FOR -->
@@ -926,8 +964,6 @@ you get one clear destination that represents your business everywhere.
 </section>
 
 
-
-  <div class="divider"></div>
 
   <!-- WHAT IT'S NOT -->
 <section class="section bordered">
