@@ -1470,16 +1470,27 @@ const getEl = id => document.getElementById(id);
 async function loadProfile() {
   // ===== Resolve slug =====
 // ===== Resolve URL params ONCE =====
+// ===== Resolve URL params ONCE =====
 const urlParams = new URLSearchParams(location.search);
 const businessId = urlParams.get("business_id");
 let slug = urlParams.get("slug");
 
 if (!slug) {
   const parts = location.pathname.split("/").filter(Boolean);
-  if (parts[0] === "p" && parts[1]) slug = parts[1];
+
+  // /p/:slug (legacy)
+  if (parts[0] === "p" && parts[1]) {
+    slug = parts[1];
+  }
+
+  // /:slug (NEW canonical)
+  else if (parts.length === 1) {
+    slug = parts[0];
+  }
 }
 
 if (!slug && !businessId) return;
+
 
 
   // ===== Bind DOM elements ONCE =====
