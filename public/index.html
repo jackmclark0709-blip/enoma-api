@@ -44,6 +44,31 @@
       fill="none" stroke="currentColor" stroke-width="1.8"
       stroke-linecap="round" stroke-linejoin="round"/>
   </symbol>
+
+<!-- Checklist / Offerings -->
+<symbol id="icon-checklist" viewBox="0 0 24 24">
+  <rect x="4" y="5" width="16" height="14" rx="2"
+    fill="none" stroke="currentColor" stroke-width="1.8"/>
+  <path d="M8 9l1.5 1.5L12 8"
+    fill="none" stroke="currentColor" stroke-width="1.8"
+    stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="14" y1="9" x2="18" y2="9"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M8 13l1.5 1.5L12 12"
+    fill="none" stroke="currentColor" stroke-width="1.8"
+    stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="14" y1="13" x2="18" y2="13"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+</symbol>
+
+<symbol id="icon-contact" viewBox="0 0 24 24">
+  <path d="M5 4l14 8-6 2-2 6z"
+    fill="none" stroke="currentColor" stroke-width="1.8"
+    stroke-linejoin="round"/>
+  <circle cx="18" cy="6" r="2"
+    fill="none" stroke="currentColor" stroke-width="1.6"/>
+</symbol>
+
 </svg>
 
 
@@ -264,7 +289,7 @@
   background: #f7f8fc;
 }
 
-.bullet::before {
+.section:not(.alt) .bullet::before {
   content: "";
   display: block;
   width: 32px;
@@ -272,6 +297,10 @@
   background: #9a8cff;
   border-radius: 2px;
   margin-bottom: 12px;
+}
+
+.section.alt .bullet::before {
+  display: none;
 }
 
 
@@ -332,9 +361,7 @@
   opacity: 0.7;
 }
 
-.bullet-icon {
-  margin-bottom: 0.75rem;
-}
+
 
 .bullet .example {
   margin-top: 0.5rem;
@@ -444,11 +471,11 @@
 }
 
 .bullet-icon {
-  width: 22px;
-  height: 22px;
-  margin-bottom: 0.75rem;
-  color: var(--lavender-muted, #9A8CFF);
-  opacity: 0.85;
+  width: 32px;
+  height: 32px;
+  margin-bottom: 0.9rem;
+  color: #9A8CFF;
+  opacity: 0.9;
   transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
@@ -456,6 +483,14 @@
   transform: translateY(-2px);
   opacity: 1;
 }
+
+@media (max-width: 640px) {
+  .bullet-icon {
+    width: 28px;
+    height: 28px;
+  }
+}
+
 
 
 
@@ -711,7 +746,7 @@ you get one clear destination that represents your business everywhere.
 
     <div class="bullet">
       <svg class="bullet-icon">
-        <use href="#icon-structure"></use>
+        <use href="#icon-checklist"></use>
       </svg>
       <h3>Show what you offer</h3>
       <p>
@@ -725,7 +760,7 @@ you get one clear destination that represents your business everywhere.
 
     <div class="bullet">
       <svg class="bullet-icon">
-        <use href="#icon-action"></use>
+        <use href="#icon-contact"></use>
       </svg>
       <h3>Make it easy to get in touch</h3>
       <p>
