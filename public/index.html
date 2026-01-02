@@ -302,6 +302,109 @@
   font-size: 0.8rem;
   opacity: 0.6;
 }
+/* Comparison Table */
+/* ---- Icons ---- */
+.icon {
+  width: 22px;
+  height: 22px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.icon--yes { color: #50A684; }
+.icon--partial { color: #f0a500; }
+.icon--no { color: #bbb; }
+
+/* Subtle hover animation */
+.comparison-table td:hover .icon {
+  transform: scale(1.12);
+  opacity: 0.9;
+}
+
+/* ---- Table Layout ---- */
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
+  text-align: center;
+}
+
+.comparison-table th:first-child,
+.comparison-table td:first-child {
+  text-align: left;
+  font-weight: 500;
+}
+
+.comparison-table thead {
+  background: var(--bg-soft, #f7f7fb);
+}
+
+.comparison-table .highlight {
+  background: rgba(154, 140, 255, 0.08);
+  font-weight: 600;
+}
+
+.comparison-legend {
+  margin-top: 1.5rem;
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+/* ---- Mobile Stacked View ---- */
+@media (max-width: 768px) {
+  .comparison-table thead {
+    display: none;
+  }
+
+  .comparison-table,
+  .comparison-table tbody,
+  .comparison-table tr,
+  .comparison-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .comparison-table tr {
+    margin-bottom: 1.5rem;
+    border: 1px solid #eee;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .comparison-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid #eee;
+  }
+
+  .comparison-table td:first-child {
+    background: var(--bg-soft, #f7f7fb);
+    font-weight: 600;
+  }
+
+  .comparison-table td::before {
+    content: attr(data-label);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .comparison-table td:first-child::before {
+    content: "";
+  }
+}
+
+
 
   </style>
 
@@ -374,6 +477,162 @@ you get one clear destination that represents your business everywhere.
   </section>
 
   <div class="divider"></div>
+
+
+<!-- ICON DEFINITIONS (add once per page) -->
+<svg style="display:none;" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="icon-check" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.15"/>
+    <path d="M8 12l3 3 5-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+
+  <symbol id="icon-x" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.15"/>
+    <path d="M9 9l6 6M15 9l-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="icon-warning" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.15"/>
+    <path d="M12 7v6M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  </symbol>
+</svg>
+
+<!-- COMPARISON TABLE -->
+<section class="section comparison">
+  <div class="section-label">How Enoma compares</div>
+
+  <h2>How an Enoma page compares to other online presences</h2>
+
+  <p class="comparison-intro">
+    Instead of managing multiple weak profiles, Enoma gives your business one clear,
+    search-ready page that works everywhere.
+  </p>
+
+  <div class="comparison-table-wrap">
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Website</th>
+          <th>Google Profile</th>
+          <th>Social Media</th>
+          <th class="highlight">Enoma</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>One clear link to share</td>
+
+          <td data-label="Website">
+            <svg class="icon icon--no"><use href="#icon-x"/></svg>
+          </td>
+
+          <td data-label="Google Profile">
+            <svg class="icon icon--no"><use href="#icon-x"/></svg>
+          </td>
+
+          <td data-label="Social Media">
+            <svg class="icon icon--no"><use href="#icon-x"/></svg>
+          </td>
+
+          <td data-label="Enoma" class="highlight">
+            <svg class="icon icon--yes"><use href="#icon-check"/></svg>
+          </td>
+        </tr>
+
+        <tr>
+          <td>Owned by the business</td>
+
+          <td data-label="Website">
+            <svg class="icon icon--yes"><use href="#icon-check"/></svg>
+          </td>
+
+          <td data-label="Google Profile">
+            <svg class="icon icon--no"><use href="#icon-x"/></svg>
+          </td>
+
+          <td data-label="Social Media">
+            <svg class="icon icon--no"><use href="#icon-x"/></svg>
+          </td>
+
+          <td data-label="Enoma" class="highlight">
+            <svg class="icon icon--yes"><use href="#icon-check"/></svg>
+          </td>
+        </tr>
+
+        <tr>
+          <td>SEO-optimized structure</td>
+
+          <td data-label="Website">
+            <svg class="icon icon--partial"><use href="#icon-warning"/></svg>
+          </td>
+
+          <td data-label="Google Profile">
+            <svg class="icon icon--partial"><use href="#icon-warning"/></svg>
+          </td>
+
+          <td data-label="Social Media">
+            <svg class="icon icon--no"><use href="#icon-x"/></svg>
+          </td>
+
+          <td data-label="Enoma" class="highlight">
+            <svg class="icon icon--yes"><use href="#icon-check"/></svg>
+          </td>
+        </tr>
+
+        <tr>
+          <td>No ongoing maintenance</td>
+
+          <td data-label="Website">
+            <svg class="icon icon--no"><use href="#icon-x"/></svg>
+          </td>
+
+          <td data-label="Google Profile">
+            <svg class="icon icon--yes"><use href="#icon-check"/></svg>
+          </td>
+
+          <td data-label="Social Media">
+            <svg class="icon icon--no"><use href="#icon-x"/></svg>
+          </td>
+
+          <td data-label="Enoma" class="highlight">
+            <svg class="icon icon--yes"><use href="#icon-check"/></svg>
+          </td>
+        </tr>
+
+        <tr>
+          <td>Clearly explains what you do</td>
+
+          <td data-label="Website">
+            <svg class="icon icon--partial"><use href="#icon-warning"/></svg>
+          </td>
+
+          <td data-label="Google Profile">
+            <svg class="icon icon--no"><use href="#icon-x"/></svg>
+          </td>
+
+          <td data-label="Social Media">
+            <svg class="icon icon--no"><use href="#icon-x"/></svg>
+          </td>
+
+          <td data-label="Enoma" class="highlight">
+            <svg class="icon icon--yes"><use href="#icon-check"/></svg>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="comparison-legend">
+    <span><svg class="icon icon--yes"><use href="#icon-check"/></svg> Included</span>
+    <span><svg class="icon icon--partial"><use href="#icon-warning"/></svg> Limited</span>
+    <span><svg class="icon icon--no"><use href="#icon-x"/></svg> Not supported</span>
+  </p>
+</section>
+
+
+
 
   <!-- WHO IT'S FOR -->
 <section class="section alt">
