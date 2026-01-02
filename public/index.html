@@ -166,6 +166,8 @@
     }
 
     .section {
+  background: #ffffff;
+
       max-width: 900px;
       margin: 0 auto;
   padding: 5rem 1.25rem;
@@ -225,7 +227,7 @@
     }
 
 .section.alt {
-  background: #f7f8fc;
+  background: #f8f9fd;
 }
 
 .section:not(.alt) .bullet::before {
@@ -241,6 +243,24 @@
 .section.alt .bullet::before {
   display: none;
 }
+
+.section.bordered {
+  background: #ffffff;
+  border-top: 1px solid rgba(0,0,0,0.05);
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.section.comparison {
+  background: #ffffff;
+}
+
+.comparison-table-wrap {
+  background: #ffffff;
+  padding: 1.5rem;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.06);
+}
+
 
 
 
@@ -431,6 +451,31 @@
 }
 
 
+.section:first-of-type {
+  position: relative;
+}
+
+.section:first-of-type::before {
+  content: "";
+  position: absolute;
+  top: -60px;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(
+    to bottom,
+    rgba(247,248,252,1),
+    rgba(247,248,252,0)
+  );
+}
+
+.section.emphasis {
+  background: linear-gradient(
+    180deg,
+    rgba(154,140,255,0.08),
+    rgba(154,140,255,0.02)
+  );
+}
 
 
   </style>
@@ -550,7 +595,7 @@ Enoma creates one authoritative page for your business — the page search engin
 </section>
 
   <!-- WHAT IT IS -->
-  <section class="section">
+<section class="section bordered">
   <div class="section-label">What it is</div>
 
     <h2>One authoritative page. Built for search.</h2>
@@ -843,7 +888,7 @@ you get one clear destination that represents your business everywhere.
   <div class="divider"></div>
 
   <!-- WHAT IT'S NOT -->
-<section class="section section-left">
+<section class="section bordered">
 <div class="section-label">What it’s not</div>
 
 <h2>Not another website builder — and that’s the point</h2>
