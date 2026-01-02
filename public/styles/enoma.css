@@ -182,16 +182,6 @@ p {
   z-index: -1;
 }
 
-.btn-outline {
-  background: transparent;
-  color: var(--blue);
-  border: 1px solid var(--blue);
-}
-
-.btn-outline:hover {
-  background: var(--blue);
-  color: white;
-}
 
 /* -------------------------
    FORMS
