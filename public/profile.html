@@ -53,6 +53,11 @@
   --text-secondary: #374151;
   --text-muted: #6b7280;
 
+--blue: #2563eb;
+--green: #16a34a;
+--brand-primary-soft: var(--brand-primary-10);
+
+
   /* ===============================
      BUSINESS BRAND COLORS (DYNAMIC)
      =============================== */
@@ -88,7 +93,7 @@
 body {
   margin: 0;
   font-family: Inter, system-ui, sans-serif;
-  color: var(--text);
+  color: var(--text-primary);
   background: var(--bg);
   line-height: 1.6;
   padding: 0;
@@ -1493,7 +1498,6 @@ Built on consistent results, clear communication, and local trust.
 </section>
 
 <script src="/partials/profile-footer.js"></script>
-</body>
 
 <script>
 console.log("script loaded");
@@ -2371,5 +2375,6 @@ if (contactForm) {
 document.addEventListener("DOMContentLoaded", loadProfile);
 </script>
 
+</body>
 
 </html>
