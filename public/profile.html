@@ -97,15 +97,15 @@ body {
   display: grid;
   grid-template-columns: 2fr 1fr; /* 67% / 33% */
   gap: 1.5rem;
-  align-items: start;
+  align-items: stretch; /* IMPORTANT */
 }
 
 .map-wrap iframe {
-  width: 100%;
+ width: 100%;
   height: 100%;
   min-height: 320px;
+  max-height: 360px;
   border-radius: 16px;
-}
 
 /* Right column */
 .location-meta {
@@ -113,6 +113,11 @@ body {
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 1.25rem;
+  max-height: 360px;
+  overflow: auto;               /* scroll if needed */
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 /* Stack on mobile */
@@ -121,6 +126,41 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+#hours ul {
+  padding-left: 1rem;
+  margin: 0.5rem 0 0;
+}
+
+#hours li {
+  font-size: 0.85rem;       /* smaller */
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+
+  font-weight: 700;
+  font-size: 0.95rem;
+
+  color: #f59e0b; /* gold */
+}
+
+.rating::before {
+  content: "★";
+  font-size: 1.1rem;
+}
+
+.rating span {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+
 
 
 .hidden { display: none; }
@@ -874,6 +914,17 @@ color: var(--brand-primary);
   padding: 0;
 }
 
+.review p {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+
+  display: -webkit-box;
+  -webkit-line-clamp: 4;     /* show 4 lines max */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 #testimonials h3 {
   margin-bottom: 0.5rem;
 color: #1f2329;
@@ -1531,6 +1582,10 @@ function extractDominantColor(img, callback) {
   callback(ensureUsableBrandColor([r, g, b]));
 }
 
+function truncateText(text, maxLength = 300) {
+  if (!text || text.length <= maxLength) return text;
+  return text.slice(0, maxLength).trim() + "…";
+}
 
 
 function trackContactClick(type) {
@@ -2153,8 +2208,10 @@ if (
 
 
   if (google?.rating && els.rating) {
-    els.rating.textContent = `⭐ ${google.rating} on Google`;
-  }
+els.rating.innerHTML = `
+  ${google.rating}
+  <span>on Google</span>
+`;  }
 if (google?.reviews?.length && els.reviews) {
   const bestReview = google.reviews
     .filter(r => r.rating === 5)
@@ -2166,7 +2223,7 @@ if (google?.reviews?.length && els.reviews) {
       <div class="review">
         <strong>${bestReview.authorAttribution?.displayName || "Google User"}</strong>
         <span>⭐ ${bestReview.rating}</span>
-        <p>${bestReview.text?.text || ""}</p>
+<p>${truncateText(bestReview.text?.text || "", 320)}</p>
       </div>
     `;
   }
