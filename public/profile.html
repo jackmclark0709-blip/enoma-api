@@ -72,6 +72,10 @@
   --enoma-accent: #9A8CFF;
 }
 
+--brand-surface: var(--brand-primary-10);
+--brand-border-soft: var(--brand-primary-30);
+
+
 
 body {
   margin: 0;
@@ -1406,6 +1410,52 @@ const safeParse = v => {
   }
 };
 
+/* ================= Brand Color Safety ================= */
+
+// WCAG relative luminance
+function luminance(r, g, b) {
+  const a = [r, g, b].map(v => {
+    v /= 255;
+    return v <= 0.03928
+      ? v / 12.92
+      : Math.pow((v + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
+}
+
+// Darken overly-light colors until usable
+function ensureUsableBrandColor([r, g, b]) {
+  let lum = luminance(r, g, b);
+
+  // If too light, progressively darken
+  while (lum > 0.65) {
+    r *= 0.9;
+    g *= 0.9;
+    b *= 0.9;
+    lum = luminance(r, g, b);
+  }
+
+  return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+}
+
+// Apply brand tokens safely
+function applyBrandColor(finalColor) {
+  const root = document.documentElement;
+
+  root.style.setProperty("--brand-primary", finalColor);
+
+  // SAFE UI variants (do not rely on raw transparency)
+  root.style.setProperty(
+    "--brand-primary-10",
+    `color-mix(in srgb, ${finalColor} 12%, white)`
+  );
+
+  root.style.setProperty(
+    "--brand-primary-30",
+    `color-mix(in srgb, ${finalColor} 35%, white)`
+  );
+}
+
 function extractDominantColor(img, callback) {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -1425,7 +1475,7 @@ function extractDominantColor(img, callback) {
     const b = data[i + 2];
     const a = data[i + 3];
 
-    // Ignore transparent & near-white pixels
+    // Ignore transparent & near-white
     if (a < 200) continue;
     if (r > 235 && g > 235 && b > 235) continue;
 
@@ -1436,7 +1486,9 @@ function extractDominantColor(img, callback) {
   const dominant = Object.entries(colors).sort((a, b) => b[1] - a[1])[0];
   if (!dominant) return;
 
-  callback(`rgb(${dominant[0]})`);
+  const [r, g, b] = dominant[0].split(",").map(Number);
+
+  callback(ensureUsableBrandColor([r, g, b]));
 }
 
 
@@ -1611,21 +1663,8 @@ if (p.logo_url && els.heroLogoImg && els.heroLogoWrap) {
 
   img.onload = () => {
     extractDominantColor(img, color => {
-      const root = document.documentElement;
-
-      const finalColor = color || "#2f8f3a"; // fallback
-
-      root.style.setProperty("--brand-primary", finalColor);
-      root.style.setProperty(
-        "--brand-primary-10",
-        `color-mix(in srgb, ${finalColor} 10%, transparent)`
-      );
-      root.style.setProperty(
-        "--brand-primary-30",
-        `color-mix(in srgb, ${finalColor} 30%, transparent)`
-      );
-    });
-  };
+  applyBrandColor(color || "#2f8f3a"); // safe fallback
+});
 
   els.heroLogoWrap.classList.remove("hidden");
 }
