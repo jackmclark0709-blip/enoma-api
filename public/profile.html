@@ -1656,6 +1656,10 @@ if (els.tagline) {
   /* ================= Media ================= */
 /* ================= Hero Logo ================= */
 /* ================= Hero Logo + Brand Color ================= */
+
+/* ================= Media ================= */
+/* ================= Hero Logo + Brand Color ================= */
+
 if (p.logo_url && els.heroLogoImg && els.heroLogoWrap) {
   const img = els.heroLogoImg;
 
@@ -1665,21 +1669,24 @@ if (p.logo_url && els.heroLogoImg && els.heroLogoWrap) {
 
   img.onload = () => {
     extractDominantColor(img, color => {
-  applyBrandColor(color || "#2f8f3a"); // safe fallback
-});
+      applyBrandColor(color || "#2f8f3a"); // safe fallback
+    });
 
-  els.heroLogoWrap.classList.remove("hidden");
-};
+    els.heroLogoWrap.classList.remove("hidden");
+  };
+} // ✅ THIS WAS MISSING
+
+
+/* ================= Primary CTA ================= */
 
 const primaryAction = document.getElementById("primaryAction");
 const primaryCtaButton = document.getElementById("primaryCtaButton");
+
 if (primaryCtaButton) {
   primaryCtaButton.addEventListener("click", () => {
     trackContactClick(p.primary_cta_type || "primary_cta");
   });
-};
-
-
+}
 
 if (p.primary_cta_label && p.primary_cta_type && p.primary_cta_value) {
   let href = "#";
@@ -1695,55 +1702,33 @@ if (p.primary_cta_label && p.primary_cta_type && p.primary_cta_value) {
   primaryAction.classList.remove("hidden");
 }
 
+
+/* ================= Header CTA ================= */
+
 const headerCTA = document.getElementById("headerCTA");
 
 if (headerCTA) {
   if (p.phone) {
     headerCTA.textContent = "Call";
     headerCTA.href = `tel:${p.phone}`;
-    headerCTA.classList.remove("hidden");
-  } else if (p.email) {
-    headerCTA.textContent = "Email";
-    headerCTA.href = `mailto:${p.email}`;
-    headerCTA.classList.remove("hidden");
-  } else if (p.primary_cta_label && p.primary_cta_value) {
-    headerCTA.textContent = p.primary_cta_label;
-    headerCTA.href = p.primary_cta_value;
-    headerCTA.classList.remove("hidden");
-  } else {
-    headerCTA.classList.add("hidden");
-  }; 
-
-if (headerCTA) {
-  if (p.phone) {
-    headerCTA.textContent = "Call";
-    headerCTA.href = `tel:${p.phone}`;
-    headerCTA.classList.remove("hidden");
-
     headerCTA.onclick = () => trackContactClick("call");
 
   } else if (p.email) {
     headerCTA.textContent = "Email";
     headerCTA.href = `mailto:${p.email}`;
-    headerCTA.classList.remove("hidden");
-
     headerCTA.onclick = () => trackContactClick("email");
 
   } else if (p.primary_cta_label && p.primary_cta_value) {
     headerCTA.textContent = p.primary_cta_label;
     headerCTA.href = p.primary_cta_value;
-    headerCTA.classList.remove("hidden");
-
     headerCTA.onclick = () => trackContactClick("primary_cta");
 
   } else {
     headerCTA.classList.add("hidden");
   }
+
+  headerCTA.classList.remove("hidden");
 }
-
-
-}
-
 
 /* ================= Contact Information ================= */
 
