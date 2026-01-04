@@ -1772,6 +1772,17 @@ window.dispatchEvent(
   new CustomEvent("profileDataReady", { detail: p })
 );
 
+// 🔍 Track page view (ONCE per page load)
+fetch("/api/track", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    slug,
+    event: "page_view"
+  })
+}).catch(() => {});
+
+
 /* ================= Contact Strip CTA Wiring ================= */
 
 const navLogo = document.getElementById("businessLogo");
@@ -1781,6 +1792,8 @@ if (navLogo && p.logo_url) {
   navLogo.alt = p.business_name || "Business logo";
   navLogo.style.display = "block";
 }
+
+
 
 
 
