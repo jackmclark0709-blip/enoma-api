@@ -1281,7 +1281,55 @@ color: #1f2329;
   min-height: 320px;
 }
 
+.enoma-footer {
+  background: var(--brand-primary);
+  color: rgba(255, 255, 255, 0.85);
+  padding: 2rem 1.25rem;
+  margin-top: 4rem;
+}
 
+.enoma-footer-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.enoma-footer-left {
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  opacity: 0.85;
+}
+
+.enoma-footer-left .dot {
+  opacity: 0.5;
+}
+
+.enoma-footer-right a {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #ffffff;
+  text-decoration: none;
+  opacity: 0.9;
+}
+
+.enoma-footer-right a:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .enoma-footer-inner {
+    flex-direction: column;
+    text-align: center;
+  }
+}
 
 
 
@@ -1517,7 +1565,22 @@ Built on consistent results, clear communication, and local trust.
   </div>
 </section>
 
-<script src="/partials/profile-footer.js"></script>
+<footer class="enoma-footer">
+  <div class="enoma-footer-inner">
+    <div class="enoma-footer-left">
+      <span>Powered by Enoma</span>
+      <span class="dot">•</span>
+      <span>SEO-optimized business pages</span>
+    </div>
+
+    <div class="enoma-footer-right">
+      <a href="https://enoma.io" target="_blank" rel="noopener">
+        Get one for your business →
+      </a>
+    </div>
+  </div>
+</footer>
+
 
 <script>
 console.log("script loaded");
