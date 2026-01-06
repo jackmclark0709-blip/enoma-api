@@ -1288,6 +1288,7 @@ color: #1f2329;
   margin-top: 4rem;
 }
 
+/* Container */
 .enoma-footer-inner {
   max-width: 1100px;
   margin: 0 auto;
@@ -1298,35 +1299,84 @@ color: #1f2329;
   gap: 1rem;
 }
 
+/* LEFT: logo + text */
 .enoma-footer-left {
   font-size: 0.875rem;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  opacity: 0.85;
-}
-
-.enoma-footer-left .dot {
-  opacity: 0.5;
-}
-
-.enoma-footer-right a {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #ffffff;
-  text-decoration: none;
+  gap: 0.75rem; /* slightly more breathing room for logo */
   opacity: 0.9;
 }
 
-.enoma-footer-right a:hover {
+/* Logo slot */
+.enoma-footer-logo {
+  display: flex;
+  align-items: center;
+}
+
+.enoma-footer-logo img {
+  height: 28px;
+  width: auto;
+  opacity: 0.95;
+}
+
+/* Text block */
+.enoma-footer-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.enoma-badge {
+  font-size: 0.7rem;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.enoma-description {
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
+/* RIGHT: CTA */
+.enoma-footer-right a {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--brand-primary);
+  background: #ffffff;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  text-decoration: none;
   opacity: 1;
-  text-decoration: underline;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.enoma-footer-right a:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
 }
 
 /* Mobile */
 @media (max-width: 640px) {
   .enoma-footer-inner {
     flex-direction: column;
+    text-align: center;
+  }
+
+  .enoma-footer-left {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .enoma-footer-right {
+    width: 100%;
+  }
+
+  .enoma-footer-right a {
+    width: 100%;
     text-align: center;
   }
 }
@@ -1567,19 +1617,44 @@ Built on consistent results, clear communication, and local trust.
 
 <footer class="enoma-footer">
   <div class="enoma-footer-inner">
+    <!-- LEFT: Logo + endorsement -->
     <div class="enoma-footer-left">
-      <span>Powered by Enoma</span>
-      <span class="dot">•</span>
-      <span>SEO-optimized business pages</span>
+      <a
+        href="https://enoma.io"
+        target="_blank"
+        rel="noopener"
+        class="enoma-footer-logo"
+        aria-label="Enoma homepage"
+      >
+        <img
+          src="/assets/logos/enoma-white-name-tagline.png"
+          alt="Enoma"
+          loading="lazy"
+        />
+      </a>
+
+      <div class="enoma-footer-text">
+        <span class="enoma-badge">Built with Enoma</span>
+        <span class="enoma-description">
+          Simple, SEO-optimized business pages
+        </span>
+      </div>
     </div>
 
+    <!-- RIGHT: CTA -->
     <div class="enoma-footer-right">
-      <a href="https://enoma.io" target="_blank" rel="noopener">
-        Get one for your business →
+      <a
+        href="https://enoma.io"
+        target="_blank"
+        rel="noopener"
+        class="enoma-footer-cta"
+      >
+        Get your page →
       </a>
     </div>
   </div>
 </footer>
+
 
 
 <script>
