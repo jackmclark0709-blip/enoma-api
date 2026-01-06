@@ -33,7 +33,18 @@ export default async function handler(req, res) {
     // 1) Fetch business by slug
     const { data: biz, error } = await supabase
       .from("businesses")
-      .select("slug, name, seo_title, seo_description, og_image_url")
+.select(`
+  slug,
+  name,
+  seo_title,
+  seo_description,
+  og_image_url,
+  hero_headline,
+  primary_city,
+  state,
+  phone,
+  service_area
+`)
       .eq("slug", slug)
       .single();
 
@@ -48,12 +59,25 @@ export default async function handler(req, res) {
 
     // 3) Compute SEO values (fallbacks if missing)
     const baseUrl = absoluteBaseUrl(req);
-    const canonical = `${baseUrl}/p/${encodeURIComponent(slug)}`;
+const canonical = `${baseUrl}/${encodeURIComponent(slug)}`;
 
     const title = biz.seo_title || `${biz.name} — Business Profile`;
     const desc =
       biz.seo_description ||
       `Learn more about ${biz.name}. Contact for pricing, availability, and quotes.`;
+
+const businessName = biz.name;
+const city = biz.primary_city;
+const state = biz.state;
+const phone = biz.phone;
+
+// H1 fallback (server-rendered)
+const heroHeadline =
+  biz.hero_headline ||
+  (city && state
+    ? `${businessName} in ${city}, ${state}`
+    : businessName);
+
 
     // Choose OG image
     const ogImage =
@@ -61,14 +85,22 @@ export default async function handler(req, res) {
       `${baseUrl}/assets/og/default-og.jpg`; // make sure this file exists
 
     // 4) Inject into <head>
-    const replacements = {
-      "{{SEO_TITLE}}": escapeHtml(title),
-      "{{SEO_DESCRIPTION}}": escapeHtml(desc),
-      "{{OG_TITLE}}": escapeHtml(title),
-      "{{OG_DESCRIPTION}}": escapeHtml(desc),
-      "{{OG_IMAGE}}": escapeHtml(ogImage),
-      "{{CANONICAL_URL}}": escapeHtml(canonical)
-    };
+const replacements = {
+  "{{SEO_TITLE}}": escapeHtml(title),
+  "{{SEO_DESCRIPTION}}": escapeHtml(desc),
+  "{{OG_TITLE}}": escapeHtml(title),
+  "{{OG_DESCRIPTION}}": escapeHtml(desc),
+  "{{OG_IMAGE}}": escapeHtml(ogImage),
+  "{{CANONICAL_URL}}": escapeHtml(canonical),
+
+  // ✅ NEW
+  "{{BUSINESS_NAME}}": escapeHtml(businessName),
+  "{{PRIMARY_CITY}}": escapeHtml(city || ""),
+  "{{STATE}}": escapeHtml(state || ""),
+  "{{PHONE}}": escapeHtml(phone || ""),
+  "{{HERO_HEADLINE}}": escapeHtml(heroHeadline),
+  "{{SERVICE_AREA_JSON}}": JSON.stringify(biz.service_area || [])
+};
 
     for (const [needle, value] of Object.entries(replacements)) {
       html = html.split(needle).join(value);
