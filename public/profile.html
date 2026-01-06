@@ -8,7 +8,7 @@
 <meta name="description" content="{{SEO_DESCRIPTION}}" />
 
 <!-- Canonical -->
-<!-- <link rel="canonical" href="https://enoma.io/{{SLUG}}" /> -->
+<link rel="canonical" href="{{CANONICAL_URL}}" />
 
 <!-- OpenGraph -->
 <meta property="og:type" content="website" />
@@ -1336,22 +1336,6 @@ color: #1f2329;
 </style>
 
 
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "LocalBusiness",
-  "name": "{{BUSINESS_NAME}}",
-  "url": "{{CANONICAL_URL}}",
-  "telephone": "{{PHONE}}",
-  "address": {
-    "@type": "PostalAddress",
-    "addressLocality": "{{PRIMARY_CITY}}",
-    "addressRegion": "{{STATE}}",
-    "addressCountry": "US"
-  },
-  "areaServed": {{SERVICE_AREA_JSON}}
-}
-</script>
 
 
 </head>
@@ -1410,9 +1394,7 @@ color: #1f2329;
 
       <!-- Right: Content -->
       <div class="hero-content">
-<h1 id="heroHeadline" class="hero-headline">
-  {{HERO_HEADLINE}}
-</h1>
+<h1 id="heroHeadline" class="hero-headline"></h1>
 <p id="tagline" class="hero-tagline"></p>
 
         <div class="hero-actions hidden" id="primaryAction">
@@ -1595,13 +1577,6 @@ Built on consistent results, clear communication, and local trust.
       <a href="https://enoma.io" target="_blank" rel="noopener">
         Get one for your business →
       </a>
-
-<div class="local-nap">
-  <strong>{{BUSINESS_NAME}}</strong><br>
-  {{PRIMARY_CITY}}, {{STATE}}<br>
-  {{PHONE}}
-</div>
-
     </div>
   </div>
 </footer>
