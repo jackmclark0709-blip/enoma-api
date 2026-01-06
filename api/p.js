@@ -7,6 +7,16 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY // server-only env var on Vercel
 );
 
+const BUSINESS_TYPE_MAP = {
+  landscaping: "LandscapingBusiness",
+  plumber: "Plumber",
+  plumbing: "Plumber",
+  hvac: "HVACBusiness",
+  heating: "HVACBusiness",
+  electrician: "Electrician"
+};
+
+
 function escapeHtml(str = "") {
   return String(str)
     .replaceAll("&", "&amp;")
@@ -33,8 +43,20 @@ export default async function handler(req, res) {
     // 1) Fetch business by slug
     const { data: biz, error } = await supabase
       .from("businesses")
-      .select("slug, name, seo_title, seo_description, og_image_url")
-      .eq("slug", slug)
+.select(`
+  slug,
+  name,
+  seo_title,
+  seo_description,
+  og_image_url,
+  city,
+  state,
+  phone,
+  service_area,
+  primary_category,
+  facebook_url,
+  google_maps_url
+`)      .eq("slug", slug)
       .single();
 
     if (error || !biz) {
@@ -49,6 +71,41 @@ export default async function handler(req, res) {
     // 3) Compute SEO values (fallbacks if missing)
     const baseUrl = absoluteBaseUrl(req);
     const canonical = `${baseUrl}/${encodeURIComponent(slug)}`;
+
+// ---- LocalBusiness schema ----
+const categoryKey = biz.primary_category
+  ? biz.primary_category.toLowerCase()
+  : null;
+
+const schemaType =
+  (categoryKey && BUSINESS_TYPE_MAP[categoryKey]) || "LocalBusiness";
+
+
+const localBusinessSchema = {
+  "@context": "https://schema.org",
+  "@type": schemaType,
+  "@id": canonical,
+  "name": biz.name,
+  "url": canonical,
+  "telephone": biz.phone || undefined,
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": biz.city || undefined,
+"addressRegion": biz.state || biz.region || undefined,
+    "addressCountry": "US"
+  },
+"areaServed": Array.isArray(biz.service_area)
+  ? biz.service_area.map(area => ({
+      "@type": "AdministrativeArea",
+      "name": area
+    }))
+  : undefined,
+  "sameAs": [
+    biz.facebook_url,
+    biz.google_maps_url
+  ].filter(Boolean)
+};
+
 
     const title = biz.seo_title || `${biz.name} — Business Profile`;
     const desc =
@@ -73,6 +130,15 @@ export default async function handler(req, res) {
     for (const [needle, value] of Object.entries(replacements)) {
       html = html.split(needle).join(value);
     }
+
+// Inject LocalBusiness schema before </head>
+const schemaJson = JSON.stringify(localBusinessSchema);
+
+html = html.replace(
+  "</head>",
+  `<script type="application/ld+json">${schemaJson}</script></head>`
+);
+
 
     // 5) Return HTML
     res.setHeader("Content-Type", "text/html; charset=utf-8");
