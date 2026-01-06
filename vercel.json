@@ -2,6 +2,8 @@
   "outputDirectory": "public",
 
   "rewrites": [
+    { "source": "/sitemap.xml", "destination": "/api/sitemap" },
+
     { "source": "/login", "destination": "/dashboard/login.html" },
     { "source": "/signup", "destination": "/dashboard/signup.html" },
     { "source": "/dashboard", "destination": "/dashboard/index.html" },
