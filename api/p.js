@@ -25,6 +25,10 @@ function absoluteBaseUrl(req) {
 export default async function handler(req, res) {
   try {
     const slug = (req.query.slug || "").toString().trim();
+
+console.log("REQUESTED SLUG:", slug);
+
+
     if (!slug) {
       res.status(400).send("Missing slug");
       return;
