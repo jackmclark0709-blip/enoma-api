@@ -7,10 +7,11 @@
     { "source": "/dashboard", "destination": "/dashboard/index.html" },
     { "source": "/create", "destination": "/create.html" },
 
-    {
-      "source": "/((?!api|assets|styles|favicon|robots.txt|sitemap.xml|dashboard|create|login|signup).*)",
-      "destination": "/api/p?slug=$1"
-    }
+{
+  "source": "/((?!api|assets|styles|dashboard|create|login|signup|favicon.*|robots.txt|sitemap.xml).*)",
+  "destination": "/api/p?slug=$1"
+}
+
   ],
 
   "redirects": [

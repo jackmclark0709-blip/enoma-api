@@ -92,6 +92,8 @@ const replacements = {
   "{{OG_DESCRIPTION}}": escapeHtml(desc),
   "{{OG_IMAGE}}": escapeHtml(ogImage),
   "{{CANONICAL_URL}}": escapeHtml(canonical),
+  "{{SLUG}}": escapeHtml(slug),
+
 
   // ✅ NEW
   "{{BUSINESS_NAME}}": escapeHtml(businessName),
