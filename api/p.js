@@ -48,7 +48,7 @@ export default async function handler(req, res) {
 
     // 3) Compute SEO values (fallbacks if missing)
     const baseUrl = absoluteBaseUrl(req);
-    const canonical = `${baseUrl}/p/${encodeURIComponent(slug)}`;
+    const canonical = `${baseUrl}/${encodeURIComponent(slug)}`;
 
     const title = biz.seo_title || `${biz.name} — Business Profile`;
     const desc =
