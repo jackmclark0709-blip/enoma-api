@@ -1,3 +1,23 @@
-{ "outputDirectory": "public", "rewrites": [ { "source": "/login", "destination": "/dashboard/login.html" }, { "source": "/signup", "destination": "/dashboard/signup.html" }, { "source": "/dashboard", "destination": "/dashboard/index.html" }, { "source": "/create", "destination": "/create.html" }, { "source": "/:slug", "destination": "/api/p?slug=:slug" } ], "redirects": [ { "source": "/dashboard/login.html", "destination": "/login", "permanent": true }, { "source": "/dashboard/signup.html", "destination": "/signup", "permanent": true }, { "source": "/create.html", "destination": "/create", "permanent": true }, { "source": "/p/:slug", "destination": "/:slug", "permanent": true } ] }
+{
+  "outputDirectory": "public",
+
+  "rewrites": [
+    { "source": "/login", "destination": "/dashboard/login.html" },
+    { "source": "/signup", "destination": "/dashboard/signup.html" },
+    { "source": "/dashboard", "destination": "/dashboard/index.html" },
+
+    { "source": "/create", "destination": "/create.html" },
+
+    { "source": "/:slug", "destination": "/api/p?slug=:slug" }
+  ],
+
+  "redirects": [
+    { "source": "/dashboard/login.html", "destination": "/login", "permanent": true },
+    { "source": "/dashboard/signup.html", "destination": "/signup", "permanent": true },
+    { "source": "/create.html", "destination": "/create", "permanent": true },
+
+    { "source": "/p/:slug", "destination": "/:slug", "permanent": true }
+  ]
+}
 
 
