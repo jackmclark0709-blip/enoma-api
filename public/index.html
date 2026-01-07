@@ -192,11 +192,6 @@
   text-align: center;
     }
 
-    .section h2 {
-      font-size: 2rem;
-      font-weight: 700;
-      margin-bottom: 0.75rem;
-    }
 
     .section p {
       color: #6b7280;
@@ -265,18 +260,16 @@ width: 350px;
   margin-bottom: 1.5rem;
 }
 
+.section {
+  padding: clamp(4rem, 8vw, 6rem) 1.25rem;
+}
 .section + .section {
-  margin-top: 1rem;
+  margin-top: 0;
 }
 
+
 .section:not(.alt) .bullet::before {
-  content: "";
-  display: block;
-  width: 32px;
-  height: 4px;
-  background: #9a8cff;
-  border-radius: 2px;
-  margin-bottom: 12px;
+  display: none;
 }
 
 body {
@@ -740,12 +733,7 @@ font-size: 0.75rem;
   margin-bottom: 1rem;
 }
 
-.section.alt h2 {
-  font-size: clamp(1.9rem, 4vw, 2.2rem);
-  font-weight: 750;
-  letter-spacing: -0.015em;
-  color: #1f1b4d;
-}
+
 
 .section.alt .bridge {
   font-style: normal;
@@ -791,17 +779,7 @@ font-size: 0.75rem;
 }
 
 .section.alt::after {
-  content: "";
-  display: block;
-  width: 40px;
-  height: 3px;
-  margin: 2rem auto 0;
-  background: linear-gradient(
-    90deg,
-    #9a8cff,
-    rgba(154,140,255,0.4)
-  );
-  border-radius: 2px;
+  display: none;
 }
 
 
@@ -832,12 +810,6 @@ font-size: 0.75rem;
   margin: 0 auto;
 }
 
-.section h2 {
-  font-size: clamp(1.9rem, 4vw, 2.3rem);
-  font-weight: 750;
-  letter-spacing: -0.015em;
-  color: #1f1b4d;
-}
 
 .section-label {
   font-size: 0.7rem;
@@ -904,6 +876,72 @@ font-size: 0.75rem;
   display: none;
 }
 
+/* === Global section heading system === */
+.section h2 {
+  font-size: clamp(2rem, 4vw, 2.4rem);
+  font-weight: 750;
+  letter-spacing: -0.015em;
+  color: #1f1b4d;
+  margin-bottom: 0.75rem;
+}
+
+.section-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+  color: #6c63ff;
+  margin-bottom: 0.75rem;
+}
+
+.example-card h3 {
+  margin-bottom: 0.35rem;
+}
+
+.card-meta {
+  margin-bottom: 0.5rem;
+}
+
+.card-cta {
+  margin-top: 0.6rem;
+}
+
+.section--soft .hero-actions {
+  margin-top: 1.25rem;
+}
+
+.section--soft .bridge {
+  margin-top: 1.5rem;
+}
+
+
+.section.bordered::after {
+  display: none;
+}
+
+.final-cta {
+  background: radial-gradient(
+      800px 300px at 50% -120px,
+      rgba(154,140,255,0.18),
+      transparent 65%
+    ),
+    linear-gradient(180deg, #f8f9ff 0%, #ffffff 100%);
+  border-radius: 28px;
+  padding: clamp(4rem, 8vw, 6rem) 1.5rem;
+}
+
+.final-cta h2 {
+  font-size: clamp(2.2rem, 5vw, 2.8rem);
+}
+
+.final-cta .btn-primary {
+  font-size: 1rem;
+  padding: 0.85rem 1.8rem;
+  box-shadow: 0 14px 36px rgba(108,99,255,0.35);
+}
+
+.final-cta p {
+  max-width: 520px;
+}
 
   </style>
 
