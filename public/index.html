@@ -609,6 +609,60 @@ body {
   }
 }
 
+/* --- Example Cards Upgrade --- */
+
+.example-card {
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.example-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.1);
+}
+
+/* Badge */
+.example-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6c63ff;
+  background: rgba(108,99,255,0.12);
+  padding: 0.3rem 0.55rem;
+  border-radius: 999px;
+  margin-bottom: 0.75rem;
+}
+
+/* Meta line */
+.card-meta {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-bottom: 0.75rem;
+}
+
+/* Description */
+.card-description {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #4b5563;
+}
+
+/* CTA */
+.card-cta {
+  display: inline-block;
+  margin-top: 1.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6c63ff;
+}
+
+/* Title links */
+.example-card h3 a {
+  text-decoration: none;
+  color: #3b2fd6;
+}
 
 
   </style>
@@ -766,47 +820,74 @@ Enoma creates a single, SEO-optimized page for your small business.</p>
 
   <div class="bullets">
 
-    <div class="bullet">
-      <h3>
-        <a href="/conways-landscaping">
-          Conway’s Landscaping — Agawam, MA
-        </a>
-      </h3>
-      <p>
-        Residential and commercial landscaping services serving the Agawam area.
-      </p>
-      <p class="example">
-        Landscaping services in Agawam, MA
-      </p>
-    </div>
+    
+<div class="bullet example-card">
+  <span class="example-badge">Live example</span>
 
-    <div class="bullet">
-      <h3>
+  <h3>
+    <a href="/conways-landscaping">
+      Conway’s Landscaping
+    </a>
+  </h3>
+
+  <p class="card-meta">
+    🌱 Landscaping · Agawam, MA
+  </p>
+
+  <p class="card-description">
+    Residential and commercial landscaping services serving the Agawam area.
+  </p>
+
+  <span class="card-cta">
+    View live page →
+  </span>
+</div>
+
+
+<div class="bullet example-card">
+  <span class="example-badge">Live example</span>
+
+  <h3>
         <a href="/germaine-heating-plumbing-inc">
           Germaine Heating & Plumbing — Massachusetts
-        </a>
-      </h3>
-      <p>
-        Heating and plumbing services for residential properties.
-      </p>
-      <p class="example">
-        Heating & plumbing services in MA
-      </p>
-    </div>
+    </a>
+  </h3>
 
-    <div class="bullet">
-      <h3>
+  <p class="card-meta">
+    🌱 Plumbing · Attleboro, MA
+  </p>
+
+  <p class="card-description">
+        Heating and plumbing services for residential properties.
+  </p>
+
+  <span class="card-cta">
+    View live page →
+  </span>
+</div>
+
+<div class="bullet example-card">
+  <span class="example-badge">Live example</span>
+
+  <h3>
         <a href="/dasilva-landscaping">
           DaSilva Landscaping — Massachusetts
-        </a>
-      </h3>
-      <p>
+  </h3>
+
+  <p class="card-meta">
+    🌱 Landscaping · Attleboro, MA
+  </p>
+
+  <p class="card-description">
         Lawn care and outdoor maintenance services.
-      </p>
-      <p class="example">
-        Local landscaping services
-      </p>
-    </div>
+  </p>
+
+  <span class="card-cta">
+    View live page →
+  </span>
+</div>
+
+
 
   </div>
 
