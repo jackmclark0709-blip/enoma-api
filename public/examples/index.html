@@ -97,7 +97,19 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
     }
+
+.example-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 36px rgba(0,0,0,0.1);
+}
+
+.example-card a {
+  color: #6c63ff;
+}
+
 
     .example-card h3 {
       margin-bottom: 0.25rem;
@@ -124,6 +136,45 @@
       font-size: 0.9rem;
       color: #666;
     }
+
+.examples-cta {
+  max-width: 900px;
+  margin: 3rem auto 4rem;
+  padding: 3rem 2rem;
+  text-align: center;
+  background: linear-gradient(
+    180deg,
+    rgba(154,140,255,0.12),
+    rgba(154,140,255,0.04)
+  );
+  border-radius: 20px;
+}
+
+.examples-cta h2 {
+  font-size: 1.9rem;
+  margin-bottom: 0.75rem;
+}
+
+.examples-cta p {
+  max-width: 640px;
+  margin: 0 auto 1.75rem;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.cta-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cta-note {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+
   </style>
 
 
@@ -159,8 +210,24 @@
 </p>
 </section>
 
-<h2 style="text-align:center; margin-top:3rem;">
-  One-page website examples for small businesses
+<section class="examples-cta">
+  <h2>Beta testing — get your page built free or at a discounted rate</h2>
+  <p>
+    Enoma is currently in beta. I’m working with a small number of businesses to
+    refine the product — which means early pages are free or heavily discounted
+    in exchange for feedback.
+  </p>
+
+  <div class="cta-actions">
+    <a href="/request" class="btn-primary-lg">
+      Request my page →
+    </a>
+    <span class="cta-note">
+      Limited bet
+
+
+<h2>
+  One-page websites replacing traditional small business sites
 </h2>
 
 
@@ -188,11 +255,11 @@
 </section>
 
 <div class="examples-footer">
-  <p>
-    Want a page like these?
-    <a href="/request">Request your own one-page business website</a>
-    or learn how <a href="/">Enoma works</a>.
-  </p>
+<p>
+  Want a page like these?
+  <a href="/request"><strong>Request your page while Enoma is in beta</strong></a>
+  — free or discounted for early businesses.
+</p>
 </div>
 
 <!-- FOOTER NOTE -->
@@ -200,6 +267,13 @@
   Businesses shown are examples of live Enoma pages and do not represent
   endorsements, rankings, or a complete directory.
 </div>
+
+<section class="examples-footer">
+  <p>
+    👋 I’m actively beta testing Enoma and personally designing these pages.
+    If you want something simple, fast, and effective — I’d love your feedback.
+  </p>
+</section>
 
 <!-- FOOTER -->
 <script src="/scripts/footer.js"></script>
