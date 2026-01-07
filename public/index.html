@@ -806,7 +806,96 @@ font-size: 0.75rem;
 }
 
 
+/* Section rhythm */
+.section {
+  padding: clamp(4rem, 8vw, 6.5rem) 1.25rem;
+  position: relative;
+}
 
+/* Soft background band (HubSpot-style) */
+.section--soft {
+  background:
+    linear-gradient(
+      180deg,
+      #f7f8fc 0%,
+      #ffffff 100%
+    );
+}
+
+/* Stronger separation */
+.section--divider {
+  border-top: 1px solid rgba(31,27,77,0.06);
+}
+
+/* Carded inner content */
+.section-inner {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.section h2 {
+  font-size: clamp(1.9rem, 4vw, 2.3rem);
+  font-weight: 750;
+  letter-spacing: -0.015em;
+  color: #1f1b4d;
+}
+
+.section-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+  color: #6c63ff;
+}
+
+.section::after {
+  content: "";
+  display: block;
+  width: 44px;
+  height: 3px;
+  margin: 3rem auto 0;
+  background: linear-gradient(
+    90deg,
+    #9a8cff,
+    rgba(154,140,255,0.4)
+  );
+  border-radius: 2px;
+}
+.hero::after,
+.final-cta::after {
+  display: none;
+}
+
+.section.alt {
+  background:
+    radial-gradient(
+      900px 280px at 50% -120px,
+      rgba(154,140,255,0.1),
+      transparent 65%
+    ),
+    linear-gradient(
+      180deg,
+      #f8f9fd 0%,
+      #ffffff 100%
+    );
+}
+
+.card-meta {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #5b5f8a;
+  letter-spacing: 0.01em;
+}
+
+.card-cta {
+  margin-top: 1.2rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6c63ff;
+}
+
+.section + .section {
+  margin-top: clamp(2rem, 6vw, 4rem);
+}
 
 
 
@@ -957,8 +1046,8 @@ Enoma creates a single, SEO-optimized page for your small business.</p>
 </section>
 
 
-<!-- RECENT BUSINESS PAGES -->
-<section class="section alt">
+<section class="section section--soft">
+  <div class="section-inner">
   <span class="example-badge">LIVE EXAMPLES</span>
 
   <h2>Recently published Enoma business pages</h2>
@@ -1033,8 +1122,8 @@ Enoma creates a single, SEO-optimized page for your small business.</p>
   See more live examples →
 </a>
   </div>
+  </div>
 </section>
-
 
 
 
