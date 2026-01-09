@@ -12,15 +12,15 @@
 
 <!-- OpenGraph -->
 <meta property="og:type" content="website" />
-<meta property="og:title" content="{{OG_TITLE}}" />
-<meta property="og:description" content="{{OG_DESCRIPTION}}" />
+<meta property="og:title" content="{{SEO_TITLE}}" />
+<meta property="og:description" content="{{SEO_DESCRIPTION}}" />
 <meta property="og:image" content="{{OG_IMAGE}}" />
 <meta property="og:url" content="{{CANONICAL_URL}}" />
 
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="{{OG_TITLE}}" />
-<meta name="twitter:description" content="{{OG_DESCRIPTION}}" />
+<meta name="twitter:title" content="{{SEO_TITLE}}" />
+<meta name="twitter:description" content="{{SEO_DESCRIPTION}}" />
 <meta name="twitter:image" content="{{OG_IMAGE}}" />
 
  <link rel="stylesheet" href="/styles/enoma.css">
@@ -1385,6 +1385,22 @@ color: #1f2329;
 
 </style>
 
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "LandscapingBusiness",
+  "@id": "{{CANONICAL_URL}}",
+  "name": "{{BUSINESS_NAME}}",
+  "url": "{{CANONICAL_URL}}",
+  "telephone": "{{PHONE}}",
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "{{CITY}}",
+    "addressRegion": "{{STATE}}",
+    "addressCountry": "US"
+  }
+}
+</script>
 
 
 

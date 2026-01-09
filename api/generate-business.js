@@ -37,6 +37,16 @@ const slugify = text =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
+const normalizeSeoBusinessName = name => {
+  if (!name) return null;
+
+  return String(name)
+    .replace(/[’']/g, "")   // remove straight + curly apostrophes
+    .replace(/\s+/g, " ")   // collapse whitespace
+    .trim();
+};
+
+
 const parseCSV = v =>
   first(v)
     ? first(v).split(",").map(s => s.trim()).filter(Boolean)
@@ -126,6 +136,8 @@ const auth_id = user.id;
 
     /* ---------- CORE FIELDS ---------- */
     const business_name = first(fields.business_name);
+const seo_business_name = normalizeSeoBusinessName(business_name);
+
     const email         = first(fields.email);
     const about_input   = first(fields.about);
     const tone          = first(fields.tone);
@@ -483,6 +495,7 @@ const profilePayload = {
   auth_id,
   username: slug,
   business_name,
+    seo_business_name,
   owner_name,
 
   /* Contact */
