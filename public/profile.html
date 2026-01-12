@@ -20,6 +20,7 @@
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="{{SEO_TITLE}}{{^SEO_TITLE}}{{BUSINESS_NAME}}{{/SEO_TITLE}}" />
+
 <meta name="twitter:description" content="{{SEO_DESCRIPTION}}" />
 <meta name="twitter:image" content="{{OG_IMAGE}}" />
 
@@ -1385,7 +1386,7 @@ color: #1f2329;
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-"@type": "LocalBusiness"
+  "@type": "LandscapingBusiness",
   "@id": "{{CANONICAL_URL}}",
   "name": "{{BUSINESS_NAME}}",
   "url": "{{CANONICAL_URL}}",
@@ -1457,9 +1458,7 @@ color: #1f2329;
 
       <!-- Right: Content -->
       <div class="hero-content">
-<h1 id="heroHeadline" class="hero-headline">
-  {{BUSINESS_NAME}}
-</h1>
+<h1 id="heroHeadline" class="hero-headline"></h1>
 <p id="tagline" class="hero-tagline"></p>
 
         <div class="hero-actions hidden" id="primaryAction">
@@ -1853,8 +1852,6 @@ const res = await fetch(
 );
 
 const p = await res.json();
-
-document.title = buildSeoTitle(p);
 
 
 
