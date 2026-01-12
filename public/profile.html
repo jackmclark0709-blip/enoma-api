@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 <!-- SEO -->
-<title>{{SEO_TITLE}}</title>
+<title>{{SEO_TITLE}}{{^SEO_TITLE}}{{BUSINESS_NAME}}{{/SEO_TITLE}}</title>
 <meta name="description" content="{{SEO_DESCRIPTION}}" />
 
 <!-- Canonical -->
@@ -12,24 +12,21 @@
 
 <!-- OpenGraph -->
 <meta property="og:type" content="website" />
-<meta property="og:title" content="{{SEO_TITLE}}" />
+<meta property="og:title" content="{{SEO_TITLE}}{{^SEO_TITLE}}{{BUSINESS_NAME}}{{/SEO_TITLE}}" />
 <meta property="og:description" content="{{SEO_DESCRIPTION}}" />
 <meta property="og:image" content="{{OG_IMAGE}}" />
 <meta property="og:url" content="{{CANONICAL_URL}}" />
 
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="{{SEO_TITLE}}" />
+<meta name="twitter:title" content="{{SEO_TITLE}}{{^SEO_TITLE}}{{BUSINESS_NAME}}{{/SEO_TITLE}}" />
 <meta name="twitter:description" content="{{SEO_DESCRIPTION}}" />
 <meta name="twitter:image" content="{{OG_IMAGE}}" />
 
  <link rel="stylesheet" href="/styles/enoma.css">
 
-<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
-<link rel="icon" href="/favicon-48.png" sizes="48x48" type="image/png">
-<link rel="icon" href="/favicon-64.png" sizes="64x64" type="image/png">
-<link rel="icon" href="/favicon-128.png" sizes="128x128" type="image/png">
-<link rel="shortcut icon" href="/favicon.ico">
+<link rel="icon" href="/favicon.ico" sizes="any">
+
 
 <link
   rel="preload"
@@ -1388,7 +1385,7 @@ color: #1f2329;
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "LandscapingBusiness",
+"@type": "LocalBusiness"
   "@id": "{{CANONICAL_URL}}",
   "name": "{{BUSINESS_NAME}}",
   "url": "{{CANONICAL_URL}}",
@@ -1460,7 +1457,9 @@ color: #1f2329;
 
       <!-- Right: Content -->
       <div class="hero-content">
-<h1 id="heroHeadline" class="hero-headline"></h1>
+<h1 id="heroHeadline" class="hero-headline">
+  {{BUSINESS_NAME}}
+</h1>
 <p id="tagline" class="hero-tagline"></p>
 
         <div class="hero-actions hidden" id="primaryAction">
@@ -1854,6 +1853,9 @@ const res = await fetch(
 );
 
 const p = await res.json();
+
+document.title = buildSeoTitle(p);
+
 
 
 // Expose profile data for nav/footer partials
