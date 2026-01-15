@@ -1,6 +1,12 @@
 {
   "outputDirectory": "public",
 
+  "edgeFunctions": {
+    "og": {
+      "path": "edge-functions/og.js"
+    }
+  },
+
   "rewrites": [
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
 
@@ -21,5 +27,6 @@
     { "source": "/p/:slug", "destination": "/:slug", "permanent": true }
   ]
 }
+
 
 
