@@ -1,5 +1,15 @@
- {
+{
   "outputDirectory": "public",
+
+  "headers": [
+    {
+      "source": "/assets/og/(.*).png",
+      "headers": [
+        { "key": "Content-Type", "value": "image/png" },
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    }
+  ],
 
   "rewrites": [
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
@@ -21,6 +31,7 @@
     { "source": "/p/:slug", "destination": "/:slug", "permanent": true }
   ]
 }
+
 
 
 
