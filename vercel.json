@@ -7,28 +7,28 @@
     }
   },
 
-"rewrites": [
-  { "source": "/og", "destination": "/og" },
+  "rewrites": [
+    { "source": "/sitemap.xml", "destination": "/api/sitemap" },
 
-  { "source": "/sitemap.xml", "destination": "/api/sitemap" },
+    { "source": "/login", "destination": "/dashboard/login.html" },
+    { "source": "/signup", "destination": "/dashboard/signup.html" },
+    { "source": "/dashboard", "destination": "/dashboard/index.html" },
+    { "source": "/create", "destination": "/create.html" },
 
-  { "source": "/login", "destination": "/dashboard/login.html" },
-  { "source": "/signup", "destination": "/dashboard/signup.html" },
-  { "source": "/dashboard", "destination": "/dashboard/index.html" },
-
-  { "source": "/create", "destination": "/create.html" },
-
-  { "source": "/:slug", "destination": "/api/p?slug=:slug" }
-],
+    {
+      "source": "/((?!og$)[^/]+)",
+      "destination": "/api/p?slug=$1"
+    }
+  ],
 
   "redirects": [
     { "source": "/dashboard/login.html", "destination": "/login", "permanent": true },
     { "source": "/dashboard/signup.html", "destination": "/signup", "permanent": true },
     { "source": "/create.html", "destination": "/create", "permanent": true },
-
     { "source": "/p/:slug", "destination": "/:slug", "permanent": true }
   ]
 }
+
 
 
 
