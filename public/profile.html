@@ -4,36 +4,33 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 <!-- SEO -->
-<title>{{SEO_TITLE}}{{^SEO_TITLE}}{{BUSINESS_NAME}}{{/SEO_TITLE}}</title>
-<meta name="description" content="{{SEO_DESCRIPTION}}" />
+<title>{{FINAL_TITLE}}</title>
+<meta name="description" content="{{FINAL_DESCRIPTION}}" />
 
 <!-- Canonical -->
-<link rel="canonical" href="{{CANONICAL_URL}}" />
+<link rel="canonical" href="{{FINAL_CANONICAL_URL}}" />
 
 <!-- OpenGraph -->
 <meta property="og:type" content="website" />
-<meta property="og:title" content="{{SEO_TITLE}}{{^SEO_TITLE}}{{BUSINESS_NAME}}{{/SEO_TITLE}}" />
-<meta property="og:description" content="{{SEO_DESCRIPTION}}" />
-<meta property="og:image" content="{{OG_IMAGE}}" />
-<meta property="og:url" content="{{CANONICAL_URL}}" />
+<meta property="og:title" content="{{FINAL_TITLE}}" />
+<meta property="og:description" content="{{FINAL_DESCRIPTION}}" />
+<meta property="og:image" content="{{FINAL_OG_IMAGE}}" />
+<meta property="og:url" content="{{FINAL_CANONICAL_URL}}" />
 
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="{{SEO_TITLE}}{{^SEO_TITLE}}{{BUSINESS_NAME}}{{/SEO_TITLE}}" />
+<meta name="twitter:title" content="{{FINAL_TITLE}}" />
+<meta name="twitter:description" content="{{FINAL_DESCRIPTION}}" />
+<meta name="twitter:image" content="{{FINAL_OG_IMAGE}}" />
 
-<meta name="twitter:description" content="{{SEO_DESCRIPTION}}" />
-<meta name="twitter:image" content="{{OG_IMAGE}}" />
 
  <link rel="stylesheet" href="/styles/enoma.css">
 
 <link rel="icon" href="/favicon.ico" sizes="any">
 
 
-<link
-  rel="preload"
-  as="image"
-  href="{{OG_IMAGE}}"
-  fetchpriority="high">
+<link rel="preload" as="image" href="{{FINAL_OG_IMAGE}}" fetchpriority="high">
+
 
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
