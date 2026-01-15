@@ -20,7 +20,10 @@
 
     { "source": "/create", "destination": "/create.html" },
 
-    { "source": "/:slug", "destination": "/api/p?slug=:slug" }
+    {
+      "source": "/((?!assets|api|dashboard|styles|public).*)",
+      "destination": "/api/p?slug=$1"
+    }
   ],
 
   "redirects": [
