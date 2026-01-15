@@ -7,17 +7,19 @@
     }
   },
 
-  "rewrites": [
-    { "source": "/sitemap.xml", "destination": "/api/sitemap" },
+"rewrites": [
+  { "source": "/og", "destination": "/og" },
 
-    { "source": "/login", "destination": "/dashboard/login.html" },
-    { "source": "/signup", "destination": "/dashboard/signup.html" },
-    { "source": "/dashboard", "destination": "/dashboard/index.html" },
+  { "source": "/sitemap.xml", "destination": "/api/sitemap" },
 
-    { "source": "/create", "destination": "/create.html" },
+  { "source": "/login", "destination": "/dashboard/login.html" },
+  { "source": "/signup", "destination": "/dashboard/signup.html" },
+  { "source": "/dashboard", "destination": "/dashboard/index.html" },
 
-    { "source": "/:slug", "destination": "/api/p?slug=:slug" }
-  ],
+  { "source": "/create", "destination": "/create.html" },
+
+  { "source": "/:slug", "destination": "/api/p?slug=:slug" }
+],
 
   "redirects": [
     { "source": "/dashboard/login.html", "destination": "/login", "permanent": true },
