@@ -41,23 +41,25 @@ export default async function handler(req, res) {
     }
 
     // 1) Fetch business by slug
-    const { data: biz, error } = await supabase
-      .from("businesses")
-.select(`
-  slug,
-  name,
-  seo_title,
-  seo_description,
-  og_image_url,
-  city,
-  state,
-  phone,
-  service_area,
-  primary_category,
-  facebook_url,
-  google_maps_url
-`)      .eq("slug", slug)
-      .single();
+const { data: biz, error } = await supabase
+  .from("businesses")
+  .select(`
+    slug,
+    name,
+    final_title,
+    final_description,
+    final_og_image,
+    final_canonical_url,
+    city,
+    state,
+    phone,
+    service_area,
+    primary_category,
+    facebook_url,
+    google_maps_url
+  `)
+  .eq("slug", slug)
+  .single();
 
     if (error || !biz) {
       res.status(404).send("Not found");
@@ -107,25 +109,15 @@ const localBusinessSchema = {
 };
 
 
-    const title = biz.seo_title || `${biz.name} — Business Profile`;
-    const desc =
-      biz.seo_description ||
-      `Learn more about ${biz.name}. Contact for pricing, availability, and quotes.`;
-
-    // Choose OG image
-    const ogImage =
-      biz.og_image_url ||
-      `${baseUrl}/assets/og/default-og.jpg`; // make sure this file exists
-
+  
     // 4) Inject into <head>
-    const replacements = {
-      "{{SEO_TITLE}}": escapeHtml(title),
-      "{{SEO_DESCRIPTION}}": escapeHtml(desc),
-      "{{OG_TITLE}}": escapeHtml(title),
-      "{{OG_DESCRIPTION}}": escapeHtml(desc),
-      "{{OG_IMAGE}}": escapeHtml(ogImage),
-      "{{CANONICAL_URL}}": escapeHtml(canonical)
-    };
+const replacements = {
+  "{{FINAL_TITLE}}": escapeHtml(biz.final_title),
+  "{{FINAL_DESCRIPTION}}": escapeHtml(biz.final_description),
+  "{{FINAL_OG_IMAGE}}": escapeHtml(biz.final_og_image),
+  "{{FINAL_CANONICAL_URL}}": escapeHtml(biz.final_canonical_url)
+};
+
 
     for (const [needle, value] of Object.entries(replacements)) {
       html = html.split(needle).join(value);
