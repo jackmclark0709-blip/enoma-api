@@ -2,6 +2,8 @@ import fetch from "node-fetch";
 import { createClient } from "@supabase/supabase-js";
 import formidable from "formidable";
 import { Resend } from "resend";
+import fs from "fs";
+
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -45,6 +47,15 @@ const normalizeSeoBusinessName = name => {
     .replace(/\s+/g, " ")   // collapse whitespace
     .trim();
 };
+
+const safeFilename = (name = "image") =>
+  String(name)
+    .toLowerCase()
+    .replace(/[^a-z0-9.]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+
+const isImageMimetype = (mt = "") => /^image\/(png|jpe?g|webp|gif)$/i.test(mt);
+
 
 
 const parseCSV = v =>
@@ -179,20 +190,7 @@ try {
       });
     }
 
-    /* ---------- IMAGES ---------- */
-    let images = [];
-    if (files?.images) {
-      const arr = Array.isArray(files.images)
-        ? files.images
-        : [files.images];
 
-      images = arr
-        .filter(f => f && f.size > 0)
-        .map(f => ({
-          filename: f.originalFilename,
-          mimetype: f.mimetype
-        }));
-    }
 
     /* --------------------------------------------------
        BUSINESS RESOLUTION (CRITICAL LOGIC)
@@ -248,6 +246,65 @@ slug = await generateUniqueSlug(baseSlug, supabaseAdmin);
     }
 
 const isEdit = Boolean(incomingBusinessId);
+
+/* --------------------------------------------------
+   IMAGE UPLOADS → SUPABASE STORAGE (optional)
+   - bucket: business-images (create it in Supabase)
+   - stores public URLs into small_business_profiles.attachments
+-------------------------------------------------- */
+const BUCKET = "business-images"; // ✅ create this bucket
+
+let newAttachments = [];
+try {
+  if (files?.images) {
+    const arr = Array.isArray(files.images) ? files.images : [files.images];
+
+    // Filter to real image files
+    const valid = arr.filter(f =>
+      f &&
+      f.size > 0 &&
+      (isImageMimetype(f.mimetype) || /\.(png|jpe?g|webp|gif)$/i.test(f.originalFilename || ""))
+    );
+
+    for (const f of valid.slice(0, 12)) {
+      // formidable uses either `filepath` or `path` depending on version
+      const localPath = f.filepath || f.path;
+      const original = f.originalFilename || "image";
+      const ext = (original.split(".").pop() || "jpg").toLowerCase();
+
+      const storagePath = `${business_id}/${Date.now()}-${safeFilename(original)}.${ext}`;
+
+      const buffer = fs.readFileSync(localPath);
+
+      const { error: upErr } = await supabaseAdmin.storage
+        .from(BUCKET)
+        .upload(storagePath, buffer, {
+          contentType: f.mimetype || `image/${ext}`,
+          upsert: true
+        });
+
+      if (upErr) {
+        console.warn("⚠️ Image upload failed:", upErr.message);
+        continue;
+      }
+
+      const { data: pub } = supabaseAdmin.storage
+        .from(BUCKET)
+        .getPublicUrl(storagePath);
+
+      if (pub?.publicUrl) {
+        newAttachments.push({
+          url: pub.publicUrl,
+          path: storagePath,
+          filename: original
+        });
+      }
+    }
+  }
+} catch (e) {
+  console.warn("⚠️ Image upload block error:", e?.message || e);
+}
+
 
 
 /* --------------------------------------------------
@@ -323,8 +380,7 @@ JSON SCHEMA (MUST MATCH EXACTLY)
   "services": [
     {
       "service_name": "",
-      "service_description": "",
-      "benefits": []
+      "service_description": ""
     }
   ],
   "primary_cta": {
@@ -481,6 +537,42 @@ if (!generated.primary_cta || typeof generated.primary_cta !== "object") {
   generated.primary_cta = {};
 }
 
+// ✅ Remove service "benefits" bullets (keep title + short description only)
+generated.services = generated.services
+  .filter(s => s && typeof s === "object")
+  .map(s => ({
+    service_name: String(s.service_name || "").trim(),
+    service_description: String(s.service_description || "").trim(),
+    benefits: [] // force empty so profile.html never renders bullets
+  }))
+  .filter(s => s.service_name);
+
+
+
+// ------------------------------------
+// SERVICES: enforce "title + description" only
+// (kills bullets/benefits even if AI returns them)
+// ------------------------------------
+generated.services = (generated.services || [])
+  .filter(s => s && (s.service_name || s.name))
+  .map(s => ({
+    service_name: String(s.service_name || s.name || "").trim(),
+    service_description: String(s.service_description || s.description || "").trim()
+  }))
+  .filter(s => s.service_name);
+
+// ------------------------------------
+// FAQS: normalize {question,answer} -> {q,a}
+// (profile.html expects faq.q and faq.a)
+// ------------------------------------
+generated.faqs = (generated.faqs || [])
+  .map(f => ({
+    q: String(f.q || f.question || "").trim(),
+    a: String(f.a || f.answer || "").trim()
+  }))
+  .filter(f => f.q && f.a);
+
+
 if (!generated.hero_headline || typeof generated.hero_headline !== "string") {
   generated.hero_headline =
     `Reliable ${first(fields.primary_service) || "Local Services"} in ${first(fields.city) || "Your Area"}`;
@@ -548,7 +640,15 @@ primary_cta_value:
       ? safeJSON(fields.testimonials)
       : existingProfile?.testimonials ?? [],
 
-  /* Flags */
+  
+// Images / media
+attachments: [
+  ...(existingProfile?.attachments ?? []),
+  ...newAttachments
+],
+
+
+/* Flags */
   is_open_now: fields.is_open_now === "on",
   accepting_clients: fields.accepting_clients === "on",
   offers_emergency: fields.offers_emergency === "on",
@@ -558,7 +658,9 @@ primary_cta_value:
 };
 console.log("PROFILE PAYLOAD →", profilePayload);
 
-
+if (Array.isArray(profilePayload.attachments) && profilePayload.attachments.length > 24) {
+  profilePayload.attachments = profilePayload.attachments.slice(-24);
+}
 
 const { error: profileError } = await supabaseAdmin
   .from("small_business_profiles")

@@ -1381,6 +1381,32 @@ color: #1f2329;
 }
 
 
+/* ===============================
+   GALLERY
+================================ */
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 1rem;
+}
+
+.image-grid a {
+  display: block;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.image-grid img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  display: block;
+}
+
+
 
 </style>
 
@@ -2284,14 +2310,7 @@ if (els.services && servicesData.length) {
 
       <h3>${s.service_name || ""}</h3>
       ${s.service_description ? `<p>${s.service_description}</p>` : ""}
-      ${
-        Array.isArray(s.benefits) && s.benefits.length
-          ? `<ul class="service-benefits">
-              ${s.benefits.map(b => `<li>${b}</li>`).join("")}
-            </ul>`
-          : ""
-      }
-      ${s.price ? `<div class="service-price">Starting at ${s.price}</div>` : ""}
+           ${s.price ? `<div class="service-price">Starting at ${s.price}</div>` : ""}
     </div>
   `)
   .join("");
@@ -2327,28 +2346,33 @@ if (quickCall) {
 }
 
 
-
-/* ================= Gallery ================= */
+/* ================= Gallery (from attachments) ================= */
 const gallerySection = document.getElementById("gallerySection");
 const galleryEl = document.getElementById("gallery");
 
-// Support both `images` and `gallery` just in case
-const galleryImages =
-  Array.isArray(p.images) && p.images.length
-    ? p.images
-    : Array.isArray(p.gallery) && p.gallery.length
-    ? p.gallery
-    : [];
+const isImageUrl = (url = "") => /\.(png|jpe?g|webp|gif)(\?.*)?$/i.test(url);
 
-if (galleryImages.length && galleryEl) {
-  galleryEl.innerHTML = galleryImages
-    .map(src => `<img src="${src}" alt="Gallery image" />`)
+const attachmentImages = Array.isArray(p.attachments)
+  ? p.attachments
+      .map(a => (typeof a === "string" ? { url: a } : a))
+      .filter(a => a?.url && isImageUrl(a.url))
+  : [];
+
+if (galleryEl && attachmentImages.length) {
+  galleryEl.innerHTML = attachmentImages
+    .slice(0, 12)
+    .map(a => `
+      <a href="${a.url}" target="_blank" rel="noopener">
+        <img src="${a.url}" alt="${(a.filename || p.business_name || "Photo")}" loading="lazy" />
+      </a>
+    `)
     .join("");
 
   gallerySection?.classList.remove("hidden");
 } else {
   gallerySection?.classList.add("hidden");
 }
+
 
 
 
@@ -2477,18 +2501,35 @@ const attachmentList = document.getElementById("attachmentList");
 if (Array.isArray(p.attachments) && p.attachments.length) {
   attachmentList.innerHTML = "";
 
-  p.attachments.forEach(a => {
+  // Show only NON-image attachments in Resources
+  const nonImages = p.attachments
+    .map(a => (typeof a === "string" ? { url: a } : a))
+    .filter(a => a?.url && !isImageUrl(a.url));
+
+  nonImages.forEach(a => {
+    const label =
+      a.label ||
+      a.filename ||
+      (a.url ? a.url.split("/").pop().split("?")[0] : "Resource");
+
     const li = document.createElement("li");
     li.innerHTML = `
       <a href="${a.url}" target="_blank" rel="noopener">
-        ${a.label}
+        ${label}
       </a>
     `;
     attachmentList.appendChild(li);
   });
 
-  attachmentsSection.classList.remove("hidden");
+  if (nonImages.length) {
+    attachmentsSection.classList.remove("hidden");
+  } else {
+    attachmentsSection.classList.add("hidden");
+  }
+} else {
+  attachmentsSection.classList.add("hidden");
 }
+
 
 const whyEl = document.getElementById("why");
 const whySection = document.getElementById("whySection");

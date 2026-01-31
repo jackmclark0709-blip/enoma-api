@@ -163,7 +163,7 @@ button[type="submit"],
   We turn your business info into a polished, lead-generating webpage.
 </p>
 
-<form id="form" action="javascript:void(0);" novalidate>
+<form id="form" action="javascript:void(0);" novalidate enctype="multipart/form-data">
 <input type="hidden" name="type" value="business" />
 <input type="hidden" name="business_id" id="business_id" />
 
@@ -190,6 +190,21 @@ button[type="submit"],
   name="logo_url"
   placeholder="https://example.com/logo.png"
 />
+
+<label>Business Photos (optional)</label>
+<input
+  type="file"
+  name="images"
+  accept="image/*"
+  multiple
+/>
+<p style="color:#6b7280;margin:.35rem 0 0;font-size:.9rem;">
+  Add a few photos (storefront, work examples, team, etc.). JPG/PNG recommended.
+</p>
+
+<div id="imagePreview" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:.75rem;"></div>
+
+
 
 <label>Owner Name</label>
 <input name="owner_name" />
@@ -598,6 +613,29 @@ autocomplete.addListener("place_changed", () => {
 
 </script>
 
+<script>
+  const imgInput = document.querySelector('input[name="images"]');
+  const preview = document.getElementById("imagePreview");
+
+  if (imgInput && preview) {
+    imgInput.addEventListener("change", () => {
+      preview.innerHTML = "";
+      const files = Array.from(imgInput.files || []);
+      files.slice(0, 12).forEach(file => {
+        const url = URL.createObjectURL(file);
+        const img = document.createElement("img");
+        img.src = url;
+        img.alt = file.name;
+        img.style.width = "110px";
+        img.style.height = "110px";
+        img.style.objectFit = "cover";
+        img.style.borderRadius = "12px";
+        img.style.border = "1px solid #e5e7eb";
+        preview.appendChild(img);
+      });
+    });
+  }
+</script>
 
 
 
