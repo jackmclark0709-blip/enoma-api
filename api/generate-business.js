@@ -307,7 +307,7 @@ Do not include markdown, comments, or explanations.
 --------------------------------
 JSON SCHEMA (MUST MATCH EXACTLY)
 --------------------------------
-{
+
   {
   "seo_title": "",
   "seo_description": "",
@@ -518,8 +518,9 @@ services_intro: isEdit ? undefined : generated.services_intro,
 
 
   /* SEO (AI-owned) */
-seo_title: isEdit ? undefined : generated.seo_title,
-seo_description: isEdit ? undefined : generated.seo_description,
+seo_title: generated.seo_title,
+seo_description: generated.seo_description,
+
 
 
   /* Structured sections */
@@ -567,12 +568,44 @@ const { error: profileError } = await supabaseAdmin
 
 if (profileError) throw profileError;
 
+// Keep businesses table in sync (backward-compatible for older renderers/sitemaps)
+try {
+  const siteBase =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.SITE_URL ||
+    "https://enoma.io";
+
+  const canonicalUrl = `${siteBase.replace(/\/$/, "")}/${slug}`;
+
+  await supabaseAdmin
+    .from("businesses")
+    .update({
+      name: business_name,
+      slug,
+      phone: first(fields.phone) || null,
+      city: first(fields.city) || null,
+      state: first(fields.state) || null,
+      service_area: parseCSV(fields.service_area),
+      primary_category: first(fields.primary_category) || null,
+      final_title: generated.seo_title,
+      final_description: generated.seo_description,
+      final_canonical_url: canonicalUrl,
+      final_og_image: first(fields.logo_url) || null,
+      is_published: true,
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", business_id);
+} catch (e) {
+  console.warn("⚠️ Failed to sync businesses table:", e?.message || e);
+}
+
+
     /* ---------- DONE ---------- */
     return res.json({
       success: true,
       business_id,
       username: slug,
-      url: `/p/${slug}`
+url: `/${slug}`
     });
 
   } catch (err) {

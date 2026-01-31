@@ -13,9 +13,12 @@ const BUSINESS_TYPE_MAP = {
   plumbing: "Plumber",
   hvac: "HVACBusiness",
   heating: "HVACBusiness",
-  electrician: "Electrician"
+  electrician: "Electrician",
+  locksmith: "Locksmith",
+  painter: "HousePainter",
+  roofing: "RoofingContractor",
+  cleaning: "CleaningService"
 };
-
 
 function escapeHtml(str = "") {
   return String(str)
@@ -32,112 +35,182 @@ function absoluteBaseUrl(req) {
   return `${proto}://${host}`;
 }
 
+function safeJsonForInlineScript(obj) {
+  // Prevent closing the script tag: </script>
+  return JSON.stringify(obj).replace(/<\//g, "<\\/");
+}
+
+function guessSchemaType(primaryCategory) {
+  if (!primaryCategory) return "LocalBusiness";
+  const key = String(primaryCategory).toLowerCase().trim();
+  return BUSINESS_TYPE_MAP[key] || "LocalBusiness";
+}
+
 export default async function handler(req, res) {
   try {
     const slug = (req.query.slug || "").toString().trim();
-    if (!slug) {
-      res.status(400).send("Missing slug");
-      return;
+    if (!slug) return res.status(400).send("Missing slug");
+
+    // -----------------------------
+    // 1) Preferred source of truth:
+    //    small_business_profiles.username = slug
+    // -----------------------------
+    let profile = null;
+
+    {
+      const { data, error } = await supabase
+        .from("small_business_profiles")
+        .select("*")
+        .eq("username", slug)
+        .eq("is_public", true)
+        .maybeSingle();
+
+      if (!error && data) profile = data;
     }
 
-    // 1) Fetch business by slug
-const { data: biz, error } = await supabase
-  .from("businesses")
-  .select(`
-    slug,
-    name,
-    final_title,
-    final_description,
-    final_og_image,
-    final_canonical_url,
-    city,
-    state,
-    phone,
-    service_area,
-    primary_category,
-    facebook_url,
-    google_maps_url
-  `)
-  .eq("slug", slug)
-  .single();
+    // -----------------------------
+    // 2) Backward-compatible fallback:
+    //    businesses table (older flow)
+    // -----------------------------
+    let biz = null;
 
-    if (error || !biz) {
-      res.status(404).send("Not found");
-      return;
+    if (!profile) {
+      const { data, error } = await supabase
+        .from("businesses")
+        .select(
+          [
+            "slug",
+            "name",
+            "final_title",
+            "final_description",
+            "final_og_image",
+            "final_canonical_url",
+            "city",
+            "state",
+            "phone",
+            "service_area",
+            "primary_category",
+            "facebook_url",
+            "google_maps_url",
+            "is_published"
+          ].join(",")
+        )
+        .eq("slug", slug)
+        .maybeSingle();
+
+      if (!error && data) biz = data;
     }
 
-    // 2) Read your single template
-    const templatePath = path.join(process.cwd(), "public", "profile.html");
-    let html = fs.readFileSync(templatePath, "utf8");
+    if (!profile && !biz) {
+      return res.status(404).send("Not found");
+    }
 
-    // 3) Compute SEO values (fallbacks if missing)
     const baseUrl = absoluteBaseUrl(req);
     const canonical = `${baseUrl}/${encodeURIComponent(slug)}`;
 
-// ---- LocalBusiness schema ----
-const categoryKey = biz.primary_category
-  ? biz.primary_category.toLowerCase()
-  : null;
+    // -----------------------------
+    // 3) Compute SEO values
+    // -----------------------------
+    const businessName = profile?.business_name || biz?.name || slug;
+    const seoTitle =
+      profile?.seo_title ||
+      biz?.final_title ||
+      `${businessName} | Business Profile`;
 
-const schemaType =
-  (categoryKey && BUSINESS_TYPE_MAP[categoryKey]) || "LocalBusiness";
+    const seoDescription =
+      profile?.seo_description ||
+      biz?.final_description ||
+      `Learn about ${businessName}, services, and how to get in touch.`;
 
+    // OG image fallback: logo if provided, otherwise blank
+    const ogImage =
+      profile?.logo_url ||
+      biz?.final_og_image ||
+      "";
 
-const localBusinessSchema = {
-  "@context": "https://schema.org",
-  "@type": schemaType,
-  "@id": canonical,
-  "name": biz.name,
-  "url": canonical,
-  "telephone": biz.phone || undefined,
-  "address": {
-    "@type": "PostalAddress",
-    "addressLocality": biz.city || undefined,
-"addressRegion": biz.state || biz.region || undefined,
-    "addressCountry": "US"
-  },
-"areaServed": Array.isArray(biz.service_area)
-  ? biz.service_area.map(area => ({
-      "@type": "AdministrativeArea",
-      "name": area
-    }))
-  : undefined,
-  "sameAs": [
-    biz.facebook_url,
-    biz.google_maps_url
-  ].filter(Boolean)
-};
+    const robots =
+      profile
+        ? "index,follow"
+        : biz?.is_published
+        ? "index,follow"
+        : "noindex,nofollow";
 
+    // -----------------------------
+    // 4) Build LocalBusiness schema
+    // -----------------------------
+    const schemaType = guessSchemaType(profile?.primary_category || biz?.primary_category);
 
-  
-    // 4) Inject into <head>
-const replacements = {
-  "{{FINAL_TITLE}}": escapeHtml(biz.final_title),
-  "{{FINAL_DESCRIPTION}}": escapeHtml(biz.final_description),
-  "{{FINAL_OG_IMAGE}}": escapeHtml(biz.final_og_image),
-  "{{FINAL_CANONICAL_URL}}": escapeHtml(biz.final_canonical_url)
-};
+    const localBusinessSchema = {
+      "@context": "https://schema.org",
+      "@type": schemaType,
+      "@id": canonical,
+      name: businessName,
+      url: canonical,
+      telephone: profile?.phone || biz?.phone || undefined,
+      address: profile?.address
+        ? {
+            "@type": "PostalAddress",
+            streetAddress: profile.address
+          }
+        : {
+            "@type": "PostalAddress",
+            addressLocality: biz?.city || undefined,
+            addressRegion: biz?.state || undefined,
+            addressCountry: "US"
+          },
+      areaServed: Array.isArray(profile?.service_area)
+        ? profile.service_area.map((a) => ({ "@type": "AdministrativeArea", name: a }))
+        : Array.isArray(biz?.service_area)
+        ? biz.service_area.map((a) => ({ "@type": "AdministrativeArea", name: a }))
+        : undefined,
+      sameAs: [
+        profile?.facebook_url,
+        profile?.google_maps_url,
+        biz?.facebook_url,
+        biz?.google_maps_url
+      ].filter(Boolean)
+    };
 
+    // -----------------------------
+    // 5) Load template and replace tokens
+    // -----------------------------
+    const templatePath = path.join(process.cwd(), "public", "profile.html");
+    let html = fs.readFileSync(templatePath, "utf8");
+
+    const replacements = {
+      "{{FINAL_TITLE}}": escapeHtml(seoTitle),
+      "{{FINAL_DESCRIPTION}}": escapeHtml(seoDescription),
+      "{{FINAL_OG_IMAGE}}": escapeHtml(ogImage),
+      "{{FINAL_CANONICAL_URL}}": escapeHtml(canonical),
+
+      "{{ROBOTS}}": escapeHtml(robots),
+
+      // Server-injected profile for fast render / consistent SEO
+      "{{PROFILE_JSON}}": safeJsonForInlineScript(profile || {}),
+
+      // Minimal SSR body content (JS will overwrite, but crawlers get text immediately)
+      "{{BUSINESS_NAME}}": escapeHtml(profile?.business_name || biz?.name || ""),
+      "{{HERO_HEADLINE}}": escapeHtml(profile?.hero_headline || ""),
+      "{{HERO_TAGLINE}}": escapeHtml(profile?.hero_tagline || ""),
+      "{{ABOUT}}": escapeHtml(profile?.about || ""),
+      "{{SERVICES_INTRO}}": escapeHtml(profile?.services_intro || ""),
+
+      // Structured data
+      "{{LOCAL_BUSINESS_SCHEMA}}": escapeHtml(JSON.stringify(localBusinessSchema))
+    };
 
     for (const [needle, value] of Object.entries(replacements)) {
       html = html.split(needle).join(value);
     }
 
-// Inject LocalBusiness schema before </head>
-const schemaJson = JSON.stringify(localBusinessSchema);
-
-html = html.replace(
-  "</head>",
-  `<script type="application/ld+json">${schemaJson}</script></head>`
-);
-
-
-    // 5) Return HTML
+    // -----------------------------
+    // 6) Return HTML
+    // -----------------------------
     res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.setHeader("Cache-Control", "public, max-age=0, s-maxage=300"); // 5 min edge cache (tweak later)
-    res.status(200).send(html);
+    res.setHeader("Cache-Control", "public, max-age=0, s-maxage=300");
+    return res.status(200).send(html);
   } catch (e) {
     console.error(e);
-    res.status(500).send("Server error");
+    return res.status(500).send("Server error");
   }
 }

@@ -6,6 +6,8 @@
 <!-- SEO -->
 <title>{{FINAL_TITLE}}</title>
 <meta name="description" content="{{FINAL_DESCRIPTION}}" />
+<meta name="robots" content="{{ROBOTS}}" />
+
 
 <!-- Canonical -->
 <link rel="canonical" href="{{FINAL_CANONICAL_URL}}" />
@@ -44,22 +46,7 @@
         href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap">
 </noscript>
 
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "LandscapingBusiness",
-"@id": "{{FINAL_CANONICAL_URL}}",
-  "name": "{{BUSINESS_NAME}}",
-"url": "{{FINAL_CANONICAL_URL}}",
-  "telephone": "{{PHONE}}",
-  "address": {
-    "@type": "PostalAddress",
-    "addressLocality": "{{CITY}}",
-    "addressRegion": "{{STATE}}",
-    "addressCountry": "US"
-  }
-}
-</script>
+<script type="application/ld+json">{{LOCAL_BUSINESS_SCHEMA}}</script>
 
 
  <style>
@@ -766,7 +753,7 @@ a:hover {
 }
 
 .service-card--primary {
-  background: var(--brand-primary-soft);
+background: var(--brand-primary-10);
   border: 1.5px solid var(--brand-primary);
 }
 
@@ -1405,12 +1392,17 @@ color: #1f2329;
 
 <body>
 
+<script>window.__PROFILE__ = {{PROFILE_JSON}};</script>
+
+
+
+
 <nav class="contact-strip" id="contactStrip">
   <div class="contact-strip-inner">
 
     <!-- LEFT: Brand -->
 <div class="contact-brand">
-  <span id="businessName" class="brand-text"></span>
+<span id="businessName" class="brand-text">{{BUSINESS_NAME}}</span>
 </div>
     <!-- RIGHT: Actions -->
     <div class="contact-actions">
@@ -1457,8 +1449,9 @@ color: #1f2329;
 
       <!-- Right: Content -->
       <div class="hero-content">
-<h1 id="heroHeadline" class="hero-headline"></h1>
-<p id="tagline" class="hero-tagline"></p>
+<h1 id="heroHeadline" class="hero-headline">{{HERO_HEADLINE}}</h1>
+<p id="tagline" class="hero-tagline">{{HERO_TAGLINE}}</p>
+
 
         <div class="hero-actions hidden" id="primaryAction">
           <a id="primaryCtaButton" class="primary-cta"></a>
@@ -1477,7 +1470,7 @@ color: #1f2329;
 <section class="section" id="aboutSection">
   <div class="container">
     <h2>About</h2>
-    <p id="about"></p>
+<p id="about">{{ABOUT}}</p>
   </div>
 </section>
 
@@ -1488,7 +1481,7 @@ color: #1f2329;
 
     <header class="services-header">
       <h2>Our Services</h2>
-<p id="services-intro" class="services-intro"></p>
+<p id="services-intro" class="services-intro">{{SERVICES_INTRO}}</p>
     </header>
 
     <div id="services-grid" class="service-grid"></div>
@@ -1844,14 +1837,20 @@ const els = {
 
 
   // ===== Fetch profile =====
-const res = await fetch(
-  businessId
-    ? `/api/get-business?id=${businessId}`
-    : `/api/get-business?slug=${slug}`
-);
 
-const p = await res.json();
+let p = null;
 
+// Prefer server-injected profile data (from p.js) for fast, crawlable rendering.
+if (window.__PROFILE__ && Object.keys(window.__PROFILE__).length) {
+  p = window.__PROFILE__;
+} else {
+  const res = await fetch(
+    businessId
+      ? `/api/get-business?id=${businessId}`
+      : `/api/get-business?slug=${slug}`
+  );
+  p = await res.json();
+}
 
 
 // Expose profile data for nav/footer partials

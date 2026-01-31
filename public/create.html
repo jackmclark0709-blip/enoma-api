@@ -180,6 +180,9 @@ button[type="submit"],
 <input type="hidden" name="google_place_id" />
 
 
+<input type="hidden" name="city" />
+<input type="hidden" name="state" />
+<input type="hidden" name="primary_category" />
 
 
 <label>Business Logo URL</label>
@@ -551,7 +554,46 @@ autocomplete.addListener("place_changed", () => {
 
   if (place.website)
     document.querySelector('[name="website"]').value = place.website;
+
+  // City / State extraction (for better SEO generation)
+  try {
+    const comps = place.address_components || [];
+    const city =
+      comps.find(c => (c.types || []).includes("locality"))?.long_name ||
+      comps.find(c => (c.types || []).includes("postal_town"))?.long_name ||
+      "";
+    const state =
+      comps.find(c => (c.types || []).includes("administrative_area_level_1"))?.short_name ||
+      "";
+
+    document.querySelector('[name="city"]').value = city;
+    document.querySelector('[name="state"]').value = state;
+  } catch {}
+
+  // Primary category (best-effort) from Google Place types
+  try {
+    const types = place.types || [];
+    const typeMap = {
+      plumber: "plumber",
+      electrician: "electrician",
+      locksmith: "locksmith",
+      roofing_contractor: "roofing",
+      painter: "painter",
+      hvac_contractor: "hvac",
+      general_contractor: "contractor",
+      moving_company: "mover",
+      cleaning_service: "cleaning",
+      landscaping: "landscaping"
+    };
+
+    let category = "";
+    for (const t of types) {
+      if (typeMap[t]) { category = typeMap[t]; break; }
+    }
+    document.querySelector('[name="primary_category"]').value = category;
+  } catch {}
 });
+
 
 
 </script>
