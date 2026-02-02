@@ -139,6 +139,8 @@ button[type="submit"],
   font-size: 0.95rem;
 }
 
+
+
 </style>
 
 <!-- Google Analytics -->
@@ -185,11 +187,40 @@ button[type="submit"],
 <input type="hidden" name="primary_category" />
 
 
-<label>Business Logo URL</label>
+<label>Business Logo (upload)</label>
+<input
+  type="file"
+  name="logo"
+  id="logoFile"
+  accept="image/png,image/jpeg"
+/>
+<p style="color:#6b7280;margin:.35rem 0 0;font-size:.9rem;">
+  Upload a logo (PNG or JPG). If you upload a logo, it will override the URL field below.
+</p>
+
+<div id="logoPreviewWrap" style="display:none;margin-top:.75rem;">
+  <img
+    id="logoPreview"
+    alt="Logo preview"
+    style="
+      width:110px;
+      height:110px;
+      object-fit:contain;
+      background:#fff;
+      border-radius:14px;
+      border:1px solid #e5e7eb;
+      padding:10px;
+    "
+  />
+</div>
+
+<label>Business Logo URL (optional)</label>
 <input
   name="logo_url"
+  id="logo_url"
   placeholder="https://example.com/logo.png"
 />
+
 
 <label>Business Photos (optional)</label>
 <input
@@ -358,8 +389,69 @@ const servicesEl = document.getElementById("services");
 const testimonialsEl = document.getElementById("testimonials");
 
 /* ----------------------------------------
+   LOGO UPLOAD + PREVIEW (PNG/JPG)
+---------------------------------------- */
+const logoInput = document.getElementById("logoFile");
+const logoUrlInput = document.getElementById("logo_url");
+const logoPreviewWrap = document.getElementById("logoPreviewWrap");
+const logoPreview = document.getElementById("logoPreview");
+
+function setLogoPreview(src) {
+  if (!logoPreviewWrap || !logoPreview) return;
+
+  if (src) {
+    logoPreview.src = src;
+    logoPreviewWrap.style.display = "block";
+  } else {
+    logoPreview.src = "";
+    logoPreviewWrap.style.display = "none";
+  }
+}
+
+// If user types/pastes a URL and no file is selected, show preview
+if (logoUrlInput) {
+  logoUrlInput.addEventListener("input", () => {
+    if (logoInput && logoInput.files && logoInput.files.length) return;
+    setLogoPreview(logoUrlInput.value.trim());
+  });
+}
+
+if (logoInput) {
+  logoInput.addEventListener("change", () => {
+    const file = (logoInput.files || [])[0];
+    if (!file) {
+      setLogoPreview(logoUrlInput?.value?.trim() || "");
+      return;
+    }
+
+    const okType = ["image/png", "image/jpeg"].includes(file.type);
+    const maxBytes = 3 * 1024 * 1024; // 3MB
+
+    if (!okType) {
+      alert("Logo must be a PNG or JPG.");
+      logoInput.value = "";
+      return;
+    }
+
+    if (file.size > maxBytes) {
+      alert("Logo is too large. Please upload a logo under 3MB.");
+      logoInput.value = "";
+      return;
+    }
+
+    // If uploading a logo file, clear URL to avoid confusion
+    if (logoUrlInput) logoUrlInput.value = "";
+
+    const url = URL.createObjectURL(file);
+    setLogoPreview(url);
+  });
+}
+
+/* ----------------------------------------
    EDIT MODE DETECTION
 ---------------------------------------- */
+
+
 const params = new URLSearchParams(window.location.search);
 const editBusinessId = params.get("business_id");
 
@@ -385,12 +477,17 @@ async function loadBusinessForEdit(businessId) {
     .eq("business_id", businessId)
     .single();
 
+
   console.log("EDIT LOAD RESULT:", { data, error });
 
   if (error || !data) {
     status.textContent = "Failed to load business profile.";
     return;
   }
+
+form.logo_url.value = data.logo_url || "";
+setLogoPreview(data.logo_url || "");
+
 
   form.business_name.value = data.business_name || "";
   form.email.value = data.email || "";
@@ -399,6 +496,12 @@ async function loadBusinessForEdit(businessId) {
   form.website.value = data.website || "";
   form.about.value = data.about || "";
   form.service_area.value = (data.service_area || []).join(", ");
+
+form.querySelector('[name="google_place_id"]').value = data.google_place_id || "";
+form.querySelector('[name="city"]').value = data.city || "";
+form.querySelector('[name="state"]').value = data.state || "";
+form.querySelector('[name="primary_category"]').value = data.primary_category || "";
+
 
   (data.services || []).forEach(s => {
     addService();
@@ -636,6 +739,8 @@ autocomplete.addListener("place_changed", () => {
     });
   }
 </script>
+
+
 
 
 

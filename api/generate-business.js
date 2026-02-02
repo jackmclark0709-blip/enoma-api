@@ -55,6 +55,8 @@ const safeFilename = (name = "image") =>
     .replace(/(^-|-$)/g, "");
 
 const isImageMimetype = (mt = "") => /^image\/(png|jpe?g|webp|gif)$/i.test(mt);
+const isLogoMimetype = (mt = "") => /^image\/(png|jpe?g)$/i.test(mt);
+const BUCKET = "business-images"; // Supabase Storage bucket
 
 
 
@@ -152,9 +154,10 @@ const seo_business_name = normalizeSeoBusinessName(business_name);
     const email         = first(fields.email);
     const about_input   = first(fields.about);
     const tone          = first(fields.tone);
-    const incomingBusinessId = first(fields.business_id);
+const incomingBusinessId = first(fields.business_id);
 const owner_name = first(fields.owner_name);
-const logo_url = first(fields.logo_url);
+let logo_url = first(fields.logo_url); // may be overridden by uploaded logo file
+
 
 if (!incomingBusinessId && process.env.RESEND_API_KEY) {
 try {
@@ -247,12 +250,65 @@ slug = await generateUniqueSlug(baseSlug, supabaseAdmin);
 
 const isEdit = Boolean(incomingBusinessId);
 
+// --------------------------------------------------
+// LOGO UPLOAD (PNG/JPG) → Supabase Storage (optional)
+// - field name: "logo"
+// - bucket: business-images
+// - sets logo_url to public URL if uploaded
+// --------------------------------------------------
+
+try {
+  const logoFile = files?.logo
+    ? (Array.isArray(files.logo) ? files.logo[0] : files.logo)
+    : null;
+
+  if (logoFile && logoFile.size > 0) {
+    const original = logoFile.originalFilename || "logo";
+    const localPath = logoFile.filepath || logoFile.path;
+    const ext = (original.split(".").pop() || "png").toLowerCase();
+
+    const okExt = ["png", "jpg", "jpeg"].includes(ext);
+    const okMime = isLogoMimetype(logoFile.mimetype || "");
+    const maxBytes = 3 * 1024 * 1024;
+
+    if (!okExt || !okMime) {
+      console.warn("⚠️ Invalid logo type (PNG/JPG only).");
+    } else if (logoFile.size > maxBytes) {
+      console.warn("⚠️ Logo too large (>3MB).");
+    } else {
+      const storagePath = `${business_id}/logo-${Date.now()}.${ext}`;
+      const buffer = fs.readFileSync(localPath);
+
+      const { error: upErr } = await supabaseAdmin.storage
+        .from(BUCKET)
+        .upload(storagePath, buffer, {
+          contentType: logoFile.mimetype || `image/${ext === "jpg" ? "jpeg" : ext}`,
+          upsert: true
+        });
+
+      if (upErr) {
+        console.warn("⚠️ Logo upload failed:", upErr.message);
+      } else {
+        const { data: pub } = supabaseAdmin.storage
+          .from(BUCKET)
+          .getPublicUrl(storagePath);
+
+        if (pub?.publicUrl) {
+          logo_url = pub.publicUrl; // ✅ override logo_url
+        }
+      }
+    }
+  }
+} catch (e) {
+  console.warn("⚠️ Logo upload block error:", e?.message || e);
+}
+
+
 /* --------------------------------------------------
    IMAGE UPLOADS → SUPABASE STORAGE (optional)
    - bucket: business-images (create it in Supabase)
    - stores public URLs into small_business_profiles.attachments
 -------------------------------------------------- */
-const BUCKET = "business-images"; // ✅ create this bucket
 
 let newAttachments = [];
 try {
@@ -272,7 +328,8 @@ try {
       const original = f.originalFilename || "image";
       const ext = (original.split(".").pop() || "jpg").toLowerCase();
 
-      const storagePath = `${business_id}/${Date.now()}-${safeFilename(original)}.${ext}`;
+const base = safeFilename(original).replace(/\.[a-z0-9]+$/i, "");
+const storagePath = `${business_id}/${Date.now()}-${base}.${ext}`;
 
       const buffer = fs.readFileSync(localPath);
 
@@ -385,7 +442,7 @@ JSON SCHEMA (MUST MATCH EXACTLY)
   ],
   "primary_cta": {
     "label": "",
-    "type": "phone|form|link",
+"type": "call|email|form|link"
     "value": ""
   }
 }
@@ -578,6 +635,13 @@ if (!generated.hero_headline || typeof generated.hero_headline !== "string") {
     `Reliable ${first(fields.primary_service) || "Local Services"} in ${first(fields.city) || "Your Area"}`;
 }
 
+const normalizeCtaType = (t = "") => {
+  const v = String(t).toLowerCase().trim();
+  if (v === "phone") return "call";
+  return v;
+};
+
+
 
 const primaryCTA = generated.primary_cta;
     /* ---------- PROFILE UPSERT ---------- */
@@ -595,9 +659,12 @@ const profilePayload = {
   phone: first(fields.phone),
   address: first(fields.address),
   website: first(fields.website),
+  google_place_id: first(fields.google_place_id) || null,
+  primary_category: first(fields.primary_category) || null,
 
   /* Branding */
   logo_url,
+
 
     /* Core content (AI-owned) */
 /* Core content (AI-owned) */
@@ -623,12 +690,13 @@ seo_description: generated.seo_description,
 
 
 primary_cta_label: primaryCTA.label || "Contact Us",
-primary_cta_type: primaryCTA.type || "phone",
+primary_cta_type: normalizeCtaType(primaryCTA.type) || "call",
 primary_cta_value:
   primaryCTA.value ||
   first(fields.phone) ||
   first(fields.website) ||
   "",
+
 
 
   /* Geography */
@@ -657,6 +725,9 @@ attachments: [
   updated_at: new Date().toISOString()
 };
 console.log("PROFILE PAYLOAD →", profilePayload);
+
+
+
 
 if (Array.isArray(profilePayload.attachments) && profilePayload.attachments.length > 24) {
   profilePayload.attachments = profilePayload.attachments.slice(-24);
@@ -692,7 +763,7 @@ try {
       final_title: generated.seo_title,
       final_description: generated.seo_description,
       final_canonical_url: canonicalUrl,
-      final_og_image: first(fields.logo_url) || null,
+final_og_image: logo_url || null,
       is_published: true,
       updated_at: new Date().toISOString()
     })
