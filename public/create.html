@@ -235,6 +235,11 @@ button[type="submit"],
 
 <div id="imagePreview" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:.75rem;"></div>
 
+<div id="existingImages" style="margin-top:1rem;display:none;">
+  <p style="margin:0 0 .5rem;color:#6b7280;font-size:.9rem;">Existing photos</p>
+  <div id="existingImagesGrid" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
+</div>
+
 
 
 <label>Owner Name</label>
@@ -269,6 +274,45 @@ button[type="submit"],
   <option value="bold">Bold</option>
   <option value="simple">Simple & Clean</option>
 </select>
+
+<hr/>
+
+
+<h3>Editing Options</h3>
+
+<label style="display:flex;gap:.5rem;align-items:center;">
+  <input type="checkbox" id="regenerate_ai" name="regenerate_ai" />
+  Rewrite page copy with AI (leave unchecked to only save my edits)
+</label>
+
+<p style="color:#6b7280;margin:.35rem 0 0;font-size:.9rem;">
+  Tip: In edit mode, this is OFF by default so you can make precise changes without AI overwriting them.
+</p>
+
+<hr/>
+
+<h3>Page Copy (Optional)</h3>
+
+<label>SEO Title</label>
+<input name="seo_title" placeholder="SEO title that appears in Google results" />
+
+<label>SEO Description</label>
+<textarea name="seo_description" placeholder="Meta description for Google"></textarea>
+
+<label>Hero Headline</label>
+<input name="hero_headline" placeholder="Main headline at top of the page" />
+
+<label>Hero Tagline</label>
+<textarea name="hero_tagline" placeholder="Short supporting tagline"></textarea>
+
+<label>Why Choose Us</label>
+<textarea name="why_choose_us" placeholder="Short paragraph explaining differentiation"></textarea>
+
+<label>Services Intro</label>
+<textarea name="services_intro" placeholder="A short intro sentence before services"></textarea>
+
+<label>Trust Badges (one per line)</label>
+<textarea name="trust_badges" placeholder="Licensed & Insured&#10;Free Estimates&#10;5-Star Rated"></textarea>
 
 <hr/>
 
@@ -337,7 +381,7 @@ async function enforceAdmin() {
   const { data: { session } } = await supabase.auth.getSession();
 
   if (!session) {
-    const next = encodeURIComponent(window.location.pathname);
+const next = encodeURIComponent(window.location.pathname + window.location.search);
     window.location.href = `/login?next=${next}`;
     return;
   }
@@ -464,12 +508,21 @@ if (editBusinessId) {
     "Update the information for this business profile.";
 }
 
+// Default AI behavior: create = ON, edit = OFF
+const regenCheckbox = document.getElementById("regenerate_ai");
+if (regenCheckbox) {
+  regenCheckbox.checked = !editBusinessId;
+}
+
+
 /* ----------------------------------------
    LOAD EXISTING DATA (EDIT MODE)
 ---------------------------------------- */
 async function loadBusinessForEdit(businessId) {
   servicesEl.innerHTML = "";
   testimonialsEl.innerHTML = "";
+
+
 
   const { data, error } = await supabase
     .from("small_business_profiles")
@@ -485,22 +538,78 @@ async function loadBusinessForEdit(businessId) {
     return;
   }
 
-form.logo_url.value = data.logo_url || "";
-setLogoPreview(data.logo_url || "");
+const existingWrap = document.getElementById("existingImages");
+const existingGrid = document.getElementById("existingImagesGrid");
+existingGrid.innerHTML = "";
+
+const attachments = Array.isArray(data.attachments) ? data.attachments : [];
+if (attachments.length) {
+  existingWrap.style.display = "block";
+  attachments.forEach((url, idx) => {
+    const card = document.createElement("div");
+    card.style.width = "110px";
+    card.innerHTML = `
+      <img src="${url}" style="width:110px;height:110px;object-fit:cover;border-radius:12px;border:1px solid #e5e7eb;" />
+      <label style="display:flex;gap:6px;align-items:center;margin-top:6px;font-size:.85rem;color:#374151;">
+        <input type="checkbox" class="remove-attachment" value="${url}" />
+        remove
+      </label>
+    `;
+    existingGrid.appendChild(card);
+  });
+} else {
+  existingWrap.style.display = "none";
+}
 
 
-  form.business_name.value = data.business_name || "";
-  form.email.value = data.email || "";
-  form.phone.value = data.phone || "";
-  form.address.value = data.address || "";
-  form.website.value = data.website || "";
-  form.about.value = data.about || "";
-  form.service_area.value = (data.service_area || []).join(", ");
 
+
+// Identity/contact
+form.business_name.value = data.business_name || "";
+// Make the visible Google search box feel populated in edit mode
+const googleInput = document.getElementById("google_place");
+if (googleInput) {
+  googleInput.value = data.business_name || "";
+}
+
+
+
+form.owner_name.value = data.owner_name || "";
+form.email.value = data.email || "";
+form.phone.value = data.phone || "";
+form.address.value = data.address || "";
+form.website.value = data.website || "";
+
+// About / service area
+form.about.value = data.about || "";
+form.service_area.value = Array.isArray(data.service_area)
+  ? data.service_area.join(", ")
+  : (data.service_area || "");
+
+// Google fields (hidden)
 form.querySelector('[name="google_place_id"]').value = data.google_place_id || "";
 form.querySelector('[name="city"]').value = data.city || "";
 form.querySelector('[name="state"]').value = data.state || "";
 form.querySelector('[name="primary_category"]').value = data.primary_category || "";
+
+// Tone + status checkboxes
+form.tone.value = data.tone || "professional";
+form.is_open_now.checked = !!data.is_open_now;
+form.accepting_clients.checked = !!data.accepting_clients;
+form.offers_emergency.checked = !!data.offers_emergency;
+
+// Page copy fields (manual editing)
+form.seo_title.value = data.seo_title || "";
+form.seo_description.value = data.seo_description || "";
+form.hero_headline.value = data.hero_headline || "";
+form.hero_tagline.value = data.hero_tagline || "";
+form.why_choose_us.value = data.why_choose_us || "";
+form.services_intro.value = data.services_intro || "";
+
+// Trust badges (array in DB → newline in textarea)
+form.trust_badges.value = Array.isArray(data.trust_badges)
+  ? data.trust_badges.join("\n")
+  : (data.trust_badges || "");
 
 
   (data.services || []).forEach(s => {
@@ -556,13 +665,25 @@ if (editBusinessId) {
 /* ----------------------------------------
    BUTTON → FORM SUBMISSION WIRING
 ---------------------------------------- */
-document.getElementById("createBtn")?.addEventListener("click", () => {
-  form.requestSubmit();
-});
+const createBtn = document.getElementById("createBtn");
+const updateBtn = document.getElementById("updateBtn");
 
-document.getElementById("updateBtn")?.addEventListener("click", () => {
-  form.requestSubmit();
-});
+function refreshButtonLabels() {
+  if (updateBtn && editBusinessId) {
+    const rewrite = !!regenCheckbox?.checked;
+    updateBtn.textContent = rewrite ? "Rewrite with AI + Save" : "Save Edits";
+  }
+  if (createBtn && !editBusinessId) {
+    createBtn.textContent = "Create Business Page";
+  }
+}
+
+regenCheckbox?.addEventListener("change", refreshButtonLabels);
+refreshButtonLabels();
+
+createBtn?.addEventListener("click", () => form.requestSubmit());
+updateBtn?.addEventListener("click", () => form.requestSubmit());
+
 
 
 
@@ -578,6 +699,12 @@ form.addEventListener("submit", async (e) => {
     : "Creating your business profile…";
 
   const fd = new FormData(form);
+
+// Ensure checkboxes always submit true/false (not missing)
+fd.set("is_open_now", form.is_open_now.checked ? "true" : "false");
+fd.set("accepting_clients", form.accepting_clients.checked ? "true" : "false");
+fd.set("offers_emergency", form.offers_emergency.checked ? "true" : "false");
+
 
   // 🔐 Auth
   const { data: { session } } = await supabase.auth.getSession();
@@ -608,6 +735,22 @@ form.addEventListener("submit", async (e) => {
   
   fd.set("services", JSON.stringify(servicesData));
   fd.set("testimonials", JSON.stringify(testimonialsData));
+
+// Trust badges: textarea → JSON array (one per line)
+const trustBadges = (form.trust_badges?.value || "")
+  .split("\n")
+  .map(s => s.trim())
+  .filter(Boolean);
+
+fd.set("trust_badges", JSON.stringify(trustBadges));
+
+
+// Existing photos removal (edit mode)
+const removeUrls = [...document.querySelectorAll(".remove-attachment:checked")]
+  .map(cb => cb.value);
+
+fd.set("attachments_remove", JSON.stringify(removeUrls));
+
 
   /* ----------------------------------------
      SUBMIT
@@ -646,9 +789,9 @@ try {
 </script>
 
 
-<script
-  src="https://maps.googleapis.com/maps/api/js?key=GOOGLE_PUBLIC_MAPS_KEY&libraries=places">
-</script>
+<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_REAL_KEY&libraries=places"></script>
+
+
 
 <script>
 const input = document.getElementById("google_place");
