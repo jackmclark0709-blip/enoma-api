@@ -136,10 +136,13 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: "Invalid session" });
     }
 
-    // TEMP: Enoma-only admin access
-    if (user.email !== "jack@enoma.io") {
-      return res.status(403).json({ error: "Unauthorized" });
-    }
+ // Require confirmed email (basic abuse prevention + ensures they own the account)
+if (!user.email_confirmed_at) {
+  return res.status(403).json({
+    error: "Please confirm your email before creating a page."
+  });
+}
+
 
     const auth_id = user.id;
 

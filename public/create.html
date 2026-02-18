@@ -377,39 +377,59 @@ button[type="submit"],
 
 <script type="module">
   const supabase = window.supabaseClient;
-async function enforceAdmin() {
-  const { data: { session } } = await supabase.auth.getSession();
 
-  if (!session) {
-const next = encodeURIComponent(window.location.pathname + window.location.search);
-    window.location.href = `/login?next=${next}`;
-    return;
+  async function requireSession() {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      const next = encodeURIComponent(
+        window.location.pathname + window.location.search
+      );
+      window.location.href = `/login?next=${next}`;
+      return null;
+    }
+
+    return session;
   }
 
-  // 🔒 TEMP: Allow only you
-  if (session.user.email !== "jack@enoma.io") {
-    document.body.innerHTML = `
-      <div style="
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        height:100vh;
-        font-family:Inter,system-ui;
-        background:#0f0d2b;
-        color:white;
-        text-align:center;
-      ">
-        <div>
-          <h2>Unauthorized</h2>
-          <p>This page is restricted.</p>
-        </div>
-      </div>
-    `;
-    return;
-  }
-}
+  async function enforceCreateAccess() {
+    // Make the auth check status available to other scripts on this page
+    window.__ENOMA_AUTH_OK = false;
+    window.__ENOMA_AUTH_CHECKED = false;
+    window.__ENOMA_SESSION = null;
 
-  await enforceAdmin();
+    const session = await requireSession();
+    if (!session) {
+      window.__ENOMA_AUTH_CHECKED = true;
+      return;
+    }
+
+    // If editing, confirm the logged-in user is a member of this business_id
+    const params = new URLSearchParams(window.location.search);
+    const editBusinessId = params.get("business_id");
+
+    if (editBusinessId) {
+      const { data: membership, error } = await supabase
+        .from("business_members")
+        .select("business_id, role")
+        .eq("business_id", editBusinessId)
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+
+      if (error || !membership) {
+        // Not allowed to edit this business
+        window.location.href = "/dashboard";
+        window.__ENOMA_AUTH_CHECKED = true;
+        return;
+      }
+    }
+
+    window.__ENOMA_SESSION = session;
+    window.__ENOMA_AUTH_OK = true;
+    window.__ENOMA_AUTH_CHECKED = true;
+  }
+
+  await enforceCreateAccess();
 </script>
 
 
@@ -423,6 +443,19 @@ while (!window.supabaseClient) {
   await new Promise(r => setTimeout(r, 10));
 }
 supabase = window.supabaseClient;
+
+// Wait for the auth gate script to finish
+while (!window.__ENOMA_AUTH_CHECKED) {
+  await new Promise(r => setTimeout(r, 10));
+}
+
+// If not authorized (or we redirected), stop running the create page JS
+if (!window.__ENOMA_AUTH_OK) {
+  return;
+}
+
+const session = window.__ENOMA_SESSION;
+
 
 /* ----------------------------------------
    ELEMENT REFERENCES
@@ -498,6 +531,12 @@ if (logoInput) {
 
 const params = new URLSearchParams(window.location.search);
 const editBusinessId = params.get("business_id");
+
+// Prefill contact email on NEW creates (edit mode already loads existing)
+if (!editBusinessId && session?.user?.email && !form.email.value) {
+  form.email.value = session.user.email;
+}
+
 
 if (editBusinessId) {
   document.getElementById("business_id").value = editBusinessId;

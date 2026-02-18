@@ -29,9 +29,11 @@
 
 
   <div class="header-actions">
-    <a id="public-link" class="btn" target="_blank">View public page</a>
-    <button id="sign-out" class="btn secondary">Sign out</button>
-  </div>
+  <a id="public-link" class="btn" target="_blank">View public page</a>
+  <a id="edit-link" class="btn secondary">Edit page</a>
+  <button id="sign-out" class="btn secondary">Sign out</button>
+</div>
+
 </header>
 
 
@@ -55,6 +57,16 @@
       <h3>Where people found you</h3>
       <ul id="sources"></ul>
     </section>
+
+<section class="card">
+  <h3>Profile Data (Supabase)</h3>
+  <p class="muted" style="margin-top:.25rem;">
+    This is the <code>small_business_profiles</code> row used to populate your public page.
+  </p>
+  <pre id="profile-json" style="white-space:pre-wrap; overflow:auto; margin-top:1rem; padding:1rem; border-radius:12px; background:#0f0d2b; color:#fff;"></pre>
+</section>
+
+
   </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -84,9 +96,11 @@ const { data: memberships, error: memberError } = await supabase
   .eq('user_id', session.user.id);
 
 if (memberError || !memberships?.length) {
-  console.error('No memberships found', memberError);
+  // New account: no pages yet → send them straight to create
+  window.location.href = '/create';
   return;
 }
+
 
 const businessIds = memberships.map(m => m.business_id);
 
@@ -124,6 +138,34 @@ async function loadMetricsForBusiness(profile) {
   const publicLink = document.getElementById('public-link');
   publicLink.href = `/p/${profile.username}`;
   publicLink.style.display = 'inline-block';
+
+  // Edit link → goes to create.html in edit mode
+  const editLink = document.getElementById('edit-link');
+  editLink.href = `/create?business_id=${profile.business_id}`;
+  editLink.style.display = 'inline-block';
+
+  // Show raw Supabase row (small_business_profiles)
+  const pre = document.getElementById('profile-json');
+  pre.textContent = 'Loading profile data…';
+
+  const { data: fullProfile, error: fullProfileError } = await supabase
+    .from('small_business_profiles')
+    .select('*')
+    .eq('business_id', profile.business_id)
+    .single();
+
+  if (fullProfileError || !fullProfile) {
+    pre.textContent = `Failed to load profile row: ${fullProfileError?.message || 'Unknown error'}`;
+  } else {
+    pre.textContent = JSON.stringify(fullProfile, null, 2);
+  }
+
+  // Placeholder for sources (safe default so dashboard never breaks)
+  const sourcesEl = document.getElementById('sources');
+  if (sourcesEl && !sourcesEl.children.length) {
+    sourcesEl.innerHTML = `<li class="muted">Coming soon</li>`;
+  }
+
 
   const slug = profile.username;
   const since = new Date();
