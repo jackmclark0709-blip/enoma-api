@@ -98,10 +98,11 @@ async function generateUniqueSlug(base, supabase) {
   let i = 1;
 
   while (true) {
+    // Canonical slug source: small_business_profiles.username
     const { data } = await supabase
-      .from("businesses")
+      .from("small_business_profiles")
       .select("id")
-      .eq("slug", slug)
+      .eq("username", slug)
       .maybeSingle();
 
     if (!data) return slug;
@@ -110,6 +111,7 @@ async function generateUniqueSlug(base, supabase) {
     i++;
   }
 }
+
 
 /* --------------------------------------------------
    HANDLER
@@ -224,14 +226,27 @@ if (!user.email_confirmed_at) {
         return res.status(403).json({ error: "Not authorized for this business" });
       }
 
-      const { data: biz, error: bizErr } = await supabaseAdmin
-        .from("businesses")
-        .select("slug")
-        .eq("id", business_id)
-        .single();
+      // Prefer canonical username from small_business_profiles
+      const { data: profSlug } = await supabaseAdmin
+        .from("small_business_profiles")
+        .select("username")
+        .eq("business_id", business_id)
+        .maybeSingle();
 
-      if (bizErr) throw bizErr;
-      slug = biz.slug;
+      if (profSlug?.username) {
+        slug = profSlug.username;
+      } else {
+        // Fallback (older rows): businesses.slug
+        const { data: biz, error: bizErr } = await supabaseAdmin
+          .from("businesses")
+          .select("slug")
+          .eq("id", business_id)
+          .single();
+
+        if (bizErr) throw bizErr;
+        slug = biz.slug;
+      }
+
 
     } else {
       const baseSlug = slugify(business_name);
@@ -603,6 +618,10 @@ Operational flags:
 google_place_id: first(fields.google_place_id) || existingProfile?.google_place_id || null,
 primary_category: first(fields.primary_category) || existingProfile?.primary_category || null,
 
+city: first(fields.city) || existingProfile?.city || null,
+state: first(fields.state) || existingProfile?.state || null,
+
+
       logo_url,
 
       hero_headline: finalHeroHeadline,
@@ -644,45 +663,25 @@ primary_category: first(fields.primary_category) || existingProfile?.primary_cat
 
     if (profileError) throw profileError;
 
-    /* --------------------------------------------------
-       SYNC BUSINESSES TABLE
+
+       /* --------------------------------------------------
+       MINIMAL BUSINESSES UPDATE (identity only)
+       We keep businesses as the FK anchor table, but ALL page content lives in small_business_profiles.
     -------------------------------------------------- */
-try {
-  const siteBase =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.SITE_URL ||
-    "https://enoma.io";
+    try {
+      await supabaseAdmin
+        .from("businesses")
+        .update({
+          name: business_name,
+          slug, // keep in sync with profile username
+          is_published: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", business_id);
+    } catch (e) {
+      console.warn("⚠️ Failed to update businesses identity:", e?.message || e);
+    }
 
-  const canonicalUrl = `${siteBase.replace(/\/$/, "")}/${slug}`;
-
-  const bizUpdate = {
-    name: business_name,
-    slug,
-    phone: first(fields.phone) || null,
-    service_area: parseCSV(fields.service_area),
-
-    // ✅ only write these if present (prevents wiping on edit)
-    ...(first(fields.city) ? { city: first(fields.city) } : {}),
-    ...(first(fields.state) ? { state: first(fields.state) } : {}),
-    ...(first(fields.primary_category) ? { primary_category: first(fields.primary_category) } : {}),
-
-    final_title: finalSeoTitle || null,
-    final_description: finalSeoDescription || null,
-    final_canonical_url: canonicalUrl,
-    final_og_image: logo_url || null,
-    is_published: true,
-    updated_at: new Date().toISOString()
-  };
-
-  await supabaseAdmin
-    .from("businesses")
-    .update(bizUpdate)
-    .eq("id", business_id);
-
-} catch (e) {
-  console.warn("⚠️ Failed to sync businesses table:", e?.message || e);
-}
-   
 
 
     return res.json({

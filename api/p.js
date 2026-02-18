@@ -52,56 +52,22 @@ export default async function handler(req, res) {
     if (!slug) return res.status(400).send("Missing slug");
 
     // -----------------------------
-    // 1) Preferred source of truth:
-    //    small_business_profiles.username = slug
+    // Canonical source of truth:
+    // small_business_profiles.username = slug
     // -----------------------------
-    let profile = null;
+    const { data: profile, error } = await supabase
+      .from("small_business_profiles")
+      .select("*")
+      .eq("username", slug)
+      .eq("is_public", true)
+      .maybeSingle();
 
-    {
-      const { data, error } = await supabase
-        .from("small_business_profiles")
-        .select("*")
-        .eq("username", slug)
-        .eq("is_public", true)
-        .maybeSingle();
-
-      if (!error && data) profile = data;
+    if (error) {
+      console.error("Profile lookup error:", error);
+      return res.status(500).send("Server error");
     }
-
-    // -----------------------------
-    // 2) Backward-compatible fallback:
-    //    businesses table (older flow)
-    // -----------------------------
-    let biz = null;
 
     if (!profile) {
-      const { data, error } = await supabase
-        .from("businesses")
-        .select(
-          [
-            "slug",
-            "name",
-            "final_title",
-            "final_description",
-            "final_og_image",
-            "final_canonical_url",
-            "city",
-            "state",
-            "phone",
-            "service_area",
-            "primary_category",
-            "facebook_url",
-            "google_maps_url",
-            "is_published"
-          ].join(",")
-        )
-        .eq("slug", slug)
-        .maybeSingle();
-
-      if (!error && data) biz = data;
-    }
-
-    if (!profile && !biz) {
       return res.status(404).send("Not found");
     }
 
@@ -109,36 +75,61 @@ export default async function handler(req, res) {
     const canonical = `${baseUrl}/${encodeURIComponent(slug)}`;
 
     // -----------------------------
-    // 3) Compute SEO values
+    // SEO values (profiles only)
     // -----------------------------
-    const businessName = profile?.business_name || biz?.name || slug;
+    const businessName = profile.business_name || slug;
+
     const seoTitle =
-      profile?.seo_title ||
-      biz?.final_title ||
+      profile.seo_title ||
       `${businessName} | Business Profile`;
 
     const seoDescription =
-      profile?.seo_description ||
-      biz?.final_description ||
+      profile.seo_description ||
       `Learn about ${businessName}, services, and how to get in touch.`;
 
-    // OG image fallback: logo if provided, otherwise blank
     const ogImage =
-      profile?.logo_url ||
-      biz?.final_og_image ||
+      profile.logo_url ||
       "";
 
-    const robots =
-      profile
-        ? "index,follow"
-        : biz?.is_published
-        ? "index,follow"
-        : "noindex,nofollow";
+    const robots = profile.is_public ? "index,follow" : "noindex,nofollow";
 
     // -----------------------------
-    // 4) Build LocalBusiness schema
+    // Structured data helpers
     // -----------------------------
-    const schemaType = guessSchemaType(profile?.primary_category || biz?.primary_category);
+    function collectSameAs(p) {
+      const urls = new Set();
+
+      // Website (if provided)
+      if (p?.website) urls.add(p.website);
+
+      // social_links jsonb (supports object or array)
+      const sl = p?.social_links;
+      if (Array.isArray(sl)) {
+        sl.forEach(u => {
+          if (typeof u === "string" && u.trim()) urls.add(u.trim());
+        });
+      } else if (sl && typeof sl === "object") {
+        Object.values(sl).forEach(u => {
+          if (typeof u === "string" && u.trim()) urls.add(u.trim());
+        });
+      }
+
+      // Google Maps link from place_id (if present)
+      if (p?.google_place_id) {
+        urls.add(
+          `https://www.google.com/maps/search/?api=1&query_place_id=${encodeURIComponent(
+            p.google_place_id
+          )}`
+        );
+      }
+
+      return Array.from(urls).filter(Boolean);
+    }
+
+    // -----------------------------
+    // Build LocalBusiness schema (profiles only)
+    // -----------------------------
+    const schemaType = guessSchemaType(profile.primary_category);
 
     const localBusinessSchema = {
       "@context": "https://schema.org",
@@ -146,33 +137,24 @@ export default async function handler(req, res) {
       "@id": canonical,
       name: businessName,
       url: canonical,
-      telephone: profile?.phone || biz?.phone || undefined,
-      address: profile?.address
+      telephone: profile.phone || undefined,
+      address: profile.address || profile.city || profile.state
         ? {
             "@type": "PostalAddress",
-            streetAddress: profile.address
-          }
-        : {
-            "@type": "PostalAddress",
-            addressLocality: biz?.city || undefined,
-            addressRegion: biz?.state || undefined,
+            ...(profile.address ? { streetAddress: profile.address } : {}),
+            ...(profile.city ? { addressLocality: profile.city } : {}),
+            ...(profile.state ? { addressRegion: profile.state } : {}),
             addressCountry: "US"
-          },
-      areaServed: Array.isArray(profile?.service_area)
-        ? profile.service_area.map((a) => ({ "@type": "AdministrativeArea", name: a }))
-        : Array.isArray(biz?.service_area)
-        ? biz.service_area.map((a) => ({ "@type": "AdministrativeArea", name: a }))
+          }
         : undefined,
-      sameAs: [
-        profile?.facebook_url,
-        profile?.google_maps_url,
-        biz?.facebook_url,
-        biz?.google_maps_url
-      ].filter(Boolean)
+      areaServed: Array.isArray(profile.service_area)
+        ? profile.service_area.map((a) => ({ "@type": "AdministrativeArea", name: a }))
+        : undefined,
+      sameAs: collectSameAs(profile)
     };
 
     // -----------------------------
-    // 5) Load template and replace tokens
+    // Load template and replace tokens
     // -----------------------------
     const templatePath = path.join(process.cwd(), "public", "profile.html");
     let html = fs.readFileSync(templatePath, "utf8");
@@ -189,11 +171,11 @@ export default async function handler(req, res) {
       "{{PROFILE_JSON}}": safeJsonForInlineScript(profile || {}),
 
       // Minimal SSR body content (JS will overwrite, but crawlers get text immediately)
-      "{{BUSINESS_NAME}}": escapeHtml(profile?.business_name || biz?.name || ""),
-      "{{HERO_HEADLINE}}": escapeHtml(profile?.hero_headline || ""),
-      "{{HERO_TAGLINE}}": escapeHtml(profile?.hero_tagline || ""),
-      "{{ABOUT}}": escapeHtml(profile?.about || ""),
-      "{{SERVICES_INTRO}}": escapeHtml(profile?.services_intro || ""),
+      "{{BUSINESS_NAME}}": escapeHtml(profile.business_name || ""),
+      "{{HERO_HEADLINE}}": escapeHtml(profile.hero_headline || ""),
+      "{{HERO_TAGLINE}}": escapeHtml(profile.hero_tagline || ""),
+      "{{ABOUT}}": escapeHtml(profile.about || ""),
+      "{{SERVICES_INTRO}}": escapeHtml(profile.services_intro || ""),
 
       // Structured data
       "{{LOCAL_BUSINESS_SCHEMA}}": escapeHtml(JSON.stringify(localBusinessSchema))
@@ -204,7 +186,7 @@ export default async function handler(req, res) {
     }
 
     // -----------------------------
-    // 6) Return HTML
+    // Return HTML
     // -----------------------------
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.setHeader("Cache-Control", "public, max-age=0, s-maxage=300");

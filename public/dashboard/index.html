@@ -136,7 +136,7 @@ async function loadMetricsForBusiness(profile) {
     profile.business_name || profile.username;
 
   const publicLink = document.getElementById('public-link');
-  publicLink.href = `/p/${profile.username}`;
+publicLink.href = `/${profile.username}`;
   publicLink.style.display = 'inline-block';
 
   // Edit link → goes to create.html in edit mode
@@ -167,28 +167,70 @@ async function loadMetricsForBusiness(profile) {
   }
 
 
-  const slug = profile.username;
+  const businessId = profile.business_id;
+
+  // last 30 days (daily_metrics.day is a DATE)
   const since = new Date();
   since.setDate(since.getDate() - 30);
+  const sinceDay = since.toISOString().slice(0, 10);
 
-  // Page views
-  const { count: pageViews } = await supabase
-    .from('page_events')
-    .select('*', { count: 'exact', head: true })
-    .eq('slug', slug)
-    .eq('event', 'page_view')
-    .gte('created_at', since.toISOString());
+  // Pull rollups
+  const { data: metricRows, error: metricErr } = await supabase
+    .from('daily_metrics')
+    .select('page_views, contact_clicks')
+    .eq('business_id', businessId)
+    .gte('day', sinceDay);
 
-  // Contact clicks
-  const { count: contactClicks } = await supabase
-    .from('page_events')
-    .select('*', { count: 'exact', head: true })
-    .eq('slug', slug)
-    .eq('event', 'contact_click')
-    .gte('created_at', since.toISOString());
+  let pageViews = 0;
+  let contactClicks = 0;
 
-  document.getElementById('page-views').textContent = pageViews ?? 0;
-  document.getElementById('contact-clicks').textContent = contactClicks ?? 0;
+  if (metricErr) {
+    console.error('daily_metrics query failed', metricErr);
+  } else if (Array.isArray(metricRows)) {
+    for (const r of metricRows) {
+      pageViews += Number(r.page_views || 0);
+      contactClicks += Number(r.contact_clicks || 0);
+    }
+  }
+
+  document.getElementById('page-views').textContent = pageViews;
+  document.getElementById('contact-clicks').textContent = contactClicks;
+
+  // Top sources (last 30 days)
+  const { data: sourceRows, error: sourceErr } = await supabase
+    .from('top_sources_daily')
+    .select('source, visits')
+    .eq('business_id', businessId)
+    .gte('day', sinceDay);
+
+  const sourcesEl = document.getElementById('sources');
+  if (sourcesEl) sourcesEl.innerHTML = '';
+
+  if (sourceErr) {
+    console.error('top_sources_daily query failed', sourceErr);
+    if (sourcesEl) sourcesEl.innerHTML = `<li class="muted">Unable to load sources</li>`;
+  } else {
+    const agg = new Map();
+    (sourceRows || []).forEach(r => {
+      const key = (r.source || 'Unknown').toString();
+      agg.set(key, (agg.get(key) || 0) + Number(r.visits || 0));
+    });
+
+    const top = Array.from(agg.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6);
+
+    if (!top.length) {
+      if (sourcesEl) sourcesEl.innerHTML = `<li class="muted">No source data yet</li>`;
+    } else {
+      top.forEach(([source, visits]) => {
+        const li = document.createElement('li');
+        li.textContent = `${source} (${visits})`;
+        sourcesEl.appendChild(li);
+      });
+    }
+  }
+
 }
 
 function getProfileByBusinessId(id) {
