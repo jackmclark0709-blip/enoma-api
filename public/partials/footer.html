@@ -1,32 +1,22 @@
 <footer class="site-footer">
-  <div class="footer-inner">
-
-    <!-- Brand -->
-    <div class="footer-brand">
+  <div class="site-footer__inner">
+    <div>
       <img
         src="/assets/logos/enoma-white-name-tagline.svg"
-        alt="Enoma — Your business, online"
-        class="footer-logo"
+        alt="Enoma"
+        style="height:24px;width:auto;opacity:0.85;"
       />
     </div>
-
-    <!-- Footer links -->
-    <div class="footer-links">
+    <div class="site-footer__links">
       <a href="/examples">Examples</a>
       <a href="/pricing">Pricing</a>
+      <a href="/contact">Contact</a>
       <a href="/privacy">Privacy</a>
       <a href="/terms">Terms</a>
-      <a href="/contact">Contact Us</a>
     </div>
-
-  </div>
-
-  <div class="footer-bottom">
-    © <span id="footer-year"></span> Enoma
+    <div style="font-size:0.8rem;color:rgba(240,246,255,0.4);">
+      © <span id="footer-year"></span> Enoma
+    </div>
   </div>
 </footer>
-
-<script>
-  document.getElementById("footer-year").textContent =
-    new Date().getFullYear();
-</script>
+<script>document.getElementById("footer-year").textContent = new Date().getFullYear();</script>
