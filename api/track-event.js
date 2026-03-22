@@ -1,8 +1,13 @@
+// api/track-event.js
+// NOTE: This file is the OLD analytics endpoint. It's kept for backwards
+// compatibility but the new api/track.js is the preferred version.
+// The only fix here is the env var name: SUPABASE_SERVICE_KEY → SUPABASE_SERVICE_ROLE_KEY
+
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY  // FIX: was SUPABASE_SERVICE_KEY (wrong, never worked)
 );
 
 export default async function handler(req, res) {

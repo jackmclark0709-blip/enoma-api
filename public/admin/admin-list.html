@@ -5,71 +5,88 @@
 <title>Admin — Business Profiles</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="stylesheet" href="/styles/enoma.css" />
+<style>
+  body { padding: 2rem; font-family: Inter, system-ui; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { padding: 10px; border: 1px solid #eee; text-align: left; }
+  th { background: #f6f7fb; font-weight: 600; }
+  #auth-gate { display: none; }
+</style>
 </head>
 
-<body style="padding:2rem;font-family:Inter,system-ui">
+<body>
 
-<h1>All Business Profiles</h1>
-<p>Private admin view</p>
+<div id="auth-gate">
+  <h1>All Business Profiles</h1>
+  <p style="color:#6b7280; margin-bottom:1.5rem;">Admin view — only visible to jack@enoma.io</p>
 
-<table border="1" cellpadding="10" cellspacing="0" width="100%">
-  <thead>
-    <tr>
-      <th>Name</th>
-      <th>Email</th>
-      <th>Created</th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody id="rows"></tbody>
-</table>
+  <table>
+    <thead>
+      <tr>
+        <th>Business Name</th>
+        <th>Email</th>
+        <th>Slug</th>
+        <th>Created</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+</div>
 
-<script type="module">
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+<div id="unauth-message" style="text-align:center; margin-top:4rem;">
+  <p>Checking credentials…</p>
+</div>
 
-const supabase = createClient(
-  "https://qhsivcenpnxwmvwznqie.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc"
-);
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://qhsivcenpnxwmvwznqie.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc';
 
-async function enforceAdmin() {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session || session.user.email !== "jack@enoma.io") {
-    document.body.innerHTML = "<h2>Unauthorized</h2>";
-    return false;
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  async function init() {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    const unauthEl = document.getElementById('unauth-message');
+    const gateEl = document.getElementById('auth-gate');
+
+    // Must be logged in AND be the admin email
+    if (!session || session.user.email !== 'jack@enoma.io') {
+      unauthEl.innerHTML = '<h2 style="color:#e24b4a;">Unauthorized</h2><p><a href="/login">Sign in</a></p>';
+      return;
+    }
+
+    // Authorized — show the admin panel
+    unauthEl.style.display = 'none';
+    gateEl.style.display = 'block';
+
+    const { data, error } = await supabase
+      .from('small_business_profiles')
+      .select('business_id, business_name, email, username, created_at')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      document.getElementById('rows').innerHTML =
+        `<tr><td colspan="5" style="color:red;">Failed to load: ${error.message}</td></tr>`;
+      return;
+    }
+
+    const tbody = document.getElementById('rows');
+    data.forEach(b => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${b.business_name || '—'}</td>
+        <td>${b.email || '—'}</td>
+        <td><a href="/${b.username}" target="_blank">${b.username || '—'}</a></td>
+        <td>${new Date(b.created_at).toLocaleDateString()}</td>
+        <td><a href="/create?business_id=${b.business_id}">Edit</a></td>
+      `;
+      tbody.appendChild(tr);
+    });
   }
-  return true;
-}
 
-async function loadBusinesses() {
-const { data, error } = await supabase
-  .from("small_business_profiles")
-  .select("business_id,business_name,email,created_at")
-  .order("created_at", { ascending: false });
-
-  if (error) {
-    alert("Failed to load businesses");
-    return;
-  }
-
-  const tbody = document.getElementById("rows");
-  data.forEach(b => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${b.business_name}</td>
-      <td>${b.email}</td>
-      <td>${new Date(b.created_at).toLocaleDateString()}</td>
-      <td>
-<a href="/create.html?business_id=${b.business_id}">Edit</a>
-      </td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-if (await enforceAdmin()) {
-  loadBusinesses();
-}
+  init();
 </script>
 
 </body>

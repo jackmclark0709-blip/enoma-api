@@ -1,41 +1,36 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Enoma — Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="dashboard.css" />
-<link rel="stylesheet" href="/styles/enoma.css">
-<!-- Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-S8XTG72Y2Y');
-</script>
-
+  <link rel="stylesheet" href="/styles/enoma.css">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S8XTG72Y2Y');
+  </script>
 </head>
 
 <body>
   <main class="container">
-   <header class="header">
-  <div>
-    <h1 id="business-name">Loading…</h1>
-    <p class="sub">Your Enoma page performance</p>
-  </div>
+    <header class="header">
+      <div>
+        <h1 id="business-name">Loading…</h1>
+        <p class="sub">Your Enoma page performance</p>
+      </div>
 
-<select id="business-select" class="business-select"></select>
+      <select id="business-select" class="business-select"></select>
 
-
-  <div class="header-actions">
-  <a id="public-link" class="btn" target="_blank">View public page</a>
-  <a id="edit-link" class="btn secondary">Edit page</a>
-  <button id="sign-out" class="btn secondary">Sign out</button>
-</div>
-
-</header>
-
+      <div class="header-actions">
+        <a id="public-link" class="btn" target="_blank">View public page</a>
+        <a id="edit-link" class="btn secondary">Edit page</a>
+        <button id="sign-out" class="btn secondary">Sign out</button>
+      </div>
+    </header>
 
     <section class="status">
       <span id="subscription-status" class="pill">Active</span>
@@ -58,15 +53,13 @@
       <ul id="sources"></ul>
     </section>
 
-<section class="card">
-  <h3>Profile Data (Supabase)</h3>
-  <p class="muted" style="margin-top:.25rem;">
-    This is the <code>small_business_profiles</code> row used to populate your public page.
-  </p>
-  <pre id="profile-json" style="white-space:pre-wrap; overflow:auto; margin-top:1rem; padding:1rem; border-radius:12px; background:#0f0d2b; color:#fff;"></pre>
-</section>
-
-
+    <section class="card">
+      <h3>Profile Data (Supabase)</h3>
+      <p class="muted" style="margin-top:.25rem;">
+        This is the <code>small_business_profiles</code> row used to populate your public page.
+      </p>
+      <pre id="profile-json" style="white-space:pre-wrap; overflow:auto; margin-top:1rem; padding:1rem; border-radius:12px; background:#0f0d2b; color:#fff;"></pre>
+    </section>
   </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -74,211 +67,196 @@
   const SUPABASE_URL = 'https://qhsivcenpnxwmvwznqie.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc';
 
-  const supabase = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY
-  );
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   async function main() {
-    // 1️⃣ Auth
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       window.location.href = '/login';
       return;
     }
 
-    console.log('Authenticated as:', session.user.email);
+    const { data: memberships, error: memberError } = await supabase
+      .from('business_members')
+      .select('*')
+      .eq('user_id', session.user.id);
 
-    // 2️⃣ Membership
-const { data: memberships, error: memberError } = await supabase
-  .from('business_members')
-  .select('*')
-  .eq('user_id', session.user.id);
-
-if (memberError || !memberships?.length) {
-  // New account: no pages yet → send them straight to create
-  window.location.href = '/create';
-  return;
-}
-
-
-const businessIds = memberships.map(m => m.business_id);
-
-const { data: profiles, error: profilesError } = await supabase
-  .from('small_business_profiles')
-  .select('business_id, username, business_name')
-  .in('business_id', businessIds);
-
-if (profilesError || !profiles?.length) {
-  console.error('Profile lookup failed', profilesError);
-  return;
-}
-
-const selectEl = document.getElementById('business-select');
-
-// Populate dropdown
-profiles.forEach(p => {
-  const option = document.createElement('option');
-  option.value = p.business_id;
-  option.textContent = p.business_name || p.username;
-  selectEl.appendChild(option);
-});
-
-// Default selection
-const params = new URLSearchParams(window.location.search);
-let activeBusinessId =
-  params.get('business_id') || profiles[0].business_id;
-
-selectEl.value = activeBusinessId;
-
-async function loadMetricsForBusiness(profile) {
-  document.getElementById('business-name').textContent =
-    profile.business_name || profile.username;
-
-  const publicLink = document.getElementById('public-link');
-publicLink.href = `/${profile.username}`;
-  publicLink.style.display = 'inline-block';
-
-  // Edit link → goes to create.html in edit mode
-  const editLink = document.getElementById('edit-link');
-  editLink.href = `/create?business_id=${profile.business_id}`;
-  editLink.style.display = 'inline-block';
-
-  // Show raw Supabase row (small_business_profiles)
-  const pre = document.getElementById('profile-json');
-  pre.textContent = 'Loading profile data…';
-
-  const { data: fullProfile, error: fullProfileError } = await supabase
-    .from('small_business_profiles')
-    .select('*')
-    .eq('business_id', profile.business_id)
-    .single();
-
-  if (fullProfileError || !fullProfile) {
-    pre.textContent = `Failed to load profile row: ${fullProfileError?.message || 'Unknown error'}`;
-  } else {
-    pre.textContent = JSON.stringify(fullProfile, null, 2);
-  }
-
-  // Placeholder for sources (safe default so dashboard never breaks)
-  const sourcesEl = document.getElementById('sources');
-  if (sourcesEl && !sourcesEl.children.length) {
-    sourcesEl.innerHTML = `<li class="muted">Coming soon</li>`;
-  }
-
-
-  const businessId = profile.business_id;
-
-  // last 30 days (daily_metrics.day is a DATE)
-  const since = new Date();
-  since.setDate(since.getDate() - 30);
-  const sinceDay = since.toISOString().slice(0, 10);
-
-  // Pull rollups
-  const { data: metricRows, error: metricErr } = await supabase
-    .from('daily_metrics')
-    .select('page_views, contact_clicks')
-    .eq('business_id', businessId)
-    .gte('day', sinceDay);
-
-  let pageViews = 0;
-  let contactClicks = 0;
-
-  if (metricErr) {
-    console.error('daily_metrics query failed', metricErr);
-  } else if (Array.isArray(metricRows)) {
-    for (const r of metricRows) {
-      pageViews += Number(r.page_views || 0);
-      contactClicks += Number(r.contact_clicks || 0);
+    if (memberError || !memberships?.length) {
+      window.location.href = '/create';
+      return;
     }
-  }
 
-  document.getElementById('page-views').textContent = pageViews;
-  document.getElementById('contact-clicks').textContent = contactClicks;
+    const businessIds = memberships.map(m => m.business_id);
 
-  // Top sources (last 30 days)
-  const { data: sourceRows, error: sourceErr } = await supabase
-    .from('top_sources_daily')
-    .select('source, visits')
-    .eq('business_id', businessId)
-    .gte('day', sinceDay);
+    const { data: profiles, error: profilesError } = await supabase
+      .from('small_business_profiles')
+      .select('business_id, username, business_name')
+      .in('business_id', businessIds);
 
-  const sourcesEl = document.getElementById('sources');
-  if (sourcesEl) sourcesEl.innerHTML = '';
+    if (profilesError || !profiles?.length) {
+      console.error('Profile lookup failed', profilesError);
+      return;
+    }
 
-  if (sourceErr) {
-    console.error('top_sources_daily query failed', sourceErr);
-    if (sourcesEl) sourcesEl.innerHTML = `<li class="muted">Unable to load sources</li>`;
-  } else {
-    const agg = new Map();
-    (sourceRows || []).forEach(r => {
-      const key = (r.source || 'Unknown').toString();
-      agg.set(key, (agg.get(key) || 0) + Number(r.visits || 0));
+    const selectEl = document.getElementById('business-select');
+
+    profiles.forEach(p => {
+      const option = document.createElement('option');
+      option.value = p.business_id;
+      option.textContent = p.business_name || p.username;
+      selectEl.appendChild(option);
     });
 
-    const top = Array.from(agg.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6);
+    const params = new URLSearchParams(window.location.search);
+    let activeBusinessId = params.get('business_id') || profiles[0].business_id;
+    selectEl.value = activeBusinessId;
 
-    if (!top.length) {
-      if (sourcesEl) sourcesEl.innerHTML = `<li class="muted">No source data yet</li>`;
-    } else {
-      top.forEach(([source, visits]) => {
-        const li = document.createElement('li');
-        li.textContent = `${source} (${visits})`;
-        sourcesEl.appendChild(li);
-      });
+    async function loadMetricsForBusiness(profile) {
+      document.getElementById('business-name').textContent =
+        profile.business_name || profile.username;
+
+      const publicLink = document.getElementById('public-link');
+      publicLink.href = `/${profile.username}`;
+      publicLink.style.display = 'inline-block';
+
+      const editLink = document.getElementById('edit-link');
+      editLink.href = `/create?business_id=${profile.business_id}`;
+      editLink.style.display = 'inline-block';
+
+      const pre = document.getElementById('profile-json');
+      pre.textContent = 'Loading profile data…';
+
+      const { data: fullProfile, error: fullProfileError } = await supabase
+        .from('small_business_profiles')
+        .select('*')
+        .eq('business_id', profile.business_id)
+        .single();
+
+      if (fullProfileError || !fullProfile) {
+        pre.textContent = `Failed to load profile row: ${fullProfileError?.message || 'Unknown error'}`;
+      } else {
+        pre.textContent = JSON.stringify(fullProfile, null, 2);
+      }
+
+      const businessId = profile.business_id;
+      const since = new Date();
+      since.setDate(since.getDate() - 30);
+      const sinceDay = since.toISOString().slice(0, 10);
+
+      // Pull rollups from daily_metrics
+      const { data: metricRows, error: metricErr } = await supabase
+        .from('daily_metrics')
+        .select('page_views, contact_clicks')
+        .eq('business_id', businessId)
+        .gte('day', sinceDay);
+
+      let pageViews = 0;
+      let contactClicks = 0;
+
+      if (metricErr) {
+        console.error('daily_metrics query failed', metricErr);
+      } else if (Array.isArray(metricRows)) {
+        for (const r of metricRows) {
+          pageViews += Number(r.page_views || 0);
+          contactClicks += Number(r.contact_clicks || 0);
+        }
+      }
+
+      // Fallback: if daily_metrics is still empty, read from page_events directly
+      if (pageViews === 0 && contactClicks === 0) {
+        const { count: pvCount } = await supabase
+          .from('page_events')
+          .select('*', { count: 'exact', head: true })
+          .eq('slug', profile.username)
+          .eq('event', 'page_view')
+          .gte('created_at', since.toISOString());
+
+        const { count: ccCount } = await supabase
+          .from('page_events')
+          .select('*', { count: 'exact', head: true })
+          .eq('slug', profile.username)
+          .in('event', ['contact_click', 'cta_click_phone', 'cta_click_email', 'cta_click_website'])
+          .gte('created_at', since.toISOString());
+
+        pageViews = pvCount ?? 0;
+        contactClicks = ccCount ?? 0;
+      }
+
+      document.getElementById('page-views').textContent = pageViews;
+      document.getElementById('contact-clicks').textContent = contactClicks;
+
+      // Traffic sources — FIX: single declaration of sourcesEl
+      const sourcesEl = document.getElementById('sources');
+      if (sourcesEl) sourcesEl.innerHTML = '';
+
+      const { data: sourceRows, error: sourceErr } = await supabase
+        .from('top_sources_daily')
+        .select('source, visits')
+        .eq('business_id', businessId)
+        .gte('day', sinceDay);
+
+      if (sourceErr) {
+        console.error('top_sources_daily query failed', sourceErr);
+        if (sourcesEl) sourcesEl.innerHTML = `<li class="muted">Unable to load sources</li>`;
+      } else {
+        // Aggregate by source across days
+        const agg = new Map();
+        (sourceRows || []).forEach(r => {
+          const key = (r.source || 'Direct').toString();
+          agg.set(key, (agg.get(key) || 0) + Number(r.visits || 0));
+        });
+
+        const top = Array.from(agg.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 6);
+
+        if (!top.length) {
+          if (sourcesEl) sourcesEl.innerHTML = `<li class="muted">No source data yet — check back after traffic comes in</li>`;
+        } else {
+          top.forEach(([source, visits]) => {
+            const li = document.createElement('li');
+            li.innerHTML = `<span>${source}</span><strong>${visits}</strong>`;
+            sourcesEl.appendChild(li);
+          });
+        }
+      }
     }
-  }
 
-}
+    function getProfileByBusinessId(id) {
+      return profiles.find(p => p.business_id === id);
+    }
 
-function getProfileByBusinessId(id) {
-  return profiles.find(p => p.business_id === id);
-}
+    function updateStatusPill(businessId) {
+      const statusEl = document.getElementById('subscription-status');
+      const membership = memberships.find(m => m.business_id === businessId);
+      statusEl.textContent = membership?.role === 'admin' ? 'Admin' : 'Member';
+    }
 
-function updateStatusPill(businessId) {
-  const statusEl = document.getElementById('subscription-status');
-  const membership = memberships.find(
-    m => m.business_id === businessId
-  );
+    // Initial load
+    updateStatusPill(activeBusinessId);
+    await loadMetricsForBusiness(getProfileByBusinessId(activeBusinessId));
 
-  statusEl.textContent =
-    membership?.role === 'admin' ? 'Admin' : 'Member';
-}
+    // Handle dropdown changes
+    selectEl.addEventListener('change', async e => {
+      const newId = e.target.value;
+      const profile = getProfileByBusinessId(newId);
 
-// Initial load
-updateStatusPill(activeBusinessId);
-await loadMetricsForBusiness(getProfileByBusinessId(activeBusinessId));
+      const url = new URL(window.location);
+      url.searchParams.set('business_id', newId);
+      window.history.replaceState({}, '', url);
 
-// Handle changes
-selectEl.addEventListener('change', async e => {
-  const newId = e.target.value;
-  const profile = getProfileByBusinessId(newId);
+      updateStatusPill(newId);
+      await loadMetricsForBusiness(profile);
+    });
 
-  const url = new URL(window.location);
-  url.searchParams.set('business_id', newId);
-  window.history.replaceState({}, '', url);
-
-  updateStatusPill(newId);
-  await loadMetricsForBusiness(profile);
-});
-
-
-
-
-
-    // 5️⃣ Sign out
     document.getElementById('sign-out').addEventListener('click', async () => {
       await supabase.auth.signOut();
       window.location.href = '/login';
     });
   }
 
-  // 🚀 Run dashboard
   main();
 </script>
-
 
 </body>
 </html>

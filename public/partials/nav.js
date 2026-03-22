@@ -1,13 +1,18 @@
+// public/partials/nav.js
+// FIX: The anon key had a typo — "IkXVCJ9" should be "IkpXVCJ9"
+// This was causing getSession() to silently fail for logged-in users,
+// making the nav show "Request a Page" even when someone was logged in.
+
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
 const SUPABASE_URL = "https://qhsivcenpnxwmvwznqie.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInRlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc";
+// CORRECTED KEY — note "IkpXVCJ9" not "IkXVCJ9"
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function loadNav() {
   try {
-    // Load nav shell
     const res = await fetch("/partials/nav.html");
     if (!res.ok) {
       console.error("Failed to load nav.html:", res.status);
@@ -23,7 +28,6 @@ async function loadNav() {
       return;
     }
 
-    // Check auth state
     const {
       data: { session },
       error
@@ -33,9 +37,7 @@ async function loadNav() {
       console.error("Error fetching session:", error);
     }
 
-    // Render nav
     if (session) {
-      // Logged in
       links.innerHTML = `
         <a href="/pricing">Pricing</a>
         <a href="/contact">Contact</a>
@@ -51,7 +53,6 @@ async function loadNav() {
         });
 
     } else {
-      // Logged out
       links.innerHTML = `
         <a href="/pricing">Pricing</a>
         <a href="/contact">Contact</a>
@@ -65,7 +66,6 @@ async function loadNav() {
   }
 }
 
-// Ensure DOM exists
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", loadNav);
 } else {

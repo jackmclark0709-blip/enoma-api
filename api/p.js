@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY // server-only env var on Vercel
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 const BUSINESS_TYPE_MAP = {
@@ -36,7 +36,6 @@ function absoluteBaseUrl(req) {
 }
 
 function safeJsonForInlineScript(obj) {
-  // Prevent closing the script tag: </script>
   return JSON.stringify(obj).replace(/<\//g, "<\\/");
 }
 
@@ -51,10 +50,6 @@ export default async function handler(req, res) {
     const slug = (req.query.slug || "").toString().trim();
     if (!slug) return res.status(400).send("Missing slug");
 
-    // -----------------------------
-    // Canonical source of truth:
-    // small_business_profiles.username = slug
-    // -----------------------------
     const { data: profile, error } = await supabase
       .from("small_business_profiles")
       .select("*")
@@ -74,9 +69,6 @@ export default async function handler(req, res) {
     const baseUrl = absoluteBaseUrl(req);
     const canonical = `${baseUrl}/${encodeURIComponent(slug)}`;
 
-    // -----------------------------
-    // SEO values (profiles only)
-    // -----------------------------
     const businessName = profile.business_name || slug;
 
     const seoTitle =
@@ -87,48 +79,24 @@ export default async function handler(req, res) {
       profile.seo_description ||
       `Learn about ${businessName}, services, and how to get in touch.`;
 
-    const ogImage =
-      profile.logo_url ||
-      "";
-
+    const ogImage = profile.logo_url || "";
     const robots = profile.is_public ? "index,follow" : "noindex,nofollow";
 
-    // -----------------------------
-    // Structured data helpers
-    // -----------------------------
     function collectSameAs(p) {
       const urls = new Set();
-
-      // Website (if provided)
       if (p?.website) urls.add(p.website);
-
-      // social_links jsonb (supports object or array)
       const sl = p?.social_links;
       if (Array.isArray(sl)) {
-        sl.forEach(u => {
-          if (typeof u === "string" && u.trim()) urls.add(u.trim());
-        });
+        sl.forEach(u => { if (typeof u === "string" && u.trim()) urls.add(u.trim()); });
       } else if (sl && typeof sl === "object") {
-        Object.values(sl).forEach(u => {
-          if (typeof u === "string" && u.trim()) urls.add(u.trim());
-        });
+        Object.values(sl).forEach(u => { if (typeof u === "string" && u.trim()) urls.add(u.trim()); });
       }
-
-      // Google Maps link from place_id (if present)
       if (p?.google_place_id) {
-        urls.add(
-          `https://www.google.com/maps/search/?api=1&query_place_id=${encodeURIComponent(
-            p.google_place_id
-          )}`
-        );
+        urls.add(`https://www.google.com/maps/search/?api=1&query_place_id=${encodeURIComponent(p.google_place_id)}`);
       }
-
       return Array.from(urls).filter(Boolean);
     }
 
-    // -----------------------------
-    // Build LocalBusiness schema (profiles only)
-    // -----------------------------
     const schemaType = guessSchemaType(profile.primary_category);
 
     const localBusinessSchema = {
@@ -138,7 +106,7 @@ export default async function handler(req, res) {
       name: businessName,
       url: canonical,
       telephone: profile.phone || undefined,
-      address: profile.address || profile.city || profile.state
+      address: (profile.address || profile.city || profile.state)
         ? {
             "@type": "PostalAddress",
             ...(profile.address ? { streetAddress: profile.address } : {}),
@@ -148,14 +116,11 @@ export default async function handler(req, res) {
           }
         : undefined,
       areaServed: Array.isArray(profile.service_area)
-        ? profile.service_area.map((a) => ({ "@type": "AdministrativeArea", name: a }))
+        ? profile.service_area.map(a => ({ "@type": "AdministrativeArea", name: a }))
         : undefined,
       sameAs: collectSameAs(profile)
     };
 
-    // -----------------------------
-    // Load template and replace tokens
-    // -----------------------------
     const templatePath = path.join(process.cwd(), "public", "profile.html");
     let html = fs.readFileSync(templatePath, "utf8");
 
@@ -164,30 +129,28 @@ export default async function handler(req, res) {
       "{{FINAL_DESCRIPTION}}": escapeHtml(seoDescription),
       "{{FINAL_OG_IMAGE}}": escapeHtml(ogImage),
       "{{FINAL_CANONICAL_URL}}": escapeHtml(canonical),
-
       "{{ROBOTS}}": escapeHtml(robots),
 
-      // Server-injected profile for fast render / consistent SEO
+      // Profile JSON for client-side JS — safe for inline <script>
       "{{PROFILE_JSON}}": safeJsonForInlineScript(profile || {}),
 
-      // Minimal SSR body content (JS will overwrite, but crawlers get text immediately)
+      // SSR text tokens — HTML-escaped for body content
       "{{BUSINESS_NAME}}": escapeHtml(profile.business_name || ""),
       "{{HERO_HEADLINE}}": escapeHtml(profile.hero_headline || ""),
       "{{HERO_TAGLINE}}": escapeHtml(profile.hero_tagline || ""),
       "{{ABOUT}}": escapeHtml(profile.about || ""),
       "{{SERVICES_INTRO}}": escapeHtml(profile.services_intro || ""),
 
-      // Structured data
-      "{{LOCAL_BUSINESS_SCHEMA}}": escapeHtml(JSON.stringify(localBusinessSchema))
+      // FIX: Structured data goes inside <script type="application/ld+json">
+      // It must NOT be HTML-escaped — that breaks the JSON and Google rejects it.
+      // Use safeJsonForInlineScript() which only escapes </script> injection.
+      "{{LOCAL_BUSINESS_SCHEMA}}": safeJsonForInlineScript(localBusinessSchema)
     };
 
     for (const [needle, value] of Object.entries(replacements)) {
       html = html.split(needle).join(value);
     }
 
-    // -----------------------------
-    // Return HTML
-    // -----------------------------
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.setHeader("Cache-Control", "public, max-age=0, s-maxage=300");
     return res.status(200).send(html);
