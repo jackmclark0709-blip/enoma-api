@@ -16,100 +16,6 @@
     gtag('js', new Date());
     gtag('config', 'G-S8XTG72Y2Y');
   </script>
-
-  <style>
-    body { background: linear-gradient(160deg, #f7f6ff 0%, #ffffff 60%); min-height: 100vh; }
-
-    .contact-wrap {
-      max-width: 560px;
-      margin: 0 auto;
-      padding: 5rem 1.5rem;
-    }
-
-    .section-label {
-      font-size: 0.72rem; font-weight: 700;
-      letter-spacing: 0.12em; text-transform: uppercase;
-      color: #9a8cff; margin-bottom: 0.75rem; display: block;
-    }
-
-    .contact-wrap h1 {
-      font-size: clamp(2rem, 4vw, 2.5rem);
-      font-weight: 800; color: #211551;
-      letter-spacing: -0.02em; margin: 0 0 0.6rem;
-    }
-    .contact-wrap > p {
-      color: #4b5563; font-size: 1rem;
-      line-height: 1.65; margin: 0 0 2.5rem;
-    }
-
-    .contact-card {
-      background: white;
-      border: 1px solid #e5e7eb;
-      border-radius: 20px;
-      padding: 2.5rem;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.06);
-    }
-
-    .field { margin-bottom: 1.1rem; }
-    .field label {
-      display: block; font-size: 0.85rem;
-      font-weight: 600; color: #374151; margin-bottom: 0.4rem;
-    }
-    .field input, .field textarea, .field select {
-      width: 100%; padding: 0.75rem 1rem;
-      border: 1.5px solid #e5e7eb; border-radius: 10px;
-      font-size: 0.95rem; font-family: inherit; color: #111827;
-      transition: border-color 0.15s ease, box-shadow 0.15s ease;
-      box-sizing: border-box;
-    }
-    .field input:focus, .field textarea:focus, .field select:focus {
-      outline: none; border-color: #9A8CFF;
-      box-shadow: 0 0 0 3px rgba(154,140,255,0.15);
-    }
-    .field textarea { resize: vertical; min-height: 120px; }
-
-    .submit-btn {
-      width: 100%; padding: 0.9rem;
-      background: #9A8CFF; color: #0b0a14;
-      border: none; border-radius: 999px;
-      font-weight: 700; font-size: 1rem;
-      cursor: pointer; margin-top: 0.5rem;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-    .submit-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 8px 24px rgba(154,140,255,0.4);
-    }
-    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-
-    .status-msg {
-      text-align: center; margin-top: 0.75rem;
-      font-size: 0.9rem; min-height: 1.25rem;
-      color: #50A684;
-    }
-    .status-msg.error { color: #e24b4a; }
-
-    /* Quick links */
-    .quick-links {
-      margin-top: 2rem;
-      display: grid; grid-template-columns: 1fr 1fr;
-      gap: 0.75rem;
-    }
-    .quick-link {
-      background: #f6f7fb; border-radius: 12px;
-      padding: 1rem; text-decoration: none;
-      transition: background 0.15s ease;
-    }
-    .quick-link:hover { background: #edeeff; }
-    .quick-link .ql-label {
-      font-size: 0.72rem; font-weight: 700;
-      letter-spacing: 0.07em; text-transform: uppercase;
-      color: #9a8cff; display: block; margin-bottom: 0.25rem;
-    }
-    .quick-link .ql-title {
-      font-size: 0.9rem; font-weight: 600; color: #211551;
-    }
-  </style>
 </head>
 
 <body>
@@ -151,7 +57,7 @@
 
     <div id="success-view" style="display:none; text-align:center; padding: 1rem 0;">
       <div style="font-size:2.5rem; margin-bottom:0.75rem;">✓</div>
-      <h3 style="color:#211551; margin:0 0 0.5rem;">Message sent!</h3>
+      <h3 style="color:#0a1628; margin:0 0 0.5rem;">Message sent!</h3>
       <p style="color:#6b7280; font-size:0.95rem; line-height:1.6; margin:0;">We'll get back to you within one business day.</p>
     </div>
   </div>
@@ -224,6 +130,7 @@
   });
 </script>
 
-<script src="/scripts/footer.js"></script>
+<div id="site-footer"></div>
+<script>fetch("/partials/footer.html").then(r=>r.text()).then(h=>{document.getElementById("site-footer").innerHTML=h});</script>
 </body>
 </html>

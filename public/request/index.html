@@ -16,102 +16,6 @@
     gtag('js', new Date());
     gtag('config', 'G-S8XTG72Y2Y');
   </script>
-
-  <style>
-    body { background: linear-gradient(160deg, #f7f6ff 0%, #ffffff 60%); min-height: 100vh; }
-
-    .request-wrap {
-      max-width: 580px;
-      margin: 0 auto;
-      padding: 5rem 1.5rem;
-    }
-
-    .section-label {
-      font-size: 0.72rem; font-weight: 700;
-      letter-spacing: 0.12em; text-transform: uppercase;
-      color: #9a8cff; margin-bottom: 0.75rem; display: block;
-    }
-
-    .request-wrap h1 {
-      font-size: clamp(2rem, 4vw, 2.5rem);
-      font-weight: 800; color: #211551;
-      letter-spacing: -0.02em; margin: 0 0 0.75rem;
-    }
-    .request-wrap > p {
-      color: #4b5563; font-size: 1rem;
-      line-height: 1.65; margin: 0 0 2.5rem;
-    }
-
-    /* Redirect card */
-    .redirect-card {
-      background: white;
-      border: 2px solid #9A8CFF;
-      border-radius: 20px;
-      padding: 2.5rem;
-      box-shadow: 0 12px 40px rgba(154,140,255,0.12);
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-    .redirect-card h2 {
-      font-size: 1.25rem; font-weight: 700;
-      color: #211551; margin: 0 0 0.75rem;
-    }
-    .redirect-card p {
-      color: #4b5563; font-size: 0.95rem;
-      line-height: 1.6; margin: 0 0 1.5rem;
-    }
-    .redirect-btn {
-      display: inline-block;
-      background: #9A8CFF; color: #0b0a14;
-      padding: 0.85rem 2.25rem; border-radius: 999px;
-      font-weight: 700; font-size: 1rem; text-decoration: none;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-    .redirect-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 8px 24px rgba(154,140,255,0.4);
-    }
-    .redirect-note {
-      font-size: 0.82rem; color: #9ca3af; margin-top: 0.6rem;
-    }
-
-    /* What happens next */
-    .next-section {
-      margin-top: 2rem;
-      padding-top: 2rem;
-      border-top: 1px solid #e5e7eb;
-    }
-    .next-section h3 {
-      font-size: 1rem; font-weight: 700;
-      color: #211551; margin: 0 0 1rem;
-    }
-    .next-steps {
-      list-style: none; padding: 0; margin: 0;
-      display: grid; gap: 0.75rem;
-      counter-reset: step;
-    }
-    .next-steps li {
-      display: flex; align-items: flex-start;
-      gap: 0.75rem; font-size: 0.9rem;
-      color: #374151; line-height: 1.5;
-      counter-increment: step;
-    }
-    .next-steps li::before {
-      content: counter(step);
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 22px; height: 22px; border-radius: 50%;
-      background: #9A8CFF; color: #0b0a14;
-      font-size: 0.72rem; font-weight: 700;
-      flex-shrink: 0; margin-top: 1px;
-    }
-
-    .pricing-note {
-      margin-top: 1.5rem; padding: 1rem 1.25rem;
-      background: #f6f7fb; border-radius: 10px;
-      font-size: 0.88rem; color: #4b5563; line-height: 1.5;
-    }
-    .pricing-note strong { color: #211551; }
-  </style>
 </head>
 
 <body>
@@ -144,6 +48,7 @@
   </div>
 </div>
 
-<script src="/scripts/footer.js"></script>
+<div id="site-footer"></div>
+<script>fetch("/partials/footer.html").then(r=>r.text()).then(h=>{document.getElementById("site-footer").innerHTML=h});</script>
 </body>
 </html>

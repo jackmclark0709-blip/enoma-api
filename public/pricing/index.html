@@ -26,138 +26,35 @@
   </script>
 
   <style>
-    body { background: linear-gradient(180deg, #f7f6ff, #ffffff); }
-
-    .pricing-hero {
-      padding: 5rem 1.5rem 4rem;
-      text-align: center;
-    }
-    .pricing-hero h1 {
-      font-size: clamp(2rem, 4vw, 2.6rem);
-      font-weight: 800; color: #211551;
-      letter-spacing: -0.02em; margin: 0 0 0.75rem;
-    }
-    .pricing-hero p {
-      max-width: 540px; margin: 0 auto 0.5rem;
-      color: #4b5563; font-size: 1rem; line-height: 1.65;
-    }
-    .section-label {
-      font-size: 0.72rem; font-weight: 700;
-      letter-spacing: 0.12em; text-transform: uppercase;
-      color: #9a8cff; margin-bottom: 0.75rem; display: block;
-    }
-
-    /* Pricing card */
-    .pricing-wrap {
-      max-width: 460px;
-      margin: 2.5rem auto 0;
-    }
-    .pricing-card {
-      background: #ffffff;
-      border: 2px solid #9A8CFF;
-      border-radius: 20px;
-      padding: 2.5rem;
-      box-shadow: 0 12px 40px rgba(154,140,255,0.18);
-      text-align: center;
-      position: relative;
-    }
-    .pricing-badge {
-      position: absolute;
-      top: -14px; left: 50%; transform: translateX(-50%);
-      background: #9A8CFF; color: #0b0a14;
-      font-size: 0.75rem; font-weight: 700;
-      padding: 0.3rem 1rem; border-radius: 999px;
-      letter-spacing: 0.06em; text-transform: uppercase;
-      white-space: nowrap;
-    }
-    .pricing-card h2 {
-      font-size: 1.15rem; font-weight: 700;
-      color: #211551; margin: 0.5rem 0 1.5rem;
-    }
-    .price-display {
-      margin: 0 0 0.4rem;
-    }
-    .price-display .price-free {
-      font-size: 2.8rem; font-weight: 800;
-      color: #211551; letter-spacing: -0.03em;
-      display: block;
-    }
-    .price-display .price-after {
-      font-size: 0.9rem; color: #6b7280;
-    }
-    .price-display .price-after strong {
-      color: #211551; font-weight: 700;
-    }
-
-    .pricing-includes {
-      list-style: none; padding: 0;
-      margin: 1.75rem 0; text-align: left;
-      display: grid; gap: 0.6rem;
-    }
-    .pricing-includes li {
-      font-size: 0.92rem; color: #374151;
-      display: flex; align-items: flex-start; gap: 0.6rem;
-      line-height: 1.4;
-    }
-    .pricing-includes li::before {
-      content: "✓"; color: #50A684;
-      font-weight: 700; flex-shrink: 0;
-      margin-top: 1px;
-    }
-
-    .pricing-cta-btn {
-      display: block; width: 100%;
-      padding: 0.9rem;
-      background: #211551; color: white;
-      border: none; border-radius: 999px;
-      font-weight: 700; font-size: 1rem;
-      cursor: pointer; text-decoration: none;
-      text-align: center;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-    .pricing-cta-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 8px 24px rgba(33,21,81,0.25);
-    }
-    .pricing-cta-note {
-      margin-top: 0.6rem;
-      font-size: 0.82rem; color: #9ca3af; text-align: center;
-    }
-    .pricing-cta-note a { color: #6c63ff; font-weight: 600; text-decoration: none; }
-
-    /* FAQs */
-    .faqs-section {
-      max-width: 680px;
-      margin: 4rem auto 5rem;
-      padding: 0 1.5rem;
-    }
-    .faqs-section h2 {
-      font-size: 1.5rem; font-weight: 700;
-      color: #211551; margin: 0 0 2rem;
-      text-align: center;
-    }
-    .faq { margin-bottom: 1.75rem; }
-    .faq h4 {
-      font-size: 0.95rem; font-weight: 700;
-      color: #211551; margin: 0 0 0.4rem;
-    }
-    .faq p { font-size: 0.92rem; color: #555; margin: 0; line-height: 1.6; }
-    .faq p a { color: #6c63ff; font-weight: 600; text-decoration: none; }
-
-    /* Value prop strip */
-    .value-strip {
-      background: white;
-      border-top: 1px solid #f3f4f6;
-      border-bottom: 1px solid #f3f4f6;
-      padding: 2.5rem 1.5rem;
-      text-align: center;
-    }
-    .value-strip p {
-      font-size: 1rem; color: #4b5563;
-      max-width: 560px; margin: 0 auto;
-      line-height: 1.65;
-    }
-    .value-strip strong { color: #211551; }
+    body{background:#f0f6ff}
+    .pricing-hero{padding:5rem 1.5rem 3.5rem;text-align:center;background:linear-gradient(180deg,#e6f1fb,#f0f6ff)}
+    .pricing-hero h1{font-family:'DM Sans',sans-serif;font-size:clamp(1.8rem,4vw,2.4rem);font-weight:800;color:#0a1628;letter-spacing:-0.02em;margin:0 0 0.75rem}
+    .pricing-hero p{max-width:540px;margin:0 auto 0.5rem;color:#5a7a9a;font-size:1rem;line-height:1.65}
+    .section-label{font-size:0.7rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#3882dc;margin-bottom:0.75rem;display:block}
+    .pricing-wrap{max-width:460px;margin:2.5rem auto 0;padding:0 1.5rem}
+    .pricing-card{background:#fff;border:2px solid #3882dc;border-radius:20px;padding:2.5rem;box-shadow:0 12px 40px rgba(56,130,220,0.15);text-align:center;position:relative}
+    .pricing-badge{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:#3882dc;color:white;font-size:0.75rem;font-weight:700;padding:0.3rem 1rem;border-radius:999px;letter-spacing:0.06em;text-transform:uppercase;white-space:nowrap}
+    .pricing-card h2{font-family:'DM Sans',sans-serif;font-size:1.15rem;font-weight:700;color:#0a1628;margin:0.5rem 0 1.5rem}
+    .price-display{margin:0 0 0.4rem}
+    .price-free{font-family:'DM Sans',sans-serif;font-size:2.8rem;font-weight:800;color:#0a1628;letter-spacing:-0.03em;display:block}
+    .price-after{font-size:0.9rem;color:#5a7a9a}
+    .price-after strong{color:#0a1628;font-weight:700}
+    .pricing-includes{list-style:none;padding:0;margin:1.75rem 0;text-align:left;display:grid;gap:0.6rem}
+    .pricing-includes li{font-size:0.92rem;color:#374151;display:flex;align-items:flex-start;gap:0.6rem;line-height:1.4}
+    .pricing-includes li::before{content:"✓";color:#2a9d6f;font-weight:700;flex-shrink:0;margin-top:1px}
+    .pricing-cta-btn{display:block;width:100%;padding:0.9rem;background:#0a1628;color:white;border:none;border-radius:999px;font-weight:700;font-size:1rem;cursor:pointer;text-decoration:none;text-align:center;transition:transform 0.15s ease,box-shadow 0.15s ease}
+    .pricing-cta-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(10,22,40,0.25);color:white}
+    .pricing-cta-note{margin-top:0.6rem;font-size:0.82rem;color:#7ab3e0;text-align:center}
+    .pricing-cta-note a{color:#3882dc;font-weight:600;text-decoration:none}
+    .value-strip{background:white;border-top:1px solid #d4e2f4;border-bottom:1px solid #d4e2f4;padding:2.5rem 1.5rem;text-align:center}
+    .value-strip p{font-size:1rem;color:#5a7a9a;max-width:560px;margin:0 auto;line-height:1.65}
+    .value-strip strong{color:#0a1628}
+    .faqs-section{max-width:680px;margin:4rem auto 5rem;padding:0 1.5rem}
+    .faqs-section h2{font-family:'DM Sans',sans-serif;font-size:1.5rem;font-weight:700;color:#0a1628;margin:0 0 2rem;text-align:center}
+    .faq{margin-bottom:1.75rem}
+    .faq h4{font-size:0.95rem;font-weight:700;color:#0a1628;margin:0 0 0.4rem}
+    .faq p{font-size:0.92rem;color:#5a7a9a;margin:0;line-height:1.6}
+    .faq p a{color:#3882dc;font-weight:600;text-decoration:none}
   </style>
 </head>
 
@@ -243,6 +140,7 @@
   </div>
 </div>
 
-<script src="/scripts/footer.js"></script>
+<div id="site-footer"></div>
+<script>fetch("/partials/footer.html").then(r=>r.text()).then(h=>{document.getElementById("site-footer").innerHTML=h});</script>
 </body>
 </html>
