@@ -2,92 +2,101 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Privacy Policy — Enoma</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Privacy Policy — Enoma</title>
+  <meta name="description" content="Enoma privacy policy — how we collect, use, and protect your information." />
+  <link rel="canonical" href="https://enoma.io/privacy" />
   <link rel="stylesheet" href="/styles/enoma.css" />
-
-<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
-<link rel="icon" href="/favicon-48.png" sizes="48x48" type="image/png">
-<link rel="icon" href="/favicon-64.png" sizes="64x64" type="image/png">
-<link rel="icon" href="/favicon-128.png" sizes="128x128" type="image/png">
-<link rel="shortcut icon" href="/favicon.ico">
-
-  <!-- Google Analytics -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-S8XTG72Y2Y');
-  </script>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <style>
+    body { background: #f6f7fb; }
+    .legal-wrap {
+      max-width: 680px; margin: 0 auto;
+      padding: 5rem 1.5rem 6rem;
+    }
+    .legal-wrap .meta {
+      font-size: 0.82rem; color: #9ca3af; margin: 0 0 2.5rem;
+    }
+    .legal-wrap h1 {
+      font-size: 2rem; font-weight: 800; color: #211551;
+      letter-spacing: -0.02em; margin: 0 0 0.4rem;
+    }
+    .legal-wrap h2 {
+      font-size: 1.05rem; font-weight: 700; color: #211551;
+      margin: 2rem 0 0.5rem;
+    }
+    .legal-wrap p, .legal-wrap li {
+      font-size: 0.95rem; color: #4b5563; line-height: 1.7; margin: 0 0 0.75rem;
+    }
+    .legal-wrap ul { padding-left: 1.25rem; margin: 0 0 0.75rem; }
+    .legal-wrap a { color: #6c63ff; font-weight: 600; text-decoration: none; }
+    .legal-divider { height: 1px; background: #e5e7eb; margin: 2rem 0; }
+  </style>
 </head>
 
 <body>
+<script type="module" src="/partials/nav.js"></script>
 
-<main class="container">
+<div class="legal-wrap">
   <h1>Privacy Policy</h1>
-  <p><em>Last updated: January 2025</em></p>
+  <p class="meta">Last updated: March 2026</p>
 
-  <p>
-    This Privacy Policy explains how Enoma (“we”, “us”, or “our”) collects,
-    uses, and protects information when you visit our website or use our services.
-  </p>
+  <p>This Privacy Policy explains how Enoma ("we," "us," or "our") collects, uses, and protects information when you visit enoma.io or use our services to create and host a business website.</p>
+
+  <div class="legal-divider"></div>
 
   <h2>Information we collect</h2>
+  <p>When you create an account or use Enoma, we collect:</p>
   <ul>
-    <li>Name and email address</li>
-    <li>Business name, location, and industry</li>
-    <li>Information submitted through forms</li>
-    <li>Basic analytics data</li>
+    <li>Your name and email address</li>
+    <li>Your business name, location, phone number, and service information</li>
+    <li>Content you provide to build your website (about text, services, photos)</li>
+    <li>Basic analytics data about how your website is viewed (page views, contact clicks)</li>
+    <li>Payment information — handled entirely by Stripe, not stored by Enoma</li>
   </ul>
 
-  <h2>How we use information</h2>
+  <h2>How we use your information</h2>
   <ul>
-    <li>Create and manage business pages</li>
-    <li>Communicate with you</li>
-    <li>Improve the service</li>
+    <li>To create and host your Enoma business website</li>
+    <li>To send you account and billing communications</li>
+    <li>To send you a monthly performance report for your website</li>
+    <li>To improve Enoma's product and service quality</li>
   </ul>
+
+  <h2>Your business website is public</h2>
+  <p>The information you provide to build your website — your business name, services, location, phone number, and photos — will be publicly visible on your Enoma website. This is the purpose of the service. Do not include any information you don't want to be publicly accessible.</p>
+
+  <h2>Analytics tracking</h2>
+  <p>We track page views and contact clicks on your business website so we can show you how many people are finding and interacting with your site. We do not collect or store visitors' personal information. IP addresses are hashed before storage and never used to identify individuals.</p>
+  <p>We also use Google Analytics on enoma.io for general site usage tracking. You can opt out of Google Analytics at <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">tools.google.com/dlpage/gaoptout</a>.</p>
 
   <h2>Third-party services</h2>
-  <p>
-    We use trusted third-party services such as hosting providers, analytics tools,
-    and email delivery platforms to operate Enoma.
-  </p>
-
-  <h2>Payments</h2>
-  <p>
-    Payments are processed securely by our payment provider (Stripe).
-    Enoma does not store or process your credit card information directly.
-  </p>
-
-  <h2>Cookies & analytics</h2>
-  <p>
-    We use cookies and similar technologies to understand how visitors use
-    our site and to improve Enoma. You can control cookies through your
-    browser settings.
-  </p>
+  <p>We use the following trusted services to operate Enoma:</p>
+  <ul>
+    <li><strong>Supabase</strong> — database and user authentication</li>
+    <li><strong>Vercel</strong> — website hosting and delivery</li>
+    <li><strong>Stripe</strong> — payment processing</li>
+    <li><strong>Resend</strong> — transactional email delivery</li>
+    <li><strong>OpenAI</strong> — AI-powered website content generation</li>
+    <li><strong>Google</strong> — Maps, Places data, and analytics</li>
+  </ul>
 
   <h2>Data retention</h2>
-  <p>
-    We retain personal information only as long as necessary to provide
-    the service or comply with legal obligations. You may request deletion
-    of your data by contacting us.
-  </p>
+  <p>We retain your information for as long as your account is active or as needed to provide the service. You may request deletion of your account and data by emailing <a href="mailto:jack@enoma.io">jack@enoma.io</a>. Note that deleting your account will take your business website offline.</p>
+
+  <h2>Cookies</h2>
+  <p>We use cookies for authentication (to keep you logged in) and analytics. You can control cookies through your browser settings, though disabling them may affect functionality.</p>
+
+  <h2>Children's privacy</h2>
+  <p>Enoma is not directed at children under 13. We do not knowingly collect information from children.</p>
 
   <h2>Changes to this policy</h2>
-  <p>
-    We may update this Privacy Policy from time to time. Updates will be
-    posted on this page with a revised date.
-  </p>
+  <p>We may update this Privacy Policy from time to time. When we do, we'll update the date at the top of this page. Continued use of Enoma after changes constitutes acceptance.</p>
 
   <h2>Contact</h2>
-  <p>
-    Questions? Email <a href="mailto:jack@enoma.io">jack@enoma.io</a>.
-  </p>
-</main>
+  <p>Questions about this policy? Email <a href="mailto:jack@enoma.io">jack@enoma.io</a> or use the <a href="/contact">contact form</a>.</p>
+</div>
 
-<script type="module" src="/partials/nav.js"></script>
 <script src="/scripts/footer.js"></script>
 </body>
 </html>
-

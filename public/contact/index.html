@@ -3,51 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <!-- SEO -->
-  <title>Contact Enoma<</title>
-  <meta
-    name="description"
-    content="Have questions about Enoma? Get in touch to learn how a single SEO-optimized page can help your business get found and grow."
-  />
+  <title>Contact Enoma</title>
+  <meta name="description" content="Have a question about Enoma? Get in touch — we typically respond within one business day." />
   <link rel="canonical" href="https://enoma.io/contact" />
-
-  <!-- Open Graph -->
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="Enoma" />
-  <meta property="og:title" content="Contact Enoma" />
-  <meta
-    property="og:description"
-    content="Have questions about Enoma? Get in touch to learn how a single SEO-optimized page can help your business get found and grow."
-  />
-  <meta
-    property="og:image"
-    content="https://enoma.io/assets/og/enoma-default-v2.png"
-  />
-  <meta property="og:url" content="https://enoma.io/contact" />
-
-  <!-- Twitter -->
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Contact Enoma" />
-  <meta
-    name="twitter:description"
-    content="Have questions about Enoma? Get in touch to learn how a single SEO-optimized page can help your business get found and grow."
-  />
-  <meta
-    name="twitter:image"
-    content="https://enoma.io/assets/og/enoma-default-v2.png"
-  />
-
-
-
-
-
-
   <link rel="stylesheet" href="/styles/enoma.css" />
+  <link rel="icon" href="/favicon.ico" sizes="any">
 
-<link rel="icon" href="/favicon.ico" sizes="any">
-
-  <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -55,63 +16,214 @@
     gtag('js', new Date());
     gtag('config', 'G-S8XTG72Y2Y');
   </script>
+
+  <style>
+    body { background: linear-gradient(160deg, #f7f6ff 0%, #ffffff 60%); min-height: 100vh; }
+
+    .contact-wrap {
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 5rem 1.5rem;
+    }
+
+    .section-label {
+      font-size: 0.72rem; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: #9a8cff; margin-bottom: 0.75rem; display: block;
+    }
+
+    .contact-wrap h1 {
+      font-size: clamp(2rem, 4vw, 2.5rem);
+      font-weight: 800; color: #211551;
+      letter-spacing: -0.02em; margin: 0 0 0.6rem;
+    }
+    .contact-wrap > p {
+      color: #4b5563; font-size: 1rem;
+      line-height: 1.65; margin: 0 0 2.5rem;
+    }
+
+    .contact-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 20px;
+      padding: 2.5rem;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+    }
+
+    .field { margin-bottom: 1.1rem; }
+    .field label {
+      display: block; font-size: 0.85rem;
+      font-weight: 600; color: #374151; margin-bottom: 0.4rem;
+    }
+    .field input, .field textarea, .field select {
+      width: 100%; padding: 0.75rem 1rem;
+      border: 1.5px solid #e5e7eb; border-radius: 10px;
+      font-size: 0.95rem; font-family: inherit; color: #111827;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      box-sizing: border-box;
+    }
+    .field input:focus, .field textarea:focus, .field select:focus {
+      outline: none; border-color: #9A8CFF;
+      box-shadow: 0 0 0 3px rgba(154,140,255,0.15);
+    }
+    .field textarea { resize: vertical; min-height: 120px; }
+
+    .submit-btn {
+      width: 100%; padding: 0.9rem;
+      background: #9A8CFF; color: #0b0a14;
+      border: none; border-radius: 999px;
+      font-weight: 700; font-size: 1rem;
+      cursor: pointer; margin-top: 0.5rem;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .submit-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(154,140,255,0.4);
+    }
+    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .status-msg {
+      text-align: center; margin-top: 0.75rem;
+      font-size: 0.9rem; min-height: 1.25rem;
+      color: #50A684;
+    }
+    .status-msg.error { color: #e24b4a; }
+
+    /* Quick links */
+    .quick-links {
+      margin-top: 2rem;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    .quick-link {
+      background: #f6f7fb; border-radius: 12px;
+      padding: 1rem; text-decoration: none;
+      transition: background 0.15s ease;
+    }
+    .quick-link:hover { background: #edeeff; }
+    .quick-link .ql-label {
+      font-size: 0.72rem; font-weight: 700;
+      letter-spacing: 0.07em; text-transform: uppercase;
+      color: #9a8cff; display: block; margin-bottom: 0.25rem;
+    }
+    .quick-link .ql-title {
+      font-size: 0.9rem; font-weight: 600; color: #211551;
+    }
+  </style>
 </head>
 
 <body>
+<script type="module" src="/partials/nav.js"></script>
 
-<main class="container">
-  <h1>Contact Enoma</h1>
-  <p>Questions about Enoma, pricing, or onboarding?</p>
+<div class="contact-wrap">
+  <span class="section-label">Contact</span>
+  <h1>Get in touch</h1>
+  <p>Questions about Enoma, your website, pricing, or anything else? Send us a message and we'll get back to you within one business day.</p>
 
-  <form id="contactForm">
-    <input name="name" placeholder="Your name" required />
-    <input name="email" placeholder="Your email" required />
-    <textarea name="message" placeholder="How can we help?" required></textarea>
-    <button type="submit" class="btn-primary">
-Send message</button>
-    <div id="status"></div>
-  </form>
-</main>
+  <div class="contact-card">
+    <div id="form-view">
+      <div class="field">
+        <label for="c-name">Your name</label>
+        <input type="text" id="c-name" name="name" placeholder="Jack Conway" required />
+      </div>
+      <div class="field">
+        <label for="c-email">Your email</label>
+        <input type="email" id="c-email" name="email" placeholder="jack@example.com" required />
+      </div>
+      <div class="field">
+        <label for="c-subject">What's this about?</label>
+        <select id="c-subject" name="subject">
+          <option value="">Select a topic…</option>
+          <option value="Getting started">Getting started with Enoma</option>
+          <option value="My website">My existing Enoma website</option>
+          <option value="Billing">Billing or subscription</option>
+          <option value="Technical issue">Technical issue</option>
+          <option value="Other">Something else</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="c-message">Message</label>
+        <textarea id="c-message" name="message" placeholder="How can we help?" required></textarea>
+      </div>
+      <button class="submit-btn" id="contact-submit" type="button">Send message</button>
+      <p class="status-msg" id="contact-status"></p>
+    </div>
+
+    <div id="success-view" style="display:none; text-align:center; padding: 1rem 0;">
+      <div style="font-size:2.5rem; margin-bottom:0.75rem;">✓</div>
+      <h3 style="color:#211551; margin:0 0 0.5rem;">Message sent!</h3>
+      <p style="color:#6b7280; font-size:0.95rem; line-height:1.6; margin:0;">We'll get back to you within one business day.</p>
+    </div>
+  </div>
+
+  <div class="quick-links">
+    <a href="/examples" class="quick-link">
+      <span class="ql-label">See examples</span>
+      <span class="ql-title">Live business websites →</span>
+    </a>
+    <a href="/pricing" class="quick-link">
+      <span class="ql-label">Pricing</span>
+      <span class="ql-title">Plans &amp; pricing →</span>
+    </a>
+  </div>
+</div>
 
 <script>
-  document.getElementById("contactForm").addEventListener("submit", async e => {
-    e.preventDefault();
+  document.getElementById('contact-submit').addEventListener('click', async () => {
+    const name = document.getElementById('c-name').value.trim();
+    const email = document.getElementById('c-email').value.trim();
+    const subject = document.getElementById('c-subject').value;
+    const message = document.getElementById('c-message').value.trim();
+    const statusEl = document.getElementById('contact-status');
+    const btn = document.getElementById('contact-submit');
 
-    gtag('event', 'generate_lead', {
-      event_category: 'contact',
-      event_label: 'enoma_contact'
-    });
+    statusEl.textContent = '';
+    statusEl.className = 'status-msg';
 
-    const status = document.getElementById("status");
-    status.textContent = "Sending...";
+    if (!name || !email || !message) {
+      statusEl.textContent = 'Please fill in all required fields.';
+      statusEl.classList.add('error');
+      return;
+    }
 
-    const formData = new FormData(e.target);
-    const payload = Object.fromEntries(formData.entries());
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
 
     try {
-      const res = await fetch("/api/send-contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      gtag('event', 'generate_lead', { event_category: 'contact', event_label: 'contact_form' });
+
+      const res = await fetch('/api/send-contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...payload,
-          to: "jack@enoma.io",
-          source: "enoma_site"
+          name, email, message,
+          business_name: subject || 'Contact form',
+          city: '',
+          to: 'jack@enoma.io',
+          source: 'enoma_contact_page',
+          subject: `Enoma contact: ${subject || 'General enquiry'} — ${name}`
         })
       });
 
       if (!res.ok) throw new Error();
 
-      status.textContent = "Message sent!";
-      e.target.reset();
+      document.getElementById('form-view').style.display = 'none';
+      document.getElementById('success-view').style.display = 'block';
     } catch {
-      status.textContent = "Something went wrong.";
+      statusEl.textContent = 'Something went wrong. Please try again or email jack@enoma.io directly.';
+      statusEl.classList.add('error');
+      btn.disabled = false;
+      btn.textContent = 'Send message';
+    }
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+      document.getElementById('contact-submit').click();
     }
   });
 </script>
 
-<!-- Shared UI -->
-<script type="module" src="/partials/nav.js"></script>
 <script src="/scripts/footer.js"></script>
-
 </body>
 </html>

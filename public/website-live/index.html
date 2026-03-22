@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Your website is live — Enoma</title>
+  <meta name="robots" content="noindex" />
+  <link rel="stylesheet" href="/styles/enoma.css" />
+  <link rel="icon" href="/favicon.ico" sizes="any">
+
+  <style>
+    body {
+      background: #f6f7fb;
+      min-height: 100vh;
+    }
+
+    .success-wrap {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 4rem 1.5rem;
+    }
+
+    /* Big celebratory hero */
+    .success-hero {
+      background: linear-gradient(135deg, #211551, #3b2d8a);
+      border-radius: 20px;
+      padding: 3rem 2.5rem;
+      text-align: center;
+      color: white;
+      margin-bottom: 1.5rem;
+    }
+
+    .success-hero .checkmark {
+      width: 64px;
+      height: 64px;
+      background: rgba(154,140,255,0.25);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.25rem;
+    }
+
+    .success-hero h1 {
+      color: white;
+      font-size: 1.75rem;
+      font-weight: 800;
+      margin: 0 0 0.75rem;
+      letter-spacing: -0.02em;
+    }
+
+    .success-hero p {
+      color: rgba(255,255,255,0.8);
+      font-size: 1rem;
+      margin: 0;
+      line-height: 1.6;
+    }
+
+    .success-hero .site-url {
+      display: inline-block;
+      margin-top: 1.25rem;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+      color: #d4cfff;
+      font-family: monospace;
+      letter-spacing: 0.01em;
+    }
+
+    .view-btn {
+      display: inline-block;
+      margin-top: 1.5rem;
+      background: #9A8CFF;
+      color: #0b0a14;
+      padding: 0.85rem 2rem;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      text-decoration: none;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .view-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(154,140,255,0.4);
+    }
+
+    /* Trial card */
+    .trial-card {
+      background: white;
+      border-radius: 16px;
+      border: 2px solid #9A8CFF;
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 8px 30px rgba(154,140,255,0.12);
+    }
+
+    .trial-card .trial-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .trial-card h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #211551;
+      margin: 0;
+    }
+
+    .trial-badge {
+      background: rgba(154,140,255,0.1);
+      color: #6c63ff;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.3rem 0.7rem;
+      border-radius: 999px;
+      letter-spacing: 0.04em;
+    }
+
+    .trial-card p {
+      color: #4b5563;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin: 0 0 1.25rem;
+    }
+
+    .trial-includes {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 1.5rem;
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .trial-includes li {
+      font-size: 0.9rem;
+      color: #374151;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .trial-includes li::before {
+      content: "✓";
+      color: #50A684;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .subscribe-btn {
+      display: block;
+      width: 100%;
+      padding: 0.9rem;
+      background: #211551;
+      color: white;
+      border: none;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .subscribe-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(33,21,81,0.25);
+    }
+
+    .subscribe-note {
+      text-align: center;
+      font-size: 0.82rem;
+      color: #9ca3af;
+      margin-top: 0.6rem;
+    }
+
+    /* Expires countdown */
+    .expires-bar {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      font-size: 0.85rem;
+      color: #92400e;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* What's next card */
+    .next-card {
+      background: white;
+      border-radius: 16px;
+      border: 1px solid #e5e7eb;
+      padding: 1.75rem;
+    }
+
+    .next-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #211551;
+      margin: 0 0 1rem;
+    }
+
+    .next-steps {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .next-steps li {
+      font-size: 0.9rem;
+      color: #374151;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      line-height: 1.5;
+    }
+
+    .step-num {
+      width: 22px;
+      height: 22px;
+      background: #9A8CFF;
+      color: #0b0a14;
+      border-radius: 50%;
+      font-size: 0.72rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+  </style>
+</head>
+
+<body>
+<script type="module" src="/partials/nav.js"></script>
+
+<div class="success-wrap">
+
+  <!-- Hero -->
+  <div class="success-hero">
+    <div class="checkmark">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9A8CFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <h1>Your website is live! 🎉</h1>
+    <p>Your Enoma website has been built and is now visible on the web.<br>Share this link anywhere your business name appears.</p>
+    <span class="site-url" id="site-url-display">enoma.io/your-business</span>
+    <br>
+    <a href="#" class="view-btn" id="view-site-btn" target="_blank">View your website →</a>
+  </div>
+
+  <!-- Trial expires notice -->
+  <div class="expires-bar">
+    ⏰ <span>Your free trial ends on <strong id="trial-end-date">April 21, 2026</strong> — subscribe to keep your website live.</span>
+  </div>
+
+  <!-- Subscription card -->
+  <div class="trial-card">
+    <div class="trial-header">
+      <h2>Keep your website live</h2>
+      <span class="trial-badge">$19.99 / month</span>
+    </div>
+    <p>
+      Subscribe to keep your website online, get found in Google, and have your
+      site continuously improved as your business grows.
+    </p>
+    <ul class="trial-includes">
+      <li>Website stays live and hosted</li>
+      <li>Indexed by Google — customers can find you in search</li>
+      <li>Ongoing SEO optimization as search trends change</li>
+      <li>Monthly performance report straight to your inbox</li>
+      <li>Cancel anytime — no contracts</li>
+    </ul>
+    <button class="subscribe-btn" id="subscribe-btn">
+      Subscribe and keep my website live →
+    </button>
+    <p class="subscribe-note">You won't be charged until your trial ends on <span id="trial-end-date-2"></span></p>
+  </div>
+
+  <!-- What's next -->
+  <div class="next-card">
+    <h3>While your trial is active</h3>
+    <ul class="next-steps">
+      <li>
+        <span class="step-num">1</span>
+        <span><strong>Share your link</strong> — add it to your Facebook, invoices, business cards, and anywhere your phone number appears.</span>
+      </li>
+      <li>
+        <span class="step-num">2</span>
+        <span><strong>Ask for a review</strong> — send a customer your Enoma link and ask them to leave a Google review. It builds credibility fast.</span>
+      </li>
+      <li>
+        <span class="step-num">3</span>
+        <span><strong>Check your dashboard</strong> — after a week you'll start seeing how many people are viewing your site and clicking to call.</span>
+      </li>
+    </ul>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://qhsivcenpnxwmvwznqie.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  async function init() {
+    // Get slug from URL param: /website-live?slug=conways-landscaping
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get('slug');
+    const businessId = params.get('business_id');
+
+    if (!slug) {
+      window.location.href = '/dashboard';
+      return;
+    }
+
+    // Set site URL display
+    const siteUrl = `enoma.io/${slug}`;
+    document.getElementById('site-url-display').textContent = siteUrl;
+    document.getElementById('view-site-btn').href = `/${slug}`;
+
+    // Get trial expiry from subscriptions
+    if (businessId) {
+      const { data: sub } = await supabase
+        .from('subscriptions')
+        .select('trial_expires_at')
+        .eq('business_id', businessId)
+        .maybeSingle();
+
+      if (sub?.trial_expires_at) {
+        const expiryDate = new Date(sub.trial_expires_at).toLocaleDateString('en-US', {
+          month: 'long', day: 'numeric', year: 'numeric'
+        });
+        document.getElementById('trial-end-date').textContent = expiryDate;
+        document.getElementById('trial-end-date-2').textContent = expiryDate;
+      }
+    }
+
+    // Subscribe button → Stripe checkout
+    document.getElementById('subscribe-btn').addEventListener('click', async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        window.location.href = '/login';
+        return;
+      }
+
+      const btn = document.getElementById('subscribe-btn');
+      btn.textContent = 'Loading checkout…';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/create-checkout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({ business_id: businessId })
+        });
+
+        const { url, error } = await res.json();
+
+        if (url) {
+          window.location.href = url;
+        } else {
+          alert(error || 'Could not start checkout. Please try again.');
+          btn.textContent = 'Subscribe and keep my website live →';
+          btn.disabled = false;
+        }
+      } catch (err) {
+        alert('Something went wrong. Please try again.');
+        btn.textContent = 'Subscribe and keep my website live →';
+        btn.disabled = false;
+      }
+    });
+  }
+
+  init();
+</script>
+
+<script src="/scripts/footer.js"></script>
+</body>
+</html>

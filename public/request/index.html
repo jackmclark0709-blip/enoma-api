@@ -3,53 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <!-- SEO -->
-  <title>Request Your Business Page | Enoma</title>
-  <meta
-    name="description"
-    content="Request your SEO-optimized business page with Enoma. One page that shows who you are, what you offer, and how customers can contact you."
-  />
+  <title>Get Your Business Website | Enoma</title>
+  <meta name="description" content="Create your free Enoma business website. Fill out a short form, we build your site, and your first month is free." />
   <link rel="canonical" href="https://enoma.io/request" />
-
-  <!-- Open Graph -->
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="Enoma" />
-  <meta property="og:title" content="Request Your Business Page | Enoma" />
-  <meta
-    property="og:description"
-    content="Request your SEO-optimized business page with Enoma. One page that shows who you are, what you offer, and how customers can contact you."
-  />
-  <meta
-    property="og:image"
-    content="https://enoma.io/assets/og/enoma-default-v2.png"
-  />
-  <meta property="og:url" content="https://enoma.io/request" />
-
-  <!-- Twitter -->
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Request Your Business Page | Enoma" />
-  <meta
-    name="twitter:description"
-    content="Request your SEO-optimized business page with Enoma. One page that shows who you are, what you offer, and how customers can contact you."
-  />
-  <meta
-    name="twitter:image"
-    content="https://enoma.io/assets/og/enoma-default-v2.png"
-  />
-
-
-
-
-
-
-
   <link rel="stylesheet" href="/styles/enoma.css" />
+  <link rel="icon" href="/favicon.ico" sizes="any">
 
-<link rel="icon" href="/favicon.ico" sizes="any">
-
-
-  <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -58,133 +17,133 @@
     gtag('config', 'G-S8XTG72Y2Y');
   </script>
 
-<style>
-.what-happens-next {
-  margin-top: 2.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid #eee;
-}
+  <style>
+    body { background: linear-gradient(160deg, #f7f6ff 0%, #ffffff 60%); min-height: 100vh; }
 
-.what-happens-next h2 {
-  font-size: 1.1rem;
-  margin-bottom: 0.75rem;
-}
+    .request-wrap {
+      max-width: 580px;
+      margin: 0 auto;
+      padding: 5rem 1.5rem;
+    }
 
-.what-happens-next ol {
-  padding-left: 1.25rem;
-  color: #444;
-}
+    .section-label {
+      font-size: 0.72rem; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: #9a8cff; margin-bottom: 0.75rem; display: block;
+    }
 
-.what-happens-next li {
-  margin-bottom: 0.5rem;
-}
+    .request-wrap h1 {
+      font-size: clamp(2rem, 4vw, 2.5rem);
+      font-weight: 800; color: #211551;
+      letter-spacing: -0.02em; margin: 0 0 0.75rem;
+    }
+    .request-wrap > p {
+      color: #4b5563; font-size: 1rem;
+      line-height: 1.65; margin: 0 0 2.5rem;
+    }
 
-.pricing-note {
-  margin-top: 1.25rem;
-  color: #555;
-  font-size: 0.95rem;
-}
+    /* Redirect card */
+    .redirect-card {
+      background: white;
+      border: 2px solid #9A8CFF;
+      border-radius: 20px;
+      padding: 2.5rem;
+      box-shadow: 0 12px 40px rgba(154,140,255,0.12);
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .redirect-card h2 {
+      font-size: 1.25rem; font-weight: 700;
+      color: #211551; margin: 0 0 0.75rem;
+    }
+    .redirect-card p {
+      color: #4b5563; font-size: 0.95rem;
+      line-height: 1.6; margin: 0 0 1.5rem;
+    }
+    .redirect-btn {
+      display: inline-block;
+      background: #9A8CFF; color: #0b0a14;
+      padding: 0.85rem 2.25rem; border-radius: 999px;
+      font-weight: 700; font-size: 1rem; text-decoration: none;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .redirect-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(154,140,255,0.4);
+    }
+    .redirect-note {
+      font-size: 0.82rem; color: #9ca3af; margin-top: 0.6rem;
+    }
 
-</style>
+    /* What happens next */
+    .next-section {
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid #e5e7eb;
+    }
+    .next-section h3 {
+      font-size: 1rem; font-weight: 700;
+      color: #211551; margin: 0 0 1rem;
+    }
+    .next-steps {
+      list-style: none; padding: 0; margin: 0;
+      display: grid; gap: 0.75rem;
+      counter-reset: step;
+    }
+    .next-steps li {
+      display: flex; align-items: flex-start;
+      gap: 0.75rem; font-size: 0.9rem;
+      color: #374151; line-height: 1.5;
+      counter-increment: step;
+    }
+    .next-steps li::before {
+      content: counter(step);
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: #9A8CFF; color: #0b0a14;
+      font-size: 0.72rem; font-weight: 700;
+      flex-shrink: 0; margin-top: 1px;
+    }
 
+    .pricing-note {
+      margin-top: 1.5rem; padding: 1rem 1.25rem;
+      background: #f6f7fb; border-radius: 10px;
+      font-size: 0.88rem; color: #4b5563; line-height: 1.5;
+    }
+    .pricing-note strong { color: #211551; }
+  </style>
 </head>
 
 <body>
-
-<main class="container">
-  <h1>Request your business page</h1>
-<p>
-  We’ll create the first version of your Enoma business page for review —
-  one clear, SEO-optimized page you can share anywhere.
-  <strong>No payment required</strong> until you’ve seen it.
-</p>
-
-  <form id="requestForm">
-    <input name="name" placeholder="Your name" required />
-    <input name="email" placeholder="Your email" required />
-
-    <input name="business_name" placeholder="Business name" required />
-    <input name="city" placeholder="City & state" required />
-    <input name="industry" placeholder="Industry (e.g. Tree service, Plumbing)" />
-
-    <!-- Hidden plan field -->
-    <input type="hidden" name="plan" id="planField" value="pro" />
-
-    <button type="submit" class="btn-primary">
-Request my page</button>
-    <div id="status"></div>
-  </form>
-
-<section class="what-happens-next">
-  <h2>What happens next</h2>
-  <ol>
-    <li>
-      We create the first version of your business page (usually within 24–48 hours)
-    </li>
-    <li>
-      You review it and request any changes
-    </li>
-    <li>
-      If it’s useful, you can keep it live — no obligation
-    </li>
-  </ol>
-</section>
-
-<p class="pricing-note">
-  <strong>Pricing starts after review.</strong>
-  If you decide to keep your page live, plans are simple and billed monthly.
-</p>
-
-
-</main>
-
-<script>
-  // Pull ?plan= from URL if present
-  const params = new URLSearchParams(window.location.search);
-  const plan = params.get("plan");
-  if (plan) {
-    document.getElementById("planField").value = plan;
-  }
-
-  document.getElementById("requestForm").addEventListener("submit", async e => {
-    e.preventDefault();
-
-    gtag('event', 'generate_lead', {
-      event_category: 'request',
-      event_label: 'business_page_request'
-    });
-
-    const status = document.getElementById("status");
-    status.textContent = "Submitting request...";
-
-    const formData = new FormData(e.target);
-    const payload = Object.fromEntries(formData.entries());
-
-    try {
-      const res = await fetch("/api/send-contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...payload,
-          to: "jack@enoma.io",
-          source: "enoma_request_page",
-          subject: `New Enoma page request — ${payload.business_name}`
-        })
-      });
-
-      if (!res.ok) throw new Error();
-
-      status.textContent = "Request received! We’ll be in touch shortly.";
-      e.target.reset();
-    } catch {
-      status.textContent = "Something went wrong. Please try again.";
-    }
-  });
-</script>
-
-<!-- Shared UI -->
 <script type="module" src="/partials/nav.js"></script>
-<script src="/scripts/footer.js"></script>
 
+<div class="request-wrap">
+  <span class="section-label">Get started</span>
+  <h1>Get your business website</h1>
+  <p>Create your free account, fill out a short form about your business, and your website is live in minutes. No agency. No design skills. No credit card to start.</p>
+
+  <div class="redirect-card">
+    <h2>Your first month is completely free</h2>
+    <p>Create an account, build your website, and share it with customers — before you ever pay anything. After your free month, it's $19.99/month to keep it live.</p>
+    <a href="/signup" class="redirect-btn">Create my free website →</a>
+    <p class="redirect-note">No credit card required to get started</p>
+  </div>
+
+  <div class="next-section">
+    <h3>What happens after you sign up</h3>
+    <ol class="next-steps">
+      <li>Create your account with just an email and password</li>
+      <li>Fill out a short form — your services, location, and a few notes about your business</li>
+      <li>Your website is built and live immediately — review it and share it</li>
+      <li>After your free month, subscribe for $19.99/mo to keep it live</li>
+    </ol>
+  </div>
+
+  <div class="pricing-note">
+    <strong>Pricing starts after your free month.</strong> If you decide to keep your website live, it's $19.99/month. Month-to-month, cancel anytime.
+  </div>
+</div>
+
+<script src="/scripts/footer.js"></script>
 </body>
 </html>

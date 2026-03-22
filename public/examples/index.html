@@ -3,357 +3,283 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <!-- SEO -->
-<title>One-Page Website Examples for Small Businesses | Enoma</title>
-  <meta
-    name="description"
-  content="Explore real one-page website examples for small and local businesses. See how Enoma creates SEO-optimized business pages designed to be found, trusted, and shared.
-"
-  />
+  <title>Live Website Examples for Local Service Businesses | Enoma</title>
+  <meta name="description" content="See real business websites built with Enoma for landscapers, plumbers, HVAC companies, and other local service businesses. Live, indexed by Google, and built in minutes." />
   <link rel="canonical" href="https://enoma.io/examples" />
 
-  <!-- Open Graph -->
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Enoma" />
-  <meta property="og:title" content="Business Page Examples | Enoma" />
-  <meta
-    property="og:description"
-    content="Explore real examples of SEO-optimized business pages created with Enoma — designed to be found, trusted, and shared."
-  />
-  <meta
-    property="og:image"
-    content="https://enoma.io/assets/og/enoma-default-v2.png"
-  />
+  <meta property="og:title" content="Live Website Examples | Enoma" />
+  <meta property="og:description" content="Real business websites built with Enoma — live, indexed by Google, built in minutes." />
+  <meta property="og:image" content="https://enoma.io/assets/og/enoma-default-v2.png" />
   <meta property="og:url" content="https://enoma.io/examples" />
 
-  <!-- Twitter -->
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Business Page Examples | Enoma" />
-  <meta
-    name="twitter:description"
-    content="Explore real examples of SEO-optimized business pages created with Enoma — designed to be found, trusted, and shared."
-  />
-  <meta
-    name="twitter:image"
-    content="https://enoma.io/assets/og/enoma-default-v2.png"
-  />
-
-
-
-
-
-
   <link rel="stylesheet" href="/styles/enoma.css" />
+  <link rel="icon" href="/favicon.ico" sizes="any">
 
-<link rel="icon" href="/favicon.ico" sizes="any">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S8XTG72Y2Y');
+  </script>
 
-
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-S8XTG72Y2Y');
-</script>
-
-
-  <!-- Page-specific styles -->
   <style>
     .examples-hero {
-      padding: 6rem 1.5rem 4rem;
+      padding: 5.5rem 1.5rem 3.5rem;
       background: linear-gradient(180deg, #f7f6ff, #ffffff);
       text-align: center;
     }
-
     .examples-hero h1 {
-      max-width: 900px;
-      margin: 0 auto 1rem;
+      font-size: clamp(2rem, 4vw, 2.6rem);
+      font-weight: 800; color: #211551;
+      letter-spacing: -0.02em; margin: 0 0 0.75rem;
+      max-width: 700px; margin-inline: auto;
     }
-
     .examples-hero p {
-      max-width: 640px;
-      margin: 0 auto;
-      color: #555;
+      max-width: 580px; margin: 0 auto;
+      color: #4b5563; line-height: 1.65; font-size: 1rem;
+    }
+    .section-label {
+      font-size: 0.72rem; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: #9a8cff; margin-bottom: 0.75rem; display: block;
     }
 
     .examples-grid {
-      max-width: 960px;
-      margin: 3rem auto 5rem;
+      max-width: 1020px;
+      margin: 3.5rem auto 2rem;
       padding: 0 1.5rem;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 1.75rem;
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 1.5rem;
     }
-
-h2 {
-      text-align: center;
-      font-size: 1.3rem;
-}
 
     .example-card {
       background: #ffffff;
       border-radius: 16px;
       padding: 1.75rem;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-      display: flex;
-      flex-direction: column;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+      display: flex; flex-direction: column; gap: 0.45rem;
+      text-decoration: none; color: inherit;
+      border: 1px solid #f3f4f6;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .example-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 14px 36px rgba(0,0,0,0.1);
+      border-color: rgba(154,140,255,0.3);
+    }
+
+    .card-logo-wrap {
+      width: 52px; height: 52px;
+      border-radius: 10px; overflow: hidden;
+      background: #f6f7fb; border: 1px solid #e5e7eb;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 0.4rem; flex-shrink: 0;
+    }
+    .card-logo-wrap img {
+      width: 100%; height: 100%; object-fit: contain; padding: 6px;
+    }
+    .card-logo-placeholder {
+      width: 52px; height: 52px; border-radius: 10px;
+      background: linear-gradient(135deg, #9A8CFF, #6c63ff);
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 800; font-size: 1.25rem;
+      margin-bottom: 0.4rem; flex-shrink: 0;
+    }
+
+    .card-type {
+      font-size: 0.7rem; font-weight: 700;
+      letter-spacing: 0.07em; text-transform: uppercase;
+      color: #6c63ff; background: rgba(108,99,255,0.08);
+      padding: 0.2rem 0.55rem; border-radius: 999px;
+      width: fit-content;
+    }
+
+    .card-name {
+      font-size: 1.05rem; font-weight: 700;
+      color: #111827; margin: 0;
+    }
+    .card-location {
+      font-size: 0.85rem; color: #9ca3af;
+    }
+    .card-desc {
+      font-size: 0.9rem; color: #4b5563;
+      line-height: 1.55; flex: 1;
+    }
+
+    .card-footer {
+      display: flex; align-items: center;
       justify-content: space-between;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-
+      margin-top: 0.5rem; padding-top: 0.75rem;
+      border-top: 1px solid #f3f4f6;
+    }
+    .card-badge-active {
+      font-size: 0.72rem; font-weight: 600;
+      color: #065f46; background: #d1fae5;
+      padding: 0.2rem 0.55rem; border-radius: 999px;
+    }
+    .card-link {
+      font-size: 0.85rem; font-weight: 600;
+      color: #6c63ff; text-decoration: none;
     }
 
-.example-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 14px 36px rgba(0,0,0,0.1);
-}
-
-.example-card a {
-  color: #6c63ff;
-}
-
-
-    .example-card h3 {
-      margin-bottom: 0.25rem;
-      font-size: 1.1rem;
-    }
-
-    .example-meta {
-      font-size: 0.9rem;
-      color: #666;
-      margin-bottom: 1.25rem;
-    }
-
-    .example-card a {
-      margin-top: auto;
-      font-weight: 600;
-      text-decoration: none;
-    }
-
-    .examples-footer {
-      max-width: 720px;
-      margin: 0 auto 4rem;
-      padding: 0 1.5rem;
+    /* CTA section */
+    .examples-cta-section {
+      max-width: 700px;
+      margin: 1rem auto 5rem;
+      padding: 3rem 2rem;
       text-align: center;
-      font-size: 0.9rem;
-      color: #666;
+      background: linear-gradient(180deg, rgba(154,140,255,0.09), rgba(154,140,255,0.02));
+      border-radius: 20px;
     }
+    .examples-cta-section h2 {
+      font-size: 1.65rem; font-weight: 800;
+      color: #211551; letter-spacing: -0.02em; margin: 0 0 0.75rem;
+    }
+    .examples-cta-section p {
+      color: #4b5563; max-width: 500px;
+      margin: 0 auto 1.75rem; line-height: 1.6;
+    }
+    .cta-note { font-size: 0.82rem; color: #9ca3af; margin-top: 0.5rem; }
 
-.examples-cta {
-  max-width: 900px;
-  margin: 3rem auto 4rem;
-  padding: 3rem 2rem;
-  text-align: center;
-  background: linear-gradient(
-    180deg,
-    rgba(154,140,255,0.12),
-    rgba(154,140,255,0.04)
-  );
-  border-radius: 20px;
-}
-
-.examples-cta h2 {
-  font-size: 1.9rem;
-  margin-bottom: 0.75rem;
-}
-
-.examples-cta p {
-  max-width: 640px;
-  margin: 0 auto 1.75rem;
-  color: #4b5563;
-  line-height: 1.6;
-}
-
-.cta-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.cta-note {
-  font-size: 0.8rem;
-  color: #6b7280;
-}
-
-/* Badge */
-.example-badge {
-  display: inline-block;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #6c63ff;
-  background: rgba(108,99,255,0.12);
-  padding: 0.3rem 0.55rem;
-  border-radius: 999px;
-  margin-bottom: 0.75rem;
-}
-
-
-
+    .footer-note {
+      max-width: 680px; margin: 0 auto 3rem;
+      padding: 0 1.5rem; text-align: center;
+      font-size: 0.82rem; color: #d1d5db;
+    }
   </style>
 
-
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "CollectionPage",
-  "name": "One-Page Website Examples for Small Businesses",
-  "description": "Examples of one-page websites built for small and local businesses using Enoma.",
-  "url": "https://enoma.io/examples"
-}
-</script>
-
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": "Live Website Examples for Local Service Businesses",
+    "description": "Real business websites built with Enoma for landscapers, plumbers, HVAC and other local service companies.",
+    "url": "https://enoma.io/examples"
+  }
+  </script>
 </head>
 
 <body>
-
-<!-- NAV -->
 <script type="module" src="/partials/nav.js"></script>
 
-<!-- HERO -->
 <section class="examples-hero">
-  <h1>Real businesses. Real Enoma pages.</h1>
-  <p>
-    Below are live examples of business pages built with Enoma.
-    Each page is designed to be found in search, trusted instantly,
-    and shared anywhere — all from a single link.
-  </p>
-<p>
-  These examples showcase one-page websites built for small, local service businesses.
-  Each Enoma page is designed to replace a traditional small business website with
-  a single, search-optimized page.
-</p>
+  <span class="section-label">Live examples</span>
+  <h1>Real local businesses. Real Enoma websites.</h1>
+  <p>Every page below is live, indexed by Google, and built from a short form — no agency, no design work. This is what your business website could look like.</p>
 </section>
 
-<section class="examples-cta">
-  <h2>Beta testing — get your page built free or at a discounted rate</h2>
-  <p>
-    Enoma is currently in beta. I’m working with a small number of businesses to
-    refine the product — which means early pages are free or heavily discounted
-    in exchange for feedback.
-  </p>
+<div class="examples-grid">
 
-  <div class="cta-actions">
-    <a href="/request" class="btn-primary">
-      Request my business page →
-    </a>
-    <span class="cta-note">
-      Limited beta slots available
-    </span>
-  </div>
-</section>
-
-
-
-
-<h2>
-  One-page websites replacing traditional small business sites
-</h2>
-
-
-<section class="section section--soft">
-  <div class="section-inner">
-    <span class="example-badge">LIVE EXAMPLES</span>
-
-    <h2>Real businesses. Real Google search results.</h2>
-
-    <div class="search-examples">
-
-      <!-- Result 1 -->
-      <div class="search-result">
-        <div class="result-header">
-          <img
-            src="favicon-48.png"
-            alt="Enoma"
-            class="result-favicon"
-          />
-          <span class="result-url">
-            enoma.io › conways-landscaping
-          </span>
-          <span class="result-meta">• Indexed</span>
-        </div>
-
-        <a href="/conways-landscaping" class="result-title">
-          Agawam MA Landscaping Service – Enoma
-        </a>
-
-        <p class="result-desc">
-          Conway’s Landscaping provides residential and commercial landscaping
-          services in Agawam, MA and surrounding areas. Get a free quote today.
-        </p>
-      </div>
-
-      <!-- Result 2 -->
-      <div class="search-result">
-        <div class="result-header">
-          <img
-            src="favicon-48.png"
-            alt="Enoma"
-            class="result-favicon"
-          />
-          <span class="result-url">
-            enoma.io › germaine-heating-plumbing-inc
-          </span>
-          <span class="result-meta">• Indexed</span>
-        </div>
-
-        <a href="/germaine-heating-plumbing-inc" class="result-title">
-          Attleboro MA Plumber – Germaine Heating & Plumbing
-        </a>
-
-        <p class="result-desc">
-          Local heating and plumbing services in Attleboro, MA. Built to rank
-          for local plumbing searches and drive direct calls.
-        </p>
-      </div>
-
-      <!-- Result 3 -->
-      <div class="search-result">
-        <div class="result-header">
-          <img
-            src="favicon-48.png"
-            alt="Enoma"
-            class="result-favicon"
-          />
-          <span class="result-url">
-            enoma.io › dasilva-landscaping
-          </span>
-          <span class="result-meta">• Indexed</span>
-        </div>
-
-        <a href="/dasilva-landscaping" class="result-title">
-          Local Landscaping Services – DaSilva Landscaping
-        </a>
-
-        <p class="result-desc">
-One clear business profile you own — replacing scattered listings and profiles. Built to be shared everywhere a customer looks.
-        </p>
-      </div>
-
+  <!-- Conway's Landscaping -->
+  <a class="example-card" href="/conways-landscaping">
+    <div class="card-logo-wrap">
+      <img src="/assets/logos/conway-landscaping.webp" alt="Conway's Landscaping"
+        onerror="this.parentElement.innerHTML='<div class=\'card-logo-placeholder\'>C</div>'">
     </div>
-
-    <p class="bridge">
-Every Enoma profile is built to be the single link a business shares everywhere.    </p>
-
-    <div class="hero-actions">
-      <a href="/examples" class="examples-cta">
-        See more live examples →
-      </a>
+    <span class="card-type">Landscaping</span>
+    <p class="card-name">Conway's Landscaping</p>
+    <p class="card-location">Agawam &amp; West Springfield, MA</p>
+    <p class="card-desc">Weekly mowing, trimming, mulching, and seasonal cleanups for residential properties. Snow removal in winter.</p>
+    <div class="card-footer">
+      <span class="card-badge-active">✓ Accepting clients</span>
+      <span class="card-link">View website →</span>
     </div>
-  </div>
-</section>
+  </a>
 
-<!-- FOOTER NOTE -->
-<div class="examples-footer">
-  Businesses shown are examples of live Enoma pages and do not represent
-  endorsements, rankings, or a complete directory.
+  <!-- Dasilva Landscaping -->
+  <a class="example-card" href="/dasilva-landscaping">
+    <div class="card-logo-wrap">
+      <img src="/assets/logos/dasilva-landscaping.webp" alt="Dasilva Landscaping"
+        onerror="this.parentElement.innerHTML='<div class=\'card-logo-placeholder\'>D</div>'">
+    </div>
+    <span class="card-type">Landscaping</span>
+    <p class="card-name">Dasilva Landscaping</p>
+    <p class="card-location">North Attleboro, MA</p>
+    <p class="card-desc">Residential and commercial landscaping, mowing, cleanups, paver installation, and seasonal services done right.</p>
+    <div class="card-footer">
+      <span class="card-badge-active">✓ Accepting clients</span>
+      <span class="card-link">View website →</span>
+    </div>
+  </a>
+
+  <!-- Arno Plumbing and Heating -->
+  <a class="example-card" href="/arno-plumbing-and-heating">
+    <div class="card-logo-wrap">
+      <img src="/assets/logos/arno.jpg" alt="Arno Plumbing and Heating"
+        onerror="this.parentElement.innerHTML='<div class=\'card-logo-placeholder\'>A</div>'">
+    </div>
+    <span class="card-type">Plumbing &amp; Heating</span>
+    <p class="card-name">Arno Plumbing &amp; Heating</p>
+    <p class="card-location">North Attleborough, MA</p>
+    <p class="card-desc">Fast, honest plumbing and heating service — repairs, boiler installs, water heaters, and drain cleaning.</p>
+    <div class="card-footer">
+      <span class="card-badge-active">✓ Accepting clients</span>
+      <span class="card-link">View website →</span>
+    </div>
+  </a>
+
+  <!-- Germaine Heating & Plumbing -->
+  <a class="example-card" href="/germaine-heating-plumbing-inc">
+    <div class="card-logo-wrap">
+      <img src="/assets/logos/germain.png" alt="Germaine Heating and Plumbing"
+        onerror="this.parentElement.innerHTML='<div class=\'card-logo-placeholder\'>G</div>'">
+    </div>
+    <span class="card-type">Plumbing &amp; Heating</span>
+    <p class="card-name">Germaine Heating &amp; Plumbing</p>
+    <p class="card-location">Attleboro, MA</p>
+    <p class="card-desc">Family-owned heating and plumbing company. Boilers, furnaces, pipe repairs, water heaters, and emergency calls.</p>
+    <div class="card-footer">
+      <span class="card-link">View website →</span>
+    </div>
+  </a>
+
+  <!-- North Country Landscaping -->
+  <a class="example-card" href="/north-country-landscaping">
+    <div class="card-logo-wrap">
+      <img src="/assets/logos/north-country-landscaping.webp" alt="North Country Landscaping"
+        onerror="this.parentElement.innerHTML='<div class=\'card-logo-placeholder\'>N</div>'">
+    </div>
+    <span class="card-type">Landscaping</span>
+    <p class="card-name">North Country Landscaping</p>
+    <p class="card-location">Attleboro, MA</p>
+    <p class="card-desc">Irrigation installation, lawn maintenance, fertilizer programs, snow plowing, and equipment rentals.</p>
+    <div class="card-footer">
+      <span class="card-link">View website →</span>
+    </div>
+  </a>
+
+  <!-- The Blooming Daisy Co. -->
+  <a class="example-card" href="/the-blooming-daisy-co">
+    <div class="card-logo-wrap">
+      <img src="/assets/logos/blooming_daisy.jpg" alt="The Blooming Daisy Co"
+        onerror="this.parentElement.innerHTML='<div class=\'card-logo-placeholder\'>B</div>'">
+    </div>
+    <span class="card-type">Retail &amp; Gifts</span>
+    <p class="card-name">The Blooming Daisy Co.</p>
+    <p class="card-location">Dudley, MA</p>
+    <p class="card-desc">Unique handcrafted custom cups and keychains — personalized designs and ready-to-ship gifts.</p>
+    <div class="card-footer">
+      <span class="card-link">View website →</span>
+    </div>
+  </a>
+
 </div>
 
+<div class="examples-cta-section" style="margin-left:auto;margin-right:auto;padding-left:1.5rem;padding-right:1.5rem;">
+  <h2>Your business could be next</h2>
+  <p>Every website above was built from a short form — no design work, no agency, no technical skills needed. Your first month is free.</p>
+  <a href="/signup" class="btn-primary">Create my free website →</a>
+  <p class="cta-note">First month free · No credit card required</p>
+</div>
 
-<!-- FOOTER -->
+<p class="footer-note">
+  Websites shown are real Enoma-powered pages. They do not represent endorsements or rankings.
+</p>
+
 <script src="/scripts/footer.js"></script>
-
 </body>
 </html>

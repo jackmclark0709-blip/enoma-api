@@ -1,3 +1,10 @@
+// api/p.js
+// CHANGES FROM PREVIOUS VERSION:
+// 1. Checks website_is_active() before serving the page
+// 2. If trial expired and no paid sub, shows a clean "inactive" page
+//    with a subscribe CTA instead of the profile
+// 3. Fixed LOCAL_BUSINESS_SCHEMA escaping (from previous fix session)
+
 import fs from "fs";
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
@@ -22,10 +29,8 @@ const BUSINESS_TYPE_MAP = {
 
 function escapeHtml(str = "") {
   return String(str)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
+    .replaceAll("&", "&amp;").replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;").replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
 
@@ -45,11 +50,42 @@ function guessSchemaType(primaryCategory) {
   return BUSINESS_TYPE_MAP[key] || "LocalBusiness";
 }
 
+// Clean "inactive" page shown when trial has expired and no subscription
+function inactivePage(businessName, baseUrl) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeHtml(businessName)} — Enoma</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <link rel="stylesheet" href="/styles/enoma.css" />
+  <style>
+    body { background: #f6f7fb; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem; }
+    .card { background: white; border-radius: 20px; padding: 3rem 2.5rem; max-width: 480px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.08); border: 1px solid #e5e7eb; }
+    h1 { font-size: 1.4rem; color: #211551; margin: 0 0 0.75rem; }
+    p { color: #6b7280; line-height: 1.6; margin: 0 0 1.5rem; }
+    .btn { display: inline-block; background: #9A8CFF; color: #0b0a14; padding: 0.85rem 2rem; border-radius: 999px; font-weight: 700; text-decoration: none; }
+    .business-name { font-size: 1rem; color: #9ca3af; margin-bottom: 1.5rem; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <p class="business-name">${escapeHtml(businessName)}</p>
+    <h1>This website is currently inactive</h1>
+    <p>This Enoma website's free trial has ended. The business owner can reactivate it by subscribing.</p>
+    <a href="${baseUrl}" class="btn">Learn about Enoma →</a>
+  </div>
+</body>
+</html>`;
+}
+
 export default async function handler(req, res) {
   try {
     const slug = (req.query.slug || "").toString().trim();
     if (!slug) return res.status(400).send("Missing slug");
 
+    // Fetch profile
     const { data: profile, error } = await supabase
       .from("small_business_profiles")
       .select("*")
@@ -62,23 +98,27 @@ export default async function handler(req, res) {
       return res.status(500).send("Server error");
     }
 
-    if (!profile) {
-      return res.status(404).send("Not found");
-    }
+    if (!profile) return res.status(404).send("Not found");
 
     const baseUrl = absoluteBaseUrl(req);
+
+    // Check if website is active (trial or paid subscription)
+    if (profile.business_id) {
+      const { data: activeCheck } = await supabase
+        .rpc("website_is_active", { p_business_id: profile.business_id });
+
+      if (activeCheck === false) {
+        // Trial expired, no active subscription
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        res.setHeader("Cache-Control", "public, max-age=0, s-maxage=60");
+        return res.status(200).send(inactivePage(profile.business_name || slug, baseUrl));
+      }
+    }
+
     const canonical = `${baseUrl}/${encodeURIComponent(slug)}`;
-
     const businessName = profile.business_name || slug;
-
-    const seoTitle =
-      profile.seo_title ||
-      `${businessName} | Business Profile`;
-
-    const seoDescription =
-      profile.seo_description ||
-      `Learn about ${businessName}, services, and how to get in touch.`;
-
+    const seoTitle = profile.seo_title || `${businessName} | Business Website`;
+    const seoDescription = profile.seo_description || `Learn about ${businessName}, services, and how to get in touch.`;
     const ogImage = profile.logo_url || "";
     const robots = profile.is_public ? "index,follow" : "noindex,nofollow";
 
@@ -98,7 +138,6 @@ export default async function handler(req, res) {
     }
 
     const schemaType = guessSchemaType(profile.primary_category);
-
     const localBusinessSchema = {
       "@context": "https://schema.org",
       "@type": schemaType,
@@ -130,20 +169,13 @@ export default async function handler(req, res) {
       "{{FINAL_OG_IMAGE}}": escapeHtml(ogImage),
       "{{FINAL_CANONICAL_URL}}": escapeHtml(canonical),
       "{{ROBOTS}}": escapeHtml(robots),
-
-      // Profile JSON for client-side JS — safe for inline <script>
       "{{PROFILE_JSON}}": safeJsonForInlineScript(profile || {}),
-
-      // SSR text tokens — HTML-escaped for body content
       "{{BUSINESS_NAME}}": escapeHtml(profile.business_name || ""),
       "{{HERO_HEADLINE}}": escapeHtml(profile.hero_headline || ""),
       "{{HERO_TAGLINE}}": escapeHtml(profile.hero_tagline || ""),
       "{{ABOUT}}": escapeHtml(profile.about || ""),
       "{{SERVICES_INTRO}}": escapeHtml(profile.services_intro || ""),
-
-      // FIX: Structured data goes inside <script type="application/ld+json">
-      // It must NOT be HTML-escaped — that breaks the JSON and Google rejects it.
-      // Use safeJsonForInlineScript() which only escapes </script> injection.
+      // FIX: use safeJsonForInlineScript not escapeHtml for structured data
       "{{LOCAL_BUSINESS_SCHEMA}}": safeJsonForInlineScript(localBusinessSchema)
     };
 
