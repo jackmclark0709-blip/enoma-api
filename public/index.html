@@ -2,356 +2,310 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Dashboard — Enoma</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="dashboard.css" />
-  <link rel="stylesheet" href="/styles/enoma.css">
+  <title>Enoma — Your Business Website, Built While You Work</title>
+  <meta name="description" content="Enoma builds a professional business website for local service companies — landscapers, plumbers, HVAC, and more. SEO-optimized, live in minutes, first month free." />
+  <link rel="canonical" href="https://enoma.io/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Enoma" />
+  <meta property="og:title" content="Enoma — Your Business Website, Built While You Work" />
+  <meta property="og:description" content="Enoma builds a professional business website for local service companies. SEO-optimized, live in minutes, first month free." />
+  <meta property="og:image" content="https://enoma.io/assets/og/enoma-default-v2.png" />
+  <meta property="og:url" content="https://enoma.io/" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Enoma — Your Business Website, Built While You Work" />
+  <meta name="twitter:description" content="Enoma builds a professional business website for local service companies. SEO-optimized, live in minutes, first month free." />
+  <meta name="twitter:image" content="https://enoma.io/assets/og/enoma-default-v2.png" />
+  <link rel="stylesheet" href="/styles/enoma.css" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-S8XTG72Y2Y');
-  </script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-S8XTG72Y2Y');</script>
   <style>
-    /* Subscription status pills */
-    .pill.trial { background: rgba(240,165,0,0.2); color: #f0a500; }
-    .pill.active { background: rgba(80,166,132,0.2); color: #50A684; }
-    .pill.expired { background: rgba(226,75,74,0.2); color: #e24b4a; }
+    body{background:#f0f6ff}
 
-    /* Trial banner */
-    .trial-banner {
-      background: rgba(154,140,255,0.12);
-      border: 1px solid rgba(154,140,255,0.3);
-      border-radius: 12px;
-      padding: 1rem 1.25rem;
-      margin-bottom: 1.25rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-    .trial-banner p {
-      margin: 0; font-size: 0.88rem;
-      color: #d4cfff; line-height: 1.5;
-    }
-    .trial-banner strong { color: white; }
-    .subscribe-link {
-      background: #9A8CFF; color: #0b0a14;
-      padding: 0.5rem 1.1rem; border-radius: 999px;
-      font-weight: 700; font-size: 0.85rem;
-      text-decoration: none; white-space: nowrap;
-      border: none; cursor: pointer;
-    }
+    /* HERO */
+    .hp-hero{background:#0a1628;padding:5rem 1.5rem 4rem;position:relative;overflow:hidden}
+    .hp-hero::before{content:'';position:absolute;top:-80px;right:-80px;width:480px;height:480px;background:radial-gradient(circle,rgba(56,130,220,0.18) 0%,transparent 65%);pointer-events:none}
+    .hp-hero__inner{max-width:1040px;margin-inline:auto;display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center}
+    .hp-hero__eyebrow{font-size:0.7rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#7ab3e0;margin-bottom:0.9rem}
+    .hp-hero__h1{font-family:'DM Sans',sans-serif;font-size:clamp(2rem,3.5vw,2.6rem);font-weight:800;line-height:1.1;letter-spacing:-0.025em;color:#f0f6ff;margin-bottom:1rem}
+    .hp-hero__h1 em{color:#5aa8f0;font-style:normal}
+    .hp-hero__sub{font-size:1rem;color:rgba(240,246,255,0.65);line-height:1.6;margin-bottom:1.75rem;max-width:420px}
+    .hp-hero__actions{display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-bottom:0.9rem}
+    .hp-hero__proof{font-size:0.78rem;color:rgba(240,246,255,0.38);letter-spacing:0.04em}
+    .hp-hero__right{display:grid;grid-template-columns:1fr 1.6fr;gap:0.75rem;align-items:start}
 
-    /* Create website prompt (shown when no website yet) */
-    .no-website-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 3rem 2rem;
-      text-align: center;
-    }
-    .no-website-card h2 { margin: 0 0 0.5rem; font-size: 1.3rem; }
-    .no-website-card p { color: var(--muted); margin: 0 0 1.5rem; font-size: 0.95rem; }
-    .create-btn {
-      display: inline-block;
-      background: #9A8CFF; color: #0b0a14;
-      padding: 0.85rem 2rem; border-radius: 999px;
-      font-weight: 700; text-decoration: none; font-size: 0.95rem;
-    }
+    /* Stat cards */
+    .hp-stats{display:flex;flex-direction:column;gap:0.6rem}
+    .hp-stat{background:rgba(255,255,255,0.06);border:1px solid rgba(56,130,220,0.2);border-radius:10px;padding:0.85rem 1rem}
+    .hp-stat__num{font-family:'DM Sans',sans-serif;font-size:1.6rem;font-weight:800;color:#f0f6ff;line-height:1;letter-spacing:-0.03em}
+    .hp-stat__label{font-size:0.75rem;color:rgba(240,246,255,0.45);margin-top:3px;line-height:1.3}
 
-    /* Stats zero state */
-    .zero-state { color: var(--muted); font-size: 0.9rem; padding: 0.5rem 0; }
+    /* Browser mockup */
+    .hp-browser{background:#fff;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);box-shadow:0 20px 60px rgba(0,0,0,0.35)}
+    .hp-browser__bar{background:#1e2d45;padding:6px 10px;display:flex;align-items:center;gap:5px}
+    .hp-browser__dots{display:flex;gap:4px}
+    .hp-browser__dot{width:8px;height:8px;border-radius:50%}
+    .hp-browser__url{flex:1;background:rgba(255,255,255,0.1);border-radius:4px;padding:3px 8px;font-size:9px;color:rgba(255,255,255,0.55);font-family:monospace;margin-left:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .hp-site__hero{background:#1c3a1c;padding:14px 16px 12px}
+    .hp-site__logo{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:800;color:rgba(255,255,255,0.9);margin-bottom:4px}
+    .hp-site__headline{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;color:white;line-height:1.3;margin-bottom:8px}
+    .hp-site__cta{display:inline-block;background:#4a9e3a;color:white;font-size:9px;font-weight:700;padding:4px 10px;border-radius:999px}
+    .hp-site__body{padding:10px 16px 14px;background:#f8faf6}
+    .hp-site__services-label{font-size:9px;font-weight:700;color:#1c3a1c;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.06em}
+    .hp-site__services{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+    .hp-site__service{background:white;border:1px solid #dde8d8;border-radius:4px;padding:4px 7px;font-size:10px;color:#1c3a1c;font-weight:600}
 
-    .business-select {
-      background: var(--card); color: var(--text);
-      border: 1px solid var(--border); border-radius: 8px;
-      padding: 0.4rem 0.75rem; font-size: 0.9rem;
-      cursor: pointer;
-    }
+    /* COMPARE */
+    .hp-compare{background:white;padding:5rem 1.5rem;border-top:1px solid #d4e2f4}
+    .hp-compare__inner{max-width:860px;margin-inline:auto;text-align:center}
+    .hp-compare__label{font-size:0.7rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#3882dc;margin-bottom:0.6rem}
+    .hp-compare__h2{font-family:'DM Sans',sans-serif;font-size:clamp(1.6rem,3vw,2rem);font-weight:800;color:#0a1628;letter-spacing:-0.02em;margin-bottom:0.6rem}
+    .hp-compare__sub{color:#5a7a9a;font-size:1rem;max-width:560px;margin:0 auto 2.5rem;line-height:1.6}
+    .hp-compare__cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
+    .hp-comp-card{border-radius:14px;padding:1.5rem;text-align:center;border:1px solid #d4e2f4;background:#f7faff}
+    .hp-comp-card--featured{border:2px solid #3882dc;background:#e6f1fb;position:relative}
+    .hp-comp-card__badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#3882dc;color:white;font-size:0.65rem;font-weight:700;padding:3px 10px;border-radius:999px;letter-spacing:0.06em;text-transform:uppercase;white-space:nowrap}
+    .hp-comp-card__label{font-size:0.78rem;font-weight:700;color:#0a1628;margin-bottom:0.5rem}
+    .hp-comp-card__price{font-family:'DM Sans',sans-serif;font-size:1.65rem;font-weight:800;color:#0a1628;letter-spacing:-0.03em;line-height:1}
+    .hp-comp-card--featured .hp-comp-card__price{color:#3882dc}
+    .hp-comp-card__note{font-size:0.78rem;color:#5a7a9a;margin-top:0.3rem}
 
-    .header-actions {
-      display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;
+    /* FEATURES */
+    .hp-features{background:#f0f6ff;padding:5rem 1.5rem}
+    .hp-features__inner{max-width:1040px;margin-inline:auto}
+    .hp-features__header{text-align:center;margin-bottom:3rem}
+    .hp-features__label{font-size:0.7rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#3882dc;margin-bottom:0.6rem}
+    .hp-features__h2{font-family:'DM Sans',sans-serif;font-size:clamp(1.6rem,3vw,2rem);font-weight:800;color:#0a1628;letter-spacing:-0.02em;margin-bottom:0.6rem}
+    .hp-features__sub{color:#5a7a9a;max-width:520px;margin:0 auto;font-size:1rem;line-height:1.6}
+    .hp-features__grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem}
+    .hp-feature{background:white;border:1px solid #d4e2f4;border-radius:16px;padding:1.75rem}
+    .hp-feature__icon{width:40px;height:40px;border-radius:10px;background:#e6f1fb;display:flex;align-items:center;justify-content:center;margin-bottom:1rem}
+    .hp-feature__icon svg{width:20px;height:20px;stroke:#3882dc;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    .hp-feature__h3{font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:700;color:#0a1628;margin-bottom:0.4rem;letter-spacing:-0.01em}
+    .hp-feature__p{font-size:0.9rem;color:#5a7a9a;line-height:1.6;margin:0}
+
+    /* STEPS */
+    .hp-steps{background:white;padding:5rem 1.5rem;border-top:1px solid #d4e2f4}
+    .hp-steps__inner{max-width:680px;margin-inline:auto}
+    .hp-steps__header{text-align:left;margin-bottom:2.5rem}
+    .hp-steps__label{font-size:0.7rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#3882dc;margin-bottom:0.6rem}
+    .hp-steps__h2{font-family:'DM Sans',sans-serif;font-size:clamp(1.6rem,3vw,2rem);font-weight:800;color:#0a1628;letter-spacing:-0.02em}
+    .hp-steps__list{display:flex;flex-direction:column;gap:1.25rem}
+    .hp-step{display:flex;gap:1.1rem;align-items:flex-start}
+    .hp-step__num{width:32px;height:32px;border-radius:50%;background:#3882dc;color:white;font-family:'DM Sans',sans-serif;font-size:0.85rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+    .hp-step__title{font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:700;color:#0a1628;margin-bottom:0.2rem}
+    .hp-step__desc{font-size:0.9rem;color:#5a7a9a;line-height:1.55;margin:0}
+    .hp-steps__note{margin-top:2rem;font-size:0.88rem;color:#7ab3e0;font-style:italic;padding-left:calc(32px + 1.1rem)}
+
+    /* FINAL CTA */
+    .hp-cta{background:linear-gradient(160deg,#0a1628,#162540);padding:6rem 1.5rem;text-align:center;position:relative;overflow:hidden}
+    .hp-cta::before{content:'';position:absolute;bottom:-60px;left:50%;transform:translateX(-50%);width:600px;height:300px;background:radial-gradient(ellipse,rgba(56,130,220,0.2) 0%,transparent 70%);pointer-events:none}
+    .hp-cta__inner{max-width:600px;margin-inline:auto;position:relative}
+    .hp-cta__h2{font-family:'DM Sans',sans-serif;font-size:clamp(1.8rem,4vw,2.4rem);font-weight:800;color:#f0f6ff;letter-spacing:-0.025em;margin-bottom:0.75rem}
+    .hp-cta__sub{font-size:1rem;color:rgba(240,246,255,0.6);line-height:1.6;max-width:480px;margin:0 auto 2rem}
+    .hp-cta__actions{display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap}
+    .hp-cta__proof{margin-top:1rem;font-size:0.78rem;color:rgba(240,246,255,0.35);letter-spacing:0.04em}
+
+    /* RESPONSIVE */
+    @media(max-width:768px){
+      .hp-hero__inner,.hp-hero__right{grid-template-columns:1fr}
+      .hp-stats{flex-direction:row;flex-wrap:wrap}
+      .hp-stat{flex:1;min-width:120px}
+      .hp-compare__cards{grid-template-columns:1fr;max-width:320px;margin-inline:auto;gap:1.5rem}
+      .hp-features__grid{grid-template-columns:1fr}
     }
-    .btn.secondary {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--muted);
+    @media(max-width:480px){
+      .hp-hero{padding:3rem 1.25rem 2.5rem}
     }
-    .btn.secondary:hover { border-color: var(--accent); color: var(--accent); }
   </style>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Enoma","applicationCategory":"BusinessApplication","description":"Enoma builds professional business websites for local service companies — SEO-optimized, live in minutes, first month free.","operatingSystem":"Web","url":"https://enoma.io","offers":{"@type":"Offer","price":"19.99","priceCurrency":"USD"},"audience":{"@type":"Audience","audienceType":"Local Service Businesses"}}</script>
 </head>
-
 <body>
-  <main class="container">
 
-    <header class="header">
-      <div>
-        <h1 id="business-name">Loading…</h1>
-        <p class="sub">Your Enoma website performance</p>
+<script type="module" src="/partials/nav.js"></script>
+
+<!-- HERO -->
+<section class="hp-hero">
+  <div class="hp-hero__inner">
+    <div class="hp-hero__left">
+      <p class="hp-hero__eyebrow">For local service businesses</p>
+      <h1 class="hp-hero__h1">Your website, <em>built<br>while you work.</em></h1>
+      <p class="hp-hero__sub">Enoma builds a professional business website from your notes — SEO-optimized, live in minutes, $19.99/month.</p>
+      <div class="hp-hero__actions">
+        <a href="/signup" class="btn-primary">Create mine free →</a>
+        <a href="/examples" class="btn-secondary">See examples</a>
       </div>
-
-      <select id="business-select" class="business-select"></select>
-
-      <div class="header-actions">
-        <a id="public-link" class="btn" target="_blank" style="display:none;">View my website</a>
-        <a id="edit-link" class="btn secondary" style="display:none;">Edit website</a>
-        <button id="sign-out" class="btn secondary">Sign out</button>
+      <p class="hp-hero__proof">First month free &nbsp;·&nbsp; No credit card &nbsp;·&nbsp; Cancel anytime</p>
+    </div>
+    <div class="hp-hero__right">
+      <div class="hp-stats">
+        <div class="hp-stat">
+          <div class="hp-stat__num">8</div>
+          <div class="hp-stat__label">Live business websites</div>
+        </div>
+        <div class="hp-stat">
+          <div class="hp-stat__num">&lt;&nbsp;5 min</div>
+          <div class="hp-stat__label">Average build time</div>
+        </div>
+        <div class="hp-stat">
+          <div class="hp-stat__num">$0</div>
+          <div class="hp-stat__label">Cost to try</div>
+        </div>
       </div>
-    </header>
-
-    <!-- Trial / subscription banner -->
-    <div id="trial-banner" class="trial-banner" style="display:none;">
-      <p id="trial-banner-text"></p>
-      <button class="subscribe-link" id="subscribe-btn">Subscribe — $19.99/mo</button>
-    </div>
-
-    <section class="status">
-      <span id="subscription-status" class="pill">Loading…</span>
-      <span id="renewal-date" class="muted"></span>
-    </section>
-
-    <!-- No website prompt -->
-    <div id="no-website-card" class="no-website-card" style="display:none;">
-      <h2>You don't have a website yet</h2>
-      <p>Create your business website in minutes — fill out a short form and we'll build it from your notes.</p>
-      <a href="/create" class="create-btn">Create my free website →</a>
-    </div>
-
-    <!-- Stats (hidden until website exists) -->
-    <div id="stats-section" style="display:none;">
-      <section class="kpis">
-        <div class="card">
-          <h3>Page Views <span style="font-size:0.75rem;opacity:0.6;">(30 days)</span></h3>
-          <div id="page-views" class="metric">—</div>
+      <div class="hp-browser">
+        <div class="hp-browser__bar">
+          <div class="hp-browser__dots">
+            <div class="hp-browser__dot" style="background:#ff5f56"></div>
+            <div class="hp-browser__dot" style="background:#ffbd2e"></div>
+            <div class="hp-browser__dot" style="background:#27c93f"></div>
+          </div>
+          <div class="hp-browser__url">enoma.io/conways-landscaping</div>
         </div>
-        <div class="card">
-          <h3>Contact Clicks <span style="font-size:0.75rem;opacity:0.6;">(30 days)</span></h3>
-          <div id="contact-clicks" class="metric">—</div>
+        <div class="hp-site__hero">
+          <div class="hp-site__logo">Conway's Landscaping</div>
+          <div class="hp-site__headline">Reliable Lawn Care in Agawam &amp; West Springfield</div>
+          <span class="hp-site__cta">Call (413) 896-5392</span>
         </div>
-      </section>
-
-      <section class="card">
-        <h3>Where visitors came from</h3>
-        <ul id="sources"><li class="zero-state">Loading…</li></ul>
-      </section>
+        <div class="hp-site__body">
+          <div class="hp-site__services-label">Services</div>
+          <div class="hp-site__services">
+            <div class="hp-site__service">Mowing</div>
+            <div class="hp-site__service">Trimming</div>
+            <div class="hp-site__service">Mulching</div>
+            <div class="hp-site__service">Snow Removal</div>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
+</section>
 
-  </main>
+<!-- HOW ENOMA COMPARES -->
+<section class="hp-compare">
+  <div class="hp-compare__inner">
+    <p class="hp-compare__label">How Enoma compares</p>
+    <h2 class="hp-compare__h2">More than a listing. Less than a full website.</h2>
+    <p class="hp-compare__sub">Enoma gives you a standalone website you own — not a directory listing, not a $3,000 agency project.</p>
+    <div class="hp-compare__cards">
+      <div class="hp-comp-card">
+        <div class="hp-comp-card__label">Web Agency</div>
+        <div class="hp-comp-card__price">$3,000+</div>
+        <div class="hp-comp-card__note">Upfront + ongoing fees</div>
+      </div>
+      <div class="hp-comp-card hp-comp-card--featured">
+        <span class="hp-comp-card__badge">⭐ Enoma</span>
+        <div class="hp-comp-card__label" style="margin-top:0.5rem;">First month</div>
+        <div class="hp-comp-card__price">$0 trial</div>
+        <div class="hp-comp-card__note">then $19.99/mo</div>
+      </div>
+      <div class="hp-comp-card">
+        <div class="hp-comp-card__label">Directory Listing</div>
+        <div class="hp-comp-card__price">Free–$100</div>
+        <div class="hp-comp-card__note">But you share the space</div>
+      </div>
+    </div>
+  </div>
+</section>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script type="module">
-  const SUPABASE_URL = 'https://qhsivcenpnxwmvwznqie.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc';
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+<!-- WHAT YOU GET -->
+<section class="hp-features">
+  <div class="hp-features__inner">
+    <div class="hp-features__header">
+      <p class="hp-features__label">What you get</p>
+      <h2 class="hp-features__h2">One website. Built for search. Yours in minutes.</h2>
+      <p class="hp-features__sub">For landscapers, plumbers, HVAC companies, electricians, and any local service business that needs to be found online.</p>
+    </div>
+    <div class="hp-features__grid">
+      <div class="hp-feature">
+        <div class="hp-feature__icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></div>
+        <h3 class="hp-feature__h3">Found on Google</h3>
+        <p class="hp-feature__p">Every Enoma website is structured for Google from day one — the right schema, the right headings, indexed fast.</p>
+      </div>
+      <div class="hp-feature">
+        <div class="hp-feature__icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg></div>
+        <h3 class="hp-feature__h3">Written from your notes</h3>
+        <p class="hp-feature__p">Fill out a short form about your business. Our AI writes your website copy — services, about, headlines — from your words.</p>
+      </div>
+      <div class="hp-feature">
+        <div class="hp-feature__icon"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.8 19.8 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.8 19.8 0 012.08 4.18 2 2 0 014.06 2h3a2 2 0 012 1.72c.12.86.31 1.7.57 2.5a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.58-1.09a2 2 0 012.11-.45c.8.26 1.64.45 2.5.57A2 2 0 0122 16.92z"/></svg></div>
+        <h3 class="hp-feature__h3">Turns visitors into calls</h3>
+        <p class="hp-feature__p">Call buttons, quote forms, and contact details built in. Every visitor knows exactly how to reach you.</p>
+      </div>
+      <div class="hp-feature">
+        <div class="hp-feature__icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <h3 class="hp-feature__h3">No competitors next to you</h3>
+        <p class="hp-feature__p">Unlike Yelp or Angie's List, your Enoma website stands alone. No ads. No "similar businesses nearby."</p>
+      </div>
+      <div class="hp-feature">
+        <div class="hp-feature__icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+        <h3 class="hp-feature__h3">Monthly performance report</h3>
+        <p class="hp-feature__p">See how many people viewed your website and clicked to contact you — delivered to your inbox every month.</p>
+      </div>
+      <div class="hp-feature">
+        <div class="hp-feature__icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+        <h3 class="hp-feature__h3">Zero maintenance</h3>
+        <p class="hp-feature__p">Hosting, security, and updates are handled. Your website stays live and fast without you touching anything.</p>
+      </div>
+    </div>
+  </div>
+</section>
 
-  async function main() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { window.location.href = '/login'; return; }
+<!-- HOW IT WORKS -->
+<section class="hp-steps">
+  <div class="hp-steps__inner">
+    <div class="hp-steps__header">
+      <p class="hp-steps__label">How it works</p>
+      <h2 class="hp-steps__h2">From signup to live website in four steps.</h2>
+    </div>
+    <div class="hp-steps__list">
+      <div class="hp-step">
+        <div class="hp-step__num">1</div>
+        <div class="hp-step__content">
+          <p class="hp-step__title">Create your free account</p>
+          <p class="hp-step__desc">Sign up with your email in 30 seconds — no credit card required.</p>
+        </div>
+      </div>
+      <div class="hp-step">
+        <div class="hp-step__num">2</div>
+        <div class="hp-step__content">
+          <p class="hp-step__title">Tell us about your business</p>
+          <p class="hp-step__desc">Fill out a short form — your services, location, and a few notes. Our AI builds your website from your words.</p>
+        </div>
+      </div>
+      <div class="hp-step">
+        <div class="hp-step__num">3</div>
+        <div class="hp-step__content">
+          <p class="hp-step__title">Your website is live</p>
+          <p class="hp-step__desc">Review it, share it, and start getting found. Your site is indexed by Google from day one.</p>
+        </div>
+      </div>
+      <div class="hp-step">
+        <div class="hp-step__num">4</div>
+        <div class="hp-step__content">
+          <p class="hp-step__title">Subscribe to keep it live</p>
+          <p class="hp-step__desc">After your free month, subscribe for $19.99/mo. Cancel anytime — no contracts.</p>
+        </div>
+      </div>
+    </div>
+    <p class="hp-steps__note">First month free. No obligation. You only pay once you've seen your website.</p>
+  </div>
+</section>
 
-    // Check for ?subscribed=1 (coming back from Stripe)
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('subscribed') === '1') {
-      // Clean URL
-      window.history.replaceState({}, '', '/dashboard');
-    }
+<!-- FINAL CTA -->
+<section class="hp-cta">
+  <div class="hp-cta__inner">
+    <h2 class="hp-cta__h2">Get your business website live today</h2>
+    <p class="hp-cta__sub">Fill out a short form about your business and your website is live in minutes — no agency, no design skills, no credit card.</p>
+    <div class="hp-cta__actions">
+      <a href="/signup" class="btn-primary">Create my free website →</a>
+      <a href="/examples" class="btn-secondary">See live examples</a>
+    </div>
+    <p class="hp-cta__proof">First month free &nbsp;·&nbsp; $19.99/mo after &nbsp;·&nbsp; Cancel anytime</p>
+  </div>
+</section>
 
-    const { data: memberships, error: memberError } = await supabase
-      .from('business_members')
-      .select('*')
-      .eq('user_id', session.user.id);
-
-    if (memberError || !memberships?.length) {
-      // New user — show create prompt
-      document.getElementById('business-name').textContent = 'Welcome to Enoma';
-      document.getElementById('no-website-card').style.display = 'block';
-      document.getElementById('subscription-status').textContent = 'No website yet';
-      document.getElementById('subscription-status').className = 'pill';
-      document.getElementById('sign-out').addEventListener('click', async () => {
-        await supabase.auth.signOut();
-        window.location.href = '/login';
-      });
-      return;
-    }
-
-    const businessIds = memberships.map(m => m.business_id);
-
-    const { data: profiles } = await supabase
-      .from('small_business_profiles')
-      .select('business_id, username, business_name')
-      .in('business_id', businessIds);
-
-    if (!profiles?.length) {
-      document.getElementById('no-website-card').style.display = 'block';
-      return;
-    }
-
-    const selectEl = document.getElementById('business-select');
-    profiles.forEach(p => {
-      const option = document.createElement('option');
-      option.value = p.business_id;
-      option.textContent = p.business_name || p.username;
-      selectEl.appendChild(option);
-    });
-
-    const activeBusinessId = params.get('business_id') || profiles[0].business_id;
-    selectEl.value = activeBusinessId;
-
-    async function loadDashboard(profile) {
-      document.getElementById('business-name').textContent = profile.business_name || profile.username;
-      document.getElementById('stats-section').style.display = 'block';
-
-      const publicLink = document.getElementById('public-link');
-      publicLink.href = `/${profile.username}`;
-      publicLink.style.display = 'inline-flex';
-
-      const editLink = document.getElementById('edit-link');
-      editLink.href = `/create?business_id=${profile.business_id}`;
-      editLink.style.display = 'inline-flex';
-
-      // Load subscription status
-      const { data: sub } = await supabase
-        .from('subscriptions')
-        .select('status, is_trial, trial_expires_at, current_period_end')
-        .eq('business_id', profile.business_id)
-        .maybeSingle();
-
-      const statusEl = document.getElementById('subscription-status');
-      const bannerEl = document.getElementById('trial-banner');
-      const bannerText = document.getElementById('trial-banner-text');
-      const renewalEl = document.getElementById('renewal-date');
-
-      if (sub) {
-        const isPaid = sub.status === 'active';
-        const isTrial = sub.is_trial && sub.trial_expires_at;
-        const trialExpiry = isTrial ? new Date(sub.trial_expires_at) : null;
-        const trialExpired = trialExpiry ? trialExpiry < new Date() : false;
-        const daysLeft = trialExpiry ? Math.max(0, Math.ceil((trialExpiry - new Date()) / (1000 * 60 * 60 * 24))) : 0;
-
-        if (isPaid) {
-          statusEl.textContent = 'Active';
-          statusEl.className = 'pill active';
-          if (sub.current_period_end) {
-            renewalEl.textContent = `Renews ${new Date(sub.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
-          }
-        } else if (isTrial && !trialExpired) {
-          statusEl.textContent = 'Free trial';
-          statusEl.className = 'pill trial';
-          renewalEl.textContent = `Trial ends ${trialExpiry.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
-          bannerEl.style.display = 'flex';
-          bannerText.innerHTML = `<strong>Your free trial ends in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}.</strong> Subscribe to keep your website live after ${trialExpiry.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}.`;
-        } else if (trialExpired) {
-          statusEl.textContent = 'Trial expired';
-          statusEl.className = 'pill expired';
-          bannerEl.style.display = 'flex';
-          bannerText.innerHTML = `<strong>Your free trial has ended.</strong> Subscribe to bring your website back online.`;
-        }
-      }
-
-      // Subscribe button
-      document.getElementById('subscribe-btn').addEventListener('click', async () => {
-        const { data: { session: s } } = await supabase.auth.getSession();
-        if (!s) { window.location.href = '/login'; return; }
-        const btn = document.getElementById('subscribe-btn');
-        btn.textContent = 'Loading…';
-        btn.disabled = true;
-        try {
-          const res = await fetch('/api/create-checkout', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${s.access_token}` },
-            body: JSON.stringify({ business_id: profile.business_id })
-          });
-          const { url, error } = await res.json();
-          if (url) window.location.href = url;
-          else { alert(error || 'Could not start checkout.'); btn.textContent = 'Subscribe — $19.99/mo'; btn.disabled = false; }
-        } catch { btn.textContent = 'Subscribe — $19.99/mo'; btn.disabled = false; }
-      });
-
-      // Load metrics
-      const since = new Date();
-      since.setDate(since.getDate() - 30);
-      const sinceDay = since.toISOString().slice(0, 10);
-
-      const { data: metricRows } = await supabase
-        .from('daily_metrics')
-        .select('page_views, contact_clicks')
-        .eq('business_id', profile.business_id)
-        .gte('day', sinceDay);
-
-      let pageViews = 0, contactClicks = 0;
-      if (Array.isArray(metricRows) && metricRows.length) {
-        for (const r of metricRows) {
-          pageViews += Number(r.page_views || 0);
-          contactClicks += Number(r.contact_clicks || 0);
-        }
-      }
-
-      // Fallback to page_events if daily_metrics empty
-      if (pageViews === 0) {
-        const { count: pvCount } = await supabase
-          .from('page_events').select('*', { count: 'exact', head: true })
-          .eq('slug', profile.username).eq('event', 'page_view')
-          .gte('created_at', since.toISOString());
-        const { count: ccCount } = await supabase
-          .from('page_events').select('*', { count: 'exact', head: true })
-          .eq('slug', profile.username)
-          .in('event', ['contact_click', 'cta_click_phone', 'cta_click_email', 'cta_click_website'])
-          .gte('created_at', since.toISOString());
-        pageViews = pvCount ?? 0;
-        contactClicks = ccCount ?? 0;
-      }
-
-      document.getElementById('page-views').textContent = pageViews;
-      document.getElementById('contact-clicks').textContent = contactClicks;
-
-      // Sources
-      const sourcesEl = document.getElementById('sources');
-      const { data: sourceRows } = await supabase
-        .from('top_sources_daily')
-        .select('source, visits')
-        .eq('business_id', profile.business_id)
-        .gte('day', sinceDay);
-
-      const agg = new Map();
-      (sourceRows || []).forEach(r => {
-        const key = r.source || 'Direct';
-        agg.set(key, (agg.get(key) || 0) + Number(r.visits || 0));
-      });
-      const top = Array.from(agg.entries()).sort((a, b) => b[1] - a[1]).slice(0, 6);
-
-      sourcesEl.innerHTML = '';
-      if (!top.length) {
-        sourcesEl.innerHTML = '<li class="zero-state">No traffic data yet — share your website link to start getting visitors.</li>';
-      } else {
-        top.forEach(([source, visits]) => {
-          const li = document.createElement('li');
-          li.innerHTML = `<span>${source}</span><strong>${visits}</strong>`;
-          sourcesEl.appendChild(li);
-        });
-      }
-    }
-
-    function getProfile(id) { return profiles.find(p => p.business_id === id); }
-
-    await loadDashboard(getProfile(activeBusinessId));
-
-    selectEl.addEventListener('change', async e => {
-      const url = new URL(window.location);
-      url.searchParams.set('business_id', e.target.value);
-      window.history.replaceState({}, '', url);
-      await loadDashboard(getProfile(e.target.value));
-    });
-
-    document.getElementById('sign-out').addEventListener('click', async () => {
-      await supabase.auth.signOut();
-      window.location.href = '/login';
-    });
-  }
-
-  main();
-</script>
-
+<div id="footer"></div>
+<script>fetch('/partials/footer.html').then(r=>r.text()).then(html=>{document.getElementById('footer').innerHTML=html});</script>
 </body>
 </html>
