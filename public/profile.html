@@ -253,25 +253,26 @@ body.persona-retail .section::before { background: #9a3a8a; }
 
 /* ── Sections ── */
 .section {
-  max-width: 900px; margin: 2.5rem auto;
-  padding: 2.5rem 2rem;
-  background: #ffffff; border-radius: 20px;
-  border: 1px solid #e4edf5;
-  box-shadow: 0 4px 20px rgba(10,22,40,0.05);
+  max-width: 860px; margin: 0 auto;
+  padding: 3rem 0;
+  background: transparent;
+  border: none; box-shadow: none;
+  border-bottom: 1px solid #e8f0f8;
 }
+.section:last-of-type { border-bottom: none; }
 .section h2 {
   font-family: 'DM Sans', sans-serif;
-  font-size: 1.45rem; font-weight: 700;
+  font-size: 1.35rem; font-weight: 700;
   color: #0a1628; margin-bottom: 1rem;
   letter-spacing: -0.02em;
 }
 .section::before {
   content: ''; display: block;
-  width: 36px; height: 4px;
+  width: 32px; height: 3px;
   background: var(--brand-primary, #1a3a2a);
-  border-radius: 999px; margin-bottom: 1rem;
+  border-radius: 999px; margin-bottom: 0.9rem;
 }
-.section p { font-size: 0.98rem; line-height: 1.7; color: #374151; }
+.section p { font-size: 0.97rem; line-height: 1.7; color: #374151; }
 
 /* ── About — single clean section, no sub-cards ── */
 #aboutSection p.about-lead {
@@ -327,11 +328,11 @@ body.persona-retail .section::before { background: #9a3a8a; }
 /* ── Services ── */
 .service-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1.25rem; }
 .service-card {
-  background: #fff; border: 1px solid #e4edf5; border-radius: 16px;
-  padding: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  background: #fff; border: 1px solid #e8f0f8; border-radius: 14px;
+  padding: 1.4rem; display: flex; flex-direction: column; gap: 0.5rem;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
-.service-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(10,22,40,0.08); }
+.service-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(10,22,40,0.07); border-color: var(--brand-primary-30, rgba(26,58,42,0.2)); }
 .service-card:first-child {
   border-left: 4px solid var(--brand-primary, #1a3a2a);
   background: var(--brand-primary-10, rgba(26,58,42,0.05));
@@ -359,12 +360,11 @@ body.persona-retail .section::before { background: #9a3a8a; }
 
 /* ── Mid-page contact nudge ── */
 .mid-contact-nudge {
-  max-width: 900px; margin: 0 auto 2.5rem;
+  max-width: 860px; margin: 0 auto;
   background: var(--brand-primary, #1a3a2a);
-  border-radius: 20px; padding: 2rem 2.5rem;
-  display: flex; align-items: center; justify-content: space-between; gap: 1.5rem;
+  border-radius: 16px; padding: 1.5rem 2rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1.25rem;
   flex-wrap: wrap;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
 }
 .mid-contact-nudge p {
   margin: 0; font-family: 'DM Sans', sans-serif;
@@ -386,25 +386,24 @@ body.persona-retail .section::before { background: #9a3a8a; }
 .mid-contact-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
 
 /* ── Why Choose Us — checkmark bullets ── */
-#whySection { background: #f7faff; padding: 2.5rem 0; }
-#whySection .container { max-width: 900px; }
-#whySection .section { border: none; box-shadow: none; background: transparent; }
-.why-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.65rem; }
+#whySection { background: transparent; }
+.why-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.9rem; }
 .why-list li {
-  display: flex; align-items: flex-start; gap: 0.75rem;
-  font-size: 0.97rem; color: #374151; line-height: 1.55;
+  display: flex; align-items: flex-start; gap: 1rem;
+  font-size: 0.97rem; color: #374151; line-height: 1.6;
+  padding: 0.1rem 0;
 }
 .why-list li::before {
   content: '';
-  width: 20px; height: 20px; flex-shrink: 0; margin-top: 1px;
+  width: 22px; height: 22px; flex-shrink: 0; margin-top: 1px;
   background: var(--brand-primary-10, rgba(26,58,42,0.08));
   border-radius: 50%;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%231a3a2a' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%231a3a2a' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: center;
 }
 
 /* ── Testimonials ── */
-#testimonials { border: none; background: transparent; box-shadow: none; }
+#testimonials { border: none; background: transparent; box-shadow: none; margin-top: 2rem; padding-top: 1.75rem; border-top: 1px solid #e8f0f8; }
 .testimonial-grid { display: flex; flex-direction: column; gap: 1rem; }
 .testimonial {
   background: #fff; border-left: 4px solid var(--brand-primary, #1a3a2a);
@@ -424,14 +423,11 @@ body.persona-retail .section::before { background: #9a3a8a; }
 
 /* ── Areas Served ── */
 .services-area {
-  max-width: 900px; margin: 0 auto;
-  padding: 2rem 2rem 2.25rem;
-  background: #fff; border-radius: 20px;
-  border: 1px solid #e4edf5; text-align: center;
-  box-shadow: 0 4px 20px rgba(10,22,40,0.05);
+  max-width: 100%; background: transparent; border: none; box-shadow: none;
+  padding: 0; text-align: left;
 }
-.services-area h2 { font-family: 'DM Sans', sans-serif; font-size: 1.25rem; font-weight: 700; color: #0a1628; margin-bottom: 0.25rem; }
-.services-area > p { font-size: 0.88rem; color: #9ca3af; margin-bottom: 1.25rem; }
+.services-area h2 { font-family: 'DM Sans', sans-serif; font-size: 1.35rem; font-weight: 700; color: #0a1628; margin-bottom: 0.25rem; }
+.services-area > p { font-size: 0.88rem; color: #9ca3af; margin-bottom: 1rem; }
 #townList { display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap; }
 .town {
   display: inline-flex; align-items: center; gap: 0.35rem;
@@ -443,11 +439,15 @@ body.persona-retail .section::before { background: #9a3a8a; }
 }
 
 /* ── FAQs ── */
-.faq-wrap { max-width: 900px; margin: 0 auto 2.5rem; padding: 0 1.5rem; }
+.faq-wrap { max-width: 860px; margin: 0 auto; padding: 3rem 0; border-bottom: 1px solid #e8f0f8; }
 .faq-wrap.hidden { display: none; }
 .faq-heading {
-  font-family: 'DM Sans', sans-serif; font-size: 1.3rem; font-weight: 700;
-  color: #0a1628; margin: 0 0 1rem; letter-spacing: -0.02em;
+  font-family: 'DM Sans', sans-serif; font-size: 1.35rem; font-weight: 700;
+  color: #0a1628; margin: 0 0 1.25rem; letter-spacing: -0.02em;
+}
+.faq-heading::before {
+  content: ''; display: block; width: 32px; height: 3px;
+  background: var(--brand-primary, #1a3a2a); border-radius: 999px; margin-bottom: 0.9rem;
 }
 .faq-list { display: flex; flex-direction: column; gap: 0.5rem; }
 .faq-item-wrapper { border-radius: 12px; overflow: hidden; border: 1px solid #e4edf5; background: #fff; transition: border-color 0.15s; }
@@ -482,9 +482,17 @@ body.persona-retail .section::before { background: #9a3a8a; }
 .review p { font-size: 0.88rem; line-height: 1.55; color: #6b7280; margin: 0; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* ── Contact form ── */
-.section.contact { background: var(--brand-primary-10, rgba(26,58,42,0.04)); border-color: var(--brand-primary-30, rgba(26,58,42,0.15)); }
+.section.contact {
+  background: transparent; border: none;
+  padding-top: 2.5rem;
+}
 .section.contact::before { background: var(--brand-primary, #1a3a2a); margin: 0 auto 1rem; }
-.contact form { display: grid; gap: 0.75rem; max-width: 640px; }
+.contact-inner {
+  max-width: 560px; margin: 0 auto; text-align: center;
+}
+.contact-inner h2 { text-align: center; }
+.contact-inner .contact-intro { text-align: center; margin-bottom: 1.5rem; }
+.contact form { display: grid; gap: 0.75rem; max-width: 560px; margin: 0 auto; text-align: left; }
 .contact input, .contact textarea {
   padding: 0.75rem 1rem; border-radius: 10px;
   border: 1.5px solid #d4e2f4; font-family: inherit; font-size: 0.95rem;
@@ -597,6 +605,7 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
   </div>
 </section>
 
+<div class="page-content">
 <!-- ABOUT -->
 <section class="section" id="aboutSection">
   <h2>About</h2>
@@ -606,6 +615,15 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
     <div id="socialLinks"></div>
   </div>
 </section>
+
+<!-- AREAS SERVED — moved up near hero for discoverability -->
+<div class="hidden" id="townsWrap">
+  <div class="section" id="towns" style="border-bottom: 1px solid #e8f0f8;">
+    <h2>Areas We Serve</h2>
+    <p style="margin-bottom:1rem;">Serving residential and commercial customers in:</p>
+    <div id="townList"></div>
+  </div>
+</div>
 
 <!-- GALLERY (shown if photos exist) -->
 <div class="gallery-section hidden" id="gallerySection">
@@ -658,14 +676,7 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
   </div>
 </section>
 
-<!-- AREAS SERVED -->
-<div class="hidden" id="townsWrap" style="padding: 0 1.5rem 2.5rem; max-width: 900px; margin: 0 auto;">
-  <div class="services-area" id="towns">
-    <h2>Areas We Serve</h2>
-    <p>Serving residential and commercial customers in:</p>
-    <div id="townList"></div>
-  </div>
-</div>
+
 
 <!-- FAQs -->
 <div class="faq-wrap hidden" id="faqs">
@@ -688,10 +699,12 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 
 <!-- CONTACT FORM -->
 <section class="section contact" id="contact">
+  <div class="contact-inner">
   <h2>Get in Touch</h2>
   <p class="contact-intro" id="contactIntro">
     Have a question or ready for a quote? Send us a message and we'll get back to you quickly.
   </p>
+  </div>
   <form id="contactForm">
     <input name="name" placeholder="Your name" required />
     <input name="email" type="email" placeholder="Your email" required />
@@ -707,6 +720,8 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
   <h2>Resources</h2>
   <ul id="attachmentList" style="padding-left:1.25rem;display:flex;flex-direction:column;gap:0.5rem;"></ul>
 </section>
+
+</div><!-- /page-content -->
 
 <!-- ENOMA FOOTER -->
 <footer class="enoma-footer">

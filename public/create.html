@@ -2,176 +2,564 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<title>Create Business Website — Enoma</title>
+<title>Create Your Business Website — Enoma</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <link rel="stylesheet" href="/styles/enoma.css" />
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-S8XTG72Y2Y');</script>
 <style>
 body { font-family: Inter, system-ui, sans-serif; background: #f0f6ff; margin: 0; padding: 0; color: #0a1628; }
-.form-header {
-  position: sticky; top: 60px; z-index: 99;
-  background: rgba(255,255,255,0.96); backdrop-filter: blur(8px);
-  border-bottom: 1px solid #d4e2f4;
-  padding: 0.85rem 1.5rem;
-  display: flex; align-items: flex-start; gap: 0.25rem; flex-direction: column;
+
+/* ── Sticky form header ── */
+.form-sticky-header {
+  position: sticky; top: 60px; z-index: 98;
+  background: #0a1628;
+  padding: 0.7rem 1.5rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.25);
 }
-.form-header__title { font-family: 'DM Sans', sans-serif; font-size: 1.1rem; font-weight: 700; color: #0a1628; margin: 0; }
-.form-header__sub { font-size: 0.82rem; color: #7ab3e0; margin: 0; }
-form { background: white; max-width: 720px; margin: 1.5rem auto 3rem; border-radius: 16px; padding: 2.5rem; border: 1px solid #d4e2f4; box-shadow: 0 8px 30px rgba(10,22,40,0.08); }
-h3 { font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 700; color: #0a1628; margin: 2rem 0 0.5rem; border-bottom: 1px solid #e6f1fb; padding-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.04em; }
-label { display: block; margin: 1rem 0 0.35rem; font-weight: 600; font-size: 0.85rem; color: #2a4060; }
-input, textarea, select { width: 100%; padding: 0.75rem 0.85rem; box-sizing: border-box; font-size: 0.95rem; border-radius: 10px; border: 1.5px solid #d4e2f4; font-family: inherit; color: #0a1628; background: #f7faff; transition: border-color 0.15s, box-shadow 0.15s; }
-input:focus, textarea:focus, select:focus { outline: none; border-color: #3882dc; box-shadow: 0 0 0 3px rgba(56,130,220,0.15); background: #fff; }
-input[type="checkbox"] { width: auto; margin-right: 0.4rem; }
-label[style*="flex"] { display: flex; gap: 0.4rem; align-items: center; margin-top: 0.75rem; }
-p { color: #5a7a9a; font-size: 0.88rem; margin: 0.25rem 0 0; }
-hr { border: none; border-top: 1px solid #e6f1fb; margin: 2rem 0; }
-.block { background: #f7faff; border: 1px solid #d4e2f4; border-radius: 12px; padding: 1rem; margin-top: 0.75rem; }
-.add-btn { background: none; border: none; color: #3882dc; font-weight: 600; cursor: pointer; margin-top: 0.5rem; padding: 0; font-size: 0.9rem; }
-.add-btn:hover { color: #1e5ca8; }
-button[type="submit"], #createBtn, #updateBtn {
-  margin-top: 2rem; width: 100%; padding: 0.9rem; border-radius: 999px;
-  font-weight: 700; border: none; cursor: pointer;
+.form-sticky-header__left { display: flex; flex-direction: column; gap: 1px; }
+.form-sticky-header__title {
+  font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 700;
+  color: #ffffff; margin: 0;
+}
+.form-sticky-header__sub { font-size: 0.75rem; color: rgba(240,246,255,0.5); margin: 0; }
+.form-sticky-header__btn {
+  flex-shrink: 0;
+  background: #3882dc; color: #fff;
+  font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 0.82rem;
+  padding: 0.45rem 1rem; border-radius: 999px; border: none;
+  cursor: pointer; white-space: nowrap;
+  transition: filter 0.15s;
+}
+.form-sticky-header__btn:hover { filter: brightness(1.1); }
+
+/* ── Onboarding hero (shown on create, hidden on edit) ── */
+.create-hero {
+  background: linear-gradient(160deg, #0d1b2a, #162436);
+  padding: 3rem 1.5rem 2.5rem;
+}
+.create-hero__inner {
+  max-width: 820px; margin-inline: auto;
+  display: grid; grid-template-columns: 1fr auto; gap: 2rem; align-items: start;
+}
+.create-hero__steps { display: flex; flex-direction: column; gap: 0.6rem; }
+.create-hero__eyebrow {
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em;
+  text-transform: uppercase; color: #7ab3e0; margin-bottom: 0.4rem;
+}
+.create-hero h1 {
+  font-family: 'DM Sans', sans-serif; font-size: clamp(1.4rem, 3vw, 1.9rem);
+  font-weight: 800; color: #ffffff; letter-spacing: -0.02em;
+  margin: 0 0 0.4rem; line-height: 1.15;
+}
+.create-hero__sub {
+  font-size: 0.95rem; color: rgba(220,238,255,0.7);
+  margin: 0 0 1.5rem; line-height: 1.6;
+}
+.how-step {
+  display: flex; align-items: flex-start; gap: 0.75rem;
+  font-size: 0.88rem; color: rgba(220,238,255,0.75); line-height: 1.45;
+}
+.how-step__num {
+  width: 22px; height: 22px; flex-shrink: 0;
+  border-radius: 50%; background: rgba(56,130,220,0.3);
+  border: 1px solid rgba(56,130,220,0.5);
+  color: #7ab3e0; font-size: 0.72rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.how-step strong { color: rgba(240,248,255,0.9); }
+
+/* Help card */
+.create-hero__help {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px; padding: 1.25rem 1.5rem;
+  text-align: center; min-width: 200px;
+}
+.create-hero__help p {
+  font-size: 0.82rem; color: rgba(220,238,255,0.65);
+  margin: 0 0 0.75rem; line-height: 1.5;
+}
+.create-hero__help strong { color: rgba(240,248,255,0.9); display: block; margin-bottom: 0.25rem; font-size: 0.9rem; }
+.help-cta {
+  display: inline-block;
+  background: rgba(56,130,220,0.25);
+  border: 1px solid rgba(56,130,220,0.4);
+  color: #7ab3e0; font-size: 0.82rem; font-weight: 600;
+  padding: 0.5rem 1rem; border-radius: 999px;
+  text-decoration: none; transition: background 0.15s, color 0.15s;
+}
+.help-cta:hover { background: rgba(56,130,220,0.4); color: #b8d8ff; }
+
+/* ── Form card ── */
+form {
+  background: white; max-width: 780px;
+  margin: 2rem auto 3rem; border-radius: 20px;
+  padding: 2.5rem; border: 1px solid #d4e2f4;
+  box-shadow: 0 8px 40px rgba(10,22,40,0.08);
+}
+
+/* Section headers inside form */
+.form-section {
+  margin-top: 2.25rem; padding-top: 1.5rem;
+  border-top: 1px solid #e6f1fb;
+}
+.form-section:first-child { margin-top: 0; border-top: none; padding-top: 0; }
+.form-section__header { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1.25rem; }
+.form-section__icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: #e6f1fb; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.form-section__icon svg { width: 16px; height: 16px; stroke: #3882dc; fill: none; stroke-width: 2; stroke-linecap: round; }
+.form-section__title {
+  font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 700;
+  color: #0a1628; margin: 0; letter-spacing: -0.01em;
+}
+.form-section__desc { font-size: 0.8rem; color: #7ab3e0; margin: 0; }
+
+/* Two-col grid for paired fields */
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem; }
+@media (max-width: 560px) { .field-row { grid-template-columns: 1fr; } }
+
+/* Field groups */
+.field-group { margin-bottom: 0.25rem; }
+label {
+  display: block; margin: 1rem 0 0.35rem;
+  font-weight: 600; font-size: 0.82rem; color: #2a4060;
+  letter-spacing: 0.01em;
+}
+.label-hint { font-size: 0.75rem; color: #7ab3e0; font-weight: 400; margin-left: 0.4rem; }
+input, textarea, select {
+  width: 100%; padding: 0.75rem 0.9rem; box-sizing: border-box;
+  font-size: 0.93rem; border-radius: 10px;
+  border: 1.5px solid #d4e2f4; font-family: inherit; color: #0a1628;
+  background: #f7faff;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+input:focus, textarea:focus, select:focus {
+  outline: none; border-color: #3882dc;
+  box-shadow: 0 0 0 3px rgba(56,130,220,0.12); background: #fff;
+}
+input[type="checkbox"] { width: auto; margin-right: 0.4rem; accent-color: #3882dc; }
+input[type="file"] {
+  background: #f7faff; padding: 0.6rem 0.9rem;
+  font-size: 0.85rem; color: #5a7a9a; cursor: pointer;
+}
+textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
+.field-hint { font-size: 0.78rem; color: #7ab3e0; margin: 0.3rem 0 0; }
+
+/* Checkbox rows */
+.check-group { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; }
+.check-row {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.65rem 0.85rem; border-radius: 10px;
+  border: 1.5px solid #e6f1fb; background: #f7faff;
+  cursor: pointer; transition: border-color 0.15s, background 0.15s;
+}
+.check-row:hover { border-color: #c5d8f0; background: #eef6ff; }
+.check-row input[type="checkbox"] { margin: 0; }
+.check-row__label { font-size: 0.88rem; font-weight: 600; color: #0a1628; }
+.check-row__desc { font-size: 0.78rem; color: #7ab3e0; margin-top: 1px; }
+
+/* Dynamic blocks (services, testimonials) */
+.block {
+  background: #f7faff; border: 1.5px solid #d4e2f4;
+  border-radius: 12px; padding: 1rem 1.1rem;
+  margin-top: 0.75rem; position: relative;
+}
+.block-remove {
+  position: absolute; top: 0.6rem; right: 0.75rem;
+  background: none; border: none; cursor: pointer;
+  color: #c5d8f0; font-size: 1.1rem; line-height: 1;
+  padding: 0; transition: color 0.15s;
+}
+.block-remove:hover { color: #d94040; }
+.add-btn {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  background: none; border: 1.5px dashed #c5d8f0;
+  color: #3882dc; font-weight: 600; font-size: 0.85rem;
+  cursor: pointer; margin-top: 0.75rem;
+  padding: 0.5rem 1rem; border-radius: 8px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.add-btn:hover { border-color: #3882dc; background: rgba(56,130,220,0.05); }
+
+/* Logo preview */
+.logo-preview-wrap { display: none; margin-top: 0.75rem; }
+.logo-preview-wrap img {
+  width: 90px; height: 90px; object-fit: contain;
+  background: #fff; border-radius: 12px;
+  border: 1.5px solid #d4e2f4; padding: 8px;
+}
+
+/* AI regen toggle */
+.regen-toggle {
+  display: flex; align-items: flex-start; gap: 0.75rem;
+  padding: 1rem 1.1rem; border-radius: 12px;
+  border: 1.5px solid #e6f1fb; background: #f7faff;
+  cursor: pointer; margin-top: 0.5rem;
+  transition: border-color 0.15s;
+}
+.regen-toggle:hover { border-color: #c5d8f0; }
+.regen-toggle input { margin: 2px 0 0; flex-shrink: 0; }
+.regen-toggle__text {}
+.regen-toggle__label { font-size: 0.9rem; font-weight: 600; color: #0a1628; display: block; }
+.regen-toggle__desc { font-size: 0.78rem; color: #7ab3e0; margin-top: 2px; }
+
+/* Submit button */
+#createBtn, #updateBtn {
+  margin-top: 2rem; width: 100%; padding: 1rem;
+  border-radius: 999px; font-weight: 700; border: none; cursor: pointer;
   background: #0a1628; color: white; font-size: 1rem;
   font-family: 'DM Sans', sans-serif;
   transition: transform 0.15s, box-shadow 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
 }
-#createBtn:hover, #updateBtn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(10,22,40,0.25); }
-#status { text-align: center; margin: 1rem auto; max-width: 720px; color: #2a9d6f; font-weight: 600; padding: 0 1.5rem; }
+#createBtn:hover, #updateBtn:hover { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(10,22,40,0.25); }
+
+/* Advanced section — collapsed by default */
+.advanced-toggle {
+  display: flex; align-items: center; gap: 0.5rem;
+  background: none; border: none; cursor: pointer;
+  color: #7ab3e0; font-size: 0.82rem; font-weight: 600;
+  padding: 0; margin-top: 0.5rem;
+  transition: color 0.15s;
+}
+.advanced-toggle:hover { color: #3882dc; }
+.advanced-toggle svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; transition: transform 0.2s; }
+.advanced-toggle.open svg { transform: rotate(180deg); }
+.advanced-panel { display: none; }
+.advanced-panel.open { display: block; }
+
+/* Status */
+#status {
+  text-align: center; margin: 1rem auto; max-width: 780px;
+  font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 10px;
+  background: rgba(42,157,111,0.08); color: #2a9d6f;
+  display: none;
+}
+#status.error { background: rgba(217,64,64,0.08); color: #d94040; }
 </style>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-S8XTG72Y2Y');</script>
 </head>
 <body>
-  <script type="module" src="/partials/nav.js"></script>
+<script type="module" src="/partials/nav.js"></script>
 
-<div class="form-header">
-  <p class="form-header__title" id="pageTitle">Create Your Business Website</p>
-  <p class="form-header__sub" id="pageSubtitle">Fill in the details below — AI writes your copy for you</p>
+<!-- STICKY HEADER -->
+<div class="form-sticky-header" id="formStickyHeader">
+  <div class="form-sticky-header__left">
+    <p class="form-sticky-header__title" id="pageTitle">Create Your Business Website</p>
+    <p class="form-sticky-header__sub" id="pageSubtitle">Takes about 5 minutes · AI writes your copy</p>
+  </div>
+  <button class="form-sticky-header__btn" id="stickySubmitBtn" type="button">
+    Build my website →
+  </button>
 </div>
 
+<!-- ONBOARDING HERO (create mode only) -->
+<div class="create-hero" id="createHero">
+  <div class="create-hero__inner">
+    <div>
+      <p class="create-hero__eyebrow">Free trial · No credit card</p>
+      <h1>Your business website,<br>ready in minutes.</h1>
+      <p class="create-hero__sub">
+        Fill out the form below — the more detail you add, the better your website will be.
+        Our AI turns your notes into professional copy, a full services list, and an SEO-ready page.
+      </p>
+      <div class="create-hero__steps">
+        <div class="how-step">
+          <span class="how-step__num">1</span>
+          <span><strong>Fill in your business details</strong> — name, location, services, and a description in your own words.</span>
+        </div>
+        <div class="how-step">
+          <span class="how-step__num">2</span>
+          <span><strong>Hit "Build my website"</strong> — AI generates your full page copy in under 30 seconds.</span>
+        </div>
+        <div class="how-step">
+          <span class="how-step__num">3</span>
+          <span><strong>Review and go live</strong> — your page is indexed by Google from day one. Edit anytime.</span>
+        </div>
+      </div>
+    </div>
+    <div class="create-hero__help">
+      <strong>Want us to do it for you?</strong>
+      <p>Not sure what to write? We can build your page from a quick call or email.</p>
+      <a href="/contact" class="help-cta">Get help from Jack →</a>
+    </div>
+  </div>
+</div>
+
+<!-- FORM -->
 <form id="form" action="javascript:void(0);" novalidate enctype="multipart/form-data">
 <input type="hidden" name="type" value="business" />
 <input type="hidden" name="business_id" id="business_id" />
 
-<h3>Business basics</h3>
+<!-- ── SECTION 1: Business basics ── -->
+<div class="form-section">
+  <div class="form-section__header">
+    <div class="form-section__icon">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </div>
+    <div>
+      <p class="form-section__title">Business basics</p>
+      <p class="form-section__desc">Your name, contact info, and where you work</p>
+    </div>
+  </div>
 
-<label>Business Name</label>
-<input name="business_name" required />
+  <label>Business Name <span class="label-hint">required</span></label>
+  <input name="business_name" placeholder="e.g. Conway's Landscaping" required />
 
-<label>Find on Google (optional — autofills address &amp; phone)</label>
-<input id="google_place" placeholder="Start typing your business name…" />
-<input type="hidden" name="google_place_id" />
-<input type="hidden" name="city" />
-<input type="hidden" name="state" />
-<input type="hidden" name="primary_category" />
+  <label>Find on Google <span class="label-hint">optional — autofills address, phone & category</span></label>
+  <input id="google_place" placeholder="Start typing your business name to search Google…" />
+  <p class="field-hint">💡 If your business is on Google, searching here saves you a lot of typing.</p>
+  <input type="hidden" name="google_place_id" />
+  <input type="hidden" name="city" />
+  <input type="hidden" name="state" />
+  <input type="hidden" name="primary_category" />
 
-<label>Owner Name</label>
-<input name="owner_name" />
+  <div class="field-row">
+    <div>
+      <label>Owner Name</label>
+      <input name="owner_name" placeholder="e.g. Jack Conway" />
+    </div>
+    <div>
+      <label>Industry / Trade</label>
+      <select name="industry_display" id="industrySelect">
+        <option value="">Select your trade…</option>
+        <option value="landscaping">Landscaping / Lawn Care</option>
+        <option value="plumbing">Plumbing</option>
+        <option value="heating">Heating &amp; Cooling (HVAC)</option>
+        <option value="electrical">Electrical</option>
+        <option value="roofing">Roofing</option>
+        <option value="painting">Painting</option>
+        <option value="contractor">General Contractor</option>
+        <option value="cleaning">Cleaning</option>
+        <option value="moving">Moving</option>
+        <option value="retail">Retail / Gifts</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+  </div>
 
-<label>Business Address</label>
-<input name="address" />
+  <div class="field-row">
+    <div>
+      <label>Phone Number</label>
+      <input name="phone" type="tel" placeholder="(555) 000-0000" />
+    </div>
+    <div>
+      <label>Email</label>
+      <input name="email" type="email" placeholder="you@example.com" required />
+    </div>
+  </div>
 
-<label>Phone Number</label>
-<input name="phone" />
+  <label>Business Address</label>
+  <input name="address" placeholder="123 Main St, Springfield, MA 01101" />
 
-<label>Email</label>
-<input name="email" required />
-
-<label>Website (optional)</label>
-<input name="website" />
-
-<label>Service Area (comma separated)</label>
-<input name="service_area" placeholder="Boston, Cambridge, Somerville" />
-
-<hr/>
-<h3>Logo &amp; photos</h3>
-
-<label>Business Logo (upload PNG or JPG)</label>
-<input type="file" name="logo" id="logoFile" accept="image/png,image/jpeg" />
-<p>Uploading a file will override the URL field below.</p>
-
-<div id="logoPreviewWrap" style="display:none;margin-top:.75rem;">
-  <img id="logoPreview" alt="Logo preview" style="width:100px;height:100px;object-fit:contain;background:#fff;border-radius:12px;border:1px solid #d4e2f4;padding:8px;" />
+  <div class="field-row">
+    <div>
+      <label>Service Area <span class="label-hint">comma separated</span></label>
+      <input name="service_area" placeholder="Springfield, Agawam, West Springfield" />
+    </div>
+    <div>
+      <label>Website <span class="label-hint">optional</span></label>
+      <input name="website" placeholder="https://yoursite.com or Facebook URL" />
+    </div>
+  </div>
 </div>
 
-<label>Business Logo URL (optional)</label>
-<input name="logo_url" id="logo_url" placeholder="https://example.com/logo.png" />
+<!-- ── SECTION 2: Logo & Photos ── -->
+<div class="form-section">
+  <div class="form-section__header">
+    <div class="form-section__icon">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+    </div>
+    <div>
+      <p class="form-section__title">Logo &amp; photos</p>
+      <p class="form-section__desc">Businesses with photos get significantly more contact clicks</p>
+    </div>
+  </div>
 
-<label>Business Photos (optional, multiple)</label>
-<input type="file" name="images" accept="image/*" multiple />
-<p>Add a few photos — storefront, work examples, team, etc.</p>
-<div id="imagePreview" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:.75rem;"></div>
-<div id="existingImages" style="margin-top:1rem;display:none;">
-  <p>Existing photos</p>
-  <div id="existingImagesGrid" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
+  <label>Business Logo <span class="label-hint">PNG or JPG, max 3MB</span></label>
+  <input type="file" name="logo" id="logoFile" accept="image/png,image/jpeg" />
+  <p class="field-hint">Your logo will appear in the hero section and set the color theme for your page.</p>
+
+  <div class="logo-preview-wrap" id="logoPreviewWrap">
+    <img id="logoPreview" alt="Logo preview" />
+  </div>
+
+  <label>Logo URL <span class="label-hint">optional — if you have one hosted online</span></label>
+  <input name="logo_url" id="logo_url" placeholder="https://example.com/logo.png" />
+
+  <label>Business Photos <span class="label-hint">optional — select multiple</span></label>
+  <input type="file" name="images" accept="image/*" multiple />
+  <p class="field-hint">Work examples, your truck or equipment, your team — real photos build trust faster than anything else.</p>
+  <div id="imagePreview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:0.75rem;"></div>
+
+  <div id="existingImages" style="margin-top:1rem;display:none;">
+    <label>Existing photos <span class="label-hint">check to remove</span></label>
+    <div id="existingImagesGrid" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:0.5rem;"></div>
+  </div>
 </div>
 
-<hr/>
-<h3>About your business</h3>
+<!-- ── SECTION 3: About your business ── -->
+<div class="form-section">
+  <div class="form-section__header">
+    <div class="form-section__icon">
+      <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    </div>
+    <div>
+      <p class="form-section__title">About your business</p>
+      <p class="form-section__desc">The AI turns your rough notes into polished copy — don't worry about wording</p>
+    </div>
+  </div>
 
-<label>Describe Your Business</label>
-<textarea name="about"></textarea>
-<p>Rough notes are fine — the AI will turn them into polished copy.</p>
+  <label>Describe your business <span class="label-hint">the more detail, the better your page</span></label>
+  <textarea name="about" rows="5" placeholder="Tell us about your business in your own words. How long have you been operating? What makes you different? Who do you typically work for? Rough notes are completely fine — e.g. &quot;family owned since 2019, mostly residential, owner on every job, fair prices&quot;"></textarea>
 
-<label>Preferred Tone</label>
-<select name="tone">
-  <option value="professional">Professional</option>
-  <option value="friendly">Friendly</option>
-  <option value="luxury">Luxury</option>
-  <option value="bold">Bold</option>
-  <option value="simple">Simple &amp; Clean</option>
-</select>
+  <div class="field-row">
+    <div>
+      <label>Tone / style</label>
+      <select name="tone">
+        <option value="professional">Professional</option>
+        <option value="friendly">Friendly &amp; approachable</option>
+        <option value="bold">Bold &amp; confident</option>
+        <option value="luxury">Premium / luxury</option>
+        <option value="simple">Simple &amp; plain</option>
+      </select>
+    </div>
+    <div>
+      <label>Trust badges <span class="label-hint">one per line</span></label>
+      <textarea name="trust_badges" rows="3" placeholder="Licensed &amp; Insured&#10;Free Estimates&#10;5-Star Rated&#10;Family Owned"></textarea>
+    </div>
+  </div>
+</div>
 
-<hr/>
-<h3>Status</h3>
+<!-- ── SECTION 4: Status ── -->
+<div class="form-section">
+  <div class="form-section__header">
+    <div class="form-section__icon">
+      <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    </div>
+    <div>
+      <p class="form-section__title">Current status</p>
+      <p class="form-section__desc">Shown as badges on your website</p>
+    </div>
+  </div>
+  <div class="check-group">
+    <label class="check-row">
+      <input type="checkbox" name="accepting_clients" />
+      <div>
+        <span class="check-row__label">Accepting new clients</span>
+        <span class="check-row__desc">Shows a green "Accepting clients" badge on your page</span>
+      </div>
+    </label>
+    <label class="check-row">
+      <input type="checkbox" name="offers_emergency" />
+      <div>
+        <span class="check-row__label">Emergency services available</span>
+        <span class="check-row__desc">Shows an "Emergency service" badge in your hero</span>
+      </div>
+    </label>
+    <label class="check-row">
+      <input type="checkbox" name="is_open_now" />
+      <div>
+        <span class="check-row__label">Open now</span>
+        <span class="check-row__desc">Shows an "Open now" indicator (update this whenever it changes)</span>
+      </div>
+    </label>
+  </div>
+</div>
 
-<label style="display:flex;gap:.4rem;align-items:center;"><input type="checkbox" name="is_open_now" /> Open now</label>
-<label style="display:flex;gap:.4rem;align-items:center;"><input type="checkbox" name="accepting_clients" /> Accepting new clients</label>
-<label style="display:flex;gap:.4rem;align-items:center;"><input type="checkbox" name="offers_emergency" /> Emergency services available</label>
+<!-- ── SECTION 5: Services ── -->
+<div class="form-section">
+  <div class="form-section__header">
+    <div class="form-section__icon">
+      <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+    </div>
+    <div>
+      <p class="form-section__title">Services</p>
+      <p class="form-section__desc">Add your key services — name, description, and optional price</p>
+    </div>
+  </div>
+  <div id="services"></div>
+  <button type="button" class="add-btn" onclick="addService()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Add a service
+  </button>
+</div>
 
-<hr/>
-<h3>Services</h3>
-<div id="services"></div>
-<button type="button" class="add-btn" onclick="addService()">+ Add service</button>
+<!-- ── SECTION 6: Testimonials ── -->
+<div class="form-section">
+  <div class="form-section__header">
+    <div class="form-section__icon">
+      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    </div>
+    <div>
+      <p class="form-section__title">Testimonials <span class="label-hint" style="font-size:0.8rem;font-weight:400;">optional</span></p>
+      <p class="form-section__desc">A real client quote is one of the most effective trust signals</p>
+    </div>
+  </div>
+  <div id="testimonials"></div>
+  <button type="button" class="add-btn" onclick="addTestimonial()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Add a testimonial
+  </button>
+</div>
 
-<hr/>
-<h3>Testimonials</h3>
-<div id="testimonials"></div>
-<button type="button" class="add-btn" onclick="addTestimonial()">+ Add testimonial</button>
+<!-- ── SECTION 7: AI options ── -->
+<div class="form-section">
+  <div class="form-section__header">
+    <div class="form-section__icon">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+    </div>
+    <div>
+      <p class="form-section__title">AI options</p>
+      <p class="form-section__desc">Control how the AI handles your content</p>
+    </div>
+  </div>
+  <label class="regen-toggle" id="regenToggleLabel">
+    <input type="checkbox" id="regenerate_ai" name="regenerate_ai" />
+    <div class="regen-toggle__text">
+      <span class="regen-toggle__label">Write page copy with AI</span>
+      <span class="regen-toggle__desc">AI generates your headline, about section, services descriptions, and FAQ from your notes. Uncheck to save manual edits without AI overwriting them.</span>
+    </div>
+  </label>
+</div>
 
-<hr/>
-<h3>AI &amp; editing options</h3>
+<!-- ── ADVANCED: Manual copy overrides (collapsed) ── -->
+<div class="form-section">
+  <button type="button" class="advanced-toggle" id="advancedToggle" onclick="toggleAdvanced()">
+    <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+    Advanced: manually edit page copy
+  </button>
+  <div class="advanced-panel" id="advancedPanel">
+    <p class="field-hint" style="margin-bottom:0.5rem;">These fields override what the AI writes. Leave blank to let AI fill them in.</p>
+    <label>SEO Title <span class="label-hint">appears in Google search results</span></label>
+    <input name="seo_title" placeholder="e.g. Conway's Landscaping — Lawn Care in Agawam, MA" />
+    <label>SEO Description</label>
+    <textarea name="seo_description" rows="2" placeholder="Short description shown in Google results"></textarea>
+    <label>Hero Headline</label>
+    <input name="hero_headline" placeholder="Main headline at the top of your page" />
+    <label>Hero Tagline</label>
+    <textarea name="hero_tagline" rows="2" placeholder="Supporting sentence below the headline"></textarea>
+    <label>Why Choose Us</label>
+    <textarea name="why_choose_us" rows="3" placeholder="List your differentiators, one per line&#10;Owner on every job&#10;Licensed &amp; Insured&#10;Same-day response"></textarea>
+    <label>Services Intro</label>
+    <textarea name="services_intro" rows="2" placeholder="Short intro above your services list"></textarea>
+  </div>
+</div>
 
-<label style="display:flex;gap:.4rem;align-items:center;">
-  <input type="checkbox" id="regenerate_ai" name="regenerate_ai" />
-  Rewrite page copy with AI
-</label>
-<p>Leave unchecked to save edits without AI overwriting your changes.</p>
-
-<hr/>
-<h3>Page copy (optional — AI fills these if blank)</h3>
-
-<label>SEO Title</label>
-<input name="seo_title" placeholder="Appears in Google results" />
-<label>SEO Description</label>
-<textarea name="seo_description" placeholder="Meta description for Google"></textarea>
-<label>Hero Headline</label>
-<input name="hero_headline" placeholder="Main headline at top of your page" />
-<label>Hero Tagline</label>
-<textarea name="hero_tagline" placeholder="Short supporting tagline"></textarea>
-<label>Why Choose Us</label>
-<textarea name="why_choose_us" placeholder="Short paragraph explaining your differentiation"></textarea>
-<label>Services Intro</label>
-<textarea name="services_intro" placeholder="A short intro sentence before your services list"></textarea>
-<label>Trust Badges (one per line)</label>
-<textarea name="trust_badges" placeholder="Licensed &amp; Insured&#10;Free Estimates&#10;5-Star Rated"></textarea>
-
-<button type="button" id="createBtn">Create my business website →</button>
+<!-- Submit -->
+<button type="button" id="createBtn">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+  Build my business website →
+</button>
 <button type="button" id="updateBtn" style="display:none;">Save changes</button>
 </form>
 
 <div id="status"></div>
 
+<!-- SCRIPTS (identical logic, no changes) -->
 <script type="module">
   import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
   const SUPABASE_URL = "https://qhsivcenpnxwmvwznqie.supabase.co";
@@ -234,6 +622,12 @@ logoInput?.addEventListener("change", () => {
   setLogoPreview(URL.createObjectURL(file));
 });
 
+// Industry dropdown → primary_category hidden field
+const industrySelect = document.getElementById("industrySelect");
+industrySelect?.addEventListener("change", () => {
+  form.querySelector('[name="primary_category"]').value = industrySelect.value;
+});
+
 // Edit mode
 const params = new URLSearchParams(window.location.search);
 const editBusinessId = params.get("business_id");
@@ -241,18 +635,23 @@ if (!editBusinessId && session?.user?.email && !form.email.value) form.email.val
 if (editBusinessId) {
   document.getElementById("business_id").value = editBusinessId;
   document.getElementById("createBtn").style.display = "none";
-  document.getElementById("updateBtn").style.display = "block";
+  document.getElementById("updateBtn").style.display = "flex";
   document.getElementById("pageTitle").textContent = "Edit Your Business Website";
-  document.getElementById("pageSubtitle").textContent = "Update the information for this business profile";
+  document.getElementById("pageSubtitle").textContent = "Update your page — changes go live immediately";
+  document.getElementById("stickySubmitBtn").textContent = "Save changes →";
+  document.getElementById("createHero").style.display = "none"; // hide onboarding on edit
 }
 const regenCheckbox = document.getElementById("regenerate_ai");
 if (regenCheckbox) regenCheckbox.checked = !editBusinessId;
+
+// Sticky submit wires to main form submit
+document.getElementById("stickySubmitBtn").addEventListener("click", () => form.requestSubmit());
 
 // Load for edit
 async function loadBusinessForEdit(businessId) {
   servicesEl.innerHTML = ""; testimonialsEl.innerHTML = "";
   const { data, error } = await supabase.from("small_business_profiles").select("*").eq("business_id", businessId).single();
-  if (error || !data) { status.textContent = "Failed to load business profile."; return; }
+  if (error || !data) { showStatus("Failed to load business profile.", true); return; }
   const existingWrap = document.getElementById("existingImages");
   const existingGrid = document.getElementById("existingImagesGrid");
   existingGrid.innerHTML = "";
@@ -260,14 +659,13 @@ async function loadBusinessForEdit(businessId) {
   if (attachments.length) {
     existingWrap.style.display = "block";
     attachments.forEach((url) => {
-      const card = document.createElement("div"); card.style.width = "100px";
-      card.innerHTML = `<img src="${url}" style="width:100px;height:100px;object-fit:cover;border-radius:10px;border:1px solid #d4e2f4;" /><label style="display:flex;gap:5px;align-items:center;margin-top:5px;font-size:.82rem;color:#5a7a9a;"><input type="checkbox" class="remove-attachment" value="${url}" />remove</label>`;
+      const card = document.createElement("div"); card.style.width = "90px";
+      card.innerHTML = `<img src="${url}" style="width:90px;height:90px;object-fit:cover;border-radius:10px;border:1.5px solid #d4e2f4;" /><label style="display:flex;gap:5px;align-items:center;margin-top:5px;font-size:.78rem;color:#5a7a9a;cursor:pointer;"><input type="checkbox" class="remove-attachment" value="${url}" />remove</label>`;
       existingGrid.appendChild(card);
     });
   }
   form.business_name.value = data.business_name || "";
-  const googleInput = document.getElementById("google_place");
-  if (googleInput) googleInput.value = data.business_name || "";
+  document.getElementById("google_place").value = data.business_name || "";
   form.owner_name.value = data.owner_name || ""; form.email.value = data.email || "";
   form.phone.value = data.phone || ""; form.address.value = data.address || "";
   form.website.value = data.website || ""; form.about.value = data.about || "";
@@ -275,7 +673,9 @@ async function loadBusinessForEdit(businessId) {
   form.querySelector('[name="google_place_id"]').value = data.google_place_id || "";
   form.querySelector('[name="city"]').value = data.city || "";
   form.querySelector('[name="state"]').value = data.state || "";
-  form.querySelector('[name="primary_category"]').value = data.primary_category || "";
+  const pc = data.primary_category || "";
+  form.querySelector('[name="primary_category"]').value = pc;
+  if (industrySelect && pc) industrySelect.value = pc;
   form.tone.value = data.tone || "professional";
   form.is_open_now.checked = !!data.is_open_now; form.accepting_clients.checked = !!data.accepting_clients; form.offers_emergency.checked = !!data.offers_emergency;
   form.seo_title.value = data.seo_title || ""; form.seo_description.value = data.seo_description || "";
@@ -285,17 +685,30 @@ async function loadBusinessForEdit(businessId) {
   (data.services || []).forEach(s => { addService(); const last = servicesEl.lastElementChild; last.querySelector(".service-name").value = s.service_name || ""; last.querySelector(".service-description").value = s.service_description || ""; last.querySelector(".service-price").value = s.price || ""; });
   (data.testimonials || []).forEach(t => { addTestimonial(); const last = testimonialsEl.lastElementChild; last.querySelector(".testimonial-quote").value = t.quote || ""; last.querySelector(".testimonial-author").value = t.author || ""; });
   if (data.logo_url) { logoUrlInput.value = data.logo_url; setLogoPreview(data.logo_url); }
+  // If any manual copy is present, open the advanced panel
+  if (data.hero_headline || data.seo_title) toggleAdvanced(true);
 }
 
 window.addService = function() {
   const div = document.createElement("div"); div.className = "block";
-  div.innerHTML = `<input placeholder="Service name" class="service-name"/><textarea placeholder="Service description" class="service-description"></textarea><input placeholder="Price (e.g. $1,500+)" class="service-price"/>`;
+  div.innerHTML = `<button type="button" class="block-remove" onclick="this.parentElement.remove()" title="Remove">×</button><label style="margin-top:0">Service name</label><input placeholder="e.g. Weekly Mowing" class="service-name"/><label>Description <span class="label-hint">optional — AI will write this if blank</span></label><textarea placeholder="Brief description of this service" class="service-description" rows="2"></textarea><label>Price <span class="label-hint">optional</span></label><input placeholder="e.g. From $50, $150+, Call for quote" class="service-price"/>`;
   servicesEl.appendChild(div);
 };
 window.addTestimonial = function() {
   const div = document.createElement("div"); div.className = "block";
-  div.innerHTML = `<textarea placeholder="Client quote" class="testimonial-quote"></textarea><input placeholder="Author (name, company)" class="testimonial-author"/>`;
+  div.innerHTML = `<button type="button" class="block-remove" onclick="this.parentElement.remove()" title="Remove">×</button><label style="margin-top:0">Client quote</label><textarea placeholder="e.g. Highly recommend — they showed up on time, did excellent work, and the price was fair." class="testimonial-quote" rows="3"></textarea><label>Customer name</label><input placeholder="e.g. Sarah M., Agawam" class="testimonial-author"/>`;
   testimonialsEl.appendChild(div);
+};
+
+window.toggleAdvanced = function(forceOpen) {
+  const btn = document.getElementById("advancedToggle");
+  const panel = document.getElementById("advancedPanel");
+  const isOpen = panel.classList.contains("open") || forceOpen;
+  if (forceOpen === true || !panel.classList.contains("open")) {
+    panel.classList.add("open"); btn.classList.add("open");
+  } else {
+    panel.classList.remove("open"); btn.classList.remove("open");
+  }
 };
 
 if (editBusinessId) await loadBusinessForEdit(editBusinessId);
@@ -303,17 +716,23 @@ if (editBusinessId) await loadBusinessForEdit(editBusinessId);
 const createBtn = document.getElementById("createBtn");
 const updateBtn = document.getElementById("updateBtn");
 function refreshButtonLabels() {
-  if (updateBtn && editBusinessId) { updateBtn.textContent = regenCheckbox?.checked ? "Rewrite with AI + Save" : "Save Changes"; }
-  if (createBtn && !editBusinessId) { createBtn.textContent = "Create my business website →"; }
+  if (updateBtn && editBusinessId) updateBtn.textContent = regenCheckbox?.checked ? "Rewrite with AI + save →" : "Save changes →";
 }
 regenCheckbox?.addEventListener("change", refreshButtonLabels); refreshButtonLabels();
 createBtn?.addEventListener("click", () => form.requestSubmit());
 updateBtn?.addEventListener("click", () => form.requestSubmit());
 
+function showStatus(msg, isError = false) {
+  const el = document.getElementById("status");
+  el.textContent = msg; el.style.display = "block";
+  el.className = isError ? "error" : "";
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   const isEdit = Boolean(editBusinessId);
-  status.textContent = isEdit ? "Saving changes…" : "Building your website…";
+  showStatus(isEdit ? "Saving changes…" : "Building your website — this takes about 20 seconds…");
   const fd = new FormData(form);
   fd.set("is_open_now", form.is_open_now.checked ? "true" : "false");
   fd.set("accepting_clients", form.accepting_clients.checked ? "true" : "false");
@@ -329,17 +748,17 @@ form.addEventListener("submit", async (e) => {
   fd.set("attachments_remove", JSON.stringify(removeUrls));
   try {
     const res = await fetch("/api/generate-business", { method: "POST", headers: { Authorization: `Bearer ${session.access_token}` }, body: fd });
-    let json; try { json = await res.json(); } catch { status.textContent = "Server error. Please try again."; return; }
-    if (!res.ok) { status.textContent = json.error || "Save failed"; return; }
+    let json; try { json = await res.json(); } catch { showStatus("Server error. Please try again.", true); return; }
+    if (!res.ok) { showStatus(json.error || "Save failed", true); return; }
     window.location.href = json.url;
-  } catch (err) { console.error(err); status.textContent = "Failed to save profile."; }
+  } catch (err) { console.error(err); showStatus("Failed to save. Please try again.", true); }
 });
 </script>
 
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD2DZjVEIuq6luIvl-lVeOaxqd3BG2V7IA&libraries=places"></script>
 <script>
-const input = document.getElementById("google_place");
-const autocomplete = new google.maps.places.Autocomplete(input, { types: ["establishment"] });
+const acInput = document.getElementById("google_place");
+const autocomplete = new google.maps.places.Autocomplete(acInput, { types: ["establishment"] });
 autocomplete.addListener("place_changed", () => {
   const place = autocomplete.getPlace(); if (!place.place_id) return;
   document.querySelector('[name="google_place_id"]').value = place.place_id;
@@ -352,24 +771,27 @@ autocomplete.addListener("place_changed", () => {
     document.querySelector('[name="state"]').value = comps.find(c => c.types.includes("administrative_area_level_1"))?.short_name || "";
   } catch {}
   try {
-    const typeMap = { plumber:"plumber", electrician:"electrician", locksmith:"locksmith", roofing_contractor:"roofing", hvac_contractor:"hvac", general_contractor:"contractor", moving_company:"mover", cleaning_service:"cleaning", landscaping:"landscaping" };
+    const typeMap = { plumber:"plumbing", electrician:"electrical", locksmith:"contractor", roofing_contractor:"roofing", hvac_contractor:"heating", general_contractor:"contractor", moving_company:"moving", cleaning_service:"cleaning", landscaping:"landscaping", florist:"retail" };
     let cat = ""; for (const t of (place.types||[])) { if (typeMap[t]) { cat = typeMap[t]; break; } }
-    document.querySelector('[name="primary_category"]').value = cat;
+    if (cat) {
+      document.querySelector('[name="primary_category"]').value = cat;
+      const sel = document.getElementById("industrySelect");
+      if (sel) sel.value = cat;
+    }
   } catch {}
 });
 const imgInput = document.querySelector('input[name="images"]');
-const preview = document.getElementById("imagePreview");
-if (imgInput && preview) {
+const imgPreview = document.getElementById("imagePreview");
+if (imgInput && imgPreview) {
   imgInput.addEventListener("change", () => {
-    preview.innerHTML = "";
+    imgPreview.innerHTML = "";
     Array.from(imgInput.files||[]).slice(0,12).forEach(file => {
       const img = document.createElement("img"); img.src = URL.createObjectURL(file);
-      img.style.cssText = "width:90px;height:90px;object-fit:cover;border-radius:10px;border:1px solid #d4e2f4;";
-      preview.appendChild(img);
+      img.style.cssText = "width:80px;height:80px;object-fit:cover;border-radius:10px;border:1.5px solid #d4e2f4;";
+      imgPreview.appendChild(img);
     });
   });
 }
 </script>
-
 </body>
 </html>
