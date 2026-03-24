@@ -29,18 +29,33 @@
 
 /* ── Hero ── */
 .hero-wrapper {
-  background: linear-gradient(160deg, #0e1c2e 0%, #1a3040 100%);
+  background: linear-gradient(160deg, #0d1b2a 0%, #162436 60%, #0d1b2a 100%);
   width: 100vw;
   margin-left: calc(50% - 50vw);
   position: relative;
   overflow: hidden;
 }
+/* subtle brand-tinted corner glow — not a blinding white blob */
 .hero-wrapper::before {
   content: '';
   position: absolute;
-  top: -120px; right: -80px;
-  width: 500px; height: 500px;
-  background: radial-gradient(circle, var(--brand-primary-10, rgba(255,255,255,0.06)) 0%, transparent 70%);
+  top: -60px; right: -60px;
+  width: 380px; height: 380px;
+  background: radial-gradient(circle at 60% 40%,
+    rgba(var(--brand-rgb, 26,90,60), 0.22) 0%,
+    rgba(var(--brand-rgb, 26,90,60), 0.06) 45%,
+    transparent 70%);
+  pointer-events: none;
+}
+/* second subtle glow bottom-left for depth */
+.hero-wrapper::after {
+  content: '';
+  position: absolute;
+  bottom: -40px; left: -40px;
+  width: 280px; height: 280px;
+  background: radial-gradient(circle,
+    rgba(var(--brand-rgb, 26,90,60), 0.10) 0%,
+    transparent 70%);
   pointer-events: none;
 }
 .hero-inner {
@@ -76,12 +91,13 @@
   font-size: clamp(1.7rem, 3.5vw, 2.3rem);
   font-weight: 800; line-height: 1.12;
   letter-spacing: -0.025em;
-  color: #ffffff;
+  color: #ffffff !important;
   margin-bottom: 0.7rem;
+  text-shadow: 0 2px 20px rgba(0,0,0,0.3);
 }
 .hero-tagline {
   font-size: 1.05rem; line-height: 1.65;
-  color: rgba(240,248,255,0.72);
+  color: rgba(220,238,255,0.80) !important;
   margin-bottom: 1.5rem;
   max-width: 560px;
 }
@@ -123,6 +139,10 @@
   color: #86efac;
 }
 
+/* Ensure hero text can't be overridden by global h1 color */
+.hero-wrapper h1, .hero-wrapper .hero-headline { color: #ffffff !important; }
+.hero-wrapper p { color: rgba(220,238,255,0.80) !important; }
+
 /* Hero trust strip */
 .hero-trust {
   display: flex; gap: 1.5rem; flex-wrap: wrap;
@@ -141,6 +161,53 @@
   stroke-linecap: round; stroke-linejoin: round;
   opacity: 0.9;
 }
+
+/* ─── PERSONA SYSTEM ─────────────────────────────────────────
+   Each trade category gets a subtle visual personality.
+   Applied via body class set from primary_category in JS.
+   ─────────────────────────────────────────────────────────── */
+
+/* Landscaping / Outdoor — earthy, organic */
+body.persona-landscaping .hero-wrapper {
+  background: linear-gradient(160deg, #0d1f0f 0%, #142b12 60%, #0d1f0f 100%);
+}
+body.persona-landscaping .section::before { background: #2d6a2d; }
+
+/* Plumbing / Heating — clean, reliable, technical */
+body.persona-plumbing .hero-wrapper {
+  background: linear-gradient(160deg, #0a1628 0%, #0f2540 60%, #0a1628 100%);
+}
+body.persona-plumbing .section::before { background: #1e5a96; }
+
+/* HVAC — modern, air/cool palette */
+body.persona-hvac .hero-wrapper {
+  background: linear-gradient(160deg, #0b1a24 0%, #122535 60%, #0b1a24 100%);
+}
+body.persona-hvac .section::before { background: #1a7a9a; }
+
+/* Electrical — bold, safety-aware */
+body.persona-electrical .hero-wrapper {
+  background: linear-gradient(160deg, #1a1400 0%, #2a2000 60%, #1a1400 100%);
+}
+body.persona-electrical .section::before { background: #c09010; }
+
+/* Cleaning — fresh, bright */
+body.persona-cleaning .hero-wrapper {
+  background: linear-gradient(160deg, #091820 0%, #0f2530 60%, #091820 100%);
+}
+body.persona-cleaning .section::before { background: #1a8a6a; }
+
+/* Contractor / General — solid, dependable */
+body.persona-contractor .hero-wrapper {
+  background: linear-gradient(160deg, #1a1208 0%, #2a1e0c 60%, #1a1208 100%);
+}
+body.persona-contractor .section::before { background: #8a5a20; }
+
+/* Retail / Gifts — warm, inviting */
+body.persona-retail .hero-wrapper {
+  background: linear-gradient(160deg, #1a0a18 0%, #280f26 60%, #1a0a18 100%);
+}
+body.persona-retail .section::before { background: #9a3a8a; }
 
 /* ── Contact strip (sticky top bar) ── */
 .contact-strip {
@@ -691,6 +758,9 @@ function applyBrandColor(color) {
   root.style.setProperty('--brand-primary', color);
   root.style.setProperty('--brand-primary-10', `color-mix(in srgb, ${color} 10%, white)`);
   root.style.setProperty('--brand-primary-30', `color-mix(in srgb, ${color} 28%, white)`);
+  // Extract RGB components for use in radial glows
+  const m = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+  if (m) root.style.setProperty('--brand-rgb', `${m[1]},${m[2]},${m[3]}`);
   // Also update the SVG checkmark color in why-list
   document.querySelectorAll('.why-list li::before').forEach(() => {});
   // Inject dynamic CSS for why-list checkmarks
@@ -739,6 +809,31 @@ async function loadProfile() {
   }
   window.profileData = p;
   window.dispatchEvent(new CustomEvent('profileDataReady', { detail: p }));
+
+  // ── Apply persona class based on trade category ──
+  const categoryMap = {
+    landscaping: 'landscaping', lawn: 'landscaping', gardening: 'landscaping',
+    plumber: 'plumbing', plumbing: 'plumbing', heating: 'plumbing',
+    hvac: 'hvac', air_conditioning: 'hvac',
+    electrician: 'electrical', electrical: 'electrical',
+    cleaning: 'cleaning', cleaning_service: 'cleaning',
+    general_contractor: 'contractor', contractor: 'contractor', roofing: 'contractor', painting: 'contractor',
+    retail: 'retail', gifts: 'retail', florist: 'retail',
+  };
+  const rawCat = (p.primary_category || '').toLowerCase().replace(/[^a-z_]/g, '');
+  const persona = categoryMap[rawCat] || null;
+  if (persona) document.body.classList.add(`persona-${persona}`);
+
+  // ── Set brand RGB for CSS glow effects ──
+  // (applied after logo color extraction; this sets a default)
+  const defaultRgb = persona === 'landscaping' ? '26,90,42'
+    : persona === 'plumbing' ? '20,60,120'
+    : persona === 'hvac' ? '20,100,140'
+    : persona === 'electrical' ? '160,120,10'
+    : persona === 'retail' ? '130,40,120'
+    : '26,60,80';
+  document.documentElement.style.setProperty('--brand-rgb', defaultRgb);
+
   fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug, event: 'page_view' }) }).catch(() => {});
 
   /* ── Sticky nav ── */
