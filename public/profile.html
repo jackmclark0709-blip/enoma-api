@@ -923,10 +923,21 @@ async function loadProfile() {
   if (heroTrust) {
     const badges = Array.isArray(p.trust_badges) && p.trust_badges.length ? p.trust_badges : [];
     const items = [];
+
+    // Trust badges (Licensed & Insured, etc.)
     badges.forEach(b => {
       items.push(`<span class="hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>${b}</span>`);
     });
+
+    // Owner name
     if (p.owner_name) items.push(`<span class="hero-trust-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>Owner: ${p.owner_name}</span>`);
+
+    // Availability hours (e.g. "Mon–Sat · 7am–6pm")
+    if (p.hero_availability) items.push(`<span class="hero-trust-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${p.hero_availability}</span>`);
+
+    // Response time (e.g. "Responds within 2 hours")
+    if (p.hero_response_time) items.push(`<span class="hero-trust-item"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.8 19.8 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.8 19.8 0 012.08 4.18 2 2 0 014.06 2h3a2 2 0 012 1.72c.12.86.31 1.7.57 2.5a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.58-1.09a2 2 0 012.11-.45c.8.26 1.64.45 2.5.57A2 2 0 0122 16.92z"/></svg>${p.hero_response_time}</span>`);
+
     if (items.length) { heroTrust.innerHTML = items.join(''); heroTrust.classList.remove('hidden'); }
   }
 
