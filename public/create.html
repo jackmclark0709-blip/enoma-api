@@ -2,245 +2,68 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<title>Create Business Profile — Enoma</title>
+<title>Create Business Website — Enoma</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-
-
-  <link rel="stylesheet" href="/styles/enoma.css" />
-
+<link rel="stylesheet" href="/styles/enoma.css" />
 <style>
-:root {
-  --enoma-blue: #211551;
-  --enoma-lavender: #9A8CFF;
-  --enoma-green: #50A684;
-  --enoma-border: #e5e7eb;
-  --enoma-text: #1c1c1c;
-  --enoma-muted: #6b7280;
+body { font-family: Inter, system-ui, sans-serif; background: #f0f6ff; margin: 0; padding: 0; color: #0a1628; }
+.form-header {
+  position: sticky; top: 60px; z-index: 99;
+  background: rgba(255,255,255,0.96); backdrop-filter: blur(8px);
+  border-bottom: 1px solid #d4e2f4;
+  padding: 0.85rem 1.5rem;
+  display: flex; align-items: flex-start; gap: 0.25rem; flex-direction: column;
 }
-
-/* Page layout */
-body {
-  font-family: Inter, system-ui, sans-serif;
-  background: #f6f7fb;
-  margin: 0;
-  padding: 4rem 1rem;
-  color: var(--enoma-text);
+.form-header__title { font-family: 'DM Sans', sans-serif; font-size: 1.1rem; font-weight: 700; color: #0a1628; margin: 0; }
+.form-header__sub { font-size: 0.82rem; color: #7ab3e0; margin: 0; }
+form { background: white; max-width: 720px; margin: 1.5rem auto 3rem; border-radius: 16px; padding: 2.5rem; border: 1px solid #d4e2f4; box-shadow: 0 8px 30px rgba(10,22,40,0.08); }
+h3 { font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 700; color: #0a1628; margin: 2rem 0 0.5rem; border-bottom: 1px solid #e6f1fb; padding-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.04em; }
+label { display: block; margin: 1rem 0 0.35rem; font-weight: 600; font-size: 0.85rem; color: #2a4060; }
+input, textarea, select { width: 100%; padding: 0.75rem 0.85rem; box-sizing: border-box; font-size: 0.95rem; border-radius: 10px; border: 1.5px solid #d4e2f4; font-family: inherit; color: #0a1628; background: #f7faff; transition: border-color 0.15s, box-shadow 0.15s; }
+input:focus, textarea:focus, select:focus { outline: none; border-color: #3882dc; box-shadow: 0 0 0 3px rgba(56,130,220,0.15); background: #fff; }
+input[type="checkbox"] { width: auto; margin-right: 0.4rem; }
+label[style*="flex"] { display: flex; gap: 0.4rem; align-items: center; margin-top: 0.75rem; }
+p { color: #5a7a9a; font-size: 0.88rem; margin: 0.25rem 0 0; }
+hr { border: none; border-top: 1px solid #e6f1fb; margin: 2rem 0; }
+.block { background: #f7faff; border: 1px solid #d4e2f4; border-radius: 12px; padding: 1rem; margin-top: 0.75rem; }
+.add-btn { background: none; border: none; color: #3882dc; font-weight: 600; cursor: pointer; margin-top: 0.5rem; padding: 0; font-size: 0.9rem; }
+.add-btn:hover { color: #1e5ca8; }
+button[type="submit"], #createBtn, #updateBtn {
+  margin-top: 2rem; width: 100%; padding: 0.9rem; border-radius: 999px;
+  font-weight: 700; border: none; cursor: pointer;
+  background: #0a1628; color: white; font-size: 1rem;
+  font-family: 'DM Sans', sans-serif;
+  transition: transform 0.15s, box-shadow 0.15s;
 }
-
-/* Card */
-form {
-  background: white;
-  max-width: 720px;
-  margin: auto;
-  border-radius: 16px;
-  padding: 2.75rem;
-  border: 1px solid var(--enoma-border);
-  box-shadow: 0 14px 35px rgba(0,0,0,0.08);
-  position: relative;
-  z-index: 10;
-}
-
-/* Headings */
-h1 {
-  text-align: center;
-  color: var(--enoma-blue);
-  font-weight: 800;
-  font-size: 2rem;
-  margin-bottom: 0.25rem;
-}
-
-.subtitle {
-  text-align: center;
-  color: var(--enoma-muted);
-  margin-bottom: 2.25rem;
-  font-size: 0.95rem;
-}
-
-/* Labels & inputs */
-label {
-  display: block;
-  margin: 1.25rem 0 0.4rem;
-  font-weight: 600;
-  color: var(--enoma-blue);
-}
-
-input,
-textarea,
-select {
-  width: 100%;
-  padding: 0.75rem 0.85rem;
-  font-size: 0.95rem;
-  border-radius: 10px;
-  border: 1px solid var(--enoma-border);
-  font-family: inherit;
-}
-
-/* Section breaks */
-hr {
-  border: none;
-  border-top: 1px dashed var(--enoma-border);
-  margin: 2.25rem 0;
-}
-
-/* Repeating blocks */
-.block {
-  background: #fafafa;
-  border: 1px solid var(--enoma-border);
-  border-radius: 12px;
-  padding: 1rem;
-  margin-top: 1rem;
-}
-
-/* Add buttons */
-.add-btn {
-  background: none;
-  border: none;
-  color: var(--enoma-lavender);
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 0.75rem;
-  padding: 0;
-}
-
-/* Primary submit */
-button[type="submit"] {
-  margin-top: 2.5rem;
-  width: 100%;
-  padding: 0.9rem;
-  border-radius: 999px;
-  font-weight: 700;
-  border: none;
-  cursor: pointer;
-  background: var(--enoma-blue);
-  color: white;
-  font-size: 0.95rem;
-}
-
-/* Status */
-#status {
-  text-align: center;
-  margin-top: 1rem;
-  color: var(--enoma-green);
-  font-weight: 600;
-}
-
-button[type="submit"],
-#createBtn,
-#updateBtn {
-  margin-top: 2.5rem;
-  width: 100%;
-  padding: 0.9rem;
-  border-radius: 999px;
-  font-weight: 700;
-  border: none;
-  cursor: pointer;
-  background: var(--enoma-blue);
-  color: white;
-  font-size: 0.95rem;
-}
-
-
-
+#createBtn:hover, #updateBtn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(10,22,40,0.25); }
+#status { text-align: center; margin: 1rem auto; max-width: 720px; color: #2a9d6f; font-weight: 600; padding: 0 1.5rem; }
 </style>
-
-<!-- Google Analytics -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-S8XTG72Y2Y');
-</script>
-
-
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-S8XTG72Y2Y');</script>
 </head>
-
 <body>
-
   <script type="module" src="/partials/nav.js"></script>
 
-
-<h1 id="pageTitle">Create Your Business Page</h1>
-<p class="subtitle" id="pageSubtitle">
-  We turn your business info into a polished, lead-generating webpage.
-</p>
+<div class="form-header">
+  <p class="form-header__title" id="pageTitle">Create Your Business Website</p>
+  <p class="form-header__sub" id="pageSubtitle">Fill in the details below — AI writes your copy for you</p>
+</div>
 
 <form id="form" action="javascript:void(0);" novalidate enctype="multipart/form-data">
 <input type="hidden" name="type" value="business" />
 <input type="hidden" name="business_id" id="business_id" />
 
+<h3>Business basics</h3>
 
 <label>Business Name</label>
 <input name="business_name" required />
 
-<label>Find your business on Google</label>
-<input
-  id="google_place"
-  placeholder="Start typing your business name..."
-/>
-
+<label>Find on Google (optional — autofills address &amp; phone)</label>
+<input id="google_place" placeholder="Start typing your business name…" />
 <input type="hidden" name="google_place_id" />
-
-
 <input type="hidden" name="city" />
 <input type="hidden" name="state" />
 <input type="hidden" name="primary_category" />
-
-
-<label>Business Logo (upload)</label>
-<input
-  type="file"
-  name="logo"
-  id="logoFile"
-  accept="image/png,image/jpeg"
-/>
-<p style="color:#6b7280;margin:.35rem 0 0;font-size:.9rem;">
-  Upload a logo (PNG or JPG). If you upload a logo, it will override the URL field below.
-</p>
-
-<div id="logoPreviewWrap" style="display:none;margin-top:.75rem;">
-  <img
-    id="logoPreview"
-    alt="Logo preview"
-    style="
-      width:110px;
-      height:110px;
-      object-fit:contain;
-      background:#fff;
-      border-radius:14px;
-      border:1px solid #e5e7eb;
-      padding:10px;
-    "
-  />
-</div>
-
-<label>Business Logo URL (optional)</label>
-<input
-  name="logo_url"
-  id="logo_url"
-  placeholder="https://example.com/logo.png"
-/>
-
-
-<label>Business Photos (optional)</label>
-<input
-  type="file"
-  name="images"
-  accept="image/*"
-  multiple
-/>
-<p style="color:#6b7280;margin:.35rem 0 0;font-size:.9rem;">
-  Add a few photos (storefront, work examples, team, etc.). JPG/PNG recommended.
-</p>
-
-<div id="imagePreview" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:.75rem;"></div>
-
-<div id="existingImages" style="margin-top:1rem;display:none;">
-  <p style="margin:0 0 .5rem;color:#6b7280;font-size:.9rem;">Existing photos</p>
-  <div id="existingImagesGrid" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
-</div>
-
-
 
 <label>Owner Name</label>
 <input name="owner_name" />
@@ -254,17 +77,41 @@ button[type="submit"],
 <label>Email</label>
 <input name="email" required />
 
-<label>Website</label>
+<label>Website (optional)</label>
 <input name="website" />
 
-<hr/>
-
 <label>Service Area (comma separated)</label>
-<input name="service_area" placeholder="Boston, Cambridge, Remote" />
+<input name="service_area" placeholder="Boston, Cambridge, Somerville" />
+
+<hr/>
+<h3>Logo &amp; photos</h3>
+
+<label>Business Logo (upload PNG or JPG)</label>
+<input type="file" name="logo" id="logoFile" accept="image/png,image/jpeg" />
+<p>Uploading a file will override the URL field below.</p>
+
+<div id="logoPreviewWrap" style="display:none;margin-top:.75rem;">
+  <img id="logoPreview" alt="Logo preview" style="width:100px;height:100px;object-fit:contain;background:#fff;border-radius:12px;border:1px solid #d4e2f4;padding:8px;" />
+</div>
+
+<label>Business Logo URL (optional)</label>
+<input name="logo_url" id="logo_url" placeholder="https://example.com/logo.png" />
+
+<label>Business Photos (optional, multiple)</label>
+<input type="file" name="images" accept="image/*" multiple />
+<p>Add a few photos — storefront, work examples, team, etc.</p>
+<div id="imagePreview" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:.75rem;"></div>
+<div id="existingImages" style="margin-top:1rem;display:none;">
+  <p>Existing photos</p>
+  <div id="existingImagesGrid" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
+</div>
+
+<hr/>
+<h3>About your business</h3>
 
 <label>Describe Your Business</label>
 <textarea name="about"></textarea>
-<p>“In your own words — rough notes are fine.”</p>
+<p>Rough notes are fine — the AI will turn them into polished copy.</p>
 
 <label>Preferred Tone</label>
 <select name="tone">
@@ -272,659 +119,257 @@ button[type="submit"],
   <option value="friendly">Friendly</option>
   <option value="luxury">Luxury</option>
   <option value="bold">Bold</option>
-  <option value="simple">Simple & Clean</option>
+  <option value="simple">Simple &amp; Clean</option>
 </select>
 
 <hr/>
+<h3>Status</h3>
 
-
-<h3>Editing Options</h3>
-
-<label style="display:flex;gap:.5rem;align-items:center;">
-  <input type="checkbox" id="regenerate_ai" name="regenerate_ai" />
-  Rewrite page copy with AI (leave unchecked to only save my edits)
-</label>
-
-<p style="color:#6b7280;margin:.35rem 0 0;font-size:.9rem;">
-  Tip: In edit mode, this is OFF by default so you can make precise changes without AI overwriting them.
-</p>
+<label style="display:flex;gap:.4rem;align-items:center;"><input type="checkbox" name="is_open_now" /> Open now</label>
+<label style="display:flex;gap:.4rem;align-items:center;"><input type="checkbox" name="accepting_clients" /> Accepting new clients</label>
+<label style="display:flex;gap:.4rem;align-items:center;"><input type="checkbox" name="offers_emergency" /> Emergency services available</label>
 
 <hr/>
-
-<h3>Page Copy (Optional)</h3>
-
-<label>SEO Title</label>
-<input name="seo_title" placeholder="SEO title that appears in Google results" />
-
-<label>SEO Description</label>
-<textarea name="seo_description" placeholder="Meta description for Google"></textarea>
-
-<label>Hero Headline</label>
-<input name="hero_headline" placeholder="Main headline at top of the page" />
-
-<label>Hero Tagline</label>
-<textarea name="hero_tagline" placeholder="Short supporting tagline"></textarea>
-
-<label>Why Choose Us</label>
-<textarea name="why_choose_us" placeholder="Short paragraph explaining differentiation"></textarea>
-
-<label>Services Intro</label>
-<textarea name="services_intro" placeholder="A short intro sentence before services"></textarea>
-
-<label>Trust Badges (one per line)</label>
-<textarea name="trust_badges" placeholder="Licensed & Insured&#10;Free Estimates&#10;5-Star Rated"></textarea>
-
-<hr/>
-
-
-
-
-
-<label>
-  <input type="checkbox" name="is_open_now" />
-  Open now
-</label>
-
-<label>
-  <input type="checkbox" name="accepting_clients" />
-  Accepting new clients
-</label>
-
-<label>
-  <input type="checkbox" name="offers_emergency" />
-  Emergency services available
-</label>
-
-
-
 <h3>Services</h3>
 <div id="services"></div>
-<button type="button" class="add-btn" onclick="addService()">+ Add Service</button>
+<button type="button" class="add-btn" onclick="addService()">+ Add service</button>
 
 <hr/>
-
 <h3>Testimonials</h3>
 <div id="testimonials"></div>
-<button type="button" class="add-btn" onclick="addTestimonial()">+ Add Testimonial</button>
+<button type="button" class="add-btn" onclick="addTestimonial()">+ Add testimonial</button>
 
 <hr/>
+<h3>AI &amp; editing options</h3>
 
+<label style="display:flex;gap:.4rem;align-items:center;">
+  <input type="checkbox" id="regenerate_ai" name="regenerate_ai" />
+  Rewrite page copy with AI
+</label>
+<p>Leave unchecked to save edits without AI overwriting your changes.</p>
 
-<button type="button" id="createBtn">Create Business Page</button>
-<button
-  type="button"
-  id="updateBtn"
-  style="display:none;background:#111;color:#fff;"
->
-  Update Existing Page
-</button>
+<hr/>
+<h3>Page copy (optional — AI fills these if blank)</h3>
 
+<label>SEO Title</label>
+<input name="seo_title" placeholder="Appears in Google results" />
+<label>SEO Description</label>
+<textarea name="seo_description" placeholder="Meta description for Google"></textarea>
+<label>Hero Headline</label>
+<input name="hero_headline" placeholder="Main headline at top of your page" />
+<label>Hero Tagline</label>
+<textarea name="hero_tagline" placeholder="Short supporting tagline"></textarea>
+<label>Why Choose Us</label>
+<textarea name="why_choose_us" placeholder="Short paragraph explaining your differentiation"></textarea>
+<label>Services Intro</label>
+<textarea name="services_intro" placeholder="A short intro sentence before your services list"></textarea>
+<label>Trust Badges (one per line)</label>
+<textarea name="trust_badges" placeholder="Licensed &amp; Insured&#10;Free Estimates&#10;5-Star Rated"></textarea>
+
+<button type="button" id="createBtn">Create my business website →</button>
+<button type="button" id="updateBtn" style="display:none;">Save changes</button>
 </form>
 
 <div id="status"></div>
 
 <script type="module">
   import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
-
   const SUPABASE_URL = "https://qhsivcenpnxwmvwznqie.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc";
-
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
   window.supabaseClient = supabase;
 </script>
 
-
 <script type="module">
-  const supabase = window.supabaseClient;
-
-  async function requireSession() {
-    const { data: { session } } = await supabase.auth.getSession();
-
-    if (!session) {
-      const next = encodeURIComponent(
-        window.location.pathname + window.location.search
-      );
-      window.location.href = `/login?next=${next}`;
-      return null;
-    }
-
-    return session;
+const supabase = window.supabaseClient;
+async function requireSession() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) { window.location.href = `/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`; return null; }
+  return session;
+}
+async function enforceCreateAccess() {
+  window.__ENOMA_AUTH_OK = false; window.__ENOMA_AUTH_CHECKED = false; window.__ENOMA_SESSION = null;
+  const session = await requireSession();
+  if (!session) { window.__ENOMA_AUTH_CHECKED = true; return; }
+  const params = new URLSearchParams(window.location.search);
+  const editBusinessId = params.get("business_id");
+  if (editBusinessId) {
+    const { data: membership, error } = await supabase.from("business_members").select("business_id, role").eq("business_id", editBusinessId).eq("user_id", session.user.id).maybeSingle();
+    if (error || !membership) { window.location.href = "/dashboard"; window.__ENOMA_AUTH_CHECKED = true; return; }
   }
-
-  async function enforceCreateAccess() {
-    // Make the auth check status available to other scripts on this page
-    window.__ENOMA_AUTH_OK = false;
-    window.__ENOMA_AUTH_CHECKED = false;
-    window.__ENOMA_SESSION = null;
-
-    const session = await requireSession();
-    if (!session) {
-      window.__ENOMA_AUTH_CHECKED = true;
-      return;
-    }
-
-    // If editing, confirm the logged-in user is a member of this business_id
-    const params = new URLSearchParams(window.location.search);
-    const editBusinessId = params.get("business_id");
-
-    if (editBusinessId) {
-      const { data: membership, error } = await supabase
-        .from("business_members")
-        .select("business_id, role")
-        .eq("business_id", editBusinessId)
-        .eq("user_id", session.user.id)
-        .maybeSingle();
-
-      if (error || !membership) {
-        // Not allowed to edit this business
-        window.location.href = "/dashboard";
-        window.__ENOMA_AUTH_CHECKED = true;
-        return;
-      }
-    }
-
-    window.__ENOMA_SESSION = session;
-    window.__ENOMA_AUTH_OK = true;
-    window.__ENOMA_AUTH_CHECKED = true;
-  }
-
-  await enforceCreateAccess();
+  window.__ENOMA_SESSION = session; window.__ENOMA_AUTH_OK = true; window.__ENOMA_AUTH_CHECKED = true;
+}
+await enforceCreateAccess();
 </script>
 
-
-
 <script type="module">
-/* ----------------------------------------
-   WAIT FOR SUPABASE TO BE READY
----------------------------------------- */
 let supabase;
-while (!window.supabaseClient) {
-  await new Promise(r => setTimeout(r, 10));
-}
+while (!window.supabaseClient) await new Promise(r => setTimeout(r, 10));
 supabase = window.supabaseClient;
-
-// Wait for the auth gate script to finish
-while (!window.__ENOMA_AUTH_CHECKED) {
-  await new Promise(r => setTimeout(r, 10));
-}
-
-// If not authorized (or we redirected), stop running the create page JS
-if (!window.__ENOMA_AUTH_OK) {
-  return;
-}
-
+while (!window.__ENOMA_AUTH_CHECKED) await new Promise(r => setTimeout(r, 10));
+if (!window.__ENOMA_AUTH_OK) return;
 const session = window.__ENOMA_SESSION;
 
-
-/* ----------------------------------------
-   ELEMENT REFERENCES
----------------------------------------- */
 const form = document.getElementById("form");
 const status = document.getElementById("status");
 const servicesEl = document.getElementById("services");
 const testimonialsEl = document.getElementById("testimonials");
 
-/* ----------------------------------------
-   LOGO UPLOAD + PREVIEW (PNG/JPG)
----------------------------------------- */
+// Logo preview
 const logoInput = document.getElementById("logoFile");
 const logoUrlInput = document.getElementById("logo_url");
 const logoPreviewWrap = document.getElementById("logoPreviewWrap");
 const logoPreview = document.getElementById("logoPreview");
-
 function setLogoPreview(src) {
-  if (!logoPreviewWrap || !logoPreview) return;
-
-  if (src) {
-    logoPreview.src = src;
-    logoPreviewWrap.style.display = "block";
-  } else {
-    logoPreview.src = "";
-    logoPreviewWrap.style.display = "none";
-  }
+  if (src) { logoPreview.src = src; logoPreviewWrap.style.display = "block"; }
+  else { logoPreview.src = ""; logoPreviewWrap.style.display = "none"; }
 }
+logoUrlInput?.addEventListener("input", () => { if (logoInput?.files?.length) return; setLogoPreview(logoUrlInput.value.trim()); });
+logoInput?.addEventListener("change", () => {
+  const file = logoInput.files?.[0];
+  if (!file) { setLogoPreview(logoUrlInput?.value?.trim() || ""); return; }
+  if (!["image/png","image/jpeg"].includes(file.type)) { alert("Logo must be PNG or JPG."); logoInput.value = ""; return; }
+  if (file.size > 3*1024*1024) { alert("Logo must be under 3MB."); logoInput.value = ""; return; }
+  if (logoUrlInput) logoUrlInput.value = "";
+  setLogoPreview(URL.createObjectURL(file));
+});
 
-// If user types/pastes a URL and no file is selected, show preview
-if (logoUrlInput) {
-  logoUrlInput.addEventListener("input", () => {
-    if (logoInput && logoInput.files && logoInput.files.length) return;
-    setLogoPreview(logoUrlInput.value.trim());
-  });
-}
-
-if (logoInput) {
-  logoInput.addEventListener("change", () => {
-    const file = (logoInput.files || [])[0];
-    if (!file) {
-      setLogoPreview(logoUrlInput?.value?.trim() || "");
-      return;
-    }
-
-    const okType = ["image/png", "image/jpeg"].includes(file.type);
-    const maxBytes = 3 * 1024 * 1024; // 3MB
-
-    if (!okType) {
-      alert("Logo must be a PNG or JPG.");
-      logoInput.value = "";
-      return;
-    }
-
-    if (file.size > maxBytes) {
-      alert("Logo is too large. Please upload a logo under 3MB.");
-      logoInput.value = "";
-      return;
-    }
-
-    // If uploading a logo file, clear URL to avoid confusion
-    if (logoUrlInput) logoUrlInput.value = "";
-
-    const url = URL.createObjectURL(file);
-    setLogoPreview(url);
-  });
-}
-
-/* ----------------------------------------
-   EDIT MODE DETECTION
----------------------------------------- */
-
-
+// Edit mode
 const params = new URLSearchParams(window.location.search);
 const editBusinessId = params.get("business_id");
-
-// Prefill contact email on NEW creates (edit mode already loads existing)
-if (!editBusinessId && session?.user?.email && !form.email.value) {
-  form.email.value = session.user.email;
-}
-
-
+if (!editBusinessId && session?.user?.email && !form.email.value) form.email.value = session.user.email;
 if (editBusinessId) {
   document.getElementById("business_id").value = editBusinessId;
   document.getElementById("createBtn").style.display = "none";
   document.getElementById("updateBtn").style.display = "block";
-  document.getElementById("pageTitle").textContent = "Edit Business Page";
-  document.getElementById("pageSubtitle").textContent =
-    "Update the information for this business profile.";
+  document.getElementById("pageTitle").textContent = "Edit Your Business Website";
+  document.getElementById("pageSubtitle").textContent = "Update the information for this business profile";
 }
-
-// Default AI behavior: create = ON, edit = OFF
 const regenCheckbox = document.getElementById("regenerate_ai");
-if (regenCheckbox) {
-  regenCheckbox.checked = !editBusinessId;
-}
+if (regenCheckbox) regenCheckbox.checked = !editBusinessId;
 
-
-/* ----------------------------------------
-   LOAD EXISTING DATA (EDIT MODE)
----------------------------------------- */
+// Load for edit
 async function loadBusinessForEdit(businessId) {
-  servicesEl.innerHTML = "";
-  testimonialsEl.innerHTML = "";
-
-
-
-  const { data, error } = await supabase
-    .from("small_business_profiles")
-    .select("*")
-    .eq("business_id", businessId)
-    .single();
-
-
-  console.log("EDIT LOAD RESULT:", { data, error });
-
-  if (error || !data) {
-    status.textContent = "Failed to load business profile.";
-    return;
+  servicesEl.innerHTML = ""; testimonialsEl.innerHTML = "";
+  const { data, error } = await supabase.from("small_business_profiles").select("*").eq("business_id", businessId).single();
+  if (error || !data) { status.textContent = "Failed to load business profile."; return; }
+  const existingWrap = document.getElementById("existingImages");
+  const existingGrid = document.getElementById("existingImagesGrid");
+  existingGrid.innerHTML = "";
+  const attachments = Array.isArray(data.attachments) ? data.attachments : [];
+  if (attachments.length) {
+    existingWrap.style.display = "block";
+    attachments.forEach((url) => {
+      const card = document.createElement("div"); card.style.width = "100px";
+      card.innerHTML = `<img src="${url}" style="width:100px;height:100px;object-fit:cover;border-radius:10px;border:1px solid #d4e2f4;" /><label style="display:flex;gap:5px;align-items:center;margin-top:5px;font-size:.82rem;color:#5a7a9a;"><input type="checkbox" class="remove-attachment" value="${url}" />remove</label>`;
+      existingGrid.appendChild(card);
+    });
   }
-
-const existingWrap = document.getElementById("existingImages");
-const existingGrid = document.getElementById("existingImagesGrid");
-existingGrid.innerHTML = "";
-
-const attachments = Array.isArray(data.attachments) ? data.attachments : [];
-if (attachments.length) {
-  existingWrap.style.display = "block";
-  attachments.forEach((url, idx) => {
-    const card = document.createElement("div");
-    card.style.width = "110px";
-    card.innerHTML = `
-      <img src="${url}" style="width:110px;height:110px;object-fit:cover;border-radius:12px;border:1px solid #e5e7eb;" />
-      <label style="display:flex;gap:6px;align-items:center;margin-top:6px;font-size:.85rem;color:#374151;">
-        <input type="checkbox" class="remove-attachment" value="${url}" />
-        remove
-      </label>
-    `;
-    existingGrid.appendChild(card);
-  });
-} else {
-  existingWrap.style.display = "none";
+  form.business_name.value = data.business_name || "";
+  const googleInput = document.getElementById("google_place");
+  if (googleInput) googleInput.value = data.business_name || "";
+  form.owner_name.value = data.owner_name || ""; form.email.value = data.email || "";
+  form.phone.value = data.phone || ""; form.address.value = data.address || "";
+  form.website.value = data.website || ""; form.about.value = data.about || "";
+  form.service_area.value = Array.isArray(data.service_area) ? data.service_area.join(", ") : (data.service_area || "");
+  form.querySelector('[name="google_place_id"]').value = data.google_place_id || "";
+  form.querySelector('[name="city"]').value = data.city || "";
+  form.querySelector('[name="state"]').value = data.state || "";
+  form.querySelector('[name="primary_category"]').value = data.primary_category || "";
+  form.tone.value = data.tone || "professional";
+  form.is_open_now.checked = !!data.is_open_now; form.accepting_clients.checked = !!data.accepting_clients; form.offers_emergency.checked = !!data.offers_emergency;
+  form.seo_title.value = data.seo_title || ""; form.seo_description.value = data.seo_description || "";
+  form.hero_headline.value = data.hero_headline || ""; form.hero_tagline.value = data.hero_tagline || "";
+  form.why_choose_us.value = data.why_choose_us || ""; form.services_intro.value = data.services_intro || "";
+  form.trust_badges.value = Array.isArray(data.trust_badges) ? data.trust_badges.join("\n") : (data.trust_badges || "");
+  (data.services || []).forEach(s => { addService(); const last = servicesEl.lastElementChild; last.querySelector(".service-name").value = s.service_name || ""; last.querySelector(".service-description").value = s.service_description || ""; last.querySelector(".service-price").value = s.price || ""; });
+  (data.testimonials || []).forEach(t => { addTestimonial(); const last = testimonialsEl.lastElementChild; last.querySelector(".testimonial-quote").value = t.quote || ""; last.querySelector(".testimonial-author").value = t.author || ""; });
+  if (data.logo_url) { logoUrlInput.value = data.logo_url; setLogoPreview(data.logo_url); }
 }
 
-
-
-
-// Identity/contact
-form.business_name.value = data.business_name || "";
-// Make the visible Google search box feel populated in edit mode
-const googleInput = document.getElementById("google_place");
-if (googleInput) {
-  googleInput.value = data.business_name || "";
-}
-
-
-
-form.owner_name.value = data.owner_name || "";
-form.email.value = data.email || "";
-form.phone.value = data.phone || "";
-form.address.value = data.address || "";
-form.website.value = data.website || "";
-
-// About / service area
-form.about.value = data.about || "";
-form.service_area.value = Array.isArray(data.service_area)
-  ? data.service_area.join(", ")
-  : (data.service_area || "");
-
-// Google fields (hidden)
-form.querySelector('[name="google_place_id"]').value = data.google_place_id || "";
-form.querySelector('[name="city"]').value = data.city || "";
-form.querySelector('[name="state"]').value = data.state || "";
-form.querySelector('[name="primary_category"]').value = data.primary_category || "";
-
-// Tone + status checkboxes
-form.tone.value = data.tone || "professional";
-form.is_open_now.checked = !!data.is_open_now;
-form.accepting_clients.checked = !!data.accepting_clients;
-form.offers_emergency.checked = !!data.offers_emergency;
-
-// Page copy fields (manual editing)
-form.seo_title.value = data.seo_title || "";
-form.seo_description.value = data.seo_description || "";
-form.hero_headline.value = data.hero_headline || "";
-form.hero_tagline.value = data.hero_tagline || "";
-form.why_choose_us.value = data.why_choose_us || "";
-form.services_intro.value = data.services_intro || "";
-
-// Trust badges (array in DB → newline in textarea)
-form.trust_badges.value = Array.isArray(data.trust_badges)
-  ? data.trust_badges.join("\n")
-  : (data.trust_badges || "");
-
-
-  (data.services || []).forEach(s => {
-    addService();
-    const last = servicesEl.lastElementChild;
-    last.querySelector(".service-name").value = s.service_name || "";
-    last.querySelector(".service-description").value = s.service_description || "";
-    last.querySelector(".service-price").value = s.price || "";
-  });
-
-  (data.testimonials || []).forEach(t => {
-    addTestimonial();
-    const last = testimonialsEl.lastElementChild;
-    last.querySelector(".testimonial-quote").value = t.quote || "";
-    last.querySelector(".testimonial-author").value = t.author || "";
-  });
-
-
-}
-/* ----------------------------------------
-   REPEATING BLOCK HELPERS
----------------------------------------- */
-window.addService = function () {
-  const div = document.createElement("div");
-  div.className = "block";
-  div.innerHTML = `
-    <input placeholder="Service name" class="service-name"/>
-    <textarea placeholder="Service description" class="service-description"></textarea>
-    <input placeholder="Price (e.g. $1,500+)" class="service-price"/>
-  `;
+window.addService = function() {
+  const div = document.createElement("div"); div.className = "block";
+  div.innerHTML = `<input placeholder="Service name" class="service-name"/><textarea placeholder="Service description" class="service-description"></textarea><input placeholder="Price (e.g. $1,500+)" class="service-price"/>`;
   servicesEl.appendChild(div);
 };
-
-window.addTestimonial = function () {
-  const div = document.createElement("div");
-  div.className = "block";
-  div.innerHTML = `
-    <textarea placeholder="Client quote" class="testimonial-quote"></textarea>
-    <input placeholder="Author (name, role, company)" class="testimonial-author"/>
-  `;
+window.addTestimonial = function() {
+  const div = document.createElement("div"); div.className = "block";
+  div.innerHTML = `<textarea placeholder="Client quote" class="testimonial-quote"></textarea><input placeholder="Author (name, company)" class="testimonial-author"/>`;
   testimonialsEl.appendChild(div);
 };
 
+if (editBusinessId) await loadBusinessForEdit(editBusinessId);
 
-
-
-if (editBusinessId) {
-  await loadBusinessForEdit(editBusinessId);
-}
-
-
-
-/* ----------------------------------------
-   BUTTON → FORM SUBMISSION WIRING
----------------------------------------- */
 const createBtn = document.getElementById("createBtn");
 const updateBtn = document.getElementById("updateBtn");
-
 function refreshButtonLabels() {
-  if (updateBtn && editBusinessId) {
-    const rewrite = !!regenCheckbox?.checked;
-    updateBtn.textContent = rewrite ? "Rewrite with AI + Save" : "Save Edits";
-  }
-  if (createBtn && !editBusinessId) {
-    createBtn.textContent = "Create Business Page";
-  }
+  if (updateBtn && editBusinessId) { updateBtn.textContent = regenCheckbox?.checked ? "Rewrite with AI + Save" : "Save Changes"; }
+  if (createBtn && !editBusinessId) { createBtn.textContent = "Create my business website →"; }
 }
-
-regenCheckbox?.addEventListener("change", refreshButtonLabels);
-refreshButtonLabels();
-
+regenCheckbox?.addEventListener("change", refreshButtonLabels); refreshButtonLabels();
 createBtn?.addEventListener("click", () => form.requestSubmit());
 updateBtn?.addEventListener("click", () => form.requestSubmit());
 
-
-
-
- /* ----------------------------------------
-   SUBMIT HANDLER (ONLY ONE)
----------------------------------------- */
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
-
   const isEdit = Boolean(editBusinessId);
-  status.textContent = isEdit
-    ? "Updating business profile…"
-    : "Creating your business profile…";
-
+  status.textContent = isEdit ? "Saving changes…" : "Building your website…";
   const fd = new FormData(form);
-
-// Ensure checkboxes always submit true/false (not missing)
-fd.set("is_open_now", form.is_open_now.checked ? "true" : "false");
-fd.set("accepting_clients", form.accepting_clients.checked ? "true" : "false");
-fd.set("offers_emergency", form.offers_emergency.checked ? "true" : "false");
-
-
-  // 🔐 Auth
+  fd.set("is_open_now", form.is_open_now.checked ? "true" : "false");
+  fd.set("accepting_clients", form.accepting_clients.checked ? "true" : "false");
+  fd.set("offers_emergency", form.offers_emergency.checked ? "true" : "false");
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    alert("You must be logged in");
-    return;
-  }
-
-  /* ----------------------------------------
-     COLLECT + APPEND DYNAMIC DATA
-  ---------------------------------------- */
-  const servicesData = [...servicesEl.querySelectorAll(".block")]
-    .map(block => ({
-      service_name: block.querySelector(".service-name")?.value.trim(),
-      service_description: block.querySelector(".service-description")?.value.trim(),
-      price: block.querySelector(".service-price")?.value.trim()
-    }))
-    .filter(s => s.service_name);
-
-  const testimonialsData = [...testimonialsEl.querySelectorAll(".block")]
-    .map(block => ({
-      quote: block.querySelector(".testimonial-quote")?.value.trim(),
-      author: block.querySelector(".testimonial-author")?.value.trim()
-    }))
-    .filter(t => t.quote);
-
-
-  
-  fd.set("services", JSON.stringify(servicesData));
-  fd.set("testimonials", JSON.stringify(testimonialsData));
-
-// Trust badges: textarea → JSON array (one per line)
-const trustBadges = (form.trust_badges?.value || "")
-  .split("\n")
-  .map(s => s.trim())
-  .filter(Boolean);
-
-fd.set("trust_badges", JSON.stringify(trustBadges));
-
-
-// Existing photos removal (edit mode)
-const removeUrls = [...document.querySelectorAll(".remove-attachment:checked")]
-  .map(cb => cb.value);
-
-fd.set("attachments_remove", JSON.stringify(removeUrls));
-
-
-  /* ----------------------------------------
-     SUBMIT
-  ---------------------------------------- */
+  if (!session) { alert("You must be logged in"); return; }
+  const servicesData = [...servicesEl.querySelectorAll(".block")].map(b => ({ service_name: b.querySelector(".service-name")?.value.trim(), service_description: b.querySelector(".service-description")?.value.trim(), price: b.querySelector(".service-price")?.value.trim() })).filter(s => s.service_name);
+  const testimonialsData = [...testimonialsEl.querySelectorAll(".block")].map(b => ({ quote: b.querySelector(".testimonial-quote")?.value.trim(), author: b.querySelector(".testimonial-author")?.value.trim() })).filter(t => t.quote);
+  fd.set("services", JSON.stringify(servicesData)); fd.set("testimonials", JSON.stringify(testimonialsData));
+  const trustBadges = (form.trust_badges?.value || "").split("\n").map(s => s.trim()).filter(Boolean);
+  fd.set("trust_badges", JSON.stringify(trustBadges));
+  const removeUrls = [...document.querySelectorAll(".remove-attachment:checked")].map(cb => cb.value);
+  fd.set("attachments_remove", JSON.stringify(removeUrls));
   try {
-    const res = await fetch("/api/generate-business", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${session.access_token}`
-      },
-      body: fd
-    });
-
-let json;
-try {
-  json = await res.json();
-} catch {
-  status.textContent = "Server error. Please try again.";
-  return;
-}
-
-    if (!res.ok) {
-      console.error(json);
-      status.textContent = json.error || "Save failed";
-      return;
-    }
-
+    const res = await fetch("/api/generate-business", { method: "POST", headers: { Authorization: `Bearer ${session.access_token}` }, body: fd });
+    let json; try { json = await res.json(); } catch { status.textContent = "Server error. Please try again."; return; }
+    if (!res.ok) { status.textContent = json.error || "Save failed"; return; }
     window.location.href = json.url;
-  } catch (err) {
-    console.error(err);
-    status.textContent = "Failed to save profile.";
-  }
+  } catch (err) { console.error(err); status.textContent = "Failed to save profile."; }
 });
-
- 
 </script>
-
 
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD2DZjVEIuq6luIvl-lVeOaxqd3BG2V7IA&libraries=places"></script>
-
-
-
 <script>
 const input = document.getElementById("google_place");
-
-const autocomplete = new google.maps.places.Autocomplete(input, {
-  types: ["establishment"]
-});
-
+const autocomplete = new google.maps.places.Autocomplete(input, { types: ["establishment"] });
 autocomplete.addListener("place_changed", () => {
-  const place = autocomplete.getPlace();
-  if (!place.place_id) return;
-
+  const place = autocomplete.getPlace(); if (!place.place_id) return;
   document.querySelector('[name="google_place_id"]').value = place.place_id;
-
-  // Optional autofill
-  if (place.formatted_address)
-    document.querySelector('[name="address"]').value = place.formatted_address;
-
-  if (place.formatted_phone_number)
-    document.querySelector('[name="phone"]').value = place.formatted_phone_number;
-
-  if (place.website)
-    document.querySelector('[name="website"]').value = place.website;
-
-  // City / State extraction (for better SEO generation)
+  if (place.formatted_address) document.querySelector('[name="address"]').value = place.formatted_address;
+  if (place.formatted_phone_number) document.querySelector('[name="phone"]').value = place.formatted_phone_number;
+  if (place.website) document.querySelector('[name="website"]').value = place.website;
   try {
     const comps = place.address_components || [];
-    const city =
-      comps.find(c => (c.types || []).includes("locality"))?.long_name ||
-      comps.find(c => (c.types || []).includes("postal_town"))?.long_name ||
-      "";
-    const state =
-      comps.find(c => (c.types || []).includes("administrative_area_level_1"))?.short_name ||
-      "";
-
-    document.querySelector('[name="city"]').value = city;
-    document.querySelector('[name="state"]').value = state;
+    document.querySelector('[name="city"]').value = comps.find(c => c.types.includes("locality"))?.long_name || comps.find(c => c.types.includes("postal_town"))?.long_name || "";
+    document.querySelector('[name="state"]').value = comps.find(c => c.types.includes("administrative_area_level_1"))?.short_name || "";
   } catch {}
-
-  // Primary category (best-effort) from Google Place types
   try {
-    const types = place.types || [];
-    const typeMap = {
-      plumber: "plumber",
-      electrician: "electrician",
-      locksmith: "locksmith",
-      roofing_contractor: "roofing",
-      painter: "painter",
-      hvac_contractor: "hvac",
-      general_contractor: "contractor",
-      moving_company: "mover",
-      cleaning_service: "cleaning",
-      landscaping: "landscaping"
-    };
-
-    let category = "";
-    for (const t of types) {
-      if (typeMap[t]) { category = typeMap[t]; break; }
-    }
-    document.querySelector('[name="primary_category"]').value = category;
+    const typeMap = { plumber:"plumber", electrician:"electrician", locksmith:"locksmith", roofing_contractor:"roofing", hvac_contractor:"hvac", general_contractor:"contractor", moving_company:"mover", cleaning_service:"cleaning", landscaping:"landscaping" };
+    let cat = ""; for (const t of (place.types||[])) { if (typeMap[t]) { cat = typeMap[t]; break; } }
+    document.querySelector('[name="primary_category"]').value = cat;
   } catch {}
 });
-
-
-
-</script>
-
-<script>
-  const imgInput = document.querySelector('input[name="images"]');
-  const preview = document.getElementById("imagePreview");
-
-  if (imgInput && preview) {
-    imgInput.addEventListener("change", () => {
-      preview.innerHTML = "";
-      const files = Array.from(imgInput.files || []);
-      files.slice(0, 12).forEach(file => {
-        const url = URL.createObjectURL(file);
-        const img = document.createElement("img");
-        img.src = url;
-        img.alt = file.name;
-        img.style.width = "110px";
-        img.style.height = "110px";
-        img.style.objectFit = "cover";
-        img.style.borderRadius = "12px";
-        img.style.border = "1px solid #e5e7eb";
-        preview.appendChild(img);
-      });
+const imgInput = document.querySelector('input[name="images"]');
+const preview = document.getElementById("imagePreview");
+if (imgInput && preview) {
+  imgInput.addEventListener("change", () => {
+    preview.innerHTML = "";
+    Array.from(imgInput.files||[]).slice(0,12).forEach(file => {
+      const img = document.createElement("img"); img.src = URL.createObjectURL(file);
+      img.style.cssText = "width:90px;height:90px;object-fit:cover;border-radius:10px;border:1px solid #d4e2f4;";
+      preview.appendChild(img);
     });
-  }
+  });
+}
 </script>
-
-
-
-
 
 </body>
 </html>

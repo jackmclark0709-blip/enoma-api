@@ -83,7 +83,7 @@
   --transition: 0.17s ease;
 
   /* ── Brand (dynamic — overridden per-business profile) ──── */
-  --brand-primary:          var(--navy);
+  --brand-primary:          #1a3a2a;   /* neutral dark — overridden by logo color */
   --brand-primary-contrast: var(--text-on-dark);
   --brand-primary-10:       rgba(10,22,40,0.07);
   --brand-primary-30:       rgba(10,22,40,0.18);

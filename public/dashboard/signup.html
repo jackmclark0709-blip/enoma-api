@@ -7,83 +7,91 @@
   <meta name="description" content="Create your free Enoma account and get your business website live in minutes." />
   <link rel="canonical" href="https://enoma.io/signup" />
   <link rel="stylesheet" href="/styles/enoma.css" />
-  <link rel="icon" href="/favicon.ico" sizes="any">
-
+  <link rel="icon" href="/favicon.ico" sizes="any" />
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-S8XTG72Y2Y');
-  </script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-S8XTG72Y2Y');</script>
+  <style>
+    body { background: #f0f6ff; min-height: 100vh; display: flex; flex-direction: column; }
+    .auth-page { flex: 1; display: flex; align-items: center; justify-content: center; padding: 3rem 1.5rem; }
+    .auth-card {
+      width: 100%; max-width: 440px;
+      background: #fff; border: 1px solid #d4e2f4;
+      border-radius: 20px; padding: 2.5rem;
+      box-shadow: 0 12px 40px rgba(10,22,40,0.10);
+    }
+    .auth-eyebrow { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #3882dc; margin-bottom: 0.5rem; }
+    .auth-card h1 { font-family: 'DM Sans', sans-serif; font-size: 1.75rem; font-weight: 800; color: #0a1628; letter-spacing: -0.02em; margin: 0 0 0.4rem; }
+    .auth-subtitle { font-size: 0.9rem; color: #5a7a9a; margin: 0 0 1.5rem; line-height: 1.5; }
+    .auth-subtitle strong { color: #0a1628; }
+    .trial-badge {
+      background: rgba(56,130,220,0.08); border: 1px solid rgba(56,130,220,0.2);
+      border-radius: 999px; padding: 0.45rem 0.9rem;
+      font-size: 0.78rem; font-weight: 600; color: #1e5ca8;
+      margin-bottom: 1.75rem; text-align: center;
+    }
+    .field { margin-bottom: 1rem; }
+    .field label { display: block; font-size: 0.85rem; font-weight: 600; color: #2a4060; margin-bottom: 0.35rem; }
+    .field input {
+      width: 100%; padding: 0.75rem 1rem;
+      border: 1.5px solid #d4e2f4; border-radius: 10px;
+      font-size: 0.95rem; font-family: inherit; color: #0a1628;
+      background: #f7faff; box-sizing: border-box;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .field input:focus { outline: none; border-color: #3882dc; box-shadow: 0 0 0 3px rgba(56,130,220,0.15); background: #fff; }
+    .submit-btn {
+      width: 100%; padding: 0.9rem; margin-top: 0.5rem;
+      background: #0a1628; color: #fff;
+      border: none; border-radius: 999px;
+      font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 1rem;
+      cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(10,22,40,0.25); }
+    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .error-msg { color: #d94040; font-size: 0.85rem; margin-top: 0.5rem; min-height: 1.2em; }
+    .signin-link { font-size: 0.85rem; color: #5a7a9a; margin-top: 1.25rem; text-align: center; }
+    .signin-link a { color: #3882dc; font-weight: 600; text-decoration: none; }
+    .confirm-screen { display: none; text-align: center; padding: 0.5rem 0; }
+    .check-icon { width: 52px; height: 52px; background: #d1fae5; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; }
+    .confirm-screen h2 { font-family: 'DM Sans', sans-serif; font-size: 1.5rem; font-weight: 800; color: #0a1628; margin: 0 0 0.5rem; }
+    .confirm-screen p { font-size: 0.9rem; color: #5a7a9a; line-height: 1.6; margin: 0 0 0.3rem; }
+    .email-highlight { font-weight: 700; color: #0a1628; font-size: 0.95rem; }
+    .junk-note { font-size: 0.82rem; color: #7ab3e0; margin-top: 1rem; }
+    #site-footer { margin-top: auto; }
+  </style>
 </head>
-
 <body>
 <script type="module" src="/partials/nav.js"></script>
 
-<div class="signup-wrap">
-  <div class="signup-card">
-
-    <!-- Main signup form -->
+<div class="auth-page">
+  <div class="auth-card">
     <div id="signup-form-view">
+      <p class="auth-eyebrow">Free trial</p>
       <h1>Create your account</h1>
-      <p class="subtitle">
-        Get your business website live in minutes.<br>
-        <strong>First month free</strong> — no credit card required.
-      </p>
-
-      <div class="trial-badge">
-        ✦ One free website included &nbsp;·&nbsp; 30-day trial &nbsp;·&nbsp; $19.99/mo after
-      </div>
-
+      <p class="auth-subtitle">Get your business website live in minutes.<br><strong>First month free</strong> — no credit card required.</p>
+      <div class="trial-badge">✦ 30-day free trial &nbsp;·&nbsp; $19.99/mo after &nbsp;·&nbsp; Cancel anytime</div>
       <div class="field">
         <label for="email">Email address</label>
-        <input
-          type="email"
-          id="email"
-          placeholder="you@example.com"
-          autocomplete="email"
-          required
-        />
+        <input type="email" id="email" placeholder="you@example.com" autocomplete="email" required />
       </div>
-
       <div class="field">
         <label for="password">Password</label>
-        <input
-          type="password"
-          id="password"
-          placeholder="At least 8 characters"
-          autocomplete="new-password"
-          required
-          minlength="8"
-        />
+        <input type="password" id="password" placeholder="At least 8 characters" autocomplete="new-password" required minlength="8" />
       </div>
-
-      <button class="submit-btn" id="signup-btn" type="button">
-        Create free account →
-      </button>
-
+      <button class="submit-btn" id="signup-btn" type="button">Create free account →</button>
       <p class="error-msg" id="error-msg"></p>
-
-      <p class="signin-link">
-        Already have an account? <a href="/login">Sign in</a>
-      </p>
+      <p class="signin-link">Already have an account? <a href="/login">Sign in</a></p>
     </div>
-
-    <!-- Confirmation screen (shown after successful signup) -->
     <div class="confirm-screen" id="confirm-view">
       <div class="check-icon">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#50A684" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="20 6 9 17 4 12"/>
-        </svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
       <h2>Check your email</h2>
       <p>We sent a confirmation link to</p>
       <p class="email-highlight" id="confirm-email"></p>
-      <p style="margin-top:0.75rem;">Click the link to confirm your account and you'll be taken straight to building your website.</p>
+      <p style="margin-top:0.75rem;">Click the link to confirm your account — you'll be taken straight to building your website.</p>
       <p class="junk-note">Don't see it? Check your junk or spam folder.</p>
     </div>
-
   </div>
 </div>
 
@@ -92,64 +100,24 @@
   const SUPABASE_URL = 'https://qhsivcenpnxwmvwznqie.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc';
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-  // If already logged in, skip straight to create
-  supabase.auth.getSession().then(({ data: { session } }) => {
-    if (session) window.location.href = '/create';
-  });
-
+  supabase.auth.getSession().then(({ data: { session } }) => { if (session) window.location.href = '/create'; });
   const btn = document.getElementById('signup-btn');
   const errorMsg = document.getElementById('error-msg');
-
   btn.addEventListener('click', async () => {
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
-
     errorMsg.textContent = '';
-
-    if (!email || !password) {
-      errorMsg.textContent = 'Please enter your email and password.';
-      return;
-    }
-
-    if (password.length < 8) {
-      errorMsg.textContent = 'Password must be at least 8 characters.';
-      return;
-    }
-
-    btn.disabled = true;
-    btn.textContent = 'Creating account…';
-
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        // After email confirmation, send them directly to the create form
-        emailRedirectTo: 'https://enoma.io/create'
-      }
-    });
-
-    if (error) {
-      errorMsg.textContent = error.message;
-      btn.disabled = false;
-      btn.textContent = 'Create free account →';
-      return;
-    }
-
-    // Fire GA event
+    if (!email || !password) { errorMsg.textContent = 'Please enter your email and password.'; return; }
+    if (password.length < 8) { errorMsg.textContent = 'Password must be at least 8 characters.'; return; }
+    btn.disabled = true; btn.textContent = 'Creating account…';
+    const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: 'https://enoma.io/create' } });
+    if (error) { errorMsg.textContent = error.message; btn.disabled = false; btn.textContent = 'Create free account →'; return; }
     gtag('event', 'sign_up', { method: 'email' });
-
-    // Show confirmation screen
     document.getElementById('signup-form-view').style.display = 'none';
-    const confirmView = document.getElementById('confirm-view');
-    confirmView.style.display = 'block';
+    document.getElementById('confirm-view').style.display = 'block';
     document.getElementById('confirm-email').textContent = email;
   });
-
-  // Allow Enter key to submit
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Enter') btn.click();
-  });
+  document.addEventListener('keydown', e => { if (e.key === 'Enter') btn.click(); });
 </script>
 
 <div id="site-footer"></div>

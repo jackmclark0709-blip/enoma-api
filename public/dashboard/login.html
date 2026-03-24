@@ -2,152 +2,86 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Login — Enoma</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-   <link rel="stylesheet" href="dashboard/dashboard.css">
-<link rel="stylesheet" href="/styles/enoma.css">
-<style>
-.auth-layout {
-  min-height: calc(100vh - 72px); /* account for navbar height */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem 1rem;
-}
-
-  .auth-card {
-    width: 100%;
-    max-width: 420px;
-    background: var(--card, #16152a);
-    border: 1px solid var(--border, #2a2950);
-    border-radius: 16px;
-    padding: 2.5rem;
-  }
-
-  .auth-card h1,
-  .auth-card h2 {
-    margin: 0 0 0.5rem;
-    font-size: 1.9rem;
-    font-weight: 800;
-  }
-
-  .auth-card p {
-    margin-top: 0.75rem;
-    font-size: 0.9rem;
-    color: var(--muted);
-  }
-
-  .auth-card input {
-    width: 100%;
-    margin-top: 0.75rem;
-    padding: 0.7rem 0.75rem;
-    font-size: 0.95rem;
-    border-radius: 10px;
-    border: 1px solid var(--border, #2a2950);
-    background: #fff;
-    color: #000;
-  }
-
-  .auth-card button {
-    width: 100%;
-    margin-top: 1.25rem;
-  }
-
-  .auth-links {
-    margin-top: 1rem;
-    font-size: 0.9rem;
-  }
-
-  .auth-links a {
-    color: var(--accent, #9aa3ff);
-    text-decoration: none;
-    font-weight: 600;
-  }
-
-  .auth-links a:hover {
-    text-decoration: underline;
-  }
-</style>
-
-<!-- Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-S8XTG72Y2Y');
-</script>
-
-
+  <title>Sign in — Enoma</title>
+  <link rel="stylesheet" href="/styles/enoma.css" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-S8XTG72Y2Y');</script>
+  <style>
+    body { background: #f0f6ff; min-height: 100vh; display: flex; flex-direction: column; }
+    .auth-page { flex: 1; display: flex; align-items: center; justify-content: center; padding: 3rem 1.5rem; }
+    .auth-card {
+      width: 100%; max-width: 440px;
+      background: #fff; border: 1px solid #d4e2f4;
+      border-radius: 20px; padding: 2.5rem;
+      box-shadow: 0 12px 40px rgba(10,22,40,0.10);
+    }
+    .auth-eyebrow { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #3882dc; margin-bottom: 0.5rem; }
+    .auth-card h1 { font-family: 'DM Sans', sans-serif; font-size: 1.75rem; font-weight: 800; color: #0a1628; letter-spacing: -0.02em; margin: 0 0 0.4rem; }
+    .auth-subtitle { font-size: 0.9rem; color: #5a7a9a; margin: 0 0 1.75rem; line-height: 1.5; }
+    .field { margin-bottom: 1rem; }
+    .field label { display: block; font-size: 0.85rem; font-weight: 600; color: #2a4060; margin-bottom: 0.35rem; }
+    .field input {
+      width: 100%; padding: 0.75rem 1rem;
+      border: 1.5px solid #d4e2f4; border-radius: 10px;
+      font-size: 0.95rem; font-family: inherit; color: #0a1628;
+      background: #f7faff; box-sizing: border-box;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .field input:focus { outline: none; border-color: #3882dc; box-shadow: 0 0 0 3px rgba(56,130,220,0.15); background: #fff; }
+    .submit-btn {
+      width: 100%; padding: 0.9rem; margin-top: 0.5rem;
+      background: #0a1628; color: #fff;
+      border: none; border-radius: 999px;
+      font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 1rem;
+      cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(10,22,40,0.25); }
+    .error-msg { color: #d94040; font-size: 0.85rem; margin-top: 0.5rem; min-height: 1.2em; }
+    .auth-links { font-size: 0.85rem; color: #5a7a9a; margin-top: 1.25rem; text-align: center; }
+    .auth-links a { color: #3882dc; font-weight: 600; text-decoration: none; }
+    #site-footer { margin-top: auto; }
+  </style>
 </head>
-
 <body>
+<script type="module" src="/partials/nav.js"></script>
 
-  <script type="module" src="/partials/nav.js"></script>
-  <main class="auth-layout">
-
-
+<div class="auth-page">
   <div class="auth-card">
-    <h2>Sign in to Enoma</h2>
-
-    <input id="email" type="email" placeholder="Email address" />
-    <input id="password" type="password" placeholder="Password" />
-
-    <button class="btn btn-primary" onclick="login()">Sign in</button>
-
-    <p class="auth-links">
-      Don’t have an account?
-      <a href="/signup">Create your business page</a>
-    </p>
-
-    <p id="error" style="color:#ff8a8a"></p>
+    <p class="auth-eyebrow">Welcome back</p>
+    <h1>Sign in to Enoma</h1>
+    <p class="auth-subtitle">Access your dashboard and manage your business website.</p>
+    <div class="field">
+      <label for="email">Email address</label>
+      <input id="email" type="email" placeholder="you@example.com" autocomplete="email" />
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" type="password" placeholder="Your password" autocomplete="current-password" />
+    </div>
+    <button class="submit-btn" onclick="login()">Sign in →</button>
+    <p class="error-msg" id="error"></p>
+    <p class="auth-links">Don't have an account? <a href="/signup">Create your free website</a></p>
   </div>
-</main>
+</div>
 
-<div id="footer"></div>
-
-<script>
-  fetch("/partials/footer.html")
-    .then(res => res.text())
-    .then(html => {
-      document.getElementById("footer").innerHTML = html;
-    });
-</script>
-
-</body>
-
-
-
- <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   const SUPABASE_URL = 'https://qhsivcenpnxwmvwznqie.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc';
-
-  const supabaseClient = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY
-  );
-
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   async function login() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
-
-    const { error } = await supabaseClient.auth.signInWithPassword({
-      email,
-      password
-    });
-
-    if (error) {
-      document.getElementById('error').textContent = error.message;
-} else {
-  const params = new URLSearchParams(window.location.search);
-  const next = params.get('next');
-
-  window.location.href = next || '/dashboard';
-}
-
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) { document.getElementById('error').textContent = error.message; }
+    else { const p = new URLSearchParams(window.location.search); window.location.href = p.get('next') || '/dashboard'; }
   }
+  document.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
 </script>
 
-
+<div id="site-footer"></div>
+<script>fetch("/partials/footer.html").then(r=>r.text()).then(h=>{document.getElementById("site-footer").innerHTML=h});</script>
+</body>
 </html>
