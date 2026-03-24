@@ -57,13 +57,12 @@
 .hero-profile { display: flex; justify-content: flex-start; }
 .profile-avatar {
   width: 220px; height: 220px;
-  background: rgba(255,255,255,0.1);
-  border: 2px solid rgba(255,255,255,0.15);
+  background: #ffffff;
+  border: none;
   border-radius: 20px;
   display: flex; align-items: center; justify-content: center;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
-  backdrop-filter: blur(4px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.15);
 }
 .profile-avatar img { max-width: 80%; max-height: 80%; object-fit: contain; }
 .profile-fallback {
@@ -207,14 +206,16 @@
 }
 .section p { font-size: 0.98rem; line-height: 1.7; color: #374151; }
 
-/* ── About — single column with lead paragraph ── */
-#aboutSection .about-lead {
-  font-size: 1.1rem; font-weight: 600; line-height: 1.6;
+/* ── About — single clean section, no sub-cards ── */
+#aboutSection p.about-lead {
+  font-size: 1.05rem; font-weight: 600; line-height: 1.65;
   color: var(--brand-primary, #1a3a2a);
-  margin-bottom: 0.75rem;
+  margin: 0 0 0.9rem;
+  padding: 0; background: none; border: none;
 }
-#aboutSection .about-body {
+#aboutSection p.about-body {
   font-size: 0.97rem; line-height: 1.75; color: #4b5563;
+  margin: 0; padding: 0; background: none; border: none;
 }
 
 /* ── Gallery — moved up, before services ── */
@@ -375,9 +376,12 @@
 }
 
 /* ── FAQs ── */
-#faqs { max-width: 900px; margin: 0 auto 2.5rem; }
-#faqs::before { content: 'Frequently asked questions'; display: block; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #9ca3af; margin-bottom: 0.5rem; }
-#faqs.hidden::before { display: none; }
+.faq-wrap { max-width: 900px; margin: 0 auto 2.5rem; padding: 0 1.5rem; }
+.faq-wrap.hidden { display: none; }
+.faq-heading {
+  font-family: 'DM Sans', sans-serif; font-size: 1.3rem; font-weight: 700;
+  color: #0a1628; margin: 0 0 1rem; letter-spacing: -0.02em;
+}
 .faq-list { display: flex; flex-direction: column; gap: 0.5rem; }
 .faq-item-wrapper { border-radius: 12px; overflow: hidden; border: 1px solid #e4edf5; background: #fff; transition: border-color 0.15s; }
 .faq-item-wrapper:hover { border-color: var(--brand-primary-30, rgba(26,58,42,0.25)); }
@@ -459,7 +463,7 @@
 @media (max-width: 768px) {
   .hero-layout { grid-template-columns: 1fr; text-align: center; }
   .hero-profile { justify-content: center; margin-bottom: 1rem; }
-  .profile-avatar { width: 180px; height: 180px; }
+  .profile-avatar { width: 160px; height: 160px; }
   .hero-meta { justify-content: center; }
   .hero-trust { justify-content: center; }
   .location-grid { grid-template-columns: 1fr; }
@@ -597,18 +601,18 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 </div>
 
 <!-- FAQs -->
-<section class="section hidden" id="faqs" style="margin-bottom:2.5rem;">
-  <h2>Frequently Asked Questions</h2>
+<div class="faq-wrap hidden" id="faqs">
+  <h2 class="faq-heading">Frequently Asked Questions</h2>
   <div class="faq-list" id="faqList"></div>
-</section>
+</div>
 
 <!-- LOCATION & GOOGLE -->
 <section class="section hidden" id="locationBand">
   <h2>Location &amp; Reviews</h2>
-  <div class="location-grid">
+  <div class="location-grid" id="locationGrid">
     <div class="map-wrap" id="map"></div>
-    <div class="location-meta">
-      <div id="rating" class="rating"></div>
+    <div class="location-meta" id="locationMeta">
+      <div id="rating" class="rating hidden"></div>
       <div id="hours"></div>
     </div>
   </div>
@@ -929,13 +933,22 @@ async function loadProfile() {
     midNudge.classList.remove('hidden');
   }
 
-  /* ── Why Choose Us — checkmarks ── */
+  /* ── Why Choose Us — smarter parsing ── */
   const whyEl = getEl('why');
   const whySection = getEl('whySection');
   if (whyEl && p.why_choose_us) {
-    const items = p.why_choose_us.split('\n').map(s => s.trim()).filter(Boolean);
+    // Try newline split first, fall back to period/dash split
+    let items = p.why_choose_us.split('\n').map(s => s.trim()).filter(Boolean);
+    if (items.length <= 1) {
+      // Single blob — split on ". " or " — " or "—"
+      items = p.why_choose_us
+        .split(/\. |—|\. |;/)
+        .map(s => s.trim().replace(/^[-•·]\s*/, '').replace(/\.\s*$/, '').trim())
+        .filter(s => s.length > 4);
+    }
     if (items.length) {
-      whyEl.innerHTML = items.map(item => `<li>${item.replace(/^[-•·]\s*/, '')}</li>`).join('');
+      items = items.map(item => item.replace(/^[-•·]\s*/, ''));
+      whyEl.innerHTML = items.map(item => `<li>${item}</li>`).join('');
       whySection?.classList.remove('hidden');
     }
   } else {
@@ -982,8 +995,8 @@ async function loadProfile() {
     faqList.querySelectorAll('.faq-item').forEach(btn => {
       btn.addEventListener('click', () => btn.classList.toggle('active'));
     });
-  } else {
-    faqsEl?.classList.add('hidden');
+  } else if (faqsEl) {
+    faqsEl.classList.add('hidden');
   }
 
   /* ── Google data ── */
@@ -1005,16 +1018,25 @@ async function loadProfile() {
     hoursEl.innerHTML = `<h3>Hours</h3><ul>${google.regularOpeningHours.weekdayDescriptions.map(d => `<li>${d}</li>`).join('')}</ul>`;
   }
   const ratingEl = getEl('rating');
-  if (ratingEl && google?.rating) ratingEl.innerHTML = `${google.rating} <span>on Google (${google.userRatingCount || ''} reviews)</span>`;
+  if (ratingEl && google?.rating) { ratingEl.innerHTML = `${google.rating} <span>on Google (${google.userRatingCount || ''} reviews)</span>`; ratingEl.classList.remove('hidden'); }
   const reviewsEl = getEl('reviews');
   if (reviewsEl && google?.reviews?.length) {
     const best = google.reviews.filter(r => r.rating === 5).sort((a, b) => (b.publishTime || 0) - (a.publishTime || 0))[0];
     if (best) reviewsEl.innerHTML = `<div class="review"><strong>${best.authorAttribution?.displayName || 'Google User'} ⭐ ${best.rating}</strong><p>${truncateText(best.text?.text || '', 320)}</p></div>`;
   }
   const hasTowns = Array.isArray(p.service_area) && p.service_area.length;
-  const hasGoogle = !!p.google_place_id || google?.rating;
-  if ((hasTowns || hasGoogle) && locationBand) locationBand.classList.remove('hidden');
-  else if (locationBand) locationBand.classList.add('hidden');
+  const hasGoogleData = !!google?.rating || !!google?.reviews?.length;
+  const hasMap = !!p.google_place_id;
+  // Only show location section if we actually have a map to show
+  if (hasMap && locationBand) {
+    locationBand.classList.remove('hidden');
+    // If no rating loaded, hide the rating element
+    if (!hasGoogleData) {
+      getEl('locationMeta')?.classList.add('hidden');
+    }
+  } else if (locationBand) {
+    locationBand.classList.add('hidden');
+  }
 
   /* ── Contact form ── */
   const contactIntro = getEl('contactIntro');
