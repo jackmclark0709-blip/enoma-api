@@ -252,14 +252,13 @@ body.persona-retail .section::before { background: #9a3a8a; }
 .contact-pill .icon { width: 15px; height: 15px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 2; }
 
 /* ── Sections ── */
+/* ── Section base — open, no card ── */
 .section {
   max-width: 860px; margin: 0 auto;
   padding: 3rem 0;
   background: transparent;
   border: none; box-shadow: none;
-  border-bottom: 1px solid #e8f0f8;
 }
-.section:last-of-type { border-bottom: none; }
 .section h2 {
   font-family: 'DM Sans', sans-serif;
   font-size: 1.35rem; font-weight: 700;
@@ -273,6 +272,17 @@ body.persona-retail .section::before { background: #9a3a8a; }
   border-radius: 999px; margin-bottom: 0.9rem;
 }
 .section p { font-size: 0.97rem; line-height: 1.7; color: #374151; }
+
+/* ── Tinted band — wraps certain sections for visual cadence ── */
+.band {
+  background: #f0f5fb;
+  border-top: 1px solid #e0eaf5;
+  border-bottom: 1px solid #e0eaf5;
+  margin: 0; padding: 0;
+  width: 100vw; margin-left: calc(50% - 50vw);
+}
+.band > .section { padding: 3rem 1.5rem; }
+.band > .faq-wrap { padding: 3rem 1.5rem; max-width: 860px; margin: 0 auto; }
 
 /* ── About — single clean section, no sub-cards ── */
 #aboutSection p.about-lead {
@@ -403,23 +413,39 @@ body.persona-retail .section::before { background: #9a3a8a; }
 }
 
 /* ── Testimonials ── */
-#testimonials { border: none; background: transparent; box-shadow: none; margin-top: 2rem; padding-top: 1.75rem; border-top: 1px solid #e8f0f8; }
 .testimonial-grid { display: flex; flex-direction: column; gap: 1rem; }
+.testimonial-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1rem; }
 .testimonial {
-  background: #fff; border-left: 4px solid var(--brand-primary, #1a3a2a);
-  border-radius: 16px; padding: 1.5rem;
-  box-shadow: 0 4px 16px rgba(10,22,40,0.06);
-  position: relative;
+  background: #fff;
+  border-radius: 16px; padding: 1.5rem 1.75rem 1.5rem 1.5rem;
+  border: 1px solid #e4edf5;
+  box-shadow: 0 2px 12px rgba(10,22,40,0.05);
+  position: relative; overflow: hidden;
 }
-.testimonial::before {
-  content: '\201C'; font-size: 3.5rem; line-height: 1;
-  color: var(--brand-primary, #1a3a2a); opacity: 0.15;
-  position: absolute; top: 0.5rem; right: 1.25rem;
-  font-family: Georgia, serif;
+.testimonial::after {
+  content: '\201C';
+  font-family: Georgia, serif; font-size: 6rem; line-height: 1;
+  color: var(--brand-primary, #1a3a2a); opacity: 0.06;
+  position: absolute; top: -0.5rem; right: 0.75rem;
+  pointer-events: none;
 }
-.testimonial p { font-style: italic; font-size: 0.97rem; color: #4b5563; line-height: 1.65; margin: 0 0 0.65rem; }
-.testimonial strong { font-size: 0.85rem; font-weight: 700; color: #0a1628; }
-.stars { color: #f59e0b; font-size: 0.8rem; margin-bottom: 0.25rem; }
+.testimonial-accent {
+  width: 3px; height: 100%;
+  background: var(--brand-primary, #1a3a2a);
+  position: absolute; left: 0; top: 0; border-radius: 3px 0 0 3px;
+}
+.testimonial p { font-size: 0.95rem; color: #4b5563; line-height: 1.7; margin: 0 0 1rem; font-style: italic; }
+.testimonial-author { display: flex; align-items: center; gap: 0.6rem; }
+.testimonial-avatar {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  background: var(--brand-primary-10, rgba(26,58,42,0.08));
+  border: 1.5px solid var(--brand-primary-30, rgba(26,58,42,0.2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.78rem; font-weight: 700;
+  color: var(--brand-primary, #1a3a2a);
+}
+.testimonial strong { font-size: 0.83rem; font-weight: 700; color: #0a1628; display: block; }
+.stars { color: #f59e0b; font-size: 0.72rem; letter-spacing: 1px; margin-bottom: 0.6rem; }
 
 /* ── Areas Served ── */
 .services-area {
@@ -616,6 +642,14 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
   </div>
 </section>
 
+<!-- TESTIMONIALS — own section, tinted band -->
+<div class="band hidden" id="testimonialsWrap">
+  <section class="section" id="testimonials" style="border:none;">
+    <h2>What Clients Say</h2>
+    <div class="testimonial-grid" id="testimonialList"></div>
+  </section>
+</div>
+
 <!-- AREAS SERVED — moved up near hero for discoverability -->
 <div class="hidden" id="townsWrap">
   <div class="section" id="towns" style="border-bottom: 1px solid #e8f0f8;">
@@ -637,8 +671,9 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
   <a href="/create" id="addPhotosLink">+ Add photos to your website →</a>
 </div>
 
-<!-- SERVICES -->
-<section class="section" id="servicesSection">
+<!-- SERVICES — tinted band for visual rhythm -->
+<div class="band">
+<section class="section" id="servicesSection" style="border:none;">
   <h2>Our Services</h2>
   <p id="services-intro" class="services-intro"></p>
   <div id="services-grid" class="service-grid"></div>
@@ -651,6 +686,7 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
     <p class="services-cta-note">No obligation · Fast response · Local service</p>
   </div>
 </section>
+</div>
 
 <!-- MID-PAGE CONTACT NUDGE -->
 <div class="mid-contact-nudge hidden" id="midContactNudge">
@@ -668,20 +704,16 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 <section class="section" id="whySection">
   <h2>Why Choose Us</h2>
   <ul class="why-list" id="why"></ul>
-  <div class="trust-group hidden" id="trustGroup">
-    <div class="hidden" id="testimonials" style="margin-top:1.75rem;">
-      <h3 style="font-family:'DM Sans',sans-serif;font-size:1.1rem;font-weight:700;color:#0a1628;margin:0 0 0.75rem;">What Clients Say</h3>
-      <div class="testimonial-grid" id="testimonialList"></div>
-    </div>
-  </div>
 </section>
 
 
 
-<!-- FAQs -->
-<div class="faq-wrap hidden" id="faqs">
+<!-- FAQs — tinted band -->
+<div class="band hidden" id="faqsBand">
+<div class="faq-wrap" id="faqs" style="border-bottom:none;">
   <h2 class="faq-heading">Frequently Asked Questions</h2>
   <div class="faq-list" id="faqList"></div>
+</div>
 </div>
 
 <!-- LOCATION & GOOGLE -->
@@ -697,8 +729,9 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
   <div id="reviews" class="reviews" style="margin-top:1.25rem;"></div>
 </section>
 
-<!-- CONTACT FORM -->
-<section class="section contact" id="contact">
+<!-- CONTACT FORM — tinted band -->
+<div class="band">
+<section class="section contact" id="contact" style="border:none;">
   <div class="contact-inner">
   <h2>Get in Touch</h2>
   <p class="contact-intro" id="contactIntro">
@@ -714,6 +747,7 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
   </form>
   <p id="contactStatus"></p>
 </section>
+</div>
 
 <!-- ATTACHMENTS / RESOURCES -->
 <section class="section hidden" id="attachments">
@@ -1076,19 +1110,23 @@ async function loadProfile() {
     whySection?.classList.add('hidden');
   }
 
-  /* ── Testimonials ── */
-  const testimonialsEl = getEl('testimonials');
+  /* ── Testimonials — standalone section ── */
   const testimonialList = getEl('testimonialList');
-  const trustGroup = getEl('trustGroup');
+  const testimonialsWrap = getEl('testimonialsWrap');
   if (Array.isArray(p.testimonials) && p.testimonials.length && testimonialList) {
-    testimonialList.innerHTML = p.testimonials.map(t => `
-      <div class="testimonial">
+    testimonialList.innerHTML = p.testimonials.map(t => {
+      const initial = (t.author || '?')[0].toUpperCase();
+      return `<div class="testimonial">
+        <div class="testimonial-accent"></div>
         <div class="stars">★★★★★</div>
         <p>${t.quote}</p>
-        <strong>— ${t.author}</strong>
-      </div>`).join('');
-    testimonialsEl?.classList.remove('hidden');
-    trustGroup?.classList.remove('hidden');
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">${initial}</div>
+          <strong>${t.author}</strong>
+        </div>
+      </div>`;
+    }).join('');
+    testimonialsWrap?.classList.remove('hidden');
   }
 
   /* ── Towns ── */
@@ -1113,11 +1151,13 @@ async function loadProfile() {
         <div class="faq-answer"><p>${f.a || f.answer || ''}</p></div>
       </div>`).join('');
     faqsEl?.classList.remove('hidden');
+    getEl('faqsBand')?.classList.remove('hidden');
     faqList.querySelectorAll('.faq-item').forEach(btn => {
       btn.addEventListener('click', () => btn.classList.toggle('active'));
     });
   } else if (faqsEl) {
     faqsEl.classList.add('hidden');
+    getEl('faqsBand')?.classList.add('hidden');
   }
 
   /* ── Google data ── */
