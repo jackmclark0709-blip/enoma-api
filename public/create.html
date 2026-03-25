@@ -595,7 +595,8 @@ let supabase;
 while (!window.supabaseClient) await new Promise(r => setTimeout(r, 10));
 supabase = window.supabaseClient;
 while (!window.__ENOMA_AUTH_CHECKED) await new Promise(r => setTimeout(r, 10));
-if (!window.__ENOMA_AUTH_OK) return;
+
+if (window.__ENOMA_AUTH_OK) {
 const session = window.__ENOMA_SESSION;
 
 const form = document.getElementById("form");
@@ -645,7 +646,9 @@ const regenCheckbox = document.getElementById("regenerate_ai");
 if (regenCheckbox) regenCheckbox.checked = !editBusinessId;
 
 // Sticky submit wires to main form submit
-document.getElementById("stickySubmitBtn").addEventListener("click", () => form.requestSubmit());
+document.getElementById("stickySubmitBtn").addEventListener("click", () => {
+  form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+});
 
 // Load for edit
 async function loadBusinessForEdit(businessId) {
@@ -689,27 +692,10 @@ async function loadBusinessForEdit(businessId) {
   if (data.hero_headline || data.seo_title) toggleAdvanced(true);
 }
 
-window.addService = function() {
-  const div = document.createElement("div"); div.className = "block";
-  div.innerHTML = `<button type="button" class="block-remove" onclick="this.parentElement.remove()" title="Remove">×</button><label style="margin-top:0">Service name</label><input placeholder="e.g. Weekly Mowing" class="service-name"/><label>Description <span class="label-hint">optional — AI will write this if blank</span></label><textarea placeholder="Brief description of this service" class="service-description" rows="2"></textarea><label>Price <span class="label-hint">optional</span></label><input placeholder="e.g. From $50, $150+, Call for quote" class="service-price"/>`;
-  servicesEl.appendChild(div);
-};
-window.addTestimonial = function() {
-  const div = document.createElement("div"); div.className = "block";
-  div.innerHTML = `<button type="button" class="block-remove" onclick="this.parentElement.remove()" title="Remove">×</button><label style="margin-top:0">Client quote</label><textarea placeholder="e.g. Highly recommend — they showed up on time, did excellent work, and the price was fair." class="testimonial-quote" rows="3"></textarea><label>Customer name</label><input placeholder="e.g. Sarah M., Agawam" class="testimonial-author"/>`;
-  testimonialsEl.appendChild(div);
-};
+// addService is now a global function (see plain script)
+// addTestimonial is now a global function (see plain script)
 
-window.toggleAdvanced = function(forceOpen) {
-  const btn = document.getElementById("advancedToggle");
-  const panel = document.getElementById("advancedPanel");
-  const isOpen = panel.classList.contains("open") || forceOpen;
-  if (forceOpen === true || !panel.classList.contains("open")) {
-    panel.classList.add("open"); btn.classList.add("open");
-  } else {
-    panel.classList.remove("open"); btn.classList.remove("open");
-  }
-};
+// toggleAdvanced is now a global function (see plain script)
 
 if (editBusinessId) await loadBusinessForEdit(editBusinessId);
 
@@ -719,8 +705,12 @@ function refreshButtonLabels() {
   if (updateBtn && editBusinessId) updateBtn.textContent = regenCheckbox?.checked ? "Rewrite with AI + save →" : "Save changes →";
 }
 regenCheckbox?.addEventListener("change", refreshButtonLabels); refreshButtonLabels();
-createBtn?.addEventListener("click", () => form.requestSubmit());
-updateBtn?.addEventListener("click", () => form.requestSubmit());
+createBtn?.addEventListener("click", () => {
+  form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+});
+updateBtn?.addEventListener("click", () => {
+  form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+});
 
 function showStatus(msg, isError = false) {
   const el = document.getElementById("status");
@@ -753,12 +743,16 @@ form.addEventListener("submit", async (e) => {
     window.location.href = json.url;
   } catch (err) { console.error(err); showStatus("Failed to save. Please try again.", true); }
 });
+
+} // end if (window.__ENOMA_AUTH_OK)
 </script>
 
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD2DZjVEIuq6luIvl-lVeOaxqd3BG2V7IA&libraries=places"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD2DZjVEIuq6luIvl-lVeOaxqd3BG2V7IA&libraries=places&callback=initGooglePlaces" async defer></script>
 <script>
-const acInput = document.getElementById("google_place");
-const autocomplete = new google.maps.places.Autocomplete(acInput, { types: ["establishment"] });
+function initGooglePlaces() {
+  const acInput = document.getElementById("google_place");
+  if (!acInput) return;
+  const autocomplete = new google.maps.places.Autocomplete(acInput, { types: ["establishment"] });
 autocomplete.addListener("place_changed", () => {
   const place = autocomplete.getPlace(); if (!place.place_id) return;
   document.querySelector('[name="google_place_id"]').value = place.place_id;
@@ -779,7 +773,8 @@ autocomplete.addListener("place_changed", () => {
       if (sel) sel.value = cat;
     }
   } catch {}
-});
+  });
+}
 const imgInput = document.querySelector('input[name="images"]');
 const imgPreview = document.getElementById("imagePreview");
 if (imgInput && imgPreview) {
@@ -793,5 +788,46 @@ if (imgInput && imgPreview) {
   });
 }
 </script>
+
+<!-- Plain script so onclick handlers can find these functions immediately -->
+<script>
+function addService() {
+  var servicesEl = document.getElementById('services');
+  if (!servicesEl) return;
+  var div = document.createElement('div'); div.className = 'block';
+  div.innerHTML = '<button type="button" class="block-remove" onclick="this.parentElement.remove()" title="Remove">×</button>'
+    + '<label style="margin-top:0">Service name</label>'
+    + '<input placeholder="e.g. Weekly Mowing" class="service-name"/>'
+    + '<label>Description <span class="label-hint">optional — AI will write this if blank</span></label>'
+    + '<textarea placeholder="Brief description of this service" class="service-description" rows="2"></textarea>'
+    + '<label>Price <span class="label-hint">optional</span></label>'
+    + '<input placeholder="e.g. From $50, $150+, Call for quote" class="service-price"/>';
+  servicesEl.appendChild(div);
+}
+
+function addTestimonial() {
+  var testimonialsEl = document.getElementById('testimonials');
+  if (!testimonialsEl) return;
+  var div = document.createElement('div'); div.className = 'block';
+  div.innerHTML = '<button type="button" class="block-remove" onclick="this.parentElement.remove()" title="Remove">×</button>'
+    + '<label style="margin-top:0">Client quote</label>'
+    + '<textarea placeholder="e.g. Highly recommend — they showed up on time, did excellent work, and the price was fair." class="testimonial-quote" rows="3"></textarea>'
+    + '<label>Customer name</label>'
+    + '<input placeholder="e.g. Sarah M., Agawam" class="testimonial-author"/>';
+  testimonialsEl.appendChild(div);
+}
+
+function toggleAdvanced(forceOpen) {
+  var btn = document.getElementById('advancedToggle');
+  var panel = document.getElementById('advancedPanel');
+  if (!btn || !panel) return;
+  if (forceOpen === true || !panel.classList.contains('open')) {
+    panel.classList.add('open'); btn.classList.add('open');
+  } else {
+    panel.classList.remove('open'); btn.classList.remove('open');
+  }
+}
+</script>
+
 </body>
 </html>
