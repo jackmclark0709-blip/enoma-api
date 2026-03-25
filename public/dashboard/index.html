@@ -4,354 +4,707 @@
   <meta charset="UTF-8" />
   <title>Dashboard — Enoma</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="dashboard.css" />
-  <link rel="stylesheet" href="/styles/enoma.css">
+  <link rel="stylesheet" href="/styles/enoma.css" />
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-S8XTG72Y2Y');
-  </script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-S8XTG72Y2Y');</script>
   <style>
-    /* Subscription status pills */
-    .pill.trial { background: rgba(240,165,0,0.2); color: #f0a500; }
-    .pill.active { background: rgba(80,166,132,0.2); color: #50A684; }
-    .pill.expired { background: rgba(226,75,74,0.2); color: #e24b4a; }
+    /* ── Base ── */
+    body { background: #f0f6ff; font-family: Inter, system-ui, sans-serif; color: #0a1628; margin: 0; }
 
-    /* Trial banner */
-    .trial-banner {
-      background: rgba(154,140,255,0.12);
-      border: 1px solid rgba(154,140,255,0.3);
-      border-radius: 12px;
-      padding: 1rem 1.25rem;
-      margin-bottom: 1.25rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      flex-wrap: wrap;
+    .dash-wrap { max-width: 1040px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+    /* ── Header ── */
+    .dash-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 1rem; flex-wrap: wrap; margin-bottom: 1.75rem;
     }
-    .trial-banner p {
-      margin: 0; font-size: 0.88rem;
-      color: #d4cfff; line-height: 1.5;
+    .dash-header h1 {
+      font-family: 'DM Sans', sans-serif; font-size: 1.6rem; font-weight: 800;
+      color: #0a1628; letter-spacing: -0.025em; margin: 0 0 0.2rem;
     }
-    .trial-banner strong { color: white; }
-    .subscribe-link {
-      background: #9A8CFF; color: #0b0a14;
+    .dash-header .sub { font-size: 0.85rem; color: #7ab3e0; margin: 0; }
+    .header-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-top: 0.25rem; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.5rem 1rem; border-radius: 999px;
+      font-weight: 600; font-size: 0.82rem; text-decoration: none;
+      border: 1.5px solid #d4e2f4; background: #fff; color: #0a1628;
+      cursor: pointer; transition: all 0.15s ease; white-space: nowrap;
+    }
+    .btn:hover { border-color: #0a1628; color: #0a1628; }
+    .btn.primary { background: #0a1628; color: #fff; border-color: #0a1628; }
+    .btn.primary:hover { filter: brightness(1.15); }
+    .btn.danger { border-color: #fca5a5; color: #d94040; }
+    .btn.danger:hover { background: #fef2f2; }
+    .btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
+
+    /* ── Business selector ── */
+    .biz-select {
+      background: #fff; color: #0a1628;
+      border: 1.5px solid #d4e2f4; border-radius: 10px;
+      padding: 0.45rem 0.85rem; font-size: 0.88rem;
+      cursor: pointer; font-family: inherit;
+    }
+    .biz-select:focus { outline: none; border-color: #3882dc; }
+
+    /* ── Status pills ── */
+    .status-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .pill {
+      font-size: 0.75rem; font-weight: 700; padding: 0.3rem 0.8rem;
+      border-radius: 999px; letter-spacing: 0.04em;
+    }
+    .pill.trial   { background: rgba(245,158,11,0.12); color: #b45309; border: 1px solid rgba(245,158,11,0.25); }
+    .pill.active  { background: rgba(5,150,105,0.1);  color: #047857; border: 1px solid rgba(5,150,105,0.25); }
+    .pill.expired { background: rgba(220,38,38,0.1);  color: #dc2626; border: 1px solid rgba(220,38,38,0.2); }
+    .pill.none    { background: #f0f6ff; color: #7ab3e0; border: 1px solid #d4e2f4; }
+    .renewal-txt  { font-size: 0.82rem; color: #7ab3e0; }
+
+    /* ── Trial / upgrade banner ── */
+    .upgrade-banner {
+      background: #0a1628; border-radius: 16px;
+      padding: 1.1rem 1.5rem; margin-bottom: 1.5rem;
+      display: none; align-items: center; justify-content: space-between;
+      gap: 1rem; flex-wrap: wrap;
+    }
+    .upgrade-banner p { margin: 0; font-size: 0.88rem; color: rgba(220,238,255,0.8); line-height: 1.5; }
+    .upgrade-banner strong { color: #fff; }
+    .upgrade-banner-btn {
+      flex-shrink: 0;
+      background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.25);
+      color: #fff; font-weight: 700; font-size: 0.82rem;
       padding: 0.5rem 1.1rem; border-radius: 999px;
-      font-weight: 700; font-size: 0.85rem;
       text-decoration: none; white-space: nowrap;
-      border: none; cursor: pointer;
+      transition: background 0.15s;
     }
+    .upgrade-banner-btn:hover { background: rgba(255,255,255,0.22); color: #fff; }
 
-    /* Create website prompt (shown when no website yet) */
+    /* ── No website card ── */
     .no-website-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 3rem 2rem;
-      text-align: center;
+      background: #fff; border: 1px solid #d4e2f4; border-radius: 20px;
+      padding: 3.5rem 2rem; text-align: center;
+      box-shadow: 0 4px 24px rgba(10,22,40,0.06);
     }
-    .no-website-card h2 { margin: 0 0 0.5rem; font-size: 1.3rem; }
-    .no-website-card p { color: var(--muted); margin: 0 0 1.5rem; font-size: 0.95rem; }
-    .create-btn {
-      display: inline-block;
-      background: #9A8CFF; color: #0b0a14;
-      padding: 0.85rem 2rem; border-radius: 999px;
-      font-weight: 700; text-decoration: none; font-size: 0.95rem;
+    .no-website-card h2 { font-family: 'DM Sans', sans-serif; font-size: 1.4rem; font-weight: 700; color: #0a1628; margin: 0 0 0.5rem; }
+    .no-website-card p { color: #7ab3e0; font-size: 0.92rem; margin: 0 0 1.5rem; }
+
+    /* ── Main grid ── */
+    .dash-grid {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 1rem;
+      align-items: start;
+    }
+    @media (max-width: 860px) { .dash-grid { grid-template-columns: 1fr; } }
+
+    /* ── Cards ── */
+    .card {
+      background: #fff; border: 1px solid #d4e2f4; border-radius: 16px;
+      padding: 1.5rem; box-shadow: 0 2px 12px rgba(10,22,40,0.05);
+    }
+    .card-title {
+      font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 700;
+      color: #0a1628; margin: 0 0 1rem; display: flex; align-items: center;
+      justify-content: space-between; gap: 0.5rem;
+    }
+    .card-title a { font-size: 0.78rem; font-weight: 600; color: #3882dc; text-decoration: none; }
+    .card-title a:hover { text-decoration: underline; }
+
+    /* ── Live preview ── */
+    .preview-card { padding: 0; overflow: hidden; }
+    .preview-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 1.25rem; border-bottom: 1px solid #e8f0f8;
+    }
+    .preview-header h3 { font-family: 'DM Sans', sans-serif; font-size: 0.88rem; font-weight: 700; color: #0a1628; margin: 0; }
+    .preview-url { font-size: 0.78rem; color: #7ab3e0; margin-top: 2px; }
+    .preview-actions { display: flex; gap: 0.5rem; }
+    .preview-frame-wrap {
+      position: relative; width: 100%; height: 380px;
+      overflow: hidden; background: #f7faff;
+    }
+    .preview-frame-wrap iframe {
+      width: 166.67%; height: 166.67%;
+      transform: scale(0.6); transform-origin: top left;
+      border: none; pointer-events: none;
+    }
+    .preview-loading {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: #f7faff; font-size: 0.82rem; color: #7ab3e0;
     }
 
-    /* Stats zero state */
-    .zero-state { color: var(--muted); font-size: 0.9rem; padding: 0.5rem 0; }
+    /* ── Metrics ── */
+    .metrics-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem; }
+    .metric-card {
+      background: #f7faff; border: 1px solid #e8f0f8; border-radius: 12px;
+      padding: 1rem 1.1rem;
+    }
+    .metric-label { font-size: 0.75rem; font-weight: 600; color: #7ab3e0; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.35rem; }
+    .metric-value { font-family: 'DM Sans', sans-serif; font-size: 1.9rem; font-weight: 800; color: #0a1628; line-height: 1; }
+    .metric-sub { font-size: 0.72rem; color: #9ca3af; margin-top: 0.25rem; }
 
-    .business-select {
-      background: var(--card); color: var(--text);
-      border: 1px solid var(--border); border-radius: 8px;
-      padding: 0.4rem 0.75rem; font-size: 0.9rem;
-      cursor: pointer;
+    /* ── Messages ── */
+    .messages-list { display: flex; flex-direction: column; gap: 0; }
+    .message-item {
+      padding: 0.9rem 0; border-bottom: 1px solid #e8f0f8;
+      cursor: pointer; transition: background 0.1s;
     }
+    .message-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .message-item:first-child { padding-top: 0; }
+    .message-item:hover { background: #f7faff; margin: 0 -1.5rem; padding-left: 1.5rem; padding-right: 1.5rem; }
+    .message-header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.2rem; }
+    .message-name { font-size: 0.88rem; font-weight: 700; color: #0a1628; }
+    .message-time { font-size: 0.75rem; color: #9ca3af; white-space: nowrap; }
+    .message-email { font-size: 0.78rem; color: #3882dc; margin-bottom: 0.3rem; }
+    .message-preview { font-size: 0.82rem; color: #6b7280; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .message-full { display: none; font-size: 0.85rem; color: #374151; line-height: 1.6; margin-top: 0.5rem; background: #f7faff; border-radius: 8px; padding: 0.75rem; }
+    .message-item.expanded .message-full { display: block; }
+    .message-item.expanded .message-preview { display: none; }
+    .message-reply-btn { display: inline-flex; align-items: center; gap: 0.3rem; margin-top: 0.6rem; font-size: 0.78rem; font-weight: 600; color: #3882dc; text-decoration: none; }
+    .unread-dot { width: 7px; height: 7px; border-radius: 50%; background: #3882dc; flex-shrink: 0; margin-top: 3px; }
+    .no-messages { font-size: 0.85rem; color: #9ca3af; text-align: center; padding: 1.5rem 0; line-height: 1.6; }
 
-    .header-actions {
-      display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;
+    /* ── Managed upsell ── */
+    .upsell-card {
+      background: linear-gradient(160deg, #0d1b2a 0%, #162436 100%);
+      border: none; color: #fff;
     }
-    .btn.secondary {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--muted);
+    .upsell-eyebrow { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #7ab3e0; margin-bottom: 0.4rem; }
+    .upsell-title { font-family: 'DM Sans', sans-serif; font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 0.4rem; }
+    .upsell-desc { font-size: 0.82rem; color: rgba(220,238,255,0.65); line-height: 1.55; margin-bottom: 1.1rem; }
+    .upsell-features { list-style: none; padding: 0; margin: 0 0 1.25rem; display: flex; flex-direction: column; gap: 0.45rem; }
+    .upsell-features li { font-size: 0.8rem; color: rgba(220,238,255,0.75); display: flex; align-items: flex-start; gap: 0.5rem; line-height: 1.4; }
+    .upsell-features li::before { content: ''; width: 14px; height: 14px; flex-shrink: 0; margin-top: 1px; background: rgba(56,130,220,0.3) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 24 24' fill='none' stroke='%237ab3e0' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E") no-repeat center; border-radius: 50%; }
+    .upsell-cta {
+      display: block; width: 100%; text-align: center; box-sizing: border-box;
+      background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.25);
+      color: #fff; font-weight: 700; font-size: 0.85rem;
+      padding: 0.7rem 1rem; border-radius: 999px; text-decoration: none;
+      transition: background 0.15s;
     }
-    .btn.secondary:hover { border-color: var(--accent); color: var(--accent); }
+    .upsell-cta:hover { background: rgba(255,255,255,0.22); color: #fff; }
+
+    /* ── Sources list ── */
+    .sources-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+    .sources-list li { display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; gap: 0.5rem; }
+    .sources-list li span { color: #374151; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sources-list li strong { color: #0a1628; font-weight: 700; flex-shrink: 0; }
+    .source-bar-wrap { flex: 1; height: 4px; background: #e8f0f8; border-radius: 999px; margin: 0 0.75rem; min-width: 40px; }
+    .source-bar { height: 4px; background: #3882dc; border-radius: 999px; }
+    .zero-state { font-size: 0.82rem; color: #9ca3af; padding: 0.5rem 0; line-height: 1.6; }
   </style>
 </head>
-
 <body>
 <script type="module" src="/partials/nav.js"></script>
-  <main class="container">
 
-    <header class="header">
-      <div>
-        <h1 id="business-name">Loading…</h1>
-        <p class="sub">Your Enoma website performance</p>
-      </div>
+<div class="dash-wrap">
 
-      <select id="business-select" class="business-select"></select>
-
+  <!-- HEADER -->
+  <div class="dash-header">
+    <div>
+      <h1 id="business-name">Loading…</h1>
+      <p class="sub" id="business-url"></p>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.5rem;">
+      <select id="business-select" class="biz-select" style="display:none;"></select>
       <div class="header-actions">
-        <a id="public-link" class="btn" target="_blank" style="display:none;">View my website</a>
-        <a id="edit-link" class="btn secondary" style="display:none;">Edit website</a>
-        <button id="sign-out" class="btn secondary">Sign out</button>
+        <a id="public-link" class="btn primary" target="_blank" style="display:none;">
+          <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          View live page
+        </a>
+        <a id="edit-link" class="btn" style="display:none;">
+          <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Edit page
+        </a>
+        <button id="sign-out" class="btn danger">Sign out</button>
       </div>
-    </header>
-
-    <!-- Trial / subscription banner -->
-    <div id="trial-banner" class="trial-banner" style="display:none;">
-      <p id="trial-banner-text"></p>
-      <button class="subscribe-link" id="subscribe-btn">Subscribe — $19.99/mo</button>
     </div>
+  </div>
 
-    <section class="status">
-      <span id="subscription-status" class="pill">Loading…</span>
-      <span id="renewal-date" class="muted"></span>
-    </section>
+  <!-- STATUS ROW -->
+  <div class="status-row">
+    <span id="subscription-status" class="pill none">Loading…</span>
+    <span id="renewal-date" class="renewal-txt"></span>
+  </div>
 
-    <!-- No website prompt -->
-    <div id="no-website-card" class="no-website-card" style="display:none;">
-      <h2>You don't have a website yet</h2>
-      <p>Create your business website in minutes — fill out a short form and we'll build it from your notes.</p>
-      <a href="/create" class="create-btn">Create my free website →</a>
-    </div>
+  <!-- UPGRADE BANNER (shown during trial / expired) -->
+  <div class="upgrade-banner" id="upgrade-banner">
+    <p id="banner-text"></p>
+    <a class="upgrade-banner-btn" id="upgrade-btn" href="/upgrade">Keep my website live →</a>
+  </div>
 
-    <!-- Stats (hidden until website exists) -->
-    <div id="stats-section" style="display:none;">
-      <section class="kpis">
-        <div class="card">
-          <h3>Page Views <span style="font-size:0.75rem;opacity:0.6;">(30 days)</span></h3>
-          <div id="page-views" class="metric">—</div>
+  <!-- NO WEBSITE -->
+  <div id="no-website-card" class="no-website-card" style="display:none;">
+    <h2>You don't have a website yet</h2>
+    <p>Create your business website in minutes — fill out a short form and we'll build it from your notes.</p>
+    <a href="/create" class="btn primary" style="display:inline-flex;font-size:0.95rem;padding:0.75rem 1.75rem;">
+      Create my free website →
+    </a>
+  </div>
+
+  <!-- MAIN CONTENT (hidden until website exists) -->
+  <div id="dash-content" style="display:none;">
+
+    <!-- Live preview + messages (left col) + sidebar (right col) -->
+    <div class="dash-grid">
+
+      <!-- LEFT COLUMN -->
+      <div style="display:flex;flex-direction:column;gap:1rem;">
+
+        <!-- Live preview -->
+        <div class="card preview-card">
+          <div class="preview-header">
+            <div>
+              <h3>Your live page</h3>
+              <p class="preview-url" id="preview-url-label"></p>
+            </div>
+            <div class="preview-actions">
+              <a id="preview-view-btn" class="btn" target="_blank" href="#">
+                <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                Open
+              </a>
+              <a id="preview-edit-btn" class="btn" href="#">
+                <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Edit
+              </a>
+            </div>
+          </div>
+          <div class="preview-frame-wrap">
+            <div class="preview-loading" id="preview-loading">Loading preview…</div>
+            <iframe id="preview-frame" title="Your business page preview" sandbox="allow-scripts allow-same-origin"></iframe>
+          </div>
         </div>
+
+        <!-- Messages -->
         <div class="card">
-          <h3>Contact Clicks <span style="font-size:0.75rem;opacity:0.6;">(30 days)</span></h3>
-          <div id="contact-clicks" class="metric">—</div>
+          <div class="card-title">
+            <span id="messages-heading">Recent messages</span>
+            <span id="messages-badge" style="display:none;background:rgba(56,130,220,0.1);color:#1e5ca8;font-size:0.72rem;font-weight:700;padding:0.2rem 0.6rem;border-radius:999px;border:1px solid rgba(56,130,220,0.2);"></span>
+          </div>
+          <div id="messages-list" class="messages-list">
+            <div class="zero-state" style="text-align:center;padding:1.5rem 0;">Loading messages…</div>
+          </div>
         </div>
-      </section>
 
-      <section class="card">
-        <h3>Where visitors came from</h3>
-        <ul id="sources"><li class="zero-state">Loading…</li></ul>
-      </section>
+        <!-- Traffic sources -->
+        <div class="card">
+          <div class="card-title">
+            Traffic sources
+            <span style="font-size:0.75rem;color:#9ca3af;font-weight:400;">last 30 days</span>
+          </div>
+          <div class="metrics-row">
+            <div class="metric-card">
+              <div class="metric-label">Page views</div>
+              <div class="metric-value" id="page-views">—</div>
+              <div class="metric-sub">last 30 days</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Contact clicks</div>
+              <div class="metric-value" id="contact-clicks">—</div>
+              <div class="metric-sub">calls, emails, forms</div>
+            </div>
+          </div>
+          <ul id="sources" class="sources-list">
+            <li><span class="zero-state">Loading…</span></li>
+          </ul>
+        </div>
+
+      </div>
+
+      <!-- RIGHT COLUMN (sidebar) -->
+      <div style="display:flex;flex-direction:column;gap:1rem;">
+
+        <!-- Managed service upsell -->
+        <div class="card upsell-card">
+          <p class="upsell-eyebrow">Managed by Enoma</p>
+          <p class="upsell-title">Want hands-on help?</p>
+          <p class="upsell-desc">We'll optimize your page, manage updates, add new photos, and make sure your page always puts your best foot forward.</p>
+          <ul class="upsell-features">
+            <li>Monthly page reviews &amp; copy updates</li>
+            <li>We upload photos when you send them</li>
+            <li>Seasonal content (spring cleanups, etc.)</li>
+            <li>Priority support from Jack</li>
+          </ul>
+          <a href="/contact?ref=dashboard_managed" class="upsell-cta">Get in touch with an expert →</a>
+        </div>
+
+        <!-- Quick share -->
+        <div class="card">
+          <div class="card-title">Share your page</div>
+          <p style="font-size:0.82rem;color:#7ab3e0;margin:0 0 0.85rem;line-height:1.5;">Share your link in your local Facebook groups, with customers, or add it to your business card.</p>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+            <button class="btn" id="copy-link-btn">
+              <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Copy link
+            </button>
+            <a id="share-facebook-btn" href="#" target="_blank" class="btn">
+              <svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none;"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+              Share
+            </a>
+          </div>
+          <p id="copy-confirm" style="display:none;font-size:0.78rem;color:#059669;margin:0.5rem 0 0;">✓ Link copied to clipboard!</p>
+        </div>
+
+        <!-- Quick tips -->
+        <div class="card">
+          <div class="card-title">Quick wins</div>
+          <div id="quick-wins" style="display:flex;flex-direction:column;gap:0.6rem;"></div>
+        </div>
+
+      </div>
     </div>
+  </div>
 
-  </main>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script type="module">
-  const SUPABASE_URL = 'https://qhsivcenpnxwmvwznqie.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc';
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const SUPABASE_URL  = 'https://qhsivcenpnxwmvwznqie.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-  async function main() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { window.location.href = '/login'; return; }
+function timeAgo(dateStr) {
+  const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+  if (diff < 604800) return `${Math.floor(diff/86400)}d ago`;
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
 
-    // Check for ?subscribed=1 (coming back from Stripe)
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('subscribed') === '1') {
-      // Clean URL
-      window.history.replaceState({}, '', '/dashboard');
-    }
+async function main() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) { window.location.href = '/login'; return; }
 
-    const { data: memberships, error: memberError } = await supabase
-      .from('business_members')
-      .select('*')
-      .eq('user_id', session.user.id);
+  document.getElementById('sign-out').addEventListener('click', async () => {
+    await supabase.auth.signOut(); window.location.href = '/login';
+  });
 
-    if (memberError || !memberships?.length) {
-      // New user — show create prompt
-      document.getElementById('business-name').textContent = 'Welcome to Enoma';
-      document.getElementById('no-website-card').style.display = 'block';
-      document.getElementById('subscription-status').textContent = 'No website yet';
-      document.getElementById('subscription-status').className = 'pill';
-      document.getElementById('sign-out').addEventListener('click', async () => {
-        await supabase.auth.signOut();
-        window.location.href = '/login';
-      });
-      return;
-    }
+  // ── Load memberships ──
+  const { data: memberships } = await supabase
+    .from('business_members').select('*').eq('user_id', session.user.id);
 
-    const businessIds = memberships.map(m => m.business_id);
-
-    const { data: profiles } = await supabase
-      .from('small_business_profiles')
-      .select('business_id, username, business_name')
-      .in('business_id', businessIds);
-
-    if (!profiles?.length) {
-      document.getElementById('no-website-card').style.display = 'block';
-      return;
-    }
-
-    const selectEl = document.getElementById('business-select');
-    profiles.forEach(p => {
-      const option = document.createElement('option');
-      option.value = p.business_id;
-      option.textContent = p.business_name || p.username;
-      selectEl.appendChild(option);
-    });
-
-    const activeBusinessId = params.get('business_id') || profiles[0].business_id;
-    selectEl.value = activeBusinessId;
-
-    async function loadDashboard(profile) {
-      document.getElementById('business-name').textContent = profile.business_name || profile.username;
-      document.getElementById('stats-section').style.display = 'block';
-
-      const publicLink = document.getElementById('public-link');
-      publicLink.href = `/${profile.username}`;
-      publicLink.style.display = 'inline-flex';
-
-      const editLink = document.getElementById('edit-link');
-      editLink.href = `/create?business_id=${profile.business_id}`;
-      editLink.style.display = 'inline-flex';
-
-      // Load subscription status
-      const { data: sub } = await supabase
-        .from('subscriptions')
-        .select('status, is_trial, trial_expires_at, current_period_end')
-        .eq('business_id', profile.business_id)
-        .maybeSingle();
-
-      const statusEl = document.getElementById('subscription-status');
-      const bannerEl = document.getElementById('trial-banner');
-      const bannerText = document.getElementById('trial-banner-text');
-      const renewalEl = document.getElementById('renewal-date');
-
-      if (sub) {
-        const isPaid = sub.status === 'active';
-        const isTrial = sub.is_trial && sub.trial_expires_at;
-        const trialExpiry = isTrial ? new Date(sub.trial_expires_at) : null;
-        const trialExpired = trialExpiry ? trialExpiry < new Date() : false;
-        const daysLeft = trialExpiry ? Math.max(0, Math.ceil((trialExpiry - new Date()) / (1000 * 60 * 60 * 24))) : 0;
-
-        if (isPaid) {
-          statusEl.textContent = 'Active';
-          statusEl.className = 'pill active';
-          if (sub.current_period_end) {
-            renewalEl.textContent = `Renews ${new Date(sub.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
-          }
-        } else if (isTrial && !trialExpired) {
-          statusEl.textContent = 'Free trial';
-          statusEl.className = 'pill trial';
-          renewalEl.textContent = `Trial ends ${trialExpiry.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
-          bannerEl.style.display = 'flex';
-          bannerText.innerHTML = `<strong>Your free trial ends in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}.</strong> Subscribe to keep your website live after ${trialExpiry.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}.`;
-        } else if (trialExpired) {
-          statusEl.textContent = 'Trial expired';
-          statusEl.className = 'pill expired';
-          bannerEl.style.display = 'flex';
-          bannerText.innerHTML = `<strong>Your free trial has ended.</strong> Subscribe to bring your website back online.`;
-        }
-      }
-
-      // Subscribe button
-      document.getElementById('subscribe-btn').addEventListener('click', async () => {
-        const { data: { session: s } } = await supabase.auth.getSession();
-        if (!s) { window.location.href = '/login'; return; }
-        const btn = document.getElementById('subscribe-btn');
-        btn.textContent = 'Loading…';
-        btn.disabled = true;
-        try {
-          const res = await fetch('/api/create-checkout', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${s.access_token}` },
-            body: JSON.stringify({ business_id: profile.business_id })
-          });
-          const { url, error } = await res.json();
-          if (url) window.location.href = url;
-          else { alert(error || 'Could not start checkout.'); btn.textContent = 'Subscribe — $19.99/mo'; btn.disabled = false; }
-        } catch { btn.textContent = 'Subscribe — $19.99/mo'; btn.disabled = false; }
-      });
-
-      // Load metrics
-      const since = new Date();
-      since.setDate(since.getDate() - 30);
-      const sinceDay = since.toISOString().slice(0, 10);
-
-      const { data: metricRows } = await supabase
-        .from('daily_metrics')
-        .select('page_views, contact_clicks')
-        .eq('business_id', profile.business_id)
-        .gte('day', sinceDay);
-
-      let pageViews = 0, contactClicks = 0;
-      if (Array.isArray(metricRows) && metricRows.length) {
-        for (const r of metricRows) {
-          pageViews += Number(r.page_views || 0);
-          contactClicks += Number(r.contact_clicks || 0);
-        }
-      }
-
-      // Fallback to page_events if daily_metrics empty
-      if (pageViews === 0) {
-        const { count: pvCount } = await supabase
-          .from('page_events').select('*', { count: 'exact', head: true })
-          .eq('slug', profile.username).eq('event', 'page_view')
-          .gte('created_at', since.toISOString());
-        const { count: ccCount } = await supabase
-          .from('page_events').select('*', { count: 'exact', head: true })
-          .eq('slug', profile.username)
-          .in('event', ['contact_click', 'cta_click_phone', 'cta_click_email', 'cta_click_website'])
-          .gte('created_at', since.toISOString());
-        pageViews = pvCount ?? 0;
-        contactClicks = ccCount ?? 0;
-      }
-
-      document.getElementById('page-views').textContent = pageViews;
-      document.getElementById('contact-clicks').textContent = contactClicks;
-
-      // Sources
-      const sourcesEl = document.getElementById('sources');
-      const { data: sourceRows } = await supabase
-        .from('top_sources_daily')
-        .select('source, visits')
-        .eq('business_id', profile.business_id)
-        .gte('day', sinceDay);
-
-      const agg = new Map();
-      (sourceRows || []).forEach(r => {
-        const key = r.source || 'Direct';
-        agg.set(key, (agg.get(key) || 0) + Number(r.visits || 0));
-      });
-      const top = Array.from(agg.entries()).sort((a, b) => b[1] - a[1]).slice(0, 6);
-
-      sourcesEl.innerHTML = '';
-      if (!top.length) {
-        sourcesEl.innerHTML = '<li class="zero-state">No traffic data yet — share your website link to start getting visitors.</li>';
-      } else {
-        top.forEach(([source, visits]) => {
-          const li = document.createElement('li');
-          li.innerHTML = `<span>${source}</span><strong>${visits}</strong>`;
-          sourcesEl.appendChild(li);
-        });
-      }
-    }
-
-    function getProfile(id) { return profiles.find(p => p.business_id === id); }
-
-    await loadDashboard(getProfile(activeBusinessId));
-
-    selectEl.addEventListener('change', async e => {
-      const url = new URL(window.location);
-      url.searchParams.set('business_id', e.target.value);
-      window.history.replaceState({}, '', url);
-      await loadDashboard(getProfile(e.target.value));
-    });
-
-    document.getElementById('sign-out').addEventListener('click', async () => {
-      await supabase.auth.signOut();
-      window.location.href = '/login';
-    });
+  if (!memberships?.length) {
+    document.getElementById('business-name').textContent = 'Welcome to Enoma';
+    document.getElementById('no-website-card').style.display = 'block';
+    document.getElementById('subscription-status').textContent = 'No website yet';
+    document.getElementById('subscription-status').className = 'pill none';
+    return;
   }
 
-  main();
+  const { data: profiles } = await supabase
+    .from('small_business_profiles')
+    .select('business_id, username, business_name')
+    .in('business_id', memberships.map(m => m.business_id));
+
+  if (!profiles?.length) {
+    document.getElementById('no-website-card').style.display = 'block';
+    return;
+  }
+
+  // ── Business selector ──
+  const selectEl = document.getElementById('business-select');
+  if (profiles.length > 1) {
+    profiles.forEach(p => {
+      const o = document.createElement('option');
+      o.value = p.business_id; o.textContent = p.business_name || p.username;
+      selectEl.appendChild(o);
+    });
+    selectEl.style.display = 'block';
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const activeId = params.get('business_id') || profiles[0].business_id;
+  selectEl.value = activeId;
+
+  function getProfile(id) { return profiles.find(p => p.business_id === id); }
+
+  await loadDashboard(getProfile(activeId), session);
+
+  selectEl.addEventListener('change', async e => {
+    const url = new URL(window.location);
+    url.searchParams.set('business_id', e.target.value);
+    window.history.replaceState({}, '', url);
+    await loadDashboard(getProfile(e.target.value), session);
+  });
+}
+
+async function loadDashboard(profile, session) {
+  document.getElementById('dash-content').style.display = 'block';
+  document.getElementById('no-website-card').style.display = 'none';
+
+  const publicUrl = `https://enoma.io/${profile.username}`;
+  document.getElementById('business-name').textContent = profile.business_name || profile.username;
+  document.getElementById('business-url').textContent = `enoma.io/${profile.username}`;
+
+  // Header buttons
+  document.getElementById('public-link').href = `/${profile.username}`;
+  document.getElementById('public-link').style.display = 'inline-flex';
+  document.getElementById('edit-link').href = `/create?business_id=${profile.business_id}`;
+  document.getElementById('edit-link').style.display = 'inline-flex';
+
+  // ── Live preview ──
+  const iframe = document.getElementById('preview-frame');
+  const previewLoading = document.getElementById('preview-loading');
+  document.getElementById('preview-url-label').textContent = `enoma.io/${profile.username}`;
+  document.getElementById('preview-view-btn').href = publicUrl;
+  document.getElementById('preview-edit-btn').href = `/create?business_id=${profile.business_id}`;
+  iframe.onload = () => { previewLoading.style.display = 'none'; };
+  iframe.src = `/${profile.username}`;
+
+  // ── Share buttons ──
+  document.getElementById('copy-link-btn').onclick = () => {
+    navigator.clipboard.writeText(publicUrl).then(() => {
+      const confirm = document.getElementById('copy-confirm');
+      confirm.style.display = 'block';
+      setTimeout(() => { confirm.style.display = 'none'; }, 2500);
+    });
+  };
+  document.getElementById('share-facebook-btn').href =
+    `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(publicUrl)}`;
+
+  // ── Subscription status ──
+  const { data: sub } = await supabase
+    .from('subscriptions').select('*').eq('business_id', profile.business_id).maybeSingle();
+
+  const statusEl  = document.getElementById('subscription-status');
+  const bannerEl  = document.getElementById('upgrade-banner');
+  const bannerTxt = document.getElementById('banner-text');
+  const upgradeBtn = document.getElementById('upgrade-btn');
+
+  if (sub) {
+    const trialExpiry  = sub.trial_expires_at ? new Date(sub.trial_expires_at) : null;
+    const trialExpired = trialExpiry ? trialExpiry < new Date() : false;
+    const daysLeft     = trialExpiry ? Math.max(0, Math.ceil((trialExpiry - new Date()) / 86400000)) : 0;
+
+    if (sub.status === 'active') {
+      statusEl.textContent = '● Active'; statusEl.className = 'pill active';
+      if (sub.current_period_end) {
+        document.getElementById('renewal-date').textContent =
+          `Renews ${new Date(sub.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+      }
+    } else if (sub.is_trial && !trialExpired) {
+      statusEl.textContent = `Free trial — ${daysLeft}d left`; statusEl.className = 'pill trial';
+      document.getElementById('renewal-date').textContent =
+        `Trial ends ${trialExpiry.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+      bannerTxt.innerHTML = `<strong>Your free trial ends in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}.</strong> Subscribe to keep your page live after ${trialExpiry.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}.`;
+      upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
+      bannerEl.style.display = 'flex';
+    } else if (trialExpired || sub.status === 'canceled') {
+      statusEl.textContent = '● Offline'; statusEl.className = 'pill expired';
+      bannerTxt.innerHTML = `<strong>Your website is currently offline.</strong> Subscribe to bring it back live and start getting leads again.`;
+      upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
+      bannerEl.style.display = 'flex';
+    } else if (sub.status === 'past_due') {
+      statusEl.textContent = '⚠ Payment due'; statusEl.className = 'pill expired';
+      bannerTxt.innerHTML = `<strong>Your last payment failed.</strong> Update your billing details to keep your website live.`;
+      upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
+      bannerEl.style.display = 'flex';
+    }
+  } else {
+    statusEl.textContent = 'No subscription'; statusEl.className = 'pill none';
+  }
+
+  // ── Messages ──
+  loadMessages(profile, session);
+
+  // ── Metrics ──
+  loadMetrics(profile);
+
+  // ── Quick wins ──
+  loadQuickWins(profile);
+}
+
+async function loadMessages(profile, session) {
+  const messagesEl  = document.getElementById('messages-list');
+  const headingEl   = document.getElementById('messages-heading');
+  const badgeEl     = document.getElementById('messages-badge');
+
+  try {
+    const res = await fetch(`/api/get-messages?business_id=${profile.business_id}`, {
+      headers: { Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}` }
+    });
+
+    if (!res.ok) throw new Error('fetch failed');
+    const { messages, unread_count } = await res.json();
+
+    if (unread_count > 0) {
+      badgeEl.textContent = `${unread_count} new`;
+      badgeEl.style.display = 'inline';
+    }
+
+    if (!messages || !messages.length) {
+      messagesEl.innerHTML = `<div class="no-messages">
+        No messages yet.<br>
+        Share your page to start getting enquiries —<br>
+        <a href="https://www.facebook.com/sharer/sharer.php?u=https://enoma.io/${profile.username}" target="_blank" style="color:#3882dc;font-weight:600;">share on Facebook →</a>
+      </div>`;
+      return;
+    }
+
+    messagesEl.innerHTML = messages.map(m => `
+      <div class="message-item" onclick="this.classList.toggle('expanded')">
+        <div style="display:flex;gap:0.5rem;align-items:flex-start;">
+          ${!m.is_read ? '<div class="unread-dot"></div>' : '<div style="width:7px;flex-shrink:0;"></div>'}
+          <div style="flex:1;min-width:0;">
+            <div class="message-header">
+              <span class="message-name">${m.name}</span>
+              <span class="message-time">${timeAgo(m.created_at)}</span>
+            </div>
+            <div class="message-email">${m.email}${m.phone ? ` · ${m.phone}` : ''}</div>
+            ${m.subject ? `<div style="font-size:0.75rem;color:#9ca3af;margin-bottom:0.2rem;">${m.subject}</div>` : ''}
+            <div class="message-preview">${m.message}</div>
+            <div class="message-full">
+              ${m.message.replace(/\n/g, '<br>')}
+              <a href="mailto:${m.email}?subject=Re: Your enquiry" class="message-reply-btn" onclick="event.stopPropagation()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+                Reply to ${m.name}
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    headingEl.textContent = `Recent messages (${messages.length})`;
+
+  } catch {
+    // Fallback: query Supabase directly for submissions
+    const since = new Date(); since.setDate(since.getDate() - 90);
+    const { data: msgs } = await supabase
+      .from('contact_submissions')
+      .select('id, created_at, name, email, phone, subject, message, is_read')
+      .eq('business_id', profile.business_id)
+      .gte('created_at', since.toISOString())
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (!msgs?.length) {
+      messagesEl.innerHTML = `<div class="no-messages">No messages yet. Share your page to start getting enquiries.</div>`;
+      return;
+    }
+
+    const unread = msgs.filter(m => !m.is_read).length;
+    if (unread > 0) { badgeEl.textContent = `${unread} new`; badgeEl.style.display = 'inline'; }
+
+    messagesEl.innerHTML = msgs.map(m => `
+      <div class="message-item" onclick="this.classList.toggle('expanded')">
+        <div style="display:flex;gap:0.5rem;align-items:flex-start;">
+          ${!m.is_read ? '<div class="unread-dot"></div>' : '<div style="width:7px;flex-shrink:0;"></div>'}
+          <div style="flex:1;min-width:0;">
+            <div class="message-header">
+              <span class="message-name">${m.name}</span>
+              <span class="message-time">${timeAgo(m.created_at)}</span>
+            </div>
+            <div class="message-email">${m.email}</div>
+            <div class="message-preview">${m.message}</div>
+            <div class="message-full">
+              ${m.message.replace(/\n/g, '<br>')}
+              <a href="mailto:${m.email}" class="message-reply-btn" onclick="event.stopPropagation()">← Reply</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+    headingEl.textContent = `Recent messages (${msgs.length})`;
+  }
+}
+
+async function loadMetrics(profile) {
+  const since = new Date(); since.setDate(since.getDate() - 30);
+  const sinceDay = since.toISOString().slice(0, 10);
+
+  const { data: metricRows } = await supabase
+    .from('daily_metrics').select('page_views, contact_clicks')
+    .eq('business_id', profile.business_id).gte('day', sinceDay);
+
+  let pageViews = 0, contactClicks = 0;
+  (metricRows || []).forEach(r => {
+    pageViews += Number(r.page_views || 0);
+    contactClicks += Number(r.contact_clicks || 0);
+  });
+
+  if (!pageViews) {
+    const { count: pv } = await supabase.from('page_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('slug', profile.username).eq('event', 'page_view')
+      .gte('created_at', since.toISOString());
+    const { count: cc } = await supabase.from('page_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('slug', profile.username).in('event', ['contact_click', 'cta_click_phone', 'cta_click_email'])
+      .gte('created_at', since.toISOString());
+    pageViews = pv ?? 0; contactClicks = cc ?? 0;
+  }
+
+  document.getElementById('page-views').textContent = pageViews.toLocaleString();
+  document.getElementById('contact-clicks').textContent = contactClicks.toLocaleString();
+
+  // Sources
+  const sourcesEl = document.getElementById('sources');
+  const { data: sourceRows } = await supabase
+    .from('top_sources_daily').select('source, visits')
+    .eq('business_id', profile.business_id).gte('day', sinceDay);
+
+  const agg = new Map();
+  (sourceRows || []).forEach(r => {
+    const k = r.source || 'Direct'; agg.set(k, (agg.get(k) || 0) + Number(r.visits || 0));
+  });
+  const top = Array.from(agg.entries()).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const maxVisits = top[0]?.[1] || 1;
+
+  sourcesEl.innerHTML = !top.length
+    ? `<li><span class="zero-state">No traffic data yet — share your link to start getting visitors.</span></li>`
+    : top.map(([source, visits]) => `
+        <li>
+          <span>${source}</span>
+          <div class="source-bar-wrap"><div class="source-bar" style="width:${Math.round(visits/maxVisits*100)}%"></div></div>
+          <strong>${visits}</strong>
+        </li>`).join('');
+}
+
+async function loadQuickWins(profile) {
+  // Fetch the full profile to check what's missing
+  const { data: p } = await supabase
+    .from('small_business_profiles').select('*').eq('business_id', profile.business_id).maybeSingle();
+
+  if (!p) return;
+
+  const wins = [];
+  const editUrl = `/create?business_id=${profile.business_id}`;
+
+  const hasPhotos = Array.isArray(p.attachments) && p.attachments.length > 0;
+  const hasTestimonials = Array.isArray(p.testimonials) && p.testimonials.length > 0;
+  const hasFaqs = Array.isArray(p.faqs) && p.faqs.length > 0;
+  const hasBadges = Array.isArray(p.trust_badges) && p.trust_badges.length > 0;
+  const hasAbout = p.about && p.about.length > 80;
+
+  if (!hasPhotos)      wins.push({ label: 'Add photos of your work', desc: 'Businesses with photos get more contact clicks', icon: '📸' });
+  if (!hasTestimonials) wins.push({ label: 'Add a client testimonial', desc: 'Even one review builds significant trust', icon: '⭐' });
+  if (!hasBadges)      wins.push({ label: 'Add trust badges', desc: 'e.g. "Licensed & Insured", "Free Estimates"', icon: '🛡' });
+  if (!hasFaqs)        wins.push({ label: 'Add FAQs', desc: 'Answers to common questions reduce friction', icon: '❓' });
+  if (!hasAbout)       wins.push({ label: 'Expand your About section', desc: 'Tell your story — people hire people they know', icon: '✍️' });
+
+  const winsEl = document.getElementById('quick-wins');
+
+  if (!wins.length) {
+    winsEl.innerHTML = `<p style="font-size:0.85rem;color:#059669;margin:0;">✓ Your profile looks complete! Great work.</p>`;
+    return;
+  }
+
+  winsEl.innerHTML = wins.slice(0, 3).map(w => `
+    <a href="${editUrl}" style="display:flex;align-items:flex-start;gap:0.6rem;text-decoration:none;padding:0.6rem 0.75rem;border-radius:10px;border:1px solid #e8f0f8;background:#f7faff;transition:border-color 0.15s;" onmouseover="this.style.borderColor='#3882dc'" onmouseout="this.style.borderColor='#e8f0f8'">
+      <span style="font-size:1.1rem;flex-shrink:0;margin-top:1px;">${w.icon}</span>
+      <div>
+        <div style="font-size:0.85rem;font-weight:600;color:#0a1628;margin-bottom:2px;">${w.label}</div>
+        <div style="font-size:0.78rem;color:#7ab3e0;line-height:1.4;">${w.desc}</div>
+      </div>
+    </a>
+  `).join('');
+}
+
+main();
 </script>
 
 <div id="site-footer"></div>

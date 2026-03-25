@@ -130,39 +130,49 @@ export default async function handler(req, res) {
     }
 
     /* ---------- ONE-PAGE GATE (new users only) ---------- */
-    // If this is a NEW creation (not an edit), check if they already have a business
-    if (!incomingBusinessId) {
-      const { data: existingMembership } = await supabaseAdmin
-        .from("business_members")
-        .select("business_id")
-        .eq("user_id", user.id)
-        .eq("role", "admin")
-        .maybeSingle();
+    // If this is a NEW creation (not an edit), check if they already have a business.
+    // Exception: Jack's admin account (b2f87fe4) is allowed to create pages for clients.
+    const ENOMA_ADMIN_ID = "b2f87fe4-4d1e-4038-8754-5ab64969e975";
+    const isEnomaSuperAdmin = user.id === ENOMA_ADMIN_ID;
 
-      if (existingMembership) {
-        // They already have a website — block creation
-        // Check if they have an active paid subscription
+    if (!incomingBusinessId && !isEnomaSuperAdmin) {
+      const { data: existingMemberships } = await supabaseAdmin
+        .from("business_members")
+        .select("business_id, role")
+        .eq("user_id", user.id)
+        .eq("role", "owner"); // Only count businesses they OWN (not admin-access ones)
+
+      // Filter to memberships where they are the original owner
+      // (admin rows added by the trigger for Jack don't count)
+      const ownedBusinesses = existingMemberships || [];
+
+      if (ownedBusinesses.length >= 1) {
+        // They already have a website — find their first one to show in dashboard
+        const firstBizId = ownedBusinesses[0].business_id;
+
+        // Check subscription status
         const { data: sub } = await supabaseAdmin
           .from("subscriptions")
           .select("status, is_trial, trial_expires_at")
-          .eq("business_id", existingMembership.business_id)
+          .eq("business_id", firstBizId)
           .maybeSingle();
 
         const isPaid = sub?.status === "active";
-        const inTrial = sub?.is_trial && sub?.trial_expires_at && new Date(sub.trial_expires_at) > new Date();
 
         if (!isPaid) {
           return res.status(403).json({
             error: "free_limit_reached",
-            message: "Your free website has already been created. Subscribe to create additional websites.",
-            business_id: existingMembership.business_id
+            message: "Your free website has already been created. Visit your dashboard to edit your existing page or subscribe to keep it live.",
+            business_id: firstBizId,
+            dashboard_url: `/dashboard?business_id=${firstBizId}`
           });
         }
-        // If paid, allow creating another (future multi-site feature)
-        // For now, still block — one site per account
+
+        // Paid but still one-site limit for now
         return res.status(403).json({
           error: "one_site_limit",
-          message: "Each account currently supports one website. Contact us if you need more."
+          message: "Each account currently supports one website. Contact us if you need more.",
+          business_id: firstBizId
         });
       }
     }
@@ -239,10 +249,12 @@ export default async function handler(req, res) {
       if (error) throw error;
       business_id = newBiz.id;
 
+      // Use 'owner' role so we can distinguish their own business from
+      // admin-access rows added automatically (e.g. Jack's super-admin access)
       await supabaseAdmin.from("business_members").insert({
         user_id: user.id,
         business_id,
-        role: "admin"
+        role: "owner"
       });
 
       // Create 30-day trial subscription for new businesses
@@ -384,6 +396,7 @@ JSON SCHEMA:
 
 BUSINESS INPUT:
 Business name: ${business_name}
+Trade/category: ${first(fields.primary_category) || "general service"}
 Tone preference: ${tone}
 Owner notes: ${about_input}
 Services (JSON): ${servicesJSON}
@@ -393,10 +406,22 @@ Website: ${first(fields.website)}
 City: ${first(fields.city)}
 State: ${first(fields.state)}
 Service areas: ${first(fields.service_area)}
+Owner name: ${owner_name || "not provided"}
+Existing trust badges: ${first(fields.trust_badges) || "none"}
+Existing testimonials: ${first(fields.testimonials) || "none"}
 Operational flags:
 - Open now: ${toBool(fields.is_open_now)}
 - Accepting clients: ${toBool(fields.accepting_clients)}
 - Emergency services: ${toBool(fields.offers_emergency)}
+
+INSTRUCTIONS:
+- Write the "about" field as 2-3 short paragraphs separated by \\n\\n, personal and specific to this business.
+- Write "why_choose_us" as 4-5 short bullet points separated by \\n, each starting with a strong differentiator (no dashes or bullets, just plain text one per line).
+- Write "hero_headline" as a single strong local SEO headline (include city/town name if provided).
+- Write "faqs" with 5-6 realistic questions a customer would actually ask this type of business.
+- "trust_badges" should be an array of 3-5 short trust signals (e.g. "Licensed & Insured", "Free Estimates", "Owner-Operated").
+- If phone is provided, set primary_cta type to "call" and value to the phone number.
+- Keep all copy concise, direct, and professional. Avoid generic filler phrases.
 `.trim();
 
       const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -512,6 +537,13 @@ Operational flags:
       is_open_now: toBool(fields.is_open_now),
       accepting_clients: toBool(fields.accepting_clients),
       offers_emergency: toBool(fields.offers_emergency),
+      // Preserve hero_availability and hero_response_time if set in form or DB
+      hero_availability: first(fields.hero_availability) || existingProfile?.hero_availability || null,
+      hero_response_time: first(fields.hero_response_time) || existingProfile?.hero_response_time || null,
+      // Preserve social_links if not submitted (don't wipe existing)
+      social_links: hasField(fields, "social_links")
+        ? safeJSON(first(fields.social_links), null)
+        : (existingProfile?.social_links ?? null),
       is_public: true,
       updated_at: new Date().toISOString()
     };
