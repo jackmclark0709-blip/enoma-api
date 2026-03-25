@@ -1,44 +1,80 @@
 {
   "outputDirectory": "public",
-
   "headers": [
     {
       "source": "/assets/og/(.*).png",
       "headers": [
-        { "key": "Content-Type", "value": "image/png" },
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        {
+          "key": "Content-Type",
+          "value": "image/png"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     }
   ],
-
   "rewrites": [
-    { "source": "/sitemap.xml",   "destination": "/api/sitemap" },
-
-    { "source": "/",              "destination": "/index.html" },
-
-    { "source": "/pricing",       "destination": "/pricing/index.html" },
-    { "source": "/examples",      "destination": "/examples/index.html" },
-    { "source": "/contact",       "destination": "/contact/index.html" },
-    { "source": "/request",       "destination": "/request/index.html" },
-    { "source": "/privacy",       "destination": "/privacy/index.html" },
-    { "source": "/terms",         "destination": "/terms/index.html" },
-
-    { "source": "/login",         "destination": "/dashboard/login.html" },
-    { "source": "/signup",        "destination": "/dashboard/signup.html" },
-    { "source": "/dashboard",     "destination": "/dashboard/index.html" },
-    { "source": "/website-live",  "destination": "/website-live/index.html" },
-    { "source": "/create",        "destination": "/create.html" },
-
     {
-      "source": "/((?!assets|api|dashboard|styles|scripts|partials|website-live|public|favicon\\.ico).*)",
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
+    },
+    {
+      "source": "/login",
+      "destination": "/dashboard/login.html"
+    },
+    {
+      "source": "/signup",
+      "destination": "/dashboard/signup.html"
+    },
+    {
+      "source": "/dashboard",
+      "destination": "/dashboard/index.html"
+    },
+    {
+      "source": "/website-live",
+      "destination": "/website-live/index.html"
+    },
+    {
+      "source": "/create",
+      "destination": "/create.html"
+    },
+    {
+      "source": "/upgrade",
+      "destination": "/upgrade/index.html"
+    },
+    {
+      "source": "/((?!assets|api|dashboard|styles|scripts|partials|website-live|pricing|examples|contact|request|privacy|terms|favicon|index|upgrade).*)",
       "destination": "/api/p?slug=$1"
     }
   ],
-
   "redirects": [
-    { "source": "/dashboard/login.html",  "destination": "/login",   "permanent": true },
-    { "source": "/dashboard/signup.html", "destination": "/signup",  "permanent": true },
-    { "source": "/create.html",           "destination": "/create",  "permanent": true },
-    { "source": "/p/:slug",               "destination": "/:slug",   "permanent": true }
-  ]
+    {
+      "source": "/dashboard/login.html",
+      "destination": "/login",
+      "permanent": true
+    },
+    {
+      "source": "/dashboard/signup.html",
+      "destination": "/signup",
+      "permanent": true
+    },
+    {
+      "source": "/create.html",
+      "destination": "/create",
+      "permanent": true
+    },
+    {
+      "source": "/p/:slug",
+      "destination": "/:slug",
+      "permanent": true
+    }
+  ],
+  "functions": {
+    "api/*.js": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  }
 }
