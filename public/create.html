@@ -722,6 +722,13 @@ function showStatus(msg, isError = false) {
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   const isEdit = Boolean(editBusinessId);
+
+  // Sanitize business name — strip trailing punctuation artifacts from Google Places
+  const bizNameInput = form.querySelector('[name="business_name"]');
+  if (bizNameInput) {
+    bizNameInput.value = bizNameInput.value.replace(/\s*[-–—,\.]+\s*$/, '').trim();
+  }
+
   showStatus(isEdit ? "Saving changes…" : "Building your website — this takes about 20 seconds…");
   const fd = new FormData(form);
   fd.set("is_open_now", form.is_open_now.checked ? "true" : "false");
