@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Keep your website live — Enoma</title>
+  <link rel="stylesheet" href="/styles/enoma.css" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-S8XTG72Y2Y');</script>
+  <style>
+    body { background: #f0f6ff; min-height: 100vh; display: flex; flex-direction: column; }
+    .upgrade-hero { background: linear-gradient(160deg, #0d1b2a 0%, #162436 100%); padding: 4rem 1.5rem 3rem; text-align: center; }
+    .upgrade-hero .eyebrow { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #7ab3e0; margin-bottom: 0.75rem; }
+    .upgrade-hero h1 { font-family: 'DM Sans', sans-serif; font-size: clamp(1.8rem, 4vw, 2.5rem); font-weight: 800; color: #fff; letter-spacing: -0.025em; margin: 0 0 0.75rem; }
+    .upgrade-hero p { font-size: 1rem; color: rgba(220,238,255,0.72); max-width: 520px; margin: 0 auto 2rem; line-height: 1.65; }
+    .plan-wrap { max-width: 860px; margin: -2rem auto 0; padding: 0 1.5rem 3rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 640px) { .plan-wrap { grid-template-columns: 1fr; margin-top: -1rem; } }
+    .plan-card { background: #fff; border: 1px solid #d4e2f4; border-radius: 20px; padding: 2rem; display: flex; flex-direction: column; box-shadow: 0 4px 24px rgba(10,22,40,0.07); position: relative; }
+    .plan-card.featured { border: 2px solid #0a1628; box-shadow: 0 8px 40px rgba(10,22,40,0.12); }
+    .plan-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #0a1628; color: #fff; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 0.3rem 0.9rem; border-radius: 999px; white-space: nowrap; }
+    .plan-name { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #7ab3e0; margin-bottom: 0.5rem; }
+    .plan-price { font-family: 'DM Sans', sans-serif; font-size: 2.5rem; font-weight: 800; color: #0a1628; letter-spacing: -0.03em; line-height: 1; margin-bottom: 0.25rem; }
+    .plan-price span { font-size: 1rem; font-weight: 500; color: #7ab3e0; }
+    .plan-desc { font-size: 0.88rem; color: #5a7a9a; margin-bottom: 1.5rem; line-height: 1.55; }
+    .plan-features { list-style: none; padding: 0; margin: 0 0 1.75rem; display: flex; flex-direction: column; gap: 0.6rem; flex: 1; }
+    .plan-features li { display: flex; align-items: flex-start; gap: 0.6rem; font-size: 0.88rem; color: #374151; line-height: 1.45; }
+    .plan-features li::before { content: ''; width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; border-radius: 50%; background: #e6f1fb url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%233882dc' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E") no-repeat center; }
+    .plan-cta { width: 100%; padding: 0.9rem; border-radius: 999px; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 0.95rem; border: none; cursor: pointer; text-align: center; text-decoration: none; display: block; transition: transform 0.15s, box-shadow 0.15s; }
+    .plan-cta.primary { background: #0a1628; color: #fff; }
+    .plan-cta.primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(10,22,40,0.25); }
+    .plan-cta.secondary { background: transparent; color: #5a7a9a; border: 1.5px solid #d4e2f4; }
+    .plan-cta.secondary:hover { border-color: #0a1628; color: #0a1628; }
+    .plan-cta:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .what-wrap { max-width: 860px; margin: 0 auto; padding: 0 1.5rem 3rem; }
+    .what-wrap h2 { font-family: 'DM Sans', sans-serif; font-size: 1.3rem; font-weight: 700; color: #0a1628; margin: 0 0 1.25rem; letter-spacing: -0.02em; }
+    .what-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.75rem; }
+    .what-item { background: #fff; border: 1px solid #e4edf5; border-radius: 14px; padding: 1.25rem; }
+    .what-item h3 { font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 700; color: #0a1628; margin: 0 0 0.3rem; }
+    .what-item p { font-size: 0.82rem; color: #6b7280; margin: 0; line-height: 1.5; }
+    .guarantee { max-width: 560px; margin: 0 auto; padding: 0 1.5rem 3rem; text-align: center; }
+    .guarantee p { font-size: 0.88rem; color: #7ab3e0; line-height: 1.6; }
+    .guarantee strong { color: #0a1628; }
+    #site-footer { margin-top: auto; }
+  </style>
+</head>
+<body>
+<script type="module" src="/partials/nav.js"></script>
+
+<div class="upgrade-hero">
+  <p class="eyebrow">Enoma Subscription</p>
+  <h1 id="heroTitle">Keep your website live</h1>
+  <p id="heroSub">Your free trial is ending soon. Subscribe to keep your page live, indexed on Google, and managed by Enoma.</p>
+</div>
+
+<div class="plan-wrap">
+  <div class="plan-card">
+    <p class="plan-name">Self-managed</p>
+    <p class="plan-price">$19.99<span>/mo</span></p>
+    <p class="plan-desc">Your page stays live and you manage your own content anytime through your dashboard.</p>
+    <ul class="plan-features">
+      <li>Business website live on enoma.io</li>
+      <li>SEO-optimized and Google-indexed</li>
+      <li>Edit your page anytime from your dashboard</li>
+      <li>Contact form forwarded to your email</li>
+      <li>Analytics — page views and contact clicks</li>
+      <li>Cancel anytime, no contracts</li>
+    </ul>
+    <button class="plan-cta primary" id="selfSubBtn">Subscribe — $19.99/mo →</button>
+  </div>
+
+  <div class="plan-card featured">
+    <div class="plan-badge">Best value</div>
+    <p class="plan-name">Managed by Enoma</p>
+    <p class="plan-price">$49.99<span>/mo</span></p>
+    <p class="plan-desc">We handle everything — updates, new photos, copy improvements, and monthly reviews so your page always puts your best foot forward.</p>
+    <ul class="plan-features">
+      <li>Everything in self-managed</li>
+      <li>Monthly page review and copy refresh</li>
+      <li>We upload new photos when you send them</li>
+      <li>SEO tuning as your business grows</li>
+      <li>Seasonal content updates (spring cleanups, etc.)</li>
+      <li>Priority support directly from Jack</li>
+    </ul>
+    <a href="/contact?subject=managed-plan" class="plan-cta primary">Get in touch to start →</a>
+  </div>
+</div>
+
+<div class="what-wrap">
+  <h2>What's included in every plan</h2>
+  <div class="what-grid">
+    <div class="what-item"><h3>Your own professional URL</h3><p>enoma.io/your-business — clean, shareable, and Google-indexed within days of going live.</p></div>
+    <div class="what-item"><h3>SEO built in from day one</h3><p>Title tags, meta descriptions, schema markup, and local SEO signals are all handled automatically.</p></div>
+    <div class="what-item"><h3>Contact form → your inbox</h3><p>Every message sent through your page arrives in your email. No logins needed to respond.</p></div>
+    <div class="what-item"><h3>Looks great on phones</h3><p>Fully responsive — your page works perfectly on any device, including mobile searches.</p></div>
+    <div class="what-item"><h3>Always up to date</h3><p>Log in anytime to update services, photos, or business info. Changes go live immediately.</p></div>
+    <div class="what-item"><h3>No contracts, cancel anytime</h3><p>Monthly billing. If you cancel, your page goes offline. Come back anytime to reactivate it.</p></div>
+  </div>
+</div>
+
+<div class="guarantee">
+  <p><strong>Questions before subscribing?</strong> We're a small, local operation. <a href="/contact" style="color:#3882dc;font-weight:600;">Send us a message</a> and we'll talk through whether Enoma makes sense for your business — no pressure.</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const supabase = window.supabase.createClient(
+  'https://qhsivcenpnxwmvwznqie.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc'
+);
+
+async function init() {
+  const params = new URLSearchParams(window.location.search);
+  const businessId = params.get('business_id');
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (businessId && session) {
+    const { data: profile } = await supabase
+      .from('small_business_profiles')
+      .select('business_name, username')
+      .eq('business_id', businessId)
+      .maybeSingle();
+    if (profile) {
+      document.getElementById('heroTitle').textContent = `Keep ${profile.business_name} live`;
+      document.getElementById('heroSub').textContent =
+        `Your free trial is ending soon. Subscribe to keep enoma.io/${profile.username} live, indexed on Google, and generating leads for your business.`;
+    }
+  }
+
+  document.getElementById('selfSubBtn').addEventListener('click', async () => {
+    const { data: { session: s } } = await supabase.auth.getSession();
+    if (!s) { window.location.href = `/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`; return; }
+    if (!businessId) { window.location.href = '/dashboard'; return; }
+    const btn = document.getElementById('selfSubBtn');
+    btn.disabled = true; btn.textContent = 'Loading…';
+    try {
+      const res = await fetch('/api/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${s.access_token}` },
+        body: JSON.stringify({ business_id: businessId })
+      });
+      const { url, error } = await res.json();
+      if (url) { window.location.href = url; }
+      else { alert(error || 'Could not start checkout.'); btn.disabled = false; btn.textContent = 'Subscribe — $19.99/mo →'; }
+    } catch { btn.disabled = false; btn.textContent = 'Subscribe — $19.99/mo →'; }
+  });
+}
+init();
+</script>
+
+<div id="site-footer"></div>
+<script>fetch("/partials/footer.html").then(r=>r.text()).then(h=>{document.getElementById("site-footer").innerHTML=h});</script>
+</body>
+</html>
