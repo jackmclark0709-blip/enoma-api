@@ -417,16 +417,16 @@ body.persona-retail .section::before { background: #9a3a8a; }
 .testimonial-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1rem; }
 .testimonial {
   background: #fff;
-  border-radius: 16px; padding: 1.5rem 1.75rem 1.5rem 1.5rem;
+  border-radius: 12px; padding: 1rem 1.25rem 1rem 1rem;
   border: 1px solid #e4edf5;
-  box-shadow: 0 2px 12px rgba(10,22,40,0.05);
+  box-shadow: 0 2px 8px rgba(10,22,40,0.04);
   position: relative; overflow: hidden;
 }
 .testimonial::after {
   content: '\201C';
-  font-family: Georgia, serif; font-size: 6rem; line-height: 1;
+  font-family: Georgia, serif; font-size: 4rem; line-height: 1;
   color: var(--brand-primary, #1a3a2a); opacity: 0.06;
-  position: absolute; top: -0.5rem; right: 0.75rem;
+  position: absolute; top: -0.25rem; right: 0.5rem;
   pointer-events: none;
 }
 .testimonial-accent {
@@ -434,18 +434,18 @@ body.persona-retail .section::before { background: #9a3a8a; }
   background: var(--brand-primary, #1a3a2a);
   position: absolute; left: 0; top: 0; border-radius: 3px 0 0 3px;
 }
-.testimonial p { font-size: 0.95rem; color: #4b5563; line-height: 1.7; margin: 0 0 1rem; font-style: italic; }
-.testimonial-author { display: flex; align-items: center; gap: 0.6rem; }
+.testimonial p { font-size: 0.9rem; color: #4b5563; line-height: 1.6; margin: 0 0 0.6rem; font-style: italic; }
+.testimonial-author { display: flex; align-items: center; gap: 0.5rem; }
 .testimonial-avatar {
-  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
   background: var(--brand-primary-10, rgba(26,58,42,0.08));
   border: 1.5px solid var(--brand-primary-30, rgba(26,58,42,0.2));
   display: flex; align-items: center; justify-content: center;
-  font-size: 0.78rem; font-weight: 700;
+  font-size: 0.72rem; font-weight: 700;
   color: var(--brand-primary, #1a3a2a);
 }
-.testimonial strong { font-size: 0.83rem; font-weight: 700; color: #0a1628; display: block; }
-.stars { color: #f59e0b; font-size: 0.72rem; letter-spacing: 1px; margin-bottom: 0.6rem; }
+.testimonial strong { font-size: 0.82rem; font-weight: 700; color: #0a1628; display: block; }
+.stars { color: #f59e0b; font-size: 0.68rem; letter-spacing: 1px; margin-bottom: 0.4rem; }
 
 /* ── Areas Served ── */
 .services-area {
@@ -537,19 +537,58 @@ body.persona-retail .section::before { background: #9a3a8a; }
 .contact-intro { max-width: 520px; margin-bottom: 1.25rem; color: #6b7280; font-size: 0.93rem; }
 #contactStatus { font-size: 0.88rem; margin-top: 0.4rem; color: #059669; }
 
-/* ── Social links ── */
-.social-strip { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 1rem; }
+/* ── Social links — with section header ── */
+.social-section { padding-top: 0 !important; }
+.social-section__heading {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.78rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--brand-primary, #1a3a2a);
+  margin: 0 0 0.25rem;
+}
+.social-section__sub {
+  font-size: 0.85rem; color: #6b7280;
+  margin: 0 0 0.75rem; line-height: 1.5;
+}
+.social-strip { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 0; }
 .social-link {
   display: inline-flex; align-items: center; gap: 0.4rem;
-  border-radius: 999px; padding: 0.42rem 0.9rem;
+  border-radius: 999px; padding: 0.45rem 1rem;
   border: 1px solid var(--brand-primary-30, rgba(26,58,42,0.2));
   background: var(--brand-primary-10, rgba(26,58,42,0.05));
-  font-weight: 600; font-size: 0.82rem; text-decoration: none;
+  font-weight: 600; font-size: 0.85rem; text-decoration: none;
   color: var(--brand-primary, #1a3a2a);
   transition: background 0.15s, color 0.15s;
 }
 .social-link:hover { background: var(--brand-primary, #1a3a2a); color: #fff; }
-.social-link svg { width: 13px; height: 13px; fill: currentColor; }
+.social-link svg { width: 14px; height: 14px; fill: currentColor; }
+
+/* ── Service area map ── */
+.service-map-wrap { margin-top: 1.25rem; border-radius: 14px; overflow: hidden; }
+.service-map { width: 100%; height: 280px; border-radius: 14px; border: none; }
+.service-map iframe { width: 100%; height: 280px; border: none; border-radius: 14px; }
+
+/* ── Gallery with inline CTA ── */
+.gallery-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; flex-wrap: wrap;
+  padding: 0 0.25rem; margin-bottom: 1rem;
+}
+.gallery-header h2 {
+  font-family: 'DM Sans', sans-serif; font-size: 1.45rem; font-weight: 700;
+  color: #0a1628; margin: 0; letter-spacing: -0.02em;
+}
+.gallery-cta-btn {
+  display: inline-flex; align-items: center;
+  font-size: 0.85rem; font-weight: 600;
+  color: var(--brand-primary, #1a3a2a);
+  background: var(--brand-primary-10, rgba(26,58,42,0.06));
+  border: 1px solid var(--brand-primary-30, rgba(26,58,42,0.2));
+  padding: 0.45rem 1rem; border-radius: 999px;
+  text-decoration: none; white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.gallery-cta-btn:hover { background: var(--brand-primary, #1a3a2a); color: #fff; }
 
 /* ── Enoma footer ── */
 .enoma-footer { background: #0e1c2e; color: rgba(220,235,255,0.7); padding: 1.75rem 1.5rem; margin-top: 3rem; }
@@ -637,38 +676,28 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
   <h2>About</h2>
   <p id="about-lead" class="about-lead"></p>
   <p id="about-body" class="about-body"></p>
-  <div class="social-strip hidden" id="socialSection">
-    <div id="socialLinks"></div>
-  </div>
 </section>
 
-<!-- TESTIMONIALS — own section, tinted band -->
-<div class="band hidden" id="testimonialsWrap">
-  <section class="section" id="testimonials" style="border:none;">
-    <h2>What Clients Say</h2>
-    <div class="testimonial-grid" id="testimonialList"></div>
-  </section>
-</div>
-
-<!-- AREAS SERVED — moved up near hero for discoverability -->
-<div class="hidden" id="townsWrap">
-  <div class="section" id="towns" style="border-bottom: 1px solid #e8f0f8;">
-    <h2>Areas We Serve</h2>
-    <p style="margin-bottom:1rem;">Serving residential and commercial customers in:</p>
-    <div id="townList"></div>
+<!-- SOCIAL LINKS — own section with header and CTA -->
+<div class="hidden" id="socialSectionWrap">
+  <div class="section social-section" style="padding-top:0;padding-bottom:2rem;border-bottom:1px solid #e8f0f8;">
+    <h3 class="social-section__heading">Follow Us</h3>
+    <p class="social-section__sub" id="socialCta"></p>
+    <div class="social-strip" id="socialLinks"></div>
   </div>
 </div>
 
-<!-- GALLERY (shown if photos exist) -->
-<div class="gallery-section hidden" id="gallerySection">
-  <h2>Our Work</h2>
-  <div id="gallery" class="image-grid"></div>
-</div>
-
-<!-- No-photos nudge for business owner -->
-<div class="no-photos-nudge hidden" id="noPhotosNudge">
-  <p>📸 Adding photos of your work builds trust and gets you more calls.</p>
-  <a href="/create" id="addPhotosLink">+ Add photos to your website →</a>
+<!-- AREAS SERVED + MAP — elevated near top -->
+<div class="hidden" id="townsWrap">
+  <section class="section" id="towns" style="border-bottom:1px solid #e8f0f8;">
+    <h2>Areas We Serve</h2>
+    <p class="towns-sub" id="townsSub">Serving residential and commercial customers across:</p>
+    <div id="townList" style="margin-bottom:1.25rem;"></div>
+    <!-- Service radius map — shown if address or city/state exists -->
+    <div id="serviceMapWrap" class="service-map-wrap hidden">
+      <div id="serviceMap" class="service-map"></div>
+    </div>
+  </section>
 </div>
 
 <!-- SERVICES — tinted band for visual rhythm -->
@@ -688,16 +717,27 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 </section>
 </div>
 
-<!-- MID-PAGE CONTACT NUDGE -->
-<div class="mid-contact-nudge hidden" id="midContactNudge">
-  <p>
-    Have a project in mind?
-    <span id="midNudgePhone"></span>
-  </p>
-  <a href="#contact" class="mid-contact-btn" id="midContactBtn">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.08 4.18 2 2 0 0 1 4.06 2h3a2 2 0 0 1 2 1.72c.12.86.31 1.7.57 2.5a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.58-1.09a2 2 0 0 1 2.11-.45c.8.26 1.64.45 2.5.57A2 2 0 0 1 22 16.92z"/></svg>
-    Get in touch
-  </a>
+<!-- GALLERY — after services, with its own inline CTA -->
+<div class="gallery-section hidden" id="gallerySection">
+  <div class="gallery-header">
+    <h2 id="galleryTitle">Recent Work</h2>
+    <a href="#contact" class="gallery-cta-btn" id="galleryCtaBtn">Have a project in mind? →</a>
+  </div>
+  <div id="gallery" class="image-grid"></div>
+</div>
+
+<!-- No-photos nudge for business owner -->
+<div class="no-photos-nudge hidden" id="noPhotosNudge">
+  <p>📸 Adding photos of your work builds trust and gets you more calls.</p>
+  <a href="/create" id="addPhotosLink">+ Add photos to your website →</a>
+</div>
+
+<!-- TESTIMONIALS — compact, tinted band -->
+<div class="band hidden" id="testimonialsWrap">
+  <section class="section" id="testimonials" style="border:none;">
+    <h2>What Clients Say</h2>
+    <div class="testimonial-grid" id="testimonialList"></div>
+  </section>
 </div>
 
 <!-- WHY CHOOSE US -->
@@ -705,8 +745,6 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
   <h2>Why Choose Us</h2>
   <ul class="why-list" id="why"></ul>
 </section>
-
-
 
 <!-- FAQs — tinted band -->
 <div class="band hidden" id="faqsBand">
@@ -729,14 +767,14 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
   <div id="reviews" class="reviews" style="margin-top:1.25rem;"></div>
 </section>
 
-<!-- CONTACT FORM — tinted band -->
+<!-- CONTACT FORM — reduced padding, tinted band -->
 <div class="band">
-<section class="section contact" id="contact" style="border:none;">
+<section class="section contact" id="contact" style="border:none;padding-top:1.75rem;padding-bottom:1.75rem;">
   <div class="contact-inner">
-  <h2>Get in Touch</h2>
-  <p class="contact-intro" id="contactIntro">
-    Have a question or ready for a quote? Send us a message and we'll get back to you quickly.
-  </p>
+    <h2>Get in Touch</h2>
+    <p class="contact-intro" id="contactIntro">
+      Have a question or ready for a quote? Send us a message and we'll get back to you quickly.
+    </p>
   </div>
   <form id="contactForm">
     <input name="name" placeholder="Your name" required />
@@ -989,9 +1027,10 @@ async function loadProfile() {
     }
   }
 
-  /* ── Social links ── */
-  const socialSection = getEl('socialSection');
+  /* ── Social links — with section header and CTA ── */
+  const socialSectionWrap = getEl('socialSectionWrap');
   const socialLinksEl = getEl('socialLinks');
+  const socialCtaEl = getEl('socialCta');
   const socials = p.social_links || {};
   const socialIcons = {
     facebook: `<svg viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>`,
@@ -1007,13 +1046,44 @@ async function loadProfile() {
   });
   if (socialLinks.length && socialLinksEl) {
     socialLinksEl.innerHTML = socialLinks.join('');
-    socialSection.classList.remove('hidden');
+    if (socialCtaEl) socialCtaEl.textContent = `Stay up to date with ${p.business_name || 'us'} online.`;
+    socialSectionWrap?.classList.remove('hidden');
   }
 
-  /* ── Gallery ── */
+  /* ── Gallery — dynamic title + inline CTA ── */
   const gallerySection = getEl('gallerySection');
   const galleryEl = getEl('gallery');
+  const galleryTitle = getEl('galleryTitle');
+  const galleryCtaBtn = getEl('galleryCtaBtn');
   const isImageUrl = (url = '') => /\.(png|jpe?g|webp|gif)(\?.*)?$/i.test(url);
+
+  // Dynamic title based on trade
+  const galleryTitleMap = {
+    landscaping: 'Recent Lawn & Garden Work',
+    plumbing: 'Recent Projects',
+    electrical: 'Recent Electrical Work',
+    hvac: 'Recent HVAC Work',
+    cleaning: 'Before & After',
+    contractor: 'Recent Projects',
+    roofing: 'Recent Roofing Work',
+    painting: 'Recent Paint Work',
+    retail: 'Our Products',
+  };
+  if (galleryTitle && persona) {
+    galleryTitle.textContent = galleryTitleMap[persona] || 'Recent Work';
+  }
+
+  // Wire gallery CTA button
+  if (galleryCtaBtn) {
+    if (p.phone) {
+      galleryCtaBtn.href = `tel:${p.phone}`;
+      galleryCtaBtn.textContent = `Have a project in mind? Call ${p.phone} →`;
+    } else {
+      galleryCtaBtn.href = '#contact';
+      galleryCtaBtn.textContent = 'Have a project in mind? Get in touch →';
+    }
+  }
+
   const attachmentImages = Array.isArray(p.attachments)
     ? p.attachments.map(a => typeof a === 'string' ? { url: a } : a).filter(a => a?.url && isImageUrl(a.url))
     : [];
@@ -1027,9 +1097,6 @@ async function loadProfile() {
     // Show nudge only if this is the owner viewing their own page
     const ownedBizId = p.business_id;
     if (ownedBizId) {
-      // Check if logged-in user owns this business (via supabase session in nav.js)
-      window.addEventListener('profileDataReady', () => {});
-      // Try to show nudge after a short delay (session check happens in nav.js)
       setTimeout(() => {
         import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm').then(({ createClient }) => {
           const sb = createClient('https://qhsivcenpnxwmvwznqie.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc');
@@ -1047,6 +1114,29 @@ async function loadProfile() {
         });
       }, 800);
     }
+  }
+
+  /* ── Service area map — embed if city/state or address exists ── */
+  const serviceMapWrap = getEl('serviceMapWrap');
+  const serviceMap = getEl('serviceMap');
+  const hasAddress = p.address && p.address.trim();
+  const hasCityState = p.city && p.state;
+  if (serviceMapWrap && serviceMap && (hasAddress || hasCityState)) {
+    const mapQuery = hasAddress
+      ? encodeURIComponent(p.address)
+      : encodeURIComponent(`${p.city}, ${p.state}`);
+    const zoom = (Array.isArray(p.service_area) && p.service_area.length > 3) ? 10 : 12;
+    const loadServiceMap = () => {
+      serviceMap.innerHTML = `<iframe
+        width="100%" height="280"
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+        style="border:0;border-radius:14px;"
+        src="https://www.google.com/maps/embed/v1/place?key=AIzaSyD2DZjVEIuq6luIvl-lVeOaxqd3BG2V7IA&q=${mapQuery}&zoom=${zoom}"
+      ></iframe>`;
+      serviceMapWrap.classList.remove('hidden');
+    };
+    'requestIdleCallback' in window ? requestIdleCallback(loadServiceMap) : setTimeout(loadServiceMap, 1200);
   }
 
   /* ── Services ── */
@@ -1075,20 +1165,11 @@ async function loadProfile() {
     else { quickCall.href = '#contact'; }
   }
 
-  /* ── Mid-page contact nudge ── */
-  const midNudge = getEl('midContactNudge');
-  const midPhone = getEl('midNudgePhone');
-  const midBtn = getEl('midContactBtn');
-  if (midNudge && (p.phone || p.email)) {
-    if (p.phone && midPhone) midPhone.textContent = `Call us at ${p.phone}`;
-    if (midBtn) {
-      if (p.phone) { midBtn.href = `tel:${p.phone}`; midBtn.textContent = `Call ${p.phone}`; midBtn.onclick = () => trackContactClick('mid_nudge_call'); }
-      else { midBtn.href = '#contact'; midBtn.innerHTML = 'Send a message →'; }
-    }
-    midNudge.classList.remove('hidden');
+  /* ── Contact form ── */
+  const contactIntro = getEl('contactIntro');
+  if (contactIntro && p.business_name) {
+    contactIntro.textContent = `Ready to work with ${p.business_name}? Send a message and we'll get back to you quickly.`;
   }
-
-  /* ── Why Choose Us — smarter parsing ── */
   const whyEl = getEl('why');
   const whySection = getEl('whySection');
   if (whyEl && p.why_choose_us) {
@@ -1200,13 +1281,24 @@ async function loadProfile() {
   }
 
   /* ── Contact form ── */
-  const contactIntro = getEl('contactIntro');
-  if (contactIntro && p.business_name) {
-    contactIntro.textContent = `Ready to work with ${p.business_name}? Send a message and we'll get back to you quickly.`;
-  }
+  /* ── Contact form — with hours note below ── */
   const contactForm = getEl('contactForm');
   const contactStatus = getEl('contactStatus');
   if (contactForm) {
+    // Add availability/hours info below the form
+    const contactStatus = getEl('contactStatus');
+    if (contactStatus) {
+      const infoItems = [];
+      if (p.hero_availability) infoItems.push(`<span>🕐 ${p.hero_availability}</span>`);
+      if (p.hero_response_time) infoItems.push(`<span>💬 ${p.hero_response_time}</span>`);
+      if (p.phone) infoItems.push(`<span>📞 Prefer to call? <a href="tel:${p.phone}" style="color:var(--brand-primary,#1a3a2a);font-weight:600;">${p.phone}</a></span>`);
+      if (infoItems.length) {
+        const infoDiv = document.createElement('div');
+        infoDiv.style.cssText = 'display:flex;flex-wrap:wrap;gap:0.75rem;justify-content:center;margin-top:1rem;font-size:0.82rem;color:#6b7280;';
+        infoDiv.innerHTML = infoItems.join('');
+        contactStatus.after(infoDiv);
+      }
+    }
     contactForm.addEventListener('submit', async e => {
       e.preventDefault();
       trackContactClick('contact_form');
@@ -1215,7 +1307,7 @@ async function loadProfile() {
       try {
         const res = await fetch('/api/send-contact', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...payload, business_id: window.profileData?.id, to: window.profileData?.email })
+          body: JSON.stringify({ ...payload, business_id: window.profileData?.business_id, slug: window.profileData?.username, to: window.profileData?.email })
         });
         if (!res.ok) throw new Error();
         contactStatus.textContent = '✓ Message sent! We\'ll be in touch shortly.';
@@ -1244,7 +1336,7 @@ async function loadProfile() {
     } else attachmentsSection?.classList.add('hidden');
   } else attachmentsSection?.classList.add('hidden');
 
-  if (slug === 'enoma-io') getEl('midContactNudge')?.classList.add('hidden');
+  // enoma-io is a demo page — no special overrides needed
 }
 
 document.addEventListener('DOMContentLoaded', loadProfile);
