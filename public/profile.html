@@ -537,31 +537,81 @@ body.persona-retail .section::before { background: #9a3a8a; }
 .contact-intro { max-width: 520px; margin-bottom: 1.25rem; color: #6b7280; font-size: 0.93rem; }
 #contactStatus { font-size: 0.88rem; margin-top: 0.4rem; color: #059669; }
 
-/* ── Social links — with section header ── */
-.social-section { padding-top: 0 !important; }
+/* ── About + social sidebar 2-col layout ── */
+.about-with-sidebar {
+  display: grid;
+  grid-template-columns: 1fr 200px;
+  gap: 2.5rem;
+  align-items: start;
+}
+.about-main { min-width: 0; }
+.about-sidebar {
+  padding: 1.25rem;
+  background: var(--brand-primary-10, rgba(26,58,42,0.04));
+  border: 1px solid var(--brand-primary-30, rgba(26,58,42,0.12));
+  border-radius: 14px;
+  position: sticky;
+  top: 80px;
+}
+.about-sidebar h2 { display: none; } /* heading lives in .about-main */
+
+/* ── Why + testimonials sidebar 2-col layout ── */
+.why-with-testimonials {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 2.5rem;
+  align-items: start;
+}
+.why-main { min-width: 0; }
+.why-sidebar {
+  min-width: 0;
+  position: sticky;
+  top: 80px;
+}
+.why-sidebar h2 {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1rem; font-weight: 700;
+  color: #0a1628; margin-bottom: 0.75rem;
+  letter-spacing: -0.01em;
+}
+.why-sidebar h2::before {
+  content: ''; display: block; width: 24px; height: 3px;
+  background: var(--brand-primary, #1a3a2a);
+  border-radius: 999px; margin-bottom: 0.6rem;
+}
+.testimonial-grid--sidebar {
+  display: flex !important;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* ── Social links ── */
 .social-section__heading {
   font-family: 'DM Sans', sans-serif;
-  font-size: 0.78rem; font-weight: 700;
+  font-size: 0.72rem; font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.1em;
   color: var(--brand-primary, #1a3a2a);
-  margin: 0 0 0.25rem;
+  margin: 0 0 0.3rem;
 }
 .social-section__sub {
-  font-size: 0.85rem; color: #6b7280;
+  font-size: 0.78rem; color: #6b7280;
   margin: 0 0 0.75rem; line-height: 1.5;
 }
-.social-strip { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 0; }
+.social-strip { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0; }
+.social-strip--vertical { flex-direction: column; gap: 0.4rem; }
 .social-link {
   display: inline-flex; align-items: center; gap: 0.4rem;
-  border-radius: 999px; padding: 0.45rem 1rem;
+  border-radius: 999px; padding: 0.4rem 0.85rem;
   border: 1px solid var(--brand-primary-30, rgba(26,58,42,0.2));
-  background: var(--brand-primary-10, rgba(26,58,42,0.05));
-  font-weight: 600; font-size: 0.85rem; text-decoration: none;
+  background: #fff;
+  font-weight: 600; font-size: 0.82rem; text-decoration: none;
   color: var(--brand-primary, #1a3a2a);
   transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
 }
+.social-strip--vertical .social-link { width: 100%; }
 .social-link:hover { background: var(--brand-primary, #1a3a2a); color: #fff; }
-.social-link svg { width: 14px; height: 14px; fill: currentColor; }
+.social-link svg { width: 13px; height: 13px; fill: currentColor; flex-shrink: 0; }
 
 /* ── Service area map ── */
 .service-map-wrap { margin-top: 1.25rem; border-radius: 14px; overflow: hidden; }
@@ -607,8 +657,15 @@ body.persona-retail .section::before { background: #9a3a8a; }
   .hero-meta { justify-content: center; }
   .hero-trust { justify-content: center; }
   .location-grid { grid-template-columns: 1fr; }
-  .mid-contact-nudge { flex-direction: column; text-align: center; }
   .services-cta-actions { flex-direction: column; align-items: center; }
+  /* Sidebar layouts collapse on mobile */
+  .about-with-sidebar { grid-template-columns: 1fr; gap: 1.25rem; }
+  .about-sidebar { position: static; }
+  .social-strip--vertical { flex-direction: row; }
+  .social-strip--vertical .social-link { width: auto; }
+  .why-with-testimonials { grid-template-columns: 1fr; gap: 1.5rem; }
+  .why-sidebar { position: static; }
+  .gallery-header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
 }
 @media (max-width: 640px) {
   .contact-pill.quote { display: none; }
@@ -671,21 +728,19 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 </section>
 
 <div class="page-content">
-<!-- ABOUT -->
-<section class="section" id="aboutSection">
-  <h2>About</h2>
-  <p id="about-lead" class="about-lead"></p>
-  <p id="about-body" class="about-body"></p>
-</section>
-
-<!-- SOCIAL LINKS — own section with header and CTA -->
-<div class="hidden" id="socialSectionWrap">
-  <div class="section social-section" style="padding-top:0;padding-bottom:2rem;border-bottom:1px solid #e8f0f8;">
+<!-- ABOUT + SOCIAL SIDEBAR — 2-col layout -->
+<section class="section about-with-sidebar" id="aboutSection">
+  <div class="about-main">
+    <h2>About</h2>
+    <p id="about-lead" class="about-lead"></p>
+    <p id="about-body" class="about-body"></p>
+  </div>
+  <aside class="about-sidebar hidden" id="socialSectionWrap">
     <h3 class="social-section__heading">Follow Us</h3>
     <p class="social-section__sub" id="socialCta"></p>
-    <div class="social-strip" id="socialLinks"></div>
-  </div>
-</div>
+    <div class="social-strip social-strip--vertical" id="socialLinks"></div>
+  </aside>
+</section>
 
 <!-- AREAS SERVED + MAP — elevated near top -->
 <div class="hidden" id="townsWrap">
@@ -732,18 +787,16 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
   <a href="/create" id="addPhotosLink">+ Add photos to your website →</a>
 </div>
 
-<!-- TESTIMONIALS — compact, tinted band -->
-<div class="band hidden" id="testimonialsWrap">
-  <section class="section" id="testimonials" style="border:none;">
+<!-- WHY CHOOSE US + TESTIMONIALS SIDEBAR — 2-col layout -->
+<section class="section why-with-testimonials" id="whyOuterSection">
+  <div class="why-main" id="whySection">
+    <h2>Why Choose Us</h2>
+    <ul class="why-list" id="why"></ul>
+  </div>
+  <aside class="why-sidebar hidden" id="testimonialsWrap">
     <h2>What Clients Say</h2>
-    <div class="testimonial-grid" id="testimonialList"></div>
-  </section>
-</div>
-
-<!-- WHY CHOOSE US -->
-<section class="section" id="whySection">
-  <h2>Why Choose Us</h2>
-  <ul class="why-list" id="why"></ul>
+    <div class="testimonial-grid testimonial-grid--sidebar" id="testimonialList"></div>
+  </aside>
 </section>
 
 <!-- FAQs — tinted band -->
@@ -1048,6 +1101,8 @@ async function loadProfile() {
     socialLinksEl.innerHTML = socialLinks.join('');
     if (socialCtaEl) socialCtaEl.textContent = `Stay up to date with ${p.business_name || 'us'} online.`;
     socialSectionWrap?.classList.remove('hidden');
+    // Also ensure the about section grid is visible
+    getEl('aboutSection')?.classList.remove('hidden');
   }
 
   /* ── Gallery — dynamic title + inline CTA ── */
@@ -1208,6 +1263,7 @@ async function loadProfile() {
       </div>`;
     }).join('');
     testimonialsWrap?.classList.remove('hidden');
+    getEl('whyOuterSection')?.classList.remove('hidden');
   }
 
   /* ── Towns ── */
