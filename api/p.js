@@ -80,7 +80,51 @@ function inactivePage(businessName, baseUrl) {
 </html>`;
 }
 
+// ── OG Image generation (folded in to avoid Vercel function count limit) ──
+const TRADE_COLORS_OG = {
+  landscaping:  { bg: "#0d1f0f", accent: "#2d6a2d", light: "#4a9e3a", label: "Landscaping" },
+  plumbing:     { bg: "#0a1628", accent: "#1e5a96", light: "#3882dc", label: "Plumbing & Heating" },
+  hvac:         { bg: "#0b1a24", accent: "#1a7a9a", light: "#2aa8cc", label: "HVAC" },
+  electrical:   { bg: "#1a1400", accent: "#c09010", light: "#f0b820", label: "Electrical" },
+  cleaning:     { bg: "#091820", accent: "#1a8a6a", light: "#22b894", label: "Cleaning" },
+  contractor:   { bg: "#1a1208", accent: "#8a5a20", light: "#c08030", label: "Contractor" },
+};
+
+function generateOgSvg(profile) {
+  const cat = (profile.primary_category || "").toLowerCase();
+  const c = TRADE_COLORS_OG[cat] || { bg: "#0a1628", accent: "#3882dc", light: "#5aa8f0", label: "Local Business" };
+  const name = (profile.business_name || "Local Business").slice(0, 36);
+  const city = profile.city && profile.state ? `${profile.city}, ${profile.state}` : (profile.city || "");
+  const tagline = (profile.hero_tagline || profile.seo_description || "").slice(0, 80);
+  const phone = profile.phone || "";
+  const services = Array.isArray(profile.services) ? profile.services.slice(0, 4) : [];
+  const xe = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  const pills = services.map((s, i) => {
+    const x = 60 + i * 220;
+    return `<rect x="${x}" y="490" width="200" height="36" rx="18" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/><text x="${x+100}" y="513" font-family="system-ui,sans-serif" font-size="14" font-weight="600" fill="rgba(255,255,255,0.85)" text-anchor="middle">${xe((s.service_name||s.name||"").slice(0,18))}</text>`;
+  }).join("");
+  return `<?xml version="1.0" encoding="UTF-8"?><svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${c.bg}"/><stop offset="100%" stop-color="${c.accent}" stop-opacity="0.3"/></linearGradient><linearGradient id="ab" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${c.light}"/><stop offset="100%" stop-color="${c.accent}"/></linearGradient></defs><rect width="1200" height="630" fill="url(#bg)"/><rect x="0" y="0" width="8" height="630" fill="url(#ab)"/><rect x="60" y="60" width="${c.label.length*9+40}" height="32" rx="16" fill="${c.accent}" opacity="0.7"/><text x="${60+(c.label.length*9+40)/2}" y="81" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="white" text-anchor="middle">${xe(c.label.toUpperCase())}</text><text x="60" y="175" font-family="system-ui,sans-serif" font-size="${name.length>24?52:62}" font-weight="800" fill="white" letter-spacing="-1">${xe(name)}</text>${city?`<text x="60" y="225" font-family="system-ui,sans-serif" font-size="24" font-weight="500" fill="${c.light}">📍 ${xe(city)}</text>`""}<rect x="60" y="252" width="120" height="4" rx="2" fill="${c.light}" opacity="0.7"/>${tagline?`<text x="60" y="306" font-family="system-ui,sans-serif" font-size="22" fill="rgba(255,255,255,0.7)">${xe(tagline.slice(0,75))}</text>`:""}${phone?`<text x="60" y="400" font-family="system-ui,sans-serif" font-size="26" font-weight="700" fill="${c.light}">📞 ${xe(phone)}</text>`:""}${pills}<rect x="1000" y="578" width="180" height="40" rx="8" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/><text x="1090" y="604" font-family="system-ui,sans-serif" font-size="15" font-weight="700" fill="rgba(255,255,255,0.5)" text-anchor="middle">Powered by Enoma</text><circle cx="1200" cy="0" r="400" fill="${c.light}" opacity="0.05"/></svg>`;
+}
+
 export default async function handler(req, res) {
+  // ── OG image route: /api/p?og=1&slug=... ──
+  if (req.query.og === "1") {
+    const slug = req.query.slug;
+    if (!slug) return res.status(400).send("Missing slug");
+    try {
+      const { data: profile } = await supabase
+        .from("small_business_profiles")
+        .select("business_name,city,state,phone,primary_category,hero_tagline,seo_description,services")
+        .eq("username", slug)
+        .maybeSingle();
+      if (!profile) return res.status(404).send("Not found");
+      res.setHeader("Content-Type", "image/svg+xml");
+      res.setHeader("Cache-Control", "public, max-age=604800, s-maxage=604800");
+      return res.status(200).send(generateOgSvg(profile));
+    } catch(e) {
+      return res.status(500).send("Error");
+    }
+  }
   try {
     const slug = (req.query.slug || "").toString().trim();
     if (!slug) return res.status(400).send("Missing slug");
@@ -123,7 +167,7 @@ export default async function handler(req, res) {
     const firstPhoto = Array.isArray(profile.attachments) && profile.attachments.length
       ? (typeof profile.attachments[0] === "string" ? profile.attachments[0] : profile.attachments[0]?.url)
       : null;
-    const ogImage = firstPhoto || profile.logo_url || `${baseUrl}/api/og-image?slug=${encodeURIComponent(slug)}`;
+    const ogImage = firstPhoto || profile.logo_url || `${baseUrl}/api/p?og=1&slug=${encodeURIComponent(slug)}`;
     const robots = profile.is_public ? "index,follow" : "noindex,nofollow";
 
     function collectSameAs(p) {
