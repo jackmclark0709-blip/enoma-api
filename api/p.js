@@ -119,7 +119,11 @@ export default async function handler(req, res) {
     const businessName = profile.business_name || slug;
     const seoTitle = profile.seo_title || `${businessName} | Business Website`;
     const seoDescription = profile.seo_description || `Learn about ${businessName}, services, and how to get in touch.`;
-    const ogImage = profile.logo_url || "";
+    // OG image: prefer first photo attachment, then logo, then fallback to generated card
+    const firstPhoto = Array.isArray(profile.attachments) && profile.attachments.length
+      ? (typeof profile.attachments[0] === "string" ? profile.attachments[0] : profile.attachments[0]?.url)
+      : null;
+    const ogImage = firstPhoto || profile.logo_url || `${baseUrl}/api/og-image?slug=${encodeURIComponent(slug)}`;
     const robots = profile.is_public ? "index,follow" : "noindex,nofollow";
 
     function collectSameAs(p) {
@@ -157,7 +161,29 @@ export default async function handler(req, res) {
       areaServed: Array.isArray(profile.service_area)
         ? profile.service_area.map(a => ({ "@type": "AdministrativeArea", name: a }))
         : undefined,
-      sameAs: collectSameAs(profile)
+      sameAs: collectSameAs(profile),
+      priceRange: "$$",
+      image: firstPhoto || profile.logo_url || undefined,
+      ...(Array.isArray(profile.services) && profile.services.length ? {
+        hasOfferCatalog: {
+          "@type": "OfferCatalog",
+          name: `${businessName} Services`,
+          itemListElement: profile.services.map((s, i) => ({
+            "@type": "Offer",
+            itemOffered: {
+              "@type": "Service",
+              name: s.service_name || s.name || "",
+              description: s.service_description || undefined
+            }
+          }))
+        }
+      } : {}),
+      ...(profile.hero_availability ? {
+        openingHoursSpecification: [{
+          "@type": "OpeningHoursSpecification",
+          description: profile.hero_availability
+        }]
+      } : {})
     };
 
     const templatePath = path.join(process.cwd(), "public", "profile.html");
