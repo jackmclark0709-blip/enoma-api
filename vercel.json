@@ -89,6 +89,31 @@
       "source": "/p/:slug",
       "destination": "/:slug",
       "permanent": true
+    },
+    {
+      "source": "/for/landscaping-websites-massachusetts.html",
+      "destination": "/for/landscaping-websites-massachusetts",
+      "permanent": true
+    },
+    {
+      "source": "/for/plumber-websites-massachusetts.html",
+      "destination": "/for/plumber-websites-massachusetts",
+      "permanent": true
+    },
+    {
+      "source": "/for/lawn-care-website-agawam-ma.html",
+      "destination": "/for/lawn-care-website-agawam-ma",
+      "permanent": true
+    },
+    {
+      "source": "/for/plumber-website-attleboro-ma.html",
+      "destination": "/for/plumber-website-attleboro-ma",
+      "permanent": true
+    },
+    {
+      "source": "/for/website-for-local-service-business.html",
+      "destination": "/for/website-for-local-service-business",
+      "permanent": true
     }
   ],
   "functions": {
