@@ -540,20 +540,29 @@ body.persona-retail .section::before { background: #9a3a8a; }
 /* ── About + social sidebar 2-col layout ── */
 .about-with-sidebar {
   display: grid;
-  grid-template-columns: 1fr 200px;
+  grid-template-columns: 1fr 180px;
   gap: 2.5rem;
   align-items: start;
 }
-.about-main { min-width: 0; }
+.about-main { min-width: 0; flex: 1; }
 .about-sidebar {
-  padding: 1.25rem;
+  padding: 1rem;
   background: var(--brand-primary-10, rgba(26,58,42,0.04));
   border: 1px solid var(--brand-primary-30, rgba(26,58,42,0.12));
-  border-radius: 14px;
+  border-radius: 12px;
   position: sticky;
   top: 80px;
+  min-width: 0;
 }
-.about-sidebar h2 { display: none; } /* heading lives in .about-main */
+.about-sidebar h2 { display: none; }
+/* Ensure the ::before bar only shows in about-main not on the grid container */
+.about-with-sidebar.section::before { display: none; }
+.about-main::before {
+  content: ''; display: block;
+  width: 32px; height: 3px;
+  background: var(--brand-primary, #1a3a2a);
+  border-radius: 999px; margin-bottom: 0.9rem;
+}
 
 /* ── Why + testimonials sidebar 2-col layout ── */
 .why-with-testimonials {
@@ -562,7 +571,14 @@ body.persona-retail .section::before { background: #9a3a8a; }
   gap: 2.5rem;
   align-items: start;
 }
+.why-with-testimonials.section::before { display: none; }
 .why-main { min-width: 0; }
+.why-main::before {
+  content: ''; display: block;
+  width: 32px; height: 3px;
+  background: var(--brand-primary, #1a3a2a);
+  border-radius: 999px; margin-bottom: 0.9rem;
+}
 .why-sidebar {
   min-width: 0;
   position: sticky;

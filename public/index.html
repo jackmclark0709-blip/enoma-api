@@ -26,14 +26,17 @@
     /* HERO */
     .hp-hero{background:#0a1628;padding:5rem 1.5rem 4rem;position:relative;overflow:hidden}
     .hp-hero::before{content:'';position:absolute;top:-80px;right:-80px;width:480px;height:480px;background:radial-gradient(circle,rgba(56,130,220,0.18) 0%,transparent 65%);pointer-events:none}
-    .hp-hero__inner{max-width:1040px;margin-inline:auto;display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center}
+    .hp-hero__inner{max-width:1100px;margin-inline:auto;display:grid;grid-template-columns:1fr 1.15fr;gap:3.5rem;align-items:center}
     .hp-hero__eyebrow{font-size:0.7rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#7ab3e0;margin-bottom:0.9rem}
     .hp-hero__h1{font-family:'DM Sans',sans-serif;font-size:clamp(2rem,3.5vw,2.6rem);font-weight:800;line-height:1.1;letter-spacing:-0.025em;color:#f0f6ff;margin-bottom:1rem}
     .hp-hero__h1 em{color:#5aa8f0;font-style:normal}
     .hp-hero__sub{font-size:1rem;color:rgba(240,246,255,0.65);line-height:1.6;margin-bottom:1.75rem;max-width:420px}
     .hp-hero__actions{display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-bottom:0.9rem}
     .hp-hero__proof{font-size:0.78rem;color:rgba(240,246,255,0.38);letter-spacing:0.04em}
-    .hp-hero__right{display:grid;grid-template-columns:1fr 2fr;gap:0.75rem;align-items:start}
+    .hp-hero__stats-strip{display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.75rem}
+    .hp-hero__stat-pill{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:999px;padding:0.3rem 0.8rem;font-size:0.78rem;color:rgba(240,246,255,0.65)}
+    .hp-hero__stat-pill strong{color:#f0f6ff;font-weight:700}
+    .hp-hero__right{display:flex;flex-direction:column;}
 
     /* Stat cards */
     .hp-stats{display:flex;flex-direction:column;gap:0.6rem}
@@ -136,24 +139,15 @@
         <a href="/signup" class="btn-primary">Create mine free →</a>
         <a href="/examples" class="btn-secondary">See examples</a>
       </div>
+      <div class="hp-hero__stats-strip">
+        <span class="hp-hero__stat-pill"><strong>4</strong> live websites</span>
+        <span class="hp-hero__stat-pill"><strong>&lt;&nbsp;5 min</strong> build time</span>
+        <span class="hp-hero__stat-pill"><strong>$0</strong> to try</span>
+      </div>
       <p class="hp-hero__proof">First month free &nbsp;·&nbsp; No credit card &nbsp;·&nbsp; Cancel anytime</p>
     </div>
     <div class="hp-hero__right">
-      <div class="hp-stats">
-        <div class="hp-stat">
-          <div class="hp-stat__num">4</div>
-          <div class="hp-stat__label">Live business websites</div>
-        </div>
-        <div class="hp-stat">
-          <div class="hp-stat__num">&lt;&nbsp;5 min</div>
-          <div class="hp-stat__label">Average build time</div>
-        </div>
-        <div class="hp-stat">
-          <div class="hp-stat__num">$0</div>
-          <div class="hp-stat__label">Cost to try</div>
-        </div>
-      </div>
-      <!-- Single large browser preview — matches dashboard "Your live page" style -->
+      <!-- Live iframe browser preview -->
       <div class="hp-browser">
         <div class="hp-browser__bar">
           <div class="hp-browser__dots">
@@ -163,7 +157,7 @@
           </div>
           <div class="hp-browser__url">enoma.io/conways-landscaping</div>
         </div>
-        <div style="position:relative;width:100%;height:380px;overflow:hidden;background:#0d1f0f;">
+        <div style="position:relative;width:100%;height:440px;overflow:hidden;background:#0d1f0f;">
           <iframe
             src="/conways-landscaping"
             title="Conway's Landscaping — live Enoma page"
