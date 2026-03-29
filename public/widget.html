@@ -11,7 +11,7 @@
 
     body {
       font-family: 'DM Sans', sans-serif;
-      background: #0a1f0a;
+      background: #060f1a;
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -22,7 +22,7 @@
     .widget {
       width: 100%;
       max-width: 480px;
-      background: #0d1f0f;
+      background: #0a1628;
       border: 1px solid rgba(74,158,58,0.2);
       border-radius: 20px;
       overflow: hidden;
@@ -31,9 +31,9 @@
 
     /* Header band */
     .widget__header {
-      background: linear-gradient(135deg, #142b12 0%, #1c3a1c 100%);
+      background: linear-gradient(135deg, #0a1628 0%, #162540 100%);
       padding: 1.5rem 1.75rem 1.25rem;
-      border-bottom: 1px solid rgba(74,158,58,0.15);
+      border-bottom: 1px solid rgba(56,130,220,0.15);
       position: relative;
       overflow: hidden;
     }
@@ -42,29 +42,29 @@
       position: absolute;
       top: -40px; right: -40px;
       width: 180px; height: 180px;
-      background: radial-gradient(circle, rgba(74,158,58,0.18) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(56,130,220,0.15) 0%, transparent 70%);
       pointer-events: none;
     }
     .widget__badge {
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
-      background: rgba(74,158,58,0.15);
-      border: 1px solid rgba(74,158,58,0.3);
+      background: rgba(56,130,220,0.15);
+      border: 1px solid rgba(56,130,220,0.3);
       border-radius: 999px;
       padding: 0.2rem 0.7rem;
       font-size: 0.65rem;
       font-weight: 700;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: #7ac96a;
+      color: #7ab3e0;
       margin-bottom: 0.75rem;
     }
     .widget__badge::before {
       content: '';
       width: 5px; height: 5px;
       border-radius: 50%;
-      background: #7ac96a;
+      background: #7ab3e0;
     }
     .widget__title {
       font-size: 1.45rem;
@@ -75,7 +75,7 @@
       margin-bottom: 0.3rem;
     }
     .widget__title em {
-      color: #7ac96a;
+      color: #5aa8f0;
       font-style: normal;
     }
     .widget__sub {
@@ -109,9 +109,9 @@
       white-space: nowrap;
     }
     .trade-pill.active {
-      background: rgba(74,158,58,0.18);
-      border-color: rgba(74,158,58,0.4);
-      color: #7ac96a;
+      background: rgba(56,130,220,0.18);
+      border-color: rgba(56,130,220,0.4);
+      color: #7ab3e0;
     }
 
     /* Fields */
@@ -140,10 +140,10 @@
     }
     .field input::placeholder { color: rgba(240,246,255,0.22); }
     .field input:focus, .field select:focus {
-      border-color: rgba(74,158,58,0.5);
+      border-color: rgba(56,130,220,0.5);
       background: rgba(255,255,255,0.07);
     }
-    .field select option { background: #142b12; }
+    .field select option { background: #0a1628; }
 
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
 
@@ -156,7 +156,7 @@
       width: 100%;
       margin-top: 1.1rem;
       padding: 0.9rem 1.25rem;
-      background: linear-gradient(135deg, #2d6a2d 0%, #4a9e3a 100%);
+      background: #3882dc;
       border: none;
       border-radius: 12px;
       font-family: 'DM Sans', sans-serif;
@@ -165,7 +165,7 @@
       color: white;
       cursor: pointer;
       text-decoration: none;
-      box-shadow: 0 8px 24px rgba(45,106,45,0.4);
+      box-shadow: 0 8px 24px rgba(56,130,220,0.4);
       transition: transform 0.12s, filter 0.12s;
       letter-spacing: -0.01em;
     }
@@ -205,7 +205,7 @@
     }
     .widget__footer-url {
       font-size: 0.7rem;
-      color: rgba(74,158,58,0.6);
+      color: rgba(56,130,220,0.6);
       font-weight: 600;
     }
   </style>
@@ -227,6 +227,7 @@
       <div class="trade-pill" data-trade="hvac">❄️ HVAC</div>
       <div class="trade-pill" data-trade="electrical">⚡ Electrical</div>
       <div class="trade-pill" data-trade="contractor">🏠 Contractor</div>
+      <div class="trade-pill" data-trade="other">✦ Other</div>
     </div>
 
     <div class="field">
