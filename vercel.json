@@ -45,6 +45,14 @@
       "destination": "/upgrade/index.html"
     },
     {
+      "source": "/get-your-website",
+      "destination": "/get-your-website.html"
+    },
+    {
+      "source": "/widget",
+      "destination": "/widget.html"
+    },
+    {
       "source": "/for/landscaping-websites-massachusetts",
       "destination": "/for/landscaping-websites-massachusetts.html"
     },
@@ -113,6 +121,16 @@
     {
       "source": "/for/website-for-local-service-business.html",
       "destination": "/for/website-for-local-service-business",
+      "permanent": true
+    },
+    {
+      "source": "/get-your-website.html",
+      "destination": "/get-your-website",
+      "permanent": true
+    },
+    {
+      "source": "/widget.html",
+      "destination": "/widget",
       "permanent": true
     }
   ],

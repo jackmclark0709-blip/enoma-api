@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Get Your Business Website — Enoma</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: #0a1f0a;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .widget {
+      width: 100%;
+      max-width: 480px;
+      background: #0d1f0f;
+      border: 1px solid rgba(74,158,58,0.2);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 32px 96px rgba(0,0,0,0.5), 0 0 0 1px rgba(74,158,58,0.1);
+    }
+
+    /* Header band */
+    .widget__header {
+      background: linear-gradient(135deg, #142b12 0%, #1c3a1c 100%);
+      padding: 1.5rem 1.75rem 1.25rem;
+      border-bottom: 1px solid rgba(74,158,58,0.15);
+      position: relative;
+      overflow: hidden;
+    }
+    .widget__header::after {
+      content: '';
+      position: absolute;
+      top: -40px; right: -40px;
+      width: 180px; height: 180px;
+      background: radial-gradient(circle, rgba(74,158,58,0.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .widget__badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(74,158,58,0.15);
+      border: 1px solid rgba(74,158,58,0.3);
+      border-radius: 999px;
+      padding: 0.2rem 0.7rem;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #7ac96a;
+      margin-bottom: 0.75rem;
+    }
+    .widget__badge::before {
+      content: '';
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: #7ac96a;
+    }
+    .widget__title {
+      font-size: 1.45rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: #f0f6ff;
+      line-height: 1.15;
+      margin-bottom: 0.3rem;
+    }
+    .widget__title em {
+      color: #7ac96a;
+      font-style: normal;
+    }
+    .widget__sub {
+      font-size: 0.82rem;
+      color: rgba(240,246,255,0.5);
+      line-height: 1.5;
+    }
+
+    /* Form body */
+    .widget__body {
+      padding: 1.5rem 1.75rem 1.75rem;
+    }
+
+    /* Trade pills */
+    .trade-row {
+      display: flex;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.25rem;
+    }
+    .trade-pill {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 999px;
+      padding: 0.25rem 0.7rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: rgba(240,246,255,0.5);
+      cursor: pointer;
+      transition: all 0.12s;
+      white-space: nowrap;
+    }
+    .trade-pill.active {
+      background: rgba(74,158,58,0.18);
+      border-color: rgba(74,158,58,0.4);
+      color: #7ac96a;
+    }
+
+    /* Fields */
+    .field { margin-bottom: 0.75rem; }
+    .field label {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: rgba(240,246,255,0.45);
+      margin-bottom: 0.3rem;
+    }
+    .field input, .field select {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1.5px solid rgba(255,255,255,0.09);
+      border-radius: 10px;
+      padding: 0.65rem 0.85rem;
+      font-size: 0.9rem;
+      font-family: 'DM Sans', sans-serif;
+      color: #f0f6ff;
+      outline: none;
+      -webkit-appearance: none;
+      transition: border-color 0.12s, background 0.12s;
+    }
+    .field input::placeholder { color: rgba(240,246,255,0.22); }
+    .field input:focus, .field select:focus {
+      border-color: rgba(74,158,58,0.5);
+      background: rgba(255,255,255,0.07);
+    }
+    .field select option { background: #142b12; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+
+    /* CTA */
+    .cta-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      margin-top: 1.1rem;
+      padding: 0.9rem 1.25rem;
+      background: linear-gradient(135deg, #2d6a2d 0%, #4a9e3a 100%);
+      border: none;
+      border-radius: 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.97rem;
+      font-weight: 800;
+      color: white;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 8px 24px rgba(45,106,45,0.4);
+      transition: transform 0.12s, filter 0.12s;
+      letter-spacing: -0.01em;
+    }
+    .cta-btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.08);
+      color: white;
+    }
+    .cta-btn svg {
+      width: 16px; height: 16px;
+      stroke: white; fill: none;
+      stroke-width: 2.5; stroke-linecap: round;
+    }
+
+    .proof {
+      text-align: center;
+      font-size: 0.7rem;
+      color: rgba(240,246,255,0.25);
+      margin-top: 0.75rem;
+      letter-spacing: 0.04em;
+    }
+
+    /* Enoma logo strip */
+    .widget__footer {
+      background: rgba(0,0,0,0.2);
+      border-top: 1px solid rgba(255,255,255,0.05);
+      padding: 0.6rem 1.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .widget__footer-brand {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: rgba(240,246,255,0.25);
+      letter-spacing: 0.08em;
+    }
+    .widget__footer-url {
+      font-size: 0.7rem;
+      color: rgba(74,158,58,0.6);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+<div class="widget">
+
+  <div class="widget__header">
+    <div class="widget__badge">Free to start · No credit card</div>
+    <h1 class="widget__title">Get your <em>business website</em><br>live today.</h1>
+    <p class="widget__sub">Fill out the form below — AI builds your page in minutes.</p>
+  </div>
+
+  <div class="widget__body">
+
+    <div class="trade-row" id="tradePills">
+      <div class="trade-pill active" data-trade="landscaping">🌿 Landscaping</div>
+      <div class="trade-pill" data-trade="plumbing">🔧 Plumbing</div>
+      <div class="trade-pill" data-trade="hvac">❄️ HVAC</div>
+      <div class="trade-pill" data-trade="electrical">⚡ Electrical</div>
+      <div class="trade-pill" data-trade="contractor">🏠 Contractor</div>
+    </div>
+
+    <div class="field">
+      <label>Business Name</label>
+      <input type="text" placeholder="e.g. Conway's Landscaping" id="w_name" />
+    </div>
+
+    <div class="two-col">
+      <div class="field">
+        <label>Town / City</label>
+        <input type="text" placeholder="e.g. Agawam, MA" id="w_city" />
+      </div>
+      <div class="field">
+        <label>Phone</label>
+        <input type="tel" placeholder="(555) 000-0000" id="w_phone" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Your Email</label>
+      <input type="email" placeholder="you@example.com" id="w_email" />
+    </div>
+
+    <a href="/signup" class="cta-btn" id="w_submit">
+      <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      Build my free website →
+    </a>
+
+    <p class="proof">First month free &nbsp;·&nbsp; $19.99/mo after &nbsp;·&nbsp; Cancel anytime</p>
+  </div>
+
+  <div class="widget__footer">
+    <span class="widget__footer-brand">POWERED BY ENOMA</span>
+    <span class="widget__footer-url">enoma.io</span>
+  </div>
+
+</div>
+
+<script>
+  document.querySelectorAll('.trade-pill').forEach(p => {
+    p.addEventListener('click', () => {
+      document.querySelectorAll('.trade-pill').forEach(x => x.classList.remove('active'));
+      p.classList.add('active');
+    });
+  });
+
+  document.getElementById('w_submit').addEventListener('click', function(e) {
+    const name = document.getElementById('w_name').value.trim();
+    const email = document.getElementById('w_email').value.trim();
+    if (!name || !email) {
+      e.preventDefault();
+      if (!name) document.getElementById('w_name').focus();
+      else document.getElementById('w_email').focus();
+      return;
+    }
+    const trade = document.querySelector('.trade-pill.active')?.dataset.trade || '';
+    const params = new URLSearchParams({
+      trade, name, email,
+      city: document.getElementById('w_city').value.trim(),
+      phone: document.getElementById('w_phone').value.trim(),
+    });
+    this.href = `https://enoma.io/signup?${params.toString()}`;
+  });
+</script>
+</body>
+</html>

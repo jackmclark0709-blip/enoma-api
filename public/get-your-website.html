@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Get Your Business Website Today — Enoma</title>
+  <meta name="description" content="Fill out this form and get a professional, Google-indexed website for your landscaping, plumbing, or trade business today. First month free." />
+  <link rel="canonical" href="https://enoma.io/get-your-website" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Get Your Business Website Today — Enoma" />
+  <meta property="og:description" content="Fill out this short form and your professional website is live in minutes. First month free." />
+  <meta property="og:image" content="https://enoma.io/assets/og/enoma-default-v2.png" />
+  <link rel="stylesheet" href="/styles/enoma.css" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-S8XTG72Y2Y');</script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green: #2d6a2d;
+      --green-light: #4a9e3a;
+      --green-glow: rgba(74,158,58,0.18);
+      --blue: #3882dc;
+      --dark: #0a1628;
+      --dark-green: #0d1f0f;
+      --text: #f0f6ff;
+      --text-dim: rgba(240,246,255,0.62);
+      --card-bg: rgba(255,255,255,0.05);
+      --card-border: rgba(255,255,255,0.10);
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--dark-green);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── NOISE TEXTURE ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    /* ── AMBIENT GLOW ── */
+    .glow-orb {
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .glow-orb--1 {
+      width: 600px; height: 600px;
+      top: -200px; right: -150px;
+      background: radial-gradient(circle, rgba(45,106,45,0.25) 0%, transparent 70%);
+    }
+    .glow-orb--2 {
+      width: 400px; height: 400px;
+      bottom: -100px; left: -100px;
+      background: radial-gradient(circle, rgba(56,130,220,0.12) 0%, transparent 70%);
+    }
+
+    /* ── PAGE LAYOUT ── */
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin-inline: auto;
+      padding: 3rem 1.5rem 5rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: start;
+    }
+
+    /* ── LEFT: COPY ── */
+    .copy { position: sticky; top: 2rem; }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(74,158,58,0.12);
+      border: 1px solid rgba(74,158,58,0.3);
+      border-radius: 999px;
+      padding: 0.3rem 0.85rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #7ac96a;
+      margin-bottom: 1.5rem;
+    }
+    .eyebrow::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #7ac96a;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.7); }
+    }
+
+    .headline {
+      font-size: clamp(2.2rem, 4vw, 3.2rem);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      color: #f0f6ff;
+      margin-bottom: 1.25rem;
+    }
+    .headline em {
+      color: var(--green-light);
+      font-style: normal;
+      position: relative;
+    }
+
+    .subhead {
+      font-size: 1.05rem;
+      color: var(--text-dim);
+      line-height: 1.65;
+      margin-bottom: 2.5rem;
+      max-width: 420px;
+    }
+
+    /* Example preview */
+    .example-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--green-light);
+      margin-bottom: 0.75rem;
+      opacity: 0.7;
+    }
+    .browser-mini {
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(74,158,58,0.2);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.35);
+      margin-bottom: 2rem;
+    }
+    .browser-mini__bar {
+      background: #1e2d45;
+      padding: 6px 10px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .browser-mini__dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+    }
+    .browser-mini__url {
+      flex: 1;
+      background: rgba(255,255,255,0.08);
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-size: 8px;
+      font-family: 'DM Mono', monospace;
+      color: rgba(255,255,255,0.45);
+      margin-left: 6px;
+    }
+    .browser-mini__frame {
+      height: 220px;
+      overflow: hidden;
+      background: #0d1f0f;
+      position: relative;
+    }
+    .browser-mini__frame iframe {
+      width: 167%;
+      height: 167%;
+      transform: scale(0.6);
+      transform-origin: top left;
+      border: none;
+      pointer-events: none;
+    }
+
+    /* Trust proof */
+    .proof-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .proof-item {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      font-size: 0.9rem;
+      color: var(--text-dim);
+    }
+    .proof-item__check {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: rgba(74,158,58,0.15);
+      border: 1px solid rgba(74,158,58,0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 0.65rem;
+      color: #7ac96a;
+    }
+
+    /* ── RIGHT: FORM CARD ── */
+    .form-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 20px;
+      padding: 2.25rem;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 24px 80px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+
+    .form-card__header {
+      margin-bottom: 1.75rem;
+    }
+    .form-card__trade {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #7ac96a;
+      margin-bottom: 0.4rem;
+    }
+    .form-card__title {
+      font-size: 1.3rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #f0f6ff;
+      line-height: 1.2;
+    }
+    .form-card__sub {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      margin-top: 0.3rem;
+      line-height: 1.5;
+    }
+
+    /* Trade selector tabs */
+    .trade-tabs {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+    .trade-tab {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 999px;
+      padding: 0.3rem 0.85rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: rgba(240,246,255,0.55);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .trade-tab.active,
+    .trade-tab:hover {
+      background: rgba(74,158,58,0.15);
+      border-color: rgba(74,158,58,0.4);
+      color: #7ac96a;
+    }
+
+    /* Form fields */
+    .field { margin-bottom: 0.85rem; }
+    .field label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: rgba(240,246,255,0.55);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 0.35rem;
+    }
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      border: 1.5px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 0.7rem 0.9rem;
+      font-size: 0.92rem;
+      font-family: 'DM Sans', sans-serif;
+      color: #f0f6ff;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+      -webkit-appearance: none;
+    }
+    .field input::placeholder,
+    .field textarea::placeholder {
+      color: rgba(240,246,255,0.28);
+    }
+    .field select option { background: #142b12; color: #f0f6ff; }
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      border-color: rgba(74,158,58,0.6);
+      box-shadow: 0 0 0 3px rgba(74,158,58,0.12);
+      background: rgba(255,255,255,0.08);
+    }
+    .field textarea { resize: vertical; min-height: 80px; line-height: 1.55; }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    /* Services preview */
+    .services-preview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-top: 0.5rem;
+    }
+    .service-chip {
+      background: rgba(74,158,58,0.1);
+      border: 1px solid rgba(74,158,58,0.25);
+      border-radius: 999px;
+      padding: 0.25rem 0.7rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #7ac96a;
+      cursor: pointer;
+      transition: background 0.15s;
+      user-select: none;
+    }
+    .service-chip.selected {
+      background: rgba(74,158,58,0.25);
+      border-color: rgba(74,158,58,0.5);
+    }
+    .service-chip:hover { background: rgba(74,158,58,0.2); }
+
+    /* Submit */
+    .submit-btn {
+      width: 100%;
+      margin-top: 1.5rem;
+      padding: 0.95rem 1.5rem;
+      background: linear-gradient(135deg, #2d6a2d 0%, #4a9e3a 100%);
+      border: none;
+      border-radius: 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1rem;
+      font-weight: 800;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+      box-shadow: 0 8px 24px rgba(45,106,45,0.35);
+      letter-spacing: -0.01em;
+      text-decoration: none;
+    }
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 36px rgba(45,106,45,0.45);
+      filter: brightness(1.08);
+      color: white;
+    }
+    .submit-btn svg {
+      width: 18px; height: 18px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+    }
+
+    .form-card__proof {
+      text-align: center;
+      font-size: 0.75rem;
+      color: rgba(240,246,255,0.28);
+      margin-top: 0.85rem;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── BOTTOM SECTION: HOW IT WORKS ── */
+    .how-it-works {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin-inline: auto;
+      padding: 0 1.5rem 5rem;
+    }
+    .how-it-works__label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #7ac96a;
+      text-align: center;
+      margin-bottom: 0.6rem;
+    }
+    .how-it-works__h2 {
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: #f0f6ff;
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      position: relative;
+    }
+    .steps::before {
+      content: '';
+      position: absolute;
+      top: 28px;
+      left: 16%;
+      right: 16%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(74,158,58,0.3) 30%, rgba(74,158,58,0.3) 70%, transparent);
+      pointer-events: none;
+    }
+    .step {
+      text-align: center;
+      position: relative;
+    }
+    .step__num {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: rgba(74,158,58,0.1);
+      border: 1px solid rgba(74,158,58,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #7ac96a;
+      margin: 0 auto 1rem;
+      font-family: 'DM Mono', monospace;
+    }
+    .step__title {
+      font-size: 0.97rem;
+      font-weight: 700;
+      color: #f0f6ff;
+      margin-bottom: 0.4rem;
+    }
+    .step__desc {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 860px) {
+      .page {
+        grid-template-columns: 1fr;
+        gap: 2.5rem;
+      }
+      .copy { position: static; }
+      .steps { grid-template-columns: 1fr; }
+      .steps::before { display: none; }
+    }
+    @media (max-width: 500px) {
+      .field-row { grid-template-columns: 1fr; }
+      .form-card { padding: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="glow-orb glow-orb--1"></div>
+<div class="glow-orb glow-orb--2"></div>
+
+<script type="module" src="/partials/nav.js"></script>
+
+<!-- ── MAIN PAGE ── -->
+<div class="page">
+
+  <!-- LEFT: COPY -->
+  <div class="copy">
+    <div class="eyebrow">For local trade businesses</div>
+
+    <h1 class="headline">
+      Fill out this form.<br>
+      Get your <em>website</em><br>
+      today.
+    </h1>
+
+    <p class="subhead">
+      Landscapers. Plumbers. HVAC. Electricians. Contractors. If you run a local service business in MA, your website should be live — not on a to-do list.
+    </p>
+
+    <p class="example-label">Real example — Conway's Landscaping, Agawam MA</p>
+    <div class="browser-mini">
+      <div class="browser-mini__bar">
+        <div class="browser-mini__dot" style="background:#ff5f56"></div>
+        <div class="browser-mini__dot" style="background:#ffbd2e"></div>
+        <div class="browser-mini__dot" style="background:#27c93f"></div>
+        <div class="browser-mini__url">enoma.io/conways-landscaping</div>
+      </div>
+      <div class="browser-mini__frame">
+        <iframe src="/conways-landscaping" loading="lazy" sandbox="allow-scripts allow-same-origin" title="Live example"></iframe>
+      </div>
+    </div>
+
+    <div class="proof-list">
+      <div class="proof-item">
+        <div class="proof-item__check">✓</div>
+        <span>Google-indexed from day one</span>
+      </div>
+      <div class="proof-item">
+        <div class="proof-item__check">✓</div>
+        <span>Contact form goes straight to your email</span>
+      </div>
+      <div class="proof-item">
+        <div class="proof-item__check">✓</div>
+        <span>Your photos, your services, your phone number</span>
+      </div>
+      <div class="proof-item">
+        <div class="proof-item__check">✓</div>
+        <span>No agency. No design skills. Under 5 minutes.</span>
+      </div>
+      <div class="proof-item">
+        <div class="proof-item__check">✓</div>
+        <span>First month free — $19.99/mo after</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: FORM CARD -->
+  <div class="form-card">
+    <div class="form-card__header">
+      <p class="form-card__trade">Start for free — no credit card</p>
+      <h2 class="form-card__title">Build my business website</h2>
+      <p class="form-card__sub">Takes about 5 minutes. AI writes your copy from your notes.</p>
+    </div>
+
+    <!-- Trade selector -->
+    <div class="trade-tabs" id="tradeTabs">
+      <div class="trade-tab active" data-trade="landscaping" data-services="Mowing,Trimming,Mulching,Seasonal Cleanup,Snow Removal">🌿 Landscaping</div>
+      <div class="trade-tab" data-trade="plumbing" data-services="Leak Repair,Drain Cleaning,Boiler Service,Water Heater,Emergency">🔧 Plumbing</div>
+      <div class="trade-tab" data-trade="hvac" data-services="AC Install,Heating,Ductwork,Maintenance,Emergency">❄️ HVAC</div>
+      <div class="trade-tab" data-trade="electrical" data-services="Panel Upgrade,Wiring,Outlets,Emergency,Inspection">⚡ Electrical</div>
+      <div class="trade-tab" data-trade="contractor" data-services="Renovation,Roofing,Painting,Additions,Decks">🏠 Contractor</div>
+    </div>
+
+    <div class="field">
+      <label>Business Name</label>
+      <input id="biz_name" type="text" placeholder="e.g. Conway's Landscaping" />
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Your Town / City</label>
+        <input id="biz_city" type="text" placeholder="e.g. Agawam, MA" />
+      </div>
+      <div class="field">
+        <label>Phone Number</label>
+        <input id="biz_phone" type="tel" placeholder="(555) 000-0000" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Your Email</label>
+      <input id="biz_email" type="email" placeholder="you@example.com" />
+    </div>
+
+    <div class="field">
+      <label>Services offered <span style="text-transform:none;font-weight:400;opacity:0.6;">(tap to select)</span></label>
+      <div class="services-preview" id="serviceChips"></div>
+    </div>
+
+    <div class="field">
+      <label>About your business <span style="text-transform:none;font-weight:400;opacity:0.6;">(rough notes are fine)</span></label>
+      <textarea id="biz_about" placeholder="e.g. Family-owned since 2019. We do residential lawn care in Agawam and surrounding towns. Owner on every job. Free estimates." rows="3"></textarea>
+    </div>
+
+    <a href="/signup" class="submit-btn" id="submitBtn">
+      <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      Build my free website →
+    </a>
+
+    <p class="form-card__proof">First month free &nbsp;·&nbsp; No credit card &nbsp;·&nbsp; Cancel anytime</p>
+  </div>
+
+</div>
+
+<!-- ── HOW IT WORKS ── -->
+<div class="how-it-works">
+  <p class="how-it-works__label">How it works</p>
+  <h2 class="how-it-works__h2">From form to live website in three steps</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step__num">1</div>
+      <p class="step__title">Fill out the form</p>
+      <p class="step__desc">Tell us your business name, location, services, and a few notes about what you do. Rough notes are completely fine.</p>
+    </div>
+    <div class="step">
+      <div class="step__num">2</div>
+      <p class="step__title">AI builds your page</p>
+      <p class="step__desc">Enoma writes your headline, about section, service descriptions, and FAQ — then publishes your page instantly.</p>
+    </div>
+    <div class="step">
+      <div class="step__num">3</div>
+      <p class="step__title">You're live on Google</p>
+      <p class="step__desc">Your page is indexed by Google from day one. When someone searches for your trade in your town — they find you.</p>
+    </div>
+  </div>
+</div>
+
+<div id="footer"></div>
+<script>fetch('/partials/footer.html').then(r=>r.text()).then(html=>{document.getElementById('footer').innerHTML=html});</script>
+
+<script>
+  // Trade tab switching — updates service chips and placeholder text
+  const TRADE_DATA = {
+    landscaping: { services: ['Mowing','Trimming','Mulching','Seasonal Cleanup','Snow Removal','Aeration','Fertilizing'] },
+    plumbing:    { services: ['Leak Repair','Drain Cleaning','Boiler Service','Water Heater','Emergency Plumbing','Pipe Install','Sump Pump'] },
+    hvac:        { services: ['AC Installation','Heating Repair','Ductwork','Maintenance','Emergency HVAC','Thermostat','Air Quality'] },
+    electrical:  { services: ['Panel Upgrade','Wiring','Outlets & Switches','Emergency','Inspection','EV Charger','Lighting'] },
+    contractor:  { services: ['Renovation','Roofing','Painting','Additions','Decks','Flooring','Basement Finishing'] },
+  };
+
+  let selectedServices = new Set(['Mowing','Trimming','Mulching','Seasonal Cleanup','Snow Removal']);
+  let activeTrade = 'landscaping';
+
+  function renderChips(trade) {
+    const chips = document.getElementById('serviceChips');
+    const services = TRADE_DATA[trade]?.services || [];
+    chips.innerHTML = '';
+    services.forEach(s => {
+      const el = document.createElement('div');
+      el.className = 'service-chip' + (selectedServices.has(s) ? ' selected' : '');
+      el.textContent = s;
+      el.addEventListener('click', () => {
+        if (selectedServices.has(s)) selectedServices.delete(s);
+        else selectedServices.add(s);
+        el.classList.toggle('selected');
+      });
+      chips.appendChild(el);
+    });
+  }
+
+  document.querySelectorAll('.trade-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.trade-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      activeTrade = tab.dataset.trade;
+      selectedServices = new Set((tab.dataset.services || '').split(','));
+      renderChips(activeTrade);
+    });
+  });
+
+  renderChips('landscaping');
+
+  // Wire submit button — carry filled values to signup
+  document.getElementById('submitBtn').addEventListener('click', function(e) {
+    const name = document.getElementById('biz_name').value.trim();
+    const email = document.getElementById('biz_email').value.trim();
+    if (!name || !email) {
+      e.preventDefault();
+      if (!name) document.getElementById('biz_name').focus();
+      else document.getElementById('biz_email').focus();
+      return;
+    }
+    // Pass trade + name as query params to signup so the create form can be pre-filled
+    const params = new URLSearchParams({
+      trade: activeTrade,
+      name: name,
+      email: email,
+      city: document.getElementById('biz_city').value.trim(),
+      phone: document.getElementById('biz_phone').value.trim(),
+    });
+    this.href = `/signup?${params.toString()}`;
+  });
+</script>
+</body>
+</html>
