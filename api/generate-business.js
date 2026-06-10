@@ -82,21 +82,27 @@ async function generateUniqueSlug(base, supabase) {
 }
 
 async function handleAdminGenerate(req, res) {
-  /* ---------- ADMIN JSON PATH ----------
-     Triggered when x-admin-secret header is present.
-     Accepts raw JSON body, skips user auth and formidable.
-     Used by Claude for bulk page generation.
-  ---------------------------------------- */
   const secret = req.headers["x-admin-secret"];
   if (secret !== process.env.ADMIN_SECRET) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
+  // Manually parse raw JSON body (bodyParser: false blocks automatic parsing)
+  const body = await new Promise((resolve, reject) => {
+    let data = "";
+    req.on("data", chunk => { data += chunk; });
+    req.on("end", () => {
+      try { resolve(JSON.parse(data)); }
+      catch (e) { reject(new Error("Invalid JSON: " + e.message)); }
+    });
+    req.on("error", reject);
+  });
+
   const {
     businessName, slug: requestedSlug, phone, town, state, trade,
     ownerFirstName, services = [], areasServed = [], yearsInBusiness,
     email = "jack@enoma.io"
-  } = req.body;
+  } = body;
 
   if (!businessName || !requestedSlug) {
     return res.status(400).json({ error: "businessName and slug required" });
