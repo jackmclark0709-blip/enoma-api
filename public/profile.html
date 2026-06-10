@@ -564,10 +564,10 @@ body.persona-retail .section::before { background: #9a3a8a; }
   border-radius: 999px; margin-bottom: 0.9rem;
 }
 
-/* ── Why + testimonials sidebar 2-col layout ── */
+/* ── Why + testimonials carousel layout ── */
 .why-with-testimonials {
   display: grid;
-  grid-template-columns: 1fr 280px;
+  grid-template-columns: 1fr 300px;
   gap: 2.5rem;
   align-items: start;
 }
@@ -595,6 +595,73 @@ body.persona-retail .section::before { background: #9a3a8a; }
   background: var(--brand-primary, #1a3a2a);
   border-radius: 999px; margin-bottom: 0.6rem;
 }
+
+/* ── Testimonial carousel ── */
+.testimonial-carousel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+}
+.testimonial-carousel-track {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  transition: transform 0.4s cubic-bezier(0.4,0,0.2,1);
+}
+.testimonial-carousel .testimonial {
+  flex-shrink: 0;
+  width: 100%;
+  display: none;
+}
+.testimonial-carousel .testimonial.active {
+  display: block;
+}
+.carousel-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.6rem;
+  padding: 0 0.1rem;
+}
+.carousel-dots {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.carousel-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--brand-primary-30, rgba(26,58,42,0.2));
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+  border: none;
+  padding: 0;
+}
+.carousel-dot.active {
+  background: var(--brand-primary, #1a3a2a);
+  transform: scale(1.3);
+}
+.carousel-arrows {
+  display: flex;
+  gap: 0.35rem;
+}
+.carousel-arrow {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--brand-primary-30, rgba(26,58,42,0.25));
+  background: white;
+  color: var(--brand-primary, #1a3a2a);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem;
+  transition: background 0.15s, color 0.15s;
+  line-height: 1;
+}
+.carousel-arrow:hover {
+  background: var(--brand-primary, #1a3a2a);
+  color: white;
+}
+
 .testimonial-grid--sidebar {
   display: flex !important;
   flex-direction: column;
@@ -765,9 +832,13 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
     <h2>Areas We Serve</h2>
     <p class="towns-sub" id="townsSub">Serving residential and commercial customers across:</p>
     <div id="townList" style="margin-bottom:1.25rem;"></div>
-    <!-- Service radius map — shown if address or city/state exists -->
+    <!-- Map — Google Place ID takes priority, falls back to address -->
     <div id="serviceMapWrap" class="service-map-wrap hidden">
       <div id="serviceMap" class="service-map"></div>
+    </div>
+    <!-- Google Place map slot (used when place_id available) -->
+    <div id="placesMapWrap" class="service-map-wrap hidden" style="margin-top:0.75rem;">
+      <div id="map" style="width:100%;height:280px;border-radius:14px;overflow:hidden;"></div>
     </div>
   </section>
 </div>
@@ -812,7 +883,16 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
   </div>
   <aside class="why-sidebar hidden" id="testimonialsWrap">
     <h2>What Clients Say</h2>
-    <div class="testimonial-grid testimonial-grid--sidebar" id="testimonialList"></div>
+    <div class="testimonial-carousel" id="testimonialCarousel">
+      <div class="testimonial-carousel-track" id="testimonialList"></div>
+      <div class="carousel-nav" id="carouselNav" style="display:none;">
+        <div class="carousel-dots" id="carouselDots"></div>
+        <div class="carousel-arrows">
+          <button class="carousel-arrow" id="carouselPrev" aria-label="Previous">&#8592;</button>
+          <button class="carousel-arrow" id="carouselNext" aria-label="Next">&#8594;</button>
+        </div>
+      </div>
+    </div>
   </aside>
 </section>
 
@@ -824,18 +904,14 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 </div>
 </div>
 
-<!-- LOCATION & GOOGLE -->
-<section class="section hidden" id="locationBand">
-  <h2>Location &amp; Reviews</h2>
-  <div class="location-grid" id="locationGrid">
-    <div class="map-wrap" id="map"></div>
-    <div class="location-meta" id="locationMeta">
-      <div id="rating" class="rating hidden"></div>
-      <div id="hours"></div>
-    </div>
-  </div>
-  <div id="reviews" class="reviews" style="margin-top:1.25rem;"></div>
-</section>
+<!-- hidden map/review data holders — content moved to Areas We Serve + hero ——>
+<div style="display:none">
+  <div id="map"></div>
+  <div id="locationMeta"><div id="rating" class="rating hidden"></div><div id="hours"></div></div>
+  <div id="reviews"></div>
+  <div id="locationBand"></div>
+  <div id="locationGrid"></div>
+</div>
 
 <!-- CONTACT FORM — reduced padding, tinted band -->
 <div class="band">
@@ -1087,6 +1163,10 @@ async function loadProfile() {
     // Response time (e.g. "Responds within 2 hours")
     if (p.hero_response_time) items.push(`<span class="hero-trust-item"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.8 19.8 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.8 19.8 0 012.08 4.18 2 2 0 014.06 2h3a2 2 0 012 1.72c.12.86.31 1.7.57 2.5a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.58-1.09a2 2 0 012.11-.45c.8.26 1.64.45 2.5.57A2 2 0 0122 16.92z"/></svg>${p.hero_response_time}</span>`);
 
+    // Add Google rating pill if available
+    if (p.average_rating && p.review_count) {
+      items.unshift(`<span class="hero-trust-item"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor" stroke="none"/></svg>${p.average_rating} · ${p.review_count} Google reviews</span>`);
+    }
     if (items.length) { heroTrust.innerHTML = items.join(''); heroTrust.classList.remove('hidden'); }
   }
 
@@ -1274,13 +1354,15 @@ async function loadProfile() {
     whySection?.classList.add('hidden');
   }
 
-  /* ── Testimonials — standalone section ── */
+  /* ── Testimonials — carousel ── */
   const testimonialList = getEl('testimonialList');
   const testimonialsWrap = getEl('testimonialsWrap');
   if (Array.isArray(p.testimonials) && p.testimonials.length && testimonialList) {
-    testimonialList.innerHTML = p.testimonials.map(t => {
+    const testimonials = p.testimonials;
+    // Build cards
+    testimonialList.innerHTML = testimonials.map((t, i) => {
       const initial = (t.author || '?')[0].toUpperCase();
-      return `<div class="testimonial">
+      return `<div class="testimonial${i === 0 ? ' active' : ''}" data-idx="${i}">
         <div class="testimonial-accent"></div>
         <div class="stars">★★★★★</div>
         <p>${t.quote}</p>
@@ -1290,6 +1372,43 @@ async function loadProfile() {
         </div>
       </div>`;
     }).join('');
+
+    // Build carousel nav if more than 1
+    const carouselNav = getEl('carouselNav');
+    const carouselDots = getEl('carouselDots');
+    const prevBtn = getEl('carouselPrev');
+    const nextBtn = getEl('carouselNext');
+    let currentIdx = 0;
+
+    const showSlide = (idx) => {
+      const cards = testimonialList.querySelectorAll('.testimonial');
+      const dots = carouselDots?.querySelectorAll('.carousel-dot');
+      cards.forEach((c, i) => c.classList.toggle('active', i === idx));
+      dots?.forEach((d, i) => d.classList.toggle('active', i === idx));
+      currentIdx = idx;
+    };
+
+    if (testimonials.length > 1) {
+      // Build dots
+      if (carouselDots) {
+        carouselDots.innerHTML = testimonials.map((_, i) =>
+          `<button class="carousel-dot${i === 0 ? ' active' : ''}" data-i="${i}" aria-label="Review ${i+1}"></button>`
+        ).join('');
+        carouselDots.querySelectorAll('.carousel-dot').forEach(dot => {
+          dot.addEventListener('click', () => showSlide(Number(dot.dataset.i)));
+        });
+      }
+      if (prevBtn) prevBtn.addEventListener('click', () =>
+        showSlide((currentIdx - 1 + testimonials.length) % testimonials.length));
+      if (nextBtn) nextBtn.addEventListener('click', () =>
+        showSlide((currentIdx + 1) % testimonials.length));
+
+      // Auto-advance every 5 seconds
+      setInterval(() => showSlide((currentIdx + 1) % testimonials.length), 5000);
+
+      if (carouselNav) carouselNav.style.display = 'flex';
+    }
+
     testimonialsWrap?.classList.remove('hidden');
     getEl('whyOuterSection')?.classList.remove('hidden');
   }
@@ -1353,30 +1472,41 @@ async function loadProfile() {
   const hasTowns = Array.isArray(p.service_area) && p.service_area.length;
   const hasGoogleData = !!google?.rating || !!google?.reviews?.length;
   const hasMap = !!p.google_place_id;
-  // Show location section if we have a Place ID map OR an address/city to embed
+  // Map is now shown inside Areas We Serve section
   const hasAddressMap = !!(p.address || (p.city && p.state));
-  if ((hasMap || hasAddressMap) && locationBand) {
-    locationBand.classList.remove('hidden');
-    // Embed address-based map if no Place ID
-    if (!hasMap && hasAddressMap && mapEl) {
-      const mapQuery = p.address
-        ? encodeURIComponent(`${p.address}, ${p.city || ''} ${p.state || ''}`.trim())
-        : encodeURIComponent(`${p.city}, ${p.state}`);
-      const loadAddrMap = () => {
-        mapEl.innerHTML = `<iframe
-          width="100%" height="300" loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"
-          style="border:0;border-radius:14px"
-          src="https://www.google.com/maps/embed/v1/place?key=AIzaSyD2DZjVEIuq6luIvl-lVeOaxqd3BG2V7IA&q=${mapQuery}">
-        </iframe>`;
-      };
-      'requestIdleCallback' in window ? requestIdleCallback(loadAddrMap) : setTimeout(loadAddrMap, 1200);
-    }
-    if (!hasGoogleData) {
-      getEl('locationMeta')?.classList.add('hidden');
-    }
-  } else if (locationBand) {
-    locationBand.classList.add('hidden');
+  const serviceMapWrap = getEl('serviceMapWrap');
+  const serviceMap = getEl('serviceMap');
+  const placesMapWrap = getEl('placesMapWrap');
+
+  if (hasMap && placesMapWrap) {
+    // Google Place ID available — show precise place map
+    const loadPlaceMap = () => {
+      const mapDiv = placesMapWrap.querySelector('#map');
+      if (mapDiv) mapDiv.innerHTML = `<iframe
+        width="100%" height="280" loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+        style="border:0;border-radius:14px"
+        src="https://www.google.com/maps/embed/v1/place?key=AIzaSyD2DZjVEIuq6luIvl-lVeOaxqd3BG2V7IA&q=place_id:${p.google_place_id}">
+      </iframe>`;
+      placesMapWrap.classList.remove('hidden');
+    };
+    'requestIdleCallback' in window ? requestIdleCallback(loadPlaceMap) : setTimeout(loadPlaceMap, 1200);
+  } else if (hasAddressMap && serviceMapWrap && serviceMap) {
+    // No Place ID — embed address-based map in service area section
+    const mapQuery = p.address
+      ? encodeURIComponent(`${p.address}, ${p.city || ''} ${p.state || ''}`.trim())
+      : encodeURIComponent(`${p.city}, ${p.state}`);
+    const zoom = (Array.isArray(p.service_area) && p.service_area.length > 3) ? 10 : 12;
+    const loadAddrMap = () => {
+      serviceMap.innerHTML = `<iframe
+        width="100%" height="280" loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+        style="border:0;border-radius:14px"
+        src="https://www.google.com/maps/embed/v1/place?key=AIzaSyD2DZjVEIuq6luIvl-lVeOaxqd3BG2V7IA&q=${mapQuery}&zoom=${zoom}">
+      </iframe>`;
+      serviceMapWrap.classList.remove('hidden');
+    };
+    'requestIdleCallback' in window ? requestIdleCallback(loadAddrMap) : setTimeout(loadAddrMap, 1200);
   }
 
   /* ── Contact form ── */
