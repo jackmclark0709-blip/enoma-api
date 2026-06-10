@@ -697,6 +697,7 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 .hidden { display: none !important; }
 #contact { scroll-margin-top: 80px; }
 </style>
+{{BRAND_COLOR_STYLE}}
 </head>
 
 <body>
@@ -727,7 +728,7 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
     <div class="hero-layout">
       <div class="hero-profile">
         <div class="profile-avatar hidden" id="heroLogo">
-          <img id="logoImage" alt="" loading="eager" decoding="async" fetchpriority="high" />
+          <img id="logoImage" alt="" loading="eager" decoding="async" fetchpriority="high" src="{{MONOGRAM_URI}}" />
         </div>
       </div>
       <div class="hero-content">
@@ -1012,6 +1013,7 @@ async function loadProfile() {
   const heroLogoWrap = getEl('heroLogo');
   const logoImg = getEl('logoImage');
   if (p.logo_url && logoImg && heroLogoWrap) {
+    // Business has a real logo — load and extract dominant color to override server-side brand color
     logoImg.crossOrigin = 'anonymous';
     logoImg.src = p.logo_url;
     logoImg.alt = `${p.business_name} logo`;
@@ -1020,11 +1022,17 @@ async function loadProfile() {
       heroLogoWrap.classList.remove('hidden');
     };
     logoImg.onerror = () => {
-      heroLogoWrap.innerHTML = `<div class="profile-fallback">${(p.business_name || '?')[0].toUpperCase()}</div>`;
+      // Logo URL failed — show monogram if available, else plain initial
+      if (logoImg.getAttribute('data-monogram')) {
+        logoImg.src = logoImg.getAttribute('data-monogram');
+      } else {
+        heroLogoWrap.innerHTML = `<div class="profile-fallback">${(p.business_name || '?')[0].toUpperCase()}</div>`;
+      }
       heroLogoWrap.classList.remove('hidden');
     };
   } else if (!p.logo_url && heroLogoWrap) {
-    heroLogoWrap.innerHTML = `<div class="profile-fallback">${(p.business_name || '?')[0].toUpperCase()}</div>`;
+    // No logo — server injected monogram SVG as img src, brand color set server-side
+    // Just unhide the element — monogram is already rendered
     heroLogoWrap.classList.remove('hidden');
   }
 

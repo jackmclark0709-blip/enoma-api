@@ -152,15 +152,112 @@ function inactivePage(businessName, baseUrl) {
 </html>`;
 }
 
-// ── OG Image generation (folded in to avoid Vercel function count limit) ──
-const TRADE_COLORS_OG = {
-  landscaping:  { bg: "#0d1f0f", accent: "#2d6a2d", light: "#4a9e3a", label: "Landscaping" },
-  plumbing:     { bg: "#0a1628", accent: "#1e5a96", light: "#3882dc", label: "Plumbing & Heating" },
-  hvac:         { bg: "#0b1a24", accent: "#1a7a9a", light: "#2aa8cc", label: "HVAC" },
-  electrical:   { bg: "#1a1400", accent: "#c09010", light: "#f0b820", label: "Electrical" },
-  cleaning:     { bg: "#091820", accent: "#1a8a6a", light: "#22b894", label: "Cleaning" },
-  contractor:   { bg: "#1a1208", accent: "#8a5a20", light: "#c08030", label: "Contractor" },
+// ── Trade color system ──
+// Used for OG images, server-side brand color injection, and monogram generation.
+// primary = --brand-primary CSS var (buttons, accents, section bars)
+// light   = lighter accent (hero glow, trust strip icons)
+// bg      = hero dark background gradient start
+// rgb     = --brand-rgb for radial glow effects
+const TRADE_COLORS = {
+  landscaping:  { bg: "#0d1f0f", primary: "#2d6a2d", light: "#4a9e3a", rgb: "45,106,45",   label: "Landscaping" },
+  plumbing:     { bg: "#0a1628", primary: "#1e5a96", light: "#3882dc", rgb: "30,90,150",   label: "Plumbing & Heating" },
+  hvac:         { bg: "#0b1a24", primary: "#1a7a9a", light: "#2aa8cc", rgb: "26,122,154",  label: "HVAC" },
+  electrical:   { bg: "#1a1400", primary: "#a07010", light: "#f0b820", rgb: "160,112,16",  label: "Electrical" },
+  cleaning:     { bg: "#091820", primary: "#1a8a6a", light: "#22b894", rgb: "26,138,106",  label: "Cleaning" },
+  contractor:   { bg: "#1a1208", primary: "#7a4a18", light: "#c08030", rgb: "122,74,24",   label: "Contractor" },
+  default:      { bg: "#0a1628", primary: "#3882dc", light: "#5aa8f0", rgb: "56,130,220",  label: "Local Business" },
 };
+
+// Keep TRADE_COLORS_OG as alias for OG image generation
+const TRADE_COLORS_OG = Object.fromEntries(
+  Object.entries(TRADE_COLORS).map(([k, v]) => [k, { ...v, accent: v.primary }])
+);
+
+/**
+ * getTradeColors — returns the color set for a given primary_category.
+ */
+function getTradeColors(primaryCategory) {
+  const key = (primaryCategory || "").toLowerCase().trim();
+  return TRADE_COLORS[key] || TRADE_COLORS.default;
+}
+
+/**
+ * generateMonogramSvg — creates a branded SVG data URI for businesses without a logo.
+ * Uses trade category colors so the monogram matches the page persona.
+ * Returns a data: URI string suitable for use as an img src.
+ */
+function generateMonogramSvg(businessName, primaryCategory) {
+  const colors = getTradeColors(primaryCategory);
+
+  // Build initials: up to 3 chars from words, e.g. "BCM Landscaping Inc" → "BCM"
+  const words = (businessName || "?").trim().split(/\s+/);
+  let initials;
+  if (words.length === 1) {
+    initials = words[0].slice(0, 2).toUpperCase();
+  } else if (words.length === 2) {
+    initials = (words[0][0] + words[1][0]).toUpperCase();
+  } else {
+    // 3+ words: use first letter of each word up to 3, but skip common suffixes
+    const skip = new Set(["inc", "llc", "co", "corp", "ltd", "the"]);
+    const letters = words
+      .filter(w => !skip.has(w.toLowerCase()) && w.length > 0)
+      .map(w => w[0].toUpperCase())
+      .slice(0, 3);
+    initials = letters.join("");
+    if (!initials) initials = words[0][0].toUpperCase();
+  }
+
+  const size = 220;
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = size / 2 - 2;
+  const fontSize = initials.length > 2 ? 64 : 72;
+
+  const svg = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="${colors.primary}"/>
+      <stop offset="100%" stop-color="${colors.bg}"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="${colors.light}" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="${colors.primary}" stop-opacity="0.2"/>
+    </linearGradient>
+  </defs>
+  <circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#mg)"/>
+  <circle cx="${cx}" cy="${cy}" r="${r - 6}" fill="none" stroke="url(#ring)" stroke-width="1.5"/>
+  <text
+    x="${cx}" y="${cy}"
+    font-family="system-ui,-apple-system,sans-serif"
+    font-size="${fontSize}"
+    font-weight="800"
+    fill="rgba(255,255,255,0.92)"
+    text-anchor="middle"
+    dominant-baseline="central"
+    letter-spacing="-2"
+  >${initials}</text>
+</svg>`;
+
+  // Return as data URI
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+/**
+ * getBrandColorStyle — returns a <style> block that sets CSS custom properties
+ * from trade category when no logo is present.
+ * When a logo IS present, the client-side JS will override these via extractDominantColor().
+ */
+function getBrandColorStyle(primaryCategory) {
+  const c = getTradeColors(primaryCategory);
+  return `<style id="server-brand-colors">
+  :root {
+    --brand-primary: ${c.primary};
+    --brand-primary-10: color-mix(in srgb, ${c.primary} 10%, white);
+    --brand-primary-30: color-mix(in srgb, ${c.primary} 28%, white);
+    --brand-rgb: ${c.rgb};
+  }
+</style>`;
+}
 
 function generateOgSvg(profile) {
   const cat = (profile.primary_category || "").toLowerCase();
@@ -305,6 +402,16 @@ export default async function handler(req, res) {
     // Normalize polymorphic fields before sending to client renderer
     const normalizedProfile = normalizeProfile(profile);
 
+    // Monogram: only generated when no logo — client-side logo color extraction takes over when logo exists
+    const monogramUri = profile.logo_url
+      ? ""
+      : generateMonogramSvg(profile.business_name, profile.primary_category);
+
+    // Server-side brand color style — sets --brand-primary from trade on first paint.
+    // Prevents flash of wrong color before JS loads.
+    // When a logo exists, client-side extractDominantColor() overrides these vars.
+    const brandColorStyle = getBrandColorStyle(profile.primary_category);
+
     const templatePath = path.join(process.cwd(), "public", "profile.html");
     let html = fs.readFileSync(templatePath, "utf8");
 
@@ -320,8 +427,11 @@ export default async function handler(req, res) {
       "{{HERO_TAGLINE}}": escapeHtml(profile.hero_tagline || ""),
       "{{ABOUT}}": escapeHtml(profile.about || ""),
       "{{SERVICES_INTRO}}": escapeHtml(profile.services_intro || ""),
-      // FIX: use safeJsonForInlineScript not escapeHtml for structured data
-      "{{LOCAL_BUSINESS_SCHEMA}}": safeJsonForInlineScript(localBusinessSchema)
+      "{{LOCAL_BUSINESS_SCHEMA}}": safeJsonForInlineScript(localBusinessSchema),
+      // Monogram URI — data:image/svg+xml string when no logo, empty string when logo exists
+      "{{MONOGRAM_URI}}": monogramUri,
+      // Server-side brand colors injected into <head> — no flash on first paint
+      "{{BRAND_COLOR_STYLE}}": brandColorStyle,
     };
 
     for (const [needle, value] of Object.entries(replacements)) {
