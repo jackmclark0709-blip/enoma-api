@@ -376,7 +376,7 @@ export default async function handler(req, res) {
 
     if (shouldRegenerate) {
       const prompt = `
-You are an expert local-business marketer and SEO copywriter.
+You are a copywriter who specializes in local trade businesses. Your job is to write copy that sounds like it was written by someone who actually knows this specific business — not a generic template.
 Return ONLY valid JSON (no markdown, no commentary).
 
 JSON SCHEMA:
@@ -414,14 +414,50 @@ Operational flags:
 - Accepting clients: ${toBool(fields.accepting_clients)}
 - Emergency services: ${toBool(fields.offers_emergency)}
 
-INSTRUCTIONS:
-- Write the "about" field as 2-3 short paragraphs separated by \\n\\n, personal and specific to this business.
-- Write "why_choose_us" as 4-5 short bullet points separated by \\n, each starting with a strong differentiator (no dashes or bullets, just plain text one per line).
-- Write "hero_headline" as a single strong local SEO headline (include city/town name if provided).
-- Write "faqs" with 5-6 realistic questions a customer would actually ask this type of business.
-- "trust_badges" should be an array of 3-5 short trust signals (e.g. "Licensed & Insured", "Free Estimates", "Owner-Operated").
-- If phone is provided, set primary_cta type to "call" and value to the phone number.
-- Keep all copy concise, direct, and professional. Avoid generic filler phrases.
+COPY INSTRUCTIONS:
+
+hero_headline:
+- Include the city/town name and trade category for local SEO
+- Be direct and specific — what makes this business worth calling?
+- AVOID: "trusted," "reliable," "professional," "your go-to," "quality service"
+- GOOD examples: "Plumbing & Heating in Attleboro — Call Brian Today", "North Attleborough Lawn Care Since 2000", "Electricians in Foxboro — Same-Day Service Available"
+
+hero_tagline:
+- One sentence. Include owner name if provided, years in business if known, towns served.
+- AVOID vague promises. Be factual.
+
+about:
+- 2 paragraphs separated by \\n\\n
+- Paragraph 1: the origin story or what makes this business different. Use owner name if provided. Be specific — how long in business, how they started, what they care about.
+- Paragraph 2: who they serve today. Specific towns, types of customers, what the experience of working with them is actually like.
+- BANNED WORDS: trusted, reliable, professional, quality, dedicated, passionate, commitment, excellence, proud, strive, ensure, seamless
+- Write like a person, not a press release. Short sentences are fine.
+
+why_choose_us:
+- 4-5 lines separated by \\n, NO bullet characters or dashes
+- Each line should be a specific, concrete reason — not a vague claim
+- Lead each line with the specific fact, THEN the brief explanation
+- GOOD: "Owner on every job — ${owner_name || "the owner"} is hands-on, not managing from an office"
+- GOOD: "Serving ${first(fields.city) || "the area"} since [year if known] — long enough to have repeat customers and referrals"
+- BAD: "Experienced team", "Quality workmanship", "Customer satisfaction guaranteed"
+
+services_intro:
+- One sentence. Specific to this trade and location. Not "we offer a wide range of services."
+
+faqs:
+- 5 questions a real customer would actually type into Google before hiring this type of business
+- Include at least one about pricing/estimates, one about service area, one about scheduling/availability
+- Answers should be specific to this business where possible
+
+trust_badges:
+- 3-5 short phrases. Include factual ones first: years in business, licensing, rating if known
+- GOOD: "In Business Since 2000", "Licensed & Insured MA", "Free Estimates", "5-Star Google Rating"
+- BAD: "Trusted Professionals", "Quality Work", "Customer First"
+
+seo_title: "[Business Name] — [Trade] in [City], MA | [Short differentiator]"
+seo_description: 1-2 sentences. Include business name, city, trade, phone if provided. Should read like a real search result snippet, not marketing copy.
+
+primary_cta: If phone is provided, set type to "call" and value to the phone number. Label should be action-oriented: "Call for a Free Quote", "Get a Free Estimate", etc.
 `.trim();
 
       const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {

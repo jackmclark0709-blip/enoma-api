@@ -1094,7 +1094,11 @@ async function loadProfile() {
   const aboutLead = getEl('about-lead');
   const aboutBody = getEl('about-body');
   if (p.about) {
-    const paragraphs = p.about.split('\n').map(s => s.trim()).filter(Boolean);
+    // Split on double newline (paragraph break) first, fall back to single newline
+    let paragraphs = p.about.split(/\n\n+/).map(s => s.trim()).filter(Boolean);
+    if (paragraphs.length <= 1) {
+      paragraphs = p.about.split('\n').map(s => s.trim()).filter(Boolean);
+    }
     if (paragraphs.length >= 2) {
       if (aboutLead) aboutLead.textContent = paragraphs[0];
       if (aboutBody) aboutBody.innerHTML = paragraphs.slice(1).map(pp => `${pp}`).join('<br><br>');
@@ -1349,10 +1353,25 @@ async function loadProfile() {
   const hasTowns = Array.isArray(p.service_area) && p.service_area.length;
   const hasGoogleData = !!google?.rating || !!google?.reviews?.length;
   const hasMap = !!p.google_place_id;
-  // Only show location section if we actually have a map to show
-  if (hasMap && locationBand) {
+  // Show location section if we have a Place ID map OR an address/city to embed
+  const hasAddressMap = !!(p.address || (p.city && p.state));
+  if ((hasMap || hasAddressMap) && locationBand) {
     locationBand.classList.remove('hidden');
-    // If no rating loaded, hide the rating element
+    // Embed address-based map if no Place ID
+    if (!hasMap && hasAddressMap && mapEl) {
+      const mapQuery = p.address
+        ? encodeURIComponent(`${p.address}, ${p.city || ''} ${p.state || ''}`.trim())
+        : encodeURIComponent(`${p.city}, ${p.state}`);
+      const loadAddrMap = () => {
+        mapEl.innerHTML = `<iframe
+          width="100%" height="300" loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          style="border:0;border-radius:14px"
+          src="https://www.google.com/maps/embed/v1/place?key=AIzaSyD2DZjVEIuq6luIvl-lVeOaxqd3BG2V7IA&q=${mapQuery}">
+        </iframe>`;
+      };
+      'requestIdleCallback' in window ? requestIdleCallback(loadAddrMap) : setTimeout(loadAddrMap, 1200);
+    }
     if (!hasGoogleData) {
       getEl('locationMeta')?.classList.add('hidden');
     }

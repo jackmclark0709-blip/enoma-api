@@ -189,22 +189,28 @@ function getTradeColors(primaryCategory) {
 function generateMonogramSvg(businessName, primaryCategory) {
   const colors = getTradeColors(primaryCategory);
 
-  // Build initials: up to 3 chars from words, e.g. "BCM Landscaping Inc" → "BCM"
+  // Build initials from business name
+  // Priority: acronym first word (BCM, TSP) → long caps → word initials
   const words = (businessName || "?").trim().split(/\s+/);
   let initials;
-  if (words.length === 1) {
-    initials = words[0].slice(0, 2).toUpperCase();
+  const firstWord = words[0];
+  const isAcronym = firstWord === firstWord.toUpperCase() && /^[A-Z]{2,4}$/.test(firstWord);
+  const isLongCaps = firstWord === firstWord.toUpperCase() && /^[A-Z]{5,}$/.test(firstWord);
+  if (isAcronym) {
+    initials = firstWord; // "BCM Landscaping Inc" → "BCM"
+  } else if (isLongCaps) {
+    initials = firstWord.slice(0, 3); // "ARNO Plumbing" → "ARN"
+  } else if (words.length === 1) {
+    initials = firstWord.slice(0, 2).toUpperCase();
   } else if (words.length === 2) {
-    initials = (words[0][0] + words[1][0]).toUpperCase();
+    initials = (firstWord[0] + words[1][0]).toUpperCase();
   } else {
-    // 3+ words: use first letter of each word up to 3, but skip common suffixes
-    const skip = new Set(["inc", "llc", "co", "corp", "ltd", "the"]);
+    const skip = new Set(["inc", "llc", "co", "corp", "ltd", "the", "and", "&", "of"]);
     const letters = words
       .filter(w => !skip.has(w.toLowerCase()) && w.length > 0)
       .map(w => w[0].toUpperCase())
       .slice(0, 3);
-    initials = letters.join("");
-    if (!initials) initials = words[0][0].toUpperCase();
+    initials = letters.join("") || firstWord[0].toUpperCase();
   }
 
   const size = 220;
