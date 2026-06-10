@@ -904,9 +904,8 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 </div>
 </div>
 
-<!-- hidden map/review data holders — content moved to Areas We Serve + hero ——>
+<!-- hidden data holders for Google Places data (rating/hours/reviews) ——>
 <div style="display:none">
-  <div id="map"></div>
   <div id="locationMeta"><div id="rating" class="rating hidden"></div><div id="hours"></div></div>
   <div id="reviews"></div>
   <div id="locationBand"></div>
@@ -1279,28 +1278,7 @@ async function loadProfile() {
     }
   }
 
-  /* ── Service area map — embed if city/state or address exists ── */
-  const serviceMapWrap = getEl('serviceMapWrap');
-  const serviceMap = getEl('serviceMap');
-  const hasAddress = p.address && p.address.trim();
-  const hasCityState = p.city && p.state;
-  if (serviceMapWrap && serviceMap && (hasAddress || hasCityState)) {
-    const mapQuery = hasAddress
-      ? encodeURIComponent(p.address)
-      : encodeURIComponent(`${p.city}, ${p.state}`);
-    const zoom = (Array.isArray(p.service_area) && p.service_area.length > 3) ? 10 : 12;
-    const loadServiceMap = () => {
-      serviceMap.innerHTML = `<iframe
-        width="100%" height="280"
-        loading="lazy"
-        referrerpolicy="no-referrer-when-downgrade"
-        style="border:0;border-radius:14px;"
-        src="https://www.google.com/maps/embed/v1/place?key=AIzaSyD2DZjVEIuq6luIvl-lVeOaxqd3BG2V7IA&q=${mapQuery}&zoom=${zoom}"
-      ></iframe>`;
-      serviceMapWrap.classList.remove('hidden');
-    };
-    'requestIdleCallback' in window ? requestIdleCallback(loadServiceMap) : setTimeout(loadServiceMap, 1200);
-  }
+  /* ── Service area map — handled in location section below ── */
 
   /* ── Services ── */
   const servicesGrid = getEl('services-grid');
@@ -1453,11 +1431,7 @@ async function loadProfile() {
       if (r.ok) { const text = await r.text(); google = text ? JSON.parse(text) : null; }
     } catch (e) { console.warn('Google data unavailable', e); }
   }
-  const mapEl = getEl('map');
-  if (p.google_place_id && mapEl) {
-    const loadMap = () => { mapEl.innerHTML = `<iframe width="100%" height="300" loading="lazy" referrerpolicy="no-referrer-when-downgrade" style="border:0;border-radius:14px" src="https://www.google.com/maps/embed/v1/place?key=AIzaSyD2DZjVEIuq6luIvl-lVeOaxqd3BG2V7IA&q=place_id:${p.google_place_id}"></iframe>`; };
-    'requestIdleCallback' in window ? requestIdleCallback(loadMap) : setTimeout(loadMap, 1200);
-  }
+  // Google place map now rendered in placesMapWrap inside Areas We Serve
   const hoursEl = getEl('hours');
   if (hoursEl && google?.regularOpeningHours?.weekdayDescriptions) {
     hoursEl.innerHTML = `<h3>Hours</h3><ul>${google.regularOpeningHours.weekdayDescriptions.map(d => `<li>${d}</li>`).join('')}</ul>`;
@@ -1479,10 +1453,9 @@ async function loadProfile() {
   const placesMapWrap = getEl('placesMapWrap');
 
   if (hasMap && placesMapWrap) {
-    // Google Place ID available — show precise place map
+    // Google Place ID available — inject map directly into placesMapWrap
     const loadPlaceMap = () => {
-      const mapDiv = placesMapWrap.querySelector('#map');
-      if (mapDiv) mapDiv.innerHTML = `<iframe
+      placesMapWrap.innerHTML = `<iframe
         width="100%" height="280" loading="lazy"
         referrerpolicy="no-referrer-when-downgrade"
         style="border:0;border-radius:14px"
