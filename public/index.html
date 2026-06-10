@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Enoma — Your Business Website, Built While You Work</title>
-  <meta name="description" content="Enoma builds a professional business website for local service companies — landscapers, plumbers, HVAC, and more. SEO-optimized, live in minutes, first month free." />
+  <title>Enoma — Get Found Online. Get More Calls.</title>
+  <meta name="description" content="Enoma gets your local service business found online in minutes — a lead-ready landing page with your services, photos, and contact form. First month free. Built for landscapers, plumbers, HVAC, and more." />
   <link rel="canonical" href="https://enoma.io/" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Enoma" />
-  <meta property="og:title" content="Enoma — Your Business Website, Built While You Work" />
-  <meta property="og:description" content="Enoma builds a professional business website for local service companies. SEO-optimized, live in minutes, first month free." />
+  <meta property="og:title" content="Enoma — Get Found Online. Get More Calls." />
+  <meta property="og:description" content="Enoma gets your local service business found online in minutes. A lead-ready page with your services, photos, and contact form. First month free." />
   <meta property="og:image" content="https://enoma.io/assets/og/enoma-default-v2.png" />
   <meta property="og:url" content="https://enoma.io/" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Enoma — Your Business Website, Built While You Work" />
-  <meta name="twitter:description" content="Enoma builds a professional business website for local service companies. SEO-optimized, live in minutes, first month free." />
+  <meta name="twitter:title" content="Enoma — Get Found Online. Get More Calls." />
+  <meta name="twitter:description" content="Enoma gets your local service business found online in minutes. First month free." />
   <meta name="twitter:image" content="https://enoma.io/assets/og/enoma-default-v2.png" />
   <link rel="stylesheet" href="/styles/enoma.css" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -38,11 +38,10 @@
     .hp-hero__stat-pill strong{color:#f0f6ff;font-weight:700}
     .hp-hero__right{display:flex;flex-direction:column;}
 
-    /* Stat cards */
-    .hp-stats{display:flex;flex-direction:column;gap:0.6rem}
-    .hp-stat{background:rgba(255,255,255,0.06);border:1px solid rgba(56,130,220,0.2);border-radius:10px;padding:0.85rem 1rem}
-    .hp-stat__num{font-family:'DM Sans',sans-serif;font-size:1.6rem;font-weight:800;color:#f0f6ff;line-height:1;letter-spacing:-0.03em}
-    .hp-stat__label{font-size:0.75rem;color:rgba(240,246,255,0.45);margin-top:3px;line-height:1.3}
+    /* Proof callout */
+    .hp-hero__proof-callout{background:rgba(56,130,220,0.12);border:1px solid rgba(56,130,220,0.25);border-radius:10px;padding:0.85rem 1rem;margin-bottom:1rem}
+    .hp-hero__proof-callout__label{font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#7ab3e0;margin-bottom:0.25rem}
+    .hp-hero__proof-callout__text{font-size:0.88rem;color:rgba(240,246,255,0.8);line-height:1.5}
 
     /* Browser mockup */
     .hp-browser{background:#fff;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);box-shadow:0 20px 60px rgba(0,0,0,0.35)}
@@ -50,23 +49,27 @@
     .hp-browser__dots{display:flex;gap:4px}
     .hp-browser__dot{width:8px;height:8px;border-radius:50%}
     .hp-browser__url{flex:1;background:rgba(255,255,255,0.1);border-radius:4px;padding:3px 8px;font-size:9px;color:rgba(255,255,255,0.55);font-family:monospace;margin-left:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .hp-site__hero{background:#1c3a1c;padding:14px 16px 12px}
-    .hp-site__logo{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:800;color:rgba(255,255,255,0.9);margin-bottom:4px}
-    .hp-site__headline{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;color:white;line-height:1.3;margin-bottom:8px}
-    .hp-site__cta{display:inline-block;background:#4a9e3a;color:white;font-size:9px;font-weight:700;padding:4px 10px;border-radius:999px}
-    .hp-site__body{padding:10px 16px 14px;background:#f8faf6}
-    .hp-site__services-label{font-size:9px;font-weight:700;color:#1c3a1c;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.06em}
-    .hp-site__services{display:grid;grid-template-columns:1fr 1fr;gap:4px}
-    .hp-site__service{background:white;border:1px solid #dde8d8;border-radius:4px;padding:4px 7px;font-size:10px;color:#1c3a1c;font-weight:600}
+
+    /* PROBLEM SECTION */
+    .hp-problem{background:white;padding:5rem 1.5rem;border-top:1px solid #d4e2f4}
+    .hp-problem__inner{max-width:860px;margin-inline:auto;text-align:center}
+    .hp-problem__label{font-size:0.7rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#3882dc;margin-bottom:0.6rem}
+    .hp-problem__h2{font-family:'DM Sans',sans-serif;font-size:clamp(1.6rem,3vw,2rem);font-weight:800;color:#0a1628;letter-spacing:-0.02em;margin-bottom:0.6rem}
+    .hp-problem__sub{color:#5a7a9a;font-size:1rem;max-width:580px;margin:0 auto 2.5rem;line-height:1.6}
+    .hp-problem__cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
+    .hp-prob-card{border-radius:14px;padding:1.5rem;text-align:left;border:1px solid #d4e2f4;background:#f7faff}
+    .hp-prob-card__icon{font-size:1.4rem;margin-bottom:0.6rem}
+    .hp-prob-card__h3{font-family:'DM Sans',sans-serif;font-size:0.97rem;font-weight:700;color:#0a1628;margin-bottom:0.35rem}
+    .hp-prob-card__p{font-size:0.88rem;color:#5a7a9a;line-height:1.6;margin:0}
 
     /* COMPARE */
-    .hp-compare{background:white;padding:5rem 1.5rem;border-top:1px solid #d4e2f4}
+    .hp-compare{background:#f0f6ff;padding:4rem 1.5rem}
     .hp-compare__inner{max-width:860px;margin-inline:auto;text-align:center}
     .hp-compare__label{font-size:0.7rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#3882dc;margin-bottom:0.6rem}
     .hp-compare__h2{font-family:'DM Sans',sans-serif;font-size:clamp(1.6rem,3vw,2rem);font-weight:800;color:#0a1628;letter-spacing:-0.02em;margin-bottom:0.6rem}
     .hp-compare__sub{color:#5a7a9a;font-size:1rem;max-width:560px;margin:0 auto 2.5rem;line-height:1.6}
     .hp-compare__cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
-    .hp-comp-card{border-radius:14px;padding:1.5rem;text-align:center;border:1px solid #d4e2f4;background:#f7faff}
+    .hp-comp-card{border-radius:14px;padding:1.5rem;text-align:center;border:1px solid #d4e2f4;background:white}
     .hp-comp-card--featured{border:2px solid #3882dc;background:#e6f1fb;position:relative}
     .hp-comp-card__badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#3882dc;color:white;font-size:0.65rem;font-weight:700;padding:3px 10px;border-radius:999px;letter-spacing:0.06em;text-transform:uppercase;white-space:nowrap}
     .hp-comp-card__label{font-size:0.78rem;font-weight:700;color:#0a1628;margin-bottom:0.5rem}
@@ -75,21 +78,21 @@
     .hp-comp-card__note{font-size:0.78rem;color:#5a7a9a;margin-top:0.3rem}
 
     /* FEATURES */
-    .hp-features{background:#f0f6ff;padding:5rem 1.5rem}
+    .hp-features{background:white;padding:5rem 1.5rem;border-top:1px solid #d4e2f4}
     .hp-features__inner{max-width:1040px;margin-inline:auto}
     .hp-features__header{text-align:center;margin-bottom:3rem}
     .hp-features__label{font-size:0.7rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#3882dc;margin-bottom:0.6rem}
     .hp-features__h2{font-family:'DM Sans',sans-serif;font-size:clamp(1.6rem,3vw,2rem);font-weight:800;color:#0a1628;letter-spacing:-0.02em;margin-bottom:0.6rem}
     .hp-features__sub{color:#5a7a9a;max-width:520px;margin:0 auto;font-size:1rem;line-height:1.6}
     .hp-features__grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem}
-    .hp-feature{background:white;border:1px solid #d4e2f4;border-radius:16px;padding:1.75rem}
+    .hp-feature{background:#f7faff;border:1px solid #d4e2f4;border-radius:16px;padding:1.75rem}
     .hp-feature__icon{width:40px;height:40px;border-radius:10px;background:#e6f1fb;display:flex;align-items:center;justify-content:center;margin-bottom:1rem}
     .hp-feature__icon svg{width:20px;height:20px;stroke:#3882dc;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
     .hp-feature__h3{font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:700;color:#0a1628;margin-bottom:0.4rem;letter-spacing:-0.01em}
     .hp-feature__p{font-size:0.9rem;color:#5a7a9a;line-height:1.6;margin:0}
 
     /* STEPS */
-    .hp-steps{background:white;padding:5rem 1.5rem;border-top:1px solid #d4e2f4}
+    .hp-steps{background:#f0f6ff;padding:5rem 1.5rem}
     .hp-steps__inner{max-width:680px;margin-inline:auto}
     .hp-steps__header{text-align:left;margin-bottom:2.5rem}
     .hp-steps__label{font-size:0.7rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#3882dc;margin-bottom:0.6rem}
@@ -100,6 +103,18 @@
     .hp-step__title{font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:700;color:#0a1628;margin-bottom:0.2rem}
     .hp-step__desc{font-size:0.9rem;color:#5a7a9a;line-height:1.55;margin:0}
     .hp-steps__note{margin-top:2rem;font-size:0.88rem;color:#7ab3e0;font-style:italic;padding-left:calc(32px + 1.1rem)}
+
+    /* SOCIAL PROOF */
+    .hp-proof{background:white;padding:5rem 1.5rem;border-top:1px solid #d4e2f4}
+    .hp-proof__inner{max-width:860px;margin-inline:auto;text-align:center}
+    .hp-proof__label{font-size:0.7rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#3882dc;margin-bottom:0.6rem}
+    .hp-proof__h2{font-family:'DM Sans',sans-serif;font-size:clamp(1.5rem,3vw,1.9rem);font-weight:800;color:#0a1628;letter-spacing:-0.02em;margin-bottom:2rem}
+    .hp-proof__cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
+    .hp-proof-card{background:#f7faff;border:1px solid #d4e2f4;border-radius:14px;padding:1.5rem;text-align:left}
+    .hp-proof-card__quote{font-size:0.92rem;color:#0a1628;line-height:1.6;margin-bottom:0.75rem;font-style:italic}
+    .hp-proof-card__meta{font-size:0.78rem;font-weight:700;color:#5a7a9a}
+    .hp-proof-card__stat{font-family:'DM Sans',sans-serif;font-size:1.8rem;font-weight:800;color:#3882dc;letter-spacing:-0.03em;line-height:1;margin-bottom:0.25rem}
+    .hp-proof-card__stat-label{font-size:0.82rem;color:#5a7a9a;line-height:1.4}
 
     /* FINAL CTA */
     .hp-cta{background:linear-gradient(160deg,#0a1628,#162540);padding:6rem 1.5rem;text-align:center;position:relative;overflow:hidden}
@@ -112,17 +127,14 @@
 
     /* RESPONSIVE */
     @media(max-width:768px){
-      .hp-hero__inner,.hp-hero__right{grid-template-columns:1fr}
-      .hp-stats{flex-direction:row;flex-wrap:wrap}
-      .hp-stat{flex:1;min-width:120px}
-      .hp-compare__cards{grid-template-columns:1fr;max-width:320px;margin-inline:auto;gap:1.5rem}
-      .hp-features__grid{grid-template-columns:1fr}
+      .hp-hero__inner{grid-template-columns:1fr}
+      .hp-problem__cards,.hp-compare__cards,.hp-features__grid,.hp-proof__cards{grid-template-columns:1fr}
     }
     @media(max-width:480px){
       .hp-hero{padding:3rem 1.25rem 2.5rem}
     }
   </style>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Enoma","applicationCategory":"BusinessApplication","description":"Enoma builds professional business websites for local service companies — SEO-optimized, live in minutes, first month free.","operatingSystem":"Web","url":"https://enoma.io","offers":{"@type":"Offer","price":"19.99","priceCurrency":"USD"},"audience":{"@type":"Audience","audienceType":"Local Service Businesses"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Enoma","applicationCategory":"BusinessApplication","description":"Enoma helps local service businesses get found online and generate leads — a professional landing page with services, photos, and contact form. Live in minutes, first month free.","operatingSystem":"Web","url":"https://enoma.io","offers":{"@type":"Offer","price":"19.99","priceCurrency":"USD"},"audience":{"@type":"Audience","audienceType":"Local Service Businesses"}}</script>
 </head>
 <body>
 
@@ -133,21 +145,24 @@
   <div class="hp-hero__inner">
     <div class="hp-hero__left">
       <p class="hp-hero__eyebrow">For local service businesses</p>
-      <h1 class="hp-hero__h1">Your website, <em>built<br>while you work.</em></h1>
-      <p class="hp-hero__sub">Enoma builds a professional business website from your notes — SEO-optimized, live in minutes, $19.99/month.</p>
+      <h1 class="hp-hero__h1">Get found online.<br><em>Get more calls.</em></h1>
+      <p class="hp-hero__sub">Enoma gets your landscaping, plumbing, HVAC, or trade business found online in minutes — a lead-ready page with your services, photos, and contact form. First month free.</p>
+      <div class="hp-hero__proof-callout">
+        <p class="hp-hero__proof-callout__label">Real result</p>
+        <p class="hp-hero__proof-callout__text">A landscaping company in Agawam, MA got their first Google lead within weeks of their Enoma page going live — a homeowner who found them by searching online.</p>
+      </div>
       <div class="hp-hero__actions">
-        <a href="/signup" class="btn-primary">Create mine free →</a>
-        <a href="/examples" class="btn-secondary">See examples</a>
+        <a href="/get-your-website" class="btn-primary">Get found free →</a>
+        <a href="/examples" class="btn-secondary">See live examples</a>
       </div>
       <div class="hp-hero__stats-strip">
-        <span class="hp-hero__stat-pill"><strong>4</strong> live websites</span>
-        <span class="hp-hero__stat-pill"><strong>&lt;&nbsp;5 min</strong> build time</span>
-        <span class="hp-hero__stat-pill"><strong>$0</strong> to try</span>
+        <span class="hp-hero__stat-pill"><strong>Indexed online</strong> from day one</span>
+        <span class="hp-hero__stat-pill"><strong>&lt;&nbsp;5 min</strong> to go live</span>
+        <span class="hp-hero__stat-pill"><strong>$0</strong> first month</span>
       </div>
-      <p class="hp-hero__proof">First month free &nbsp;·&nbsp; No credit card &nbsp;·&nbsp; Cancel anytime</p>
+      <p class="hp-hero__proof">No credit card &nbsp;·&nbsp; No contracts &nbsp;·&nbsp; Cancel anytime</p>
     </div>
     <div class="hp-hero__right">
-      <!-- Live iframe browser preview -->
       <div class="hp-browser">
         <div class="hp-browser__bar">
           <div class="hp-browser__dots">
@@ -160,7 +175,7 @@
         <div style="position:relative;width:100%;height:440px;overflow:hidden;background:#0d1f0f;">
           <iframe
             src="/conways-landscaping"
-            title="Conway's Landscaping — live Enoma page"
+            title="Conway's Landscaping — live Enoma lead page"
             loading="lazy"
             sandbox="allow-scripts allow-same-origin"
             style="width:166.67%;height:166.67%;transform:scale(0.6);transform-origin:top left;border:none;pointer-events:none;"
@@ -171,12 +186,38 @@
   </div>
 </section>
 
+<!-- THE PROBLEM -->
+<section class="hp-problem">
+  <div class="hp-problem__inner">
+    <p class="hp-problem__label">The problem</p>
+    <h2 class="hp-problem__h2">Facebook doesn't show up when someone searches for your trade online.</h2>
+    <p class="hp-problem__sub">When a homeowner searches "plumber near me" or "landscaping Agawam MA," they see websites — not Facebook pages. If you're not showing up in search results, you're invisible to customers actively looking for you right now.</p>
+    <div class="hp-problem__cards">
+      <div class="hp-prob-card">
+        <div class="hp-prob-card__icon">📵</div>
+        <h3 class="hp-prob-card__h3">Facebook-only presence</h3>
+        <p class="hp-prob-card__p">Your Facebook page doesn't rank on Google. Customers searching for your trade in your town won't find you.</p>
+      </div>
+      <div class="hp-prob-card">
+        <div class="hp-prob-card__icon">📋</div>
+        <h3 class="hp-prob-card__h3">Directory listings share your leads</h3>
+        <p class="hp-prob-card__p">Yelp and Angie's List show your competitors right next to you. You're generating leads for them too.</p>
+      </div>
+      <div class="hp-prob-card">
+        <div class="hp-prob-card__icon">🏗️</div>
+        <h3 class="hp-prob-card__h3">Agencies are too expensive</h3>
+        <p class="hp-prob-card__p">A proper website from an agency costs $3,000+ upfront. Most small trade businesses can't justify it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- HOW ENOMA COMPARES -->
 <section class="hp-compare">
   <div class="hp-compare__inner">
     <p class="hp-compare__label">How Enoma compares</p>
-    <h2 class="hp-compare__h2">More than a listing. Less than a full website.</h2>
-    <p class="hp-compare__sub">Enoma gives you a standalone website you own — not a directory listing, not a $3,000 agency project.</p>
+    <h2 class="hp-compare__h2">Everything you need. Nothing you don't.</h2>
+    <p class="hp-compare__sub">A professional lead page online — no agency, no directory, no DIY builder. Just your business, your services, and a way for customers to reach you directly.</p>
     <div class="hp-compare__cards">
       <div class="hp-comp-card">
         <div class="hp-comp-card__label">Web Agency</div>
@@ -186,13 +227,13 @@
       <div class="hp-comp-card hp-comp-card--featured">
         <span class="hp-comp-card__badge">⭐ Enoma</span>
         <div class="hp-comp-card__label" style="margin-top:0.5rem;">First month</div>
-        <div class="hp-comp-card__price">$0 trial</div>
+        <div class="hp-comp-card__price">$0 free</div>
         <div class="hp-comp-card__note">then $19.99/mo</div>
       </div>
       <div class="hp-comp-card">
-        <div class="hp-comp-card__label">Directory Listing</div>
+        <div class="hp-comp-card__label">Yelp / Angie's List</div>
         <div class="hp-comp-card__price">Free–$100</div>
-        <div class="hp-comp-card__note">But you share the space</div>
+        <div class="hp-comp-card__note">Your competitors shown next to you</div>
       </div>
     </div>
   </div>
@@ -203,39 +244,39 @@
   <div class="hp-features__inner">
     <div class="hp-features__header">
       <p class="hp-features__label">What you get</p>
-      <h2 class="hp-features__h2">One website. Built for search. Yours in minutes.</h2>
-      <p class="hp-features__sub">For landscapers, plumbers, HVAC companies, electricians, and any local service business that needs to be found online.</p>
+      <h2 class="hp-features__h2">A lead page that works while you're on the job.</h2>
+      <p class="hp-features__sub">Enoma creates a Google-indexed page for your business — your services, your photos, your contact form. Customers find you. They call you. You don't touch a thing.</p>
     </div>
     <div class="hp-features__grid">
       <div class="hp-feature">
         <div class="hp-feature__icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></div>
-        <h3 class="hp-feature__h3">Found on Google</h3>
-        <p class="hp-feature__p">Every Enoma website is structured for Google from day one — the right schema, the right headings, indexed fast.</p>
-      </div>
-      <div class="hp-feature">
-        <div class="hp-feature__icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg></div>
-        <h3 class="hp-feature__h3">Written from your notes</h3>
-        <p class="hp-feature__p">Fill out a short form about your business. Our AI writes your website copy — services, about, headlines — from your words.</p>
+        <h3 class="hp-feature__h3">Shows up on Google</h3>
+        <p class="hp-feature__p">Your page is structured for local search from day one — the right schema, headings, and keywords so customers find you when they search your trade in your town.</p>
       </div>
       <div class="hp-feature">
         <div class="hp-feature__icon"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.8 19.8 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.8 19.8 0 012.08 4.18 2 2 0 014.06 2h3a2 2 0 012 1.72c.12.86.31 1.7.57 2.5a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.58-1.09a2 2 0 012.11-.45c.8.26 1.64.45 2.5.57A2 2 0 0122 16.92z"/></svg></div>
         <h3 class="hp-feature__h3">Turns visitors into calls</h3>
-        <p class="hp-feature__p">Call buttons, quote forms, and contact details built in. Every visitor knows exactly how to reach you.</p>
+        <p class="hp-feature__p">Every visitor sees your phone number, a tap-to-call button, and a contact form. Leads go straight to you — no middleman, no shared leads, no competitors next to your listing.</p>
+      </div>
+      <div class="hp-feature">
+        <div class="hp-feature__icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg></div>
+        <h3 class="hp-feature__h3">Built from your notes in minutes</h3>
+        <p class="hp-feature__p">Fill out a short form about your business. AI writes your services, about section, and headlines. Your page is live in under 5 minutes — no design skills needed.</p>
+      </div>
+      <div class="hp-feature">
+        <div class="hp-feature__icon"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+        <h3 class="hp-feature__h3">Your real job photos</h3>
+        <p class="hp-feature__p">Upload photos of your actual work and they appear prominently on your page. Real photos build more trust than any stock image — and help customers know exactly what they're getting.</p>
       </div>
       <div class="hp-feature">
         <div class="hp-feature__icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
         <h3 class="hp-feature__h3">No competitors next to you</h3>
-        <p class="hp-feature__p">Unlike Yelp or Angie's List, your Enoma website stands alone. No ads. No "similar businesses nearby."</p>
+        <p class="hp-feature__p">Unlike Yelp or Angie's List, your Enoma page is just yours. No ads. No "similar businesses nearby." Customers who find you stay on your page.</p>
       </div>
       <div class="hp-feature">
         <div class="hp-feature__icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
-        <h3 class="hp-feature__h3">Monthly performance report</h3>
-        <p class="hp-feature__p">See how many people viewed your website and clicked to contact you — delivered to your inbox every month.</p>
-      </div>
-      <div class="hp-feature">
-        <div class="hp-feature__icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-        <h3 class="hp-feature__h3">Zero maintenance</h3>
-        <p class="hp-feature__p">Hosting, security, and updates are handled. Your website stays live and fast without you touching anything.</p>
+        <h3 class="hp-feature__h3">See your leads in one place</h3>
+        <p class="hp-feature__p">Your dashboard shows every contact form submission, call click, and page view. Know exactly who's finding you and how they're reaching out.</p>
       </div>
     </div>
   </div>
@@ -246,7 +287,7 @@
   <div class="hp-steps__inner">
     <div class="hp-steps__header">
       <p class="hp-steps__label">How it works</p>
-      <h2 class="hp-steps__h2">From signup to live website in four steps.</h2>
+      <h2 class="hp-steps__h2">Online in four steps. Under 5 minutes.</h2>
     </div>
     <div class="hp-steps__list">
       <div class="hp-step">
@@ -260,35 +301,57 @@
         <div class="hp-step__num">2</div>
         <div class="hp-step__content">
           <p class="hp-step__title">Tell us about your business</p>
-          <p class="hp-step__desc">Fill out a short form — your services, location, and a few notes. Our AI builds your website from your words.</p>
+          <p class="hp-step__desc">Your services, location, phone number, and a few notes. That's all we need — AI writes the rest.</p>
         </div>
       </div>
       <div class="hp-step">
         <div class="hp-step__num">3</div>
         <div class="hp-step__content">
-          <p class="hp-step__title">Your website is live</p>
-          <p class="hp-step__desc">Review it, share it, and start getting found. Your site is indexed by Google from day one.</p>
+          <p class="hp-step__title">Your lead page is live on Google</p>
+          <p class="hp-step__desc">Review it, share the link, and add it to your Google Business Profile. Customers searching your trade in your area can now find and contact you directly.</p>
         </div>
       </div>
       <div class="hp-step">
         <div class="hp-step__num">4</div>
         <div class="hp-step__content">
-          <p class="hp-step__title">Subscribe to keep it live</p>
-          <p class="hp-step__desc">After your free month, subscribe for $19.99/mo. Cancel anytime — no contracts.</p>
+          <p class="hp-step__title">Keep it live for $19.99/month</p>
+          <p class="hp-step__desc">After your free month, subscribe to keep your page live. Cancel anytime — no contracts, no cancellation fees.</p>
         </div>
       </div>
     </div>
-    <p class="hp-steps__note">First month free. No obligation. You only pay once you've seen your website.</p>
+    <p class="hp-steps__note">First month free. No obligation. See your page live before you pay anything.</p>
+  </div>
+</section>
+
+<!-- PROOF -->
+<section class="hp-proof">
+  <div class="hp-proof__inner">
+    <p class="hp-proof__label">Real results</p>
+    <h2 class="hp-proof__h2">Enoma pages are already generating real leads for local businesses.</h2>
+    <div class="hp-proof__cards">
+      <div class="hp-proof-card">
+        <div class="hp-proof-card__stat">4</div>
+        <div class="hp-proof-card__stat-label">Customer inquiries generated through a single Enoma page for a landscaping company in Agawam, MA</div>
+      </div>
+      <div class="hp-proof-card">
+        <div class="hp-proof-card__stat">&lt;5 min</div>
+        <div class="hp-proof-card__stat-label">Average time from signup to a live, Google-indexed page — no design skills or technical knowledge needed</div>
+      </div>
+      <div class="hp-proof-card">
+        <div class="hp-proof-card__stat">$0</div>
+        <div class="hp-proof-card__stat-label">Cost to get started — your first month is completely free, and you only pay once you've seen your page live</div>
+      </div>
+    </div>
   </div>
 </section>
 
 <!-- FINAL CTA -->
 <section class="hp-cta">
   <div class="hp-cta__inner">
-    <h2 class="hp-cta__h2">Get your business website live today</h2>
-    <p class="hp-cta__sub">Fill out a short form about your business and your website is live in minutes — no agency, no design skills, no credit card.</p>
+    <h2 class="hp-cta__h2">Stop being invisible online.</h2>
+    <p class="hp-cta__sub">Get a lead-ready page for your local business — your services, your photos, your contact form, indexed by search engines. Free for the first month.</p>
     <div class="hp-cta__actions">
-      <a href="/signup" class="btn-primary">Create my free website →</a>
+      <a href="/get-your-website" class="btn-primary">Get found free →</a>
       <a href="/examples" class="btn-secondary">See live examples</a>
     </div>
     <p class="hp-cta__proof">First month free &nbsp;·&nbsp; $19.99/mo after &nbsp;·&nbsp; Cancel anytime</p>
