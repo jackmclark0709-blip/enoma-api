@@ -44,6 +44,78 @@ function safeJsonForInlineScript(obj) {
   return JSON.stringify(obj).replace(/<\//g, "<\\/");
 }
 
+/**
+ * normalizeProfile — standardize polymorphic fields before sending to client.
+ *
+ * The DB schema allows some fields to be stored as either a plain string
+ * OR a JSON object/array (depending on how the record was created).
+ * The frontend JS renderer only handles the string format for why_choose_us
+ * and expects {q,a} or {question,answer} keys for faqs.
+ * This function normalizes everything so the renderer always gets a consistent shape.
+ */
+function normalizeProfile(p) {
+  if (!p) return p;
+  const out = { ...p };
+
+  // ── why_choose_us ──
+  // Accept: string | [{title,description}] | [{title}] | any array
+  // Emit:   newline-separated string
+  if (Array.isArray(out.why_choose_us)) {
+    out.why_choose_us = out.why_choose_us
+      .map(item => {
+        if (typeof item === "string") return item.trim();
+        if (item && typeof item === "object") {
+          const title = item.title || item.name || "";
+          const desc  = item.description || item.text || "";
+          return desc ? `${title} — ${desc}` : title;
+        }
+        return String(item);
+      })
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  // ── faqs ──
+  // Accept: [{question,answer}] | [{q,a}] | string
+  // Emit:   [{q, a}] array (what the renderer uses)
+  if (Array.isArray(out.faqs)) {
+    out.faqs = out.faqs.map(f => {
+      if (!f || typeof f !== "object") return null;
+      return {
+        q: f.q || f.question || "",
+        a: f.a || f.answer   || "",
+      };
+    }).filter(Boolean);
+  }
+
+  // ── testimonials ──
+  // Accept: [{quote,author}] | [{text,name}] | string
+  // Emit:   [{quote, author}] array
+  if (Array.isArray(out.testimonials)) {
+    out.testimonials = out.testimonials.map(t => {
+      if (!t || typeof t !== "object") return null;
+      return {
+        quote:  t.quote  || t.text    || t.review || "",
+        author: t.author || t.name    || t.reviewer || "Customer",
+      };
+    }).filter(t => t && t.quote);
+  }
+
+  // ── services ──
+  // Normalize price: strip "Call for quote" if present — renderer shows it,
+  // but it's visually cleaner to omit the redundant label
+  if (Array.isArray(out.services)) {
+    out.services = out.services.map(s => ({
+      ...s,
+      service_name: s.service_name || s.name || "",
+      service_description: s.service_description || s.description || "",
+      price: (s.price === "Call for quote" || s.price === "call for quote") ? "" : (s.price || ""),
+    }));
+  }
+
+  return out;
+}
+
 function guessSchemaType(primaryCategory) {
   if (!primaryCategory) return "LocalBusiness";
   const key = String(primaryCategory).toLowerCase().trim();
@@ -230,6 +302,9 @@ export default async function handler(req, res) {
       } : {})
     };
 
+    // Normalize polymorphic fields before sending to client renderer
+    const normalizedProfile = normalizeProfile(profile);
+
     const templatePath = path.join(process.cwd(), "public", "profile.html");
     let html = fs.readFileSync(templatePath, "utf8");
 
@@ -239,7 +314,7 @@ export default async function handler(req, res) {
       "{{FINAL_OG_IMAGE}}": escapeHtml(ogImage),
       "{{FINAL_CANONICAL_URL}}": escapeHtml(canonical),
       "{{ROBOTS}}": escapeHtml(robots),
-      "{{PROFILE_JSON}}": safeJsonForInlineScript(profile || {}),
+      "{{PROFILE_JSON}}": safeJsonForInlineScript(normalizedProfile || {}),
       "{{BUSINESS_NAME}}": escapeHtml(profile.business_name || ""),
       "{{HERO_HEADLINE}}": escapeHtml(profile.hero_headline || ""),
       "{{HERO_TAGLINE}}": escapeHtml(profile.hero_tagline || ""),
