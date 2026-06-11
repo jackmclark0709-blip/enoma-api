@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Get Your Free Page — Enoma</title>
+  <meta name="description" content="Tell us about your business and we'll build your free lead page within 24 hours." />
+  <link rel="icon" href="/favicon.ico" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f7f9fc;
+      color: #1a1a2e;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* NAV */
+    nav {
+      background: #fff;
+      border-bottom: 1px solid #e8edf2;
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-logo {
+      font-weight: 800;
+      font-size: 18px;
+      color: #1a1a2e;
+      text-decoration: none;
+      letter-spacing: -0.5px;
+    }
+    .nav-logo span { color: #22c55e; }
+
+    /* HERO */
+    .hero {
+      text-align: center;
+      padding: 56px 24px 40px;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: #dcfce7;
+      color: #166534;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-bottom: 16px;
+    }
+    .hero h1 {
+      font-size: clamp(26px, 5vw, 40px);
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      line-height: 1.15;
+      margin-bottom: 14px;
+      color: #0f172a;
+    }
+    .hero p {
+      font-size: 16px;
+      color: #64748b;
+      max-width: 480px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* FORM CARD */
+    .form-wrap {
+      max-width: 520px;
+      margin: 0 auto 60px;
+      padding: 0 16px;
+      width: 100%;
+    }
+    .card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 32px 28px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    }
+
+    .field { margin-bottom: 18px; }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+    label .req { color: #ef4444; margin-left: 2px; }
+    label .opt { color: #9ca3af; font-weight: 400; margin-left: 4px; }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 15px;
+      color: #111827;
+      background: #fff;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      outline: none;
+      font-family: inherit;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: #22c55e;
+      box-shadow: 0 0 0 3px rgba(34,197,94,0.12);
+    }
+    textarea { resize: vertical; min-height: 80px; }
+    select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; }
+
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 480px) { .row { grid-template-columns: 1fr; } }
+
+    .submit-btn {
+      width: 100%;
+      padding: 14px;
+      background: #16a34a;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      margin-top: 8px;
+      letter-spacing: -0.2px;
+    }
+    .submit-btn:hover { background: #15803d; }
+    .submit-btn:active { transform: scale(0.99); }
+    .submit-btn:disabled { background: #86efac; cursor: not-allowed; }
+
+    .fine-print {
+      text-align: center;
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 14px;
+      line-height: 1.5;
+    }
+
+    /* SUCCESS */
+    .success-state {
+      display: none;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .success-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    .success-state h2 {
+      font-size: 22px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 10px;
+    }
+    .success-state p {
+      color: #64748b;
+      font-size: 15px;
+      line-height: 1.6;
+      max-width: 360px;
+      margin: 0 auto;
+    }
+
+    /* TRUST BAR */
+    .trust-bar {
+      display: flex;
+      justify-content: center;
+      gap: 28px;
+      flex-wrap: wrap;
+      padding: 0 24px 48px;
+      margin-top: -8px;
+    }
+    .trust-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 13px;
+      color: #6b7280;
+      font-weight: 500;
+    }
+    .trust-item svg { color: #22c55e; flex-shrink: 0; }
+
+    .error-msg {
+      color: #dc2626;
+      font-size: 13px;
+      margin-top: 12px;
+      display: none;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="/"><span>en</span>oma</a>
+</nav>
+
+<div class="hero">
+  <div class="hero-badge">Free — no credit card needed</div>
+  <h1>Get your business page<br>built for you</h1>
+  <p>Tell us about your business. We'll build your lead page and send you the link within 24 hours.</p>
+</div>
+
+<div class="form-wrap">
+  <div class="card">
+
+    <div id="form-state">
+      <form id="getStartedForm">
+
+        <div class="field">
+          <label>Business Name <span class="req">*</span></label>
+          <input type="text" name="businessName" placeholder="e.g. Smith's Lawn Care" required />
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>Trade / Category <span class="req">*</span></label>
+            <select name="trade" required>
+              <option value="" disabled selected>Select one</option>
+              <option value="Landscaping">Landscaping</option>
+              <option value="Plumbing">Plumbing</option>
+              <option value="HVAC">HVAC</option>
+              <option value="Electrical">Electrical</option>
+              <option value="Contractor">Contractor</option>
+              <option value="Cleaning">Cleaning</option>
+              <option value="Painting">Painting</option>
+              <option value="Roofing">Roofing</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Town / City <span class="req">*</span></label>
+            <input type="text" name="town" placeholder="e.g. Attleboro, MA" required />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>Your Email <span class="req">*</span></label>
+            <input type="email" name="email" placeholder="you@example.com" required />
+          </div>
+          <div class="field">
+            <label>Phone Number <span class="req">*</span></label>
+            <input type="tel" name="phone" placeholder="(508) 555-0100" required />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Facebook Page URL <span class="opt">(optional but helpful)</span></label>
+          <input type="url" name="facebookUrl" placeholder="https://facebook.com/yourbusiness" />
+        </div>
+
+        <div class="field">
+          <label>Anything else we should know? <span class="opt">(optional)</span></label>
+          <textarea name="notes" placeholder="Years in business, key services, what makes you different..."></textarea>
+        </div>
+
+        <button type="submit" class="submit-btn" id="submitBtn">
+          Build My Free Page →
+        </button>
+        <div class="error-msg" id="errorMsg">Something went wrong — please try again or email jack@enoma.io</div>
+      </form>
+
+      <p class="fine-print">We'll send your page link within 1 business day. Your page stays live free for 30 days, then $19.99/month — cancel anytime.</p>
+    </div>
+
+    <div class="success-state" id="success-state">
+      <div class="success-icon">🌿</div>
+      <h2>You're on the list!</h2>
+      <p>We'll build your page and send you the link within 1 business day. Keep an eye on <strong id="successEmail"></strong>.</p>
+    </div>
+
+  </div>
+</div>
+
+<div class="trust-bar">
+  <div class="trust-item">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    No credit card required
+  </div>
+  <div class="trust-item">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    Page live within 24 hours
+  </div>
+  <div class="trust-item">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    Cancel anytime
+  </div>
+</div>
+
+<script>
+  const form = document.getElementById('getStartedForm');
+  const btn = document.getElementById('submitBtn');
+  const errorMsg = document.getElementById('errorMsg');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+    errorMsg.style.display = 'none';
+
+    const data = Object.fromEntries(new FormData(form));
+
+    try {
+      const res = await fetch('/api/send-contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.businessName,
+          email: data.email,
+          phone: data.phone,
+          message: `Trade: ${data.trade}\nTown: ${data.town}\nFacebook: ${data.facebookUrl || 'not provided'}\nNotes: ${data.notes || 'none'}`,
+          subject: `New page request: ${data.businessName}`,
+          source: 'get_started',
+          businessName: data.businessName,
+          trade: data.trade,
+          town: data.town,
+          facebookUrl: data.facebookUrl || '',
+          notes: data.notes || ''
+        })
+      });
+
+      if (!res.ok) throw new Error('Request failed');
+
+      // Show success
+      document.getElementById('form-state').style.display = 'none';
+      document.getElementById('success-state').style.display = 'block';
+      document.getElementById('successEmail').textContent = data.email;
+
+    } catch (err) {
+      errorMsg.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Build My Free Page →';
+    }
+  });
+</script>
+
+</body>
+</html>
