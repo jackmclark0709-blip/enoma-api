@@ -4,135 +4,77 @@
     {
       "source": "/assets/og/(.*).png",
       "headers": [
-        {
-          "key": "Content-Type",
-          "value": "image/png"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
+        { "key": "Content-Type", "value": "image/png" },
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
     }
   ],
   "rewrites": [
-    {
-      "source": "/sitemap.xml",
-      "destination": "/api/sitemap"
-    },
-    {
-      "source": "/login",
-      "destination": "/dashboard/login.html"
-    },
-    {
-      "source": "/signup",
-      "destination": "/dashboard/signup.html"
-    },
-    {
-      "source": "/dashboard",
-      "destination": "/dashboard/index.html"
-    },
-    {
-      "source": "/website-live",
-      "destination": "/website-live/index.html"
-    },
-    {
-      "source": "/create",
-      "destination": "/create.html"
-    },
-    {
-      "source": "/upgrade",
-      "destination": "/upgrade/index.html"
-    },
-    {
-      "source": "/get-your-website",
-      "destination": "/get-your-website.html"
-    },
-    {
-      "source": "/widget",
-      "destination": "/widget.html"
-    },
-    {
-      "source": "/for/landscaping-websites-massachusetts",
-      "destination": "/for/landscaping-websites-massachusetts.html"
-    },
-    {
-      "source": "/for/plumber-websites-massachusetts",
-      "destination": "/for/plumber-websites-massachusetts.html"
-    },
-    {
-      "source": "/for/lawn-care-website-agawam-ma",
-      "destination": "/for/lawn-care-website-agawam-ma.html"
-    },
-    {
-      "source": "/for/plumber-website-attleboro-ma",
-      "destination": "/for/plumber-website-attleboro-ma.html"
-    },
-    {
-      "source": "/for/website-for-local-service-business",
-      "destination": "/for/website-for-local-service-business.html"
-    },
+    { "source": "/sitemap.xml", "destination": "/api/sitemap" },
+    { "source": "/login", "destination": "/dashboard/login.html" },
+    { "source": "/signup", "destination": "/dashboard/signup.html" },
+    { "source": "/dashboard", "destination": "/dashboard/index.html" },
+    { "source": "/website-live", "destination": "/website-live/index.html" },
+    { "source": "/create", "destination": "/create.html" },
+    { "source": "/upgrade", "destination": "/upgrade/index.html" },
+    { "source": "/get-your-website", "destination": "/get-your-website.html" },
+    { "source": "/get-started", "destination": "/get-started.html" },
+    { "source": "/widget", "destination": "/widget.html" },
+    { "source": "/for/landscaping-websites-massachusetts", "destination": "/for/landscaping-websites-massachusetts.html" },
+    { "source": "/for/plumber-websites-massachusetts", "destination": "/for/plumber-websites-massachusetts.html" },
+    { "source": "/for/lawn-care-website-agawam-ma", "destination": "/for/lawn-care-website-agawam-ma.html" },
+    { "source": "/for/plumber-website-attleboro-ma", "destination": "/for/plumber-website-attleboro-ma.html" },
+    { "source": "/for/website-for-local-service-business", "destination": "/for/website-for-local-service-business.html" },
+    { "source": "/for/website-for-landscaping-business", "destination": "/for/website-for-landscaping-business.html" },
+    { "source": "/for/website-for-plumbing-business", "destination": "/for/website-for-plumbing-business.html" },
+    { "source": "/for/website-for-hvac-business", "destination": "/for/website-for-hvac-business.html" },
+    { "source": "/for/website-for-electrician", "destination": "/for/website-for-electrician.html" },
+    { "source": "/for/website-for-cleaning-business", "destination": "/for/website-for-cleaning-business.html" },
+    { "source": "/for/website-for-painting-contractor", "destination": "/for/website-for-painting-contractor.html" },
+    { "source": "/for/do-i-need-a-website-for-my-landscaping-business", "destination": "/for/do-i-need-a-website-for-my-landscaping-business.html" },
+    { "source": "/for/facebook-vs-website-local-business", "destination": "/for/facebook-vs-website-local-business.html" },
+    { "source": "/for/free-website-for-local-service-business", "destination": "/for/free-website-for-local-service-business.html" },
+    { "source": "/for/website-builder-for-contractors", "destination": "/for/website-builder-for-contractors.html" },
+    { "source": "/for/landscaping-websites-texas", "destination": "/for/landscaping-websites-texas.html" },
+    { "source": "/for/landscaping-websites-florida", "destination": "/for/landscaping-websites-florida.html" },
+    { "source": "/for/landscaping-websites-california", "destination": "/for/landscaping-websites-california.html" },
+    { "source": "/for/landscaping-websites-new-york", "destination": "/for/landscaping-websites-new-york.html" },
+    { "source": "/for/plumber-websites-texas", "destination": "/for/plumber-websites-texas.html" },
+    { "source": "/for/hvac-websites-florida", "destination": "/for/hvac-websites-florida.html" },
     {
       "source": "/((?!assets|api|dashboard|styles|scripts|partials|website-live|pricing|examples|contact|request|privacy|terms|favicon|index|upgrade|for).*)",
       "destination": "/api/p?slug=$1"
     }
   ],
   "redirects": [
-    {
-      "source": "/dashboard/login.html",
-      "destination": "/login",
-      "permanent": true
-    },
-    {
-      "source": "/dashboard/signup.html",
-      "destination": "/signup",
-      "permanent": true
-    },
-    {
-      "source": "/create.html",
-      "destination": "/create",
-      "permanent": true
-    },
-    {
-      "source": "/p/:slug",
-      "destination": "/:slug",
-      "permanent": true
-    },
-    {
-      "source": "/for/landscaping-websites-massachusetts.html",
-      "destination": "/for/landscaping-websites-massachusetts",
-      "permanent": true
-    },
-    {
-      "source": "/for/plumber-websites-massachusetts.html",
-      "destination": "/for/plumber-websites-massachusetts",
-      "permanent": true
-    },
-    {
-      "source": "/for/lawn-care-website-agawam-ma.html",
-      "destination": "/for/lawn-care-website-agawam-ma",
-      "permanent": true
-    },
-    {
-      "source": "/for/plumber-website-attleboro-ma.html",
-      "destination": "/for/plumber-website-attleboro-ma",
-      "permanent": true
-    },
-    {
-      "source": "/for/website-for-local-service-business.html",
-      "destination": "/for/website-for-local-service-business",
-      "permanent": true
-    },
-    {
-      "source": "/get-your-website.html",
-      "destination": "/get-your-website",
-      "permanent": true
-    },
-    {
-      "source": "/widget.html",
-      "destination": "/widget",
-      "permanent": true
-    }
+    { "source": "/dashboard/login.html", "destination": "/login", "permanent": true },
+    { "source": "/dashboard/signup.html", "destination": "/signup", "permanent": true },
+    { "source": "/create.html", "destination": "/create", "permanent": true },
+    { "source": "/p/:slug", "destination": "/:slug", "permanent": true },
+    { "source": "/for/landscaping-websites-massachusetts.html", "destination": "/for/landscaping-websites-massachusetts", "permanent": true },
+    { "source": "/for/plumber-websites-massachusetts.html", "destination": "/for/plumber-websites-massachusetts", "permanent": true },
+    { "source": "/for/lawn-care-website-agawam-ma.html", "destination": "/for/lawn-care-website-agawam-ma", "permanent": true },
+    { "source": "/for/plumber-website-attleboro-ma.html", "destination": "/for/plumber-website-attleboro-ma", "permanent": true },
+    { "source": "/for/website-for-local-service-business.html", "destination": "/for/website-for-local-service-business", "permanent": true },
+    { "source": "/for/website-for-landscaping-business.html", "destination": "/for/website-for-landscaping-business", "permanent": true },
+    { "source": "/for/website-for-plumbing-business.html", "destination": "/for/website-for-plumbing-business", "permanent": true },
+    { "source": "/for/website-for-hvac-business.html", "destination": "/for/website-for-hvac-business", "permanent": true },
+    { "source": "/for/website-for-electrician.html", "destination": "/for/website-for-electrician", "permanent": true },
+    { "source": "/for/website-for-cleaning-business.html", "destination": "/for/website-for-cleaning-business", "permanent": true },
+    { "source": "/for/website-for-painting-contractor.html", "destination": "/for/website-for-painting-contractor", "permanent": true },
+    { "source": "/for/do-i-need-a-website-for-my-landscaping-business.html", "destination": "/for/do-i-need-a-website-for-my-landscaping-business", "permanent": true },
+    { "source": "/for/facebook-vs-website-local-business.html", "destination": "/for/facebook-vs-website-local-business", "permanent": true },
+    { "source": "/for/free-website-for-local-service-business.html", "destination": "/for/free-website-for-local-service-business", "permanent": true },
+    { "source": "/for/website-builder-for-contractors.html", "destination": "/for/website-builder-for-contractors", "permanent": true },
+    { "source": "/for/landscaping-websites-texas.html", "destination": "/for/landscaping-websites-texas", "permanent": true },
+    { "source": "/for/landscaping-websites-florida.html", "destination": "/for/landscaping-websites-florida", "permanent": true },
+    { "source": "/for/landscaping-websites-california.html", "destination": "/for/landscaping-websites-california", "permanent": true },
+    { "source": "/for/landscaping-websites-new-york.html", "destination": "/for/landscaping-websites-new-york", "permanent": true },
+    { "source": "/for/plumber-websites-texas.html", "destination": "/for/plumber-websites-texas", "permanent": true },
+    { "source": "/for/hvac-websites-florida.html", "destination": "/for/hvac-websites-florida", "permanent": true },
+    { "source": "/get-your-website.html", "destination": "/get-your-website", "permanent": true },
+    { "source": "/get-started.html", "destination": "/get-started", "permanent": true },
+    { "source": "/widget.html", "destination": "/widget", "permanent": true }
   ],
   "functions": {
     "api/*.js": {
