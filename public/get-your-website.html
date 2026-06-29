@@ -26,7 +26,7 @@
       --green-glow: rgba(74,158,58,0.18);
       --blue: #3882dc;
       --dark: #0a1628;
-      --dark-green: #0d1f0f;  /* kept for accents only */
+      --dark-green: #0d1f0f;
       --text: #f0f6ff;
       --text-dim: rgba(240,246,255,0.62);
       --card-bg: rgba(255,255,255,0.05);
@@ -41,7 +41,6 @@
       overflow-x: hidden;
     }
 
-    /* ── NOISE TEXTURE ── */
     body::before {
       content: '';
       position: fixed;
@@ -52,7 +51,6 @@
       opacity: 0.4;
     }
 
-    /* ── AMBIENT GLOW ── */
     .glow-orb {
       position: fixed;
       border-radius: 50%;
@@ -70,7 +68,6 @@
       background: radial-gradient(circle, rgba(56,130,220,0.15) 0%, transparent 70%);
     }
 
-    /* ── PAGE LAYOUT ── */
     .page {
       position: relative;
       z-index: 1;
@@ -83,7 +80,6 @@
       align-items: start;
     }
 
-    /* ── LEFT: COPY ── */
     .copy { position: sticky; top: 2rem; }
 
     .eyebrow {
@@ -135,7 +131,6 @@
       max-width: 420px;
     }
 
-    /* Example preview */
     .example-label {
       font-size: 0.72rem;
       font-weight: 700;
@@ -188,7 +183,6 @@
       pointer-events: none;
     }
 
-    /* Trust proof */
     .proof-list {
       display: flex;
       flex-direction: column;
@@ -214,7 +208,7 @@
       color: #7ab3e0;
     }
 
-    /* ── RIGHT: FORM CARD ── */
+    /* ── FORM CARD ── */
     .form-card {
       background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.10);
@@ -249,33 +243,8 @@
       line-height: 1.5;
     }
 
-    /* Trade selector tabs */
-    .trade-tabs {
-      display: flex;
-      gap: 0.4rem;
-      flex-wrap: wrap;
-      margin-bottom: 1.5rem;
-    }
-    .trade-tab {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 999px;
-      padding: 0.3rem 0.85rem;
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: rgba(240,246,255,0.55);
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-    .trade-tab.active,
-    .trade-tab:hover {
-      background: rgba(56,130,220,0.15);
-      border-color: rgba(56,130,220,0.4);
-      color: #7ab3e0;
-    }
-
     /* Form fields */
-    .field { margin-bottom: 0.85rem; }
+    .field { margin-bottom: 1rem; }
     .field label {
       display: block;
       font-size: 0.78rem;
@@ -285,76 +254,51 @@
       text-transform: uppercase;
       margin-bottom: 0.35rem;
     }
-    .field input,
-    .field select,
-    .field textarea {
+    .field input {
       width: 100%;
       background: rgba(255,255,255,0.06);
       border: 1.5px solid rgba(255,255,255,0.1);
       border-radius: 10px;
-      padding: 0.7rem 0.9rem;
-      font-size: 0.92rem;
+      padding: 0.85rem 0.9rem;
+      font-size: 1rem;
       font-family: 'DM Sans', sans-serif;
       color: #f0f6ff;
       outline: none;
       transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
       -webkit-appearance: none;
     }
-    .field input::placeholder,
-    .field textarea::placeholder {
+    .field input::placeholder {
       color: rgba(240,246,255,0.28);
     }
-    .field select option { background: #0a1628; color: #f0f6ff; }
-    .field input:focus,
-    .field select:focus,
-    .field textarea:focus {
+    .field input:focus {
       border-color: rgba(56,130,220,0.6);
       box-shadow: 0 0 0 3px rgba(56,130,220,0.12);
       background: rgba(255,255,255,0.08);
     }
-    .field textarea { resize: vertical; min-height: 80px; line-height: 1.55; }
 
-    .field-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.75rem;
+    /* Error state */
+    .field input.error {
+      border-color: rgba(220,80,80,0.6);
+      box-shadow: 0 0 0 3px rgba(220,80,80,0.1);
     }
-
-    /* Services preview */
-    .services-preview {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.4rem;
-      margin-top: 0.5rem;
-    }
-    .service-chip {
-      background: rgba(56,130,220,0.1);
-      border: 1px solid rgba(56,130,220,0.25);
-      border-radius: 999px;
-      padding: 0.25rem 0.7rem;
+    .field-error {
       font-size: 0.75rem;
-      font-weight: 600;
-      color: #7ab3e0;
-      cursor: pointer;
-      transition: background 0.15s;
-      user-select: none;
+      color: #e07a7a;
+      margin-top: 0.3rem;
+      display: none;
     }
-    .service-chip.selected {
-      background: rgba(56,130,220,0.25);
-      border-color: rgba(56,130,220,0.5);
-    }
-    .service-chip:hover { background: rgba(56,130,220,0.2); }
+    .field-error.visible { display: block; }
 
     /* Submit */
     .submit-btn {
       width: 100%;
-      margin-top: 1.5rem;
-      padding: 0.95rem 1.5rem;
+      margin-top: 1.75rem;
+      padding: 1.05rem 1.5rem;
       background: #3882dc;
       border: none;
       border-radius: 12px;
       font-family: 'DM Sans', sans-serif;
-      font-size: 1rem;
+      font-size: 1.05rem;
       font-weight: 800;
       color: white;
       cursor: pointer;
@@ -389,7 +333,7 @@
       letter-spacing: 0.04em;
     }
 
-    /* ── BOTTOM SECTION: HOW IT WORKS ── */
+    /* ── HOW IT WORKS ── */
     .how-it-works {
       position: relative;
       z-index: 1;
@@ -430,10 +374,7 @@
       background: linear-gradient(90deg, transparent, rgba(56,130,220,0.3) 30%, rgba(56,130,220,0.3) 70%, transparent);
       pointer-events: none;
     }
-    .step {
-      text-align: center;
-      position: relative;
-    }
+    .step { text-align: center; position: relative; }
     .step__num {
       width: 56px; height: 56px;
       border-radius: 50%;
@@ -460,19 +401,11 @@
       line-height: 1.6;
     }
 
-    /* ── RESPONSIVE ── */
     @media (max-width: 860px) {
-      .page {
-        grid-template-columns: 1fr;
-        gap: 2.5rem;
-      }
+      .page { grid-template-columns: 1fr; gap: 2.5rem; }
       .copy { position: static; }
       .steps { grid-template-columns: 1fr; }
       .steps::before { display: none; }
-    }
-    @media (max-width: 500px) {
-      .field-row { grid-template-columns: 1fr; }
-      .form-card { padding: 1.5rem; }
     }
   </style>
 </head>
@@ -483,7 +416,6 @@
 
 <script type="module" src="/partials/nav.js"></script>
 
-<!-- ── MAIN PAGE ── -->
 <div class="page">
 
   <!-- LEFT: COPY -->
@@ -541,54 +473,31 @@
   <div class="form-card">
     <div class="form-card__header">
       <p class="form-card__trade">Start for free — no credit card</p>
-      <h2 class="form-card__title">Get my business found online</h2>
-      <p class="form-card__sub">Takes about 5 minutes. Live and findable online same day. Free for the first month.</p>
-    </div>
-
-    <!-- Trade selector -->
-    <div class="trade-tabs" id="tradeTabs">
-      <div class="trade-tab active" data-trade="landscaping" data-services="Mowing,Trimming,Mulching,Seasonal Cleanup,Snow Removal">🌿 Landscaping</div>
-      <div class="trade-tab" data-trade="plumbing" data-services="Leak Repair,Drain Cleaning,Boiler Service,Water Heater,Emergency">🔧 Plumbing</div>
-      <div class="trade-tab" data-trade="hvac" data-services="AC Install,Heating,Ductwork,Maintenance,Emergency">❄️ HVAC</div>
-      <div class="trade-tab" data-trade="electrical" data-services="Panel Upgrade,Wiring,Outlets,Emergency,Inspection">⚡ Electrical</div>
-      <div class="trade-tab" data-trade="contractor" data-services="Renovation,Roofing,Painting,Additions,Decks">🏠 Contractor</div>
-      <div class="trade-tab" data-trade="other" data-services="Service 1,Service 2,Service 3">✦ Other</div>
+      <h2 class="form-card__title">Build my free page</h2>
+      <p class="form-card__sub">Three fields. Live and findable online same day.</p>
     </div>
 
     <div class="field">
       <label>Business Name</label>
-      <input id="biz_name" type="text" placeholder="e.g. Conway's Landscaping" />
+      <input id="biz_name" type="text" placeholder="e.g. Conway's Landscaping" autocomplete="organization" />
+      <div class="field-error" id="err_name">Please enter your business name</div>
     </div>
 
-    <div class="field-row">
-      <div class="field">
-        <label>Your Town / City</label>
-        <input id="biz_city" type="text" placeholder="e.g. Agawam, MA" />
-      </div>
-      <div class="field">
-        <label>Phone Number</label>
-        <input id="biz_phone" type="tel" placeholder="(555) 000-0000" />
-      </div>
+    <div class="field">
+      <label>Your Town / City</label>
+      <input id="biz_city" type="text" placeholder="e.g. Agawam, MA" autocomplete="address-level2" />
+      <div class="field-error" id="err_city">Please enter your town or city</div>
     </div>
 
     <div class="field">
       <label>Your Email</label>
-      <input id="biz_email" type="email" placeholder="you@example.com" />
-    </div>
-
-    <div class="field">
-      <label>Services offered <span style="text-transform:none;font-weight:400;opacity:0.6;">(tap to select)</span></label>
-      <div class="services-preview" id="serviceChips"></div>
-    </div>
-
-    <div class="field">
-      <label>About your business <span style="text-transform:none;font-weight:400;opacity:0.6;">(rough notes are fine)</span></label>
-      <textarea id="biz_about" placeholder="e.g. Family-owned since 2019. We do residential lawn care in Agawam and surrounding towns. Owner on every job. Free estimates." rows="3"></textarea>
+      <input id="biz_email" type="email" placeholder="you@example.com" autocomplete="email" />
+      <div class="field-error" id="err_email">Please enter a valid email</div>
     </div>
 
     <a href="/signup" class="submit-btn" id="submitBtn">
       <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-      Get found online free →
+      Build my free page →
     </a>
 
     <p class="form-card__proof">First month free &nbsp;·&nbsp; No credit card &nbsp;·&nbsp; Cancel anytime</p>
@@ -596,7 +505,7 @@
 
 </div>
 
-<!-- ── HOW IT WORKS ── -->
+<!-- HOW IT WORKS -->
 <div class="how-it-works">
   <p class="how-it-works__label">How it works</p>
   <h2 class="how-it-works__h2">From form to found online in three steps</h2>
@@ -604,7 +513,7 @@
     <div class="step">
       <div class="step__num">1</div>
       <p class="step__title">Fill out the form</p>
-      <p class="step__desc">Tell us your business name, location, services, and a few notes about what you do. Rough notes are completely fine.</p>
+      <p class="step__desc">Tell us your business name, location, and email. That's it — we handle everything else.</p>
     </div>
     <div class="step">
       <div class="step__num">2</div>
@@ -623,66 +532,41 @@
 <script>fetch('/partials/footer.html').then(r=>r.text()).then(html=>{document.getElementById('footer').innerHTML=html});</script>
 
 <script>
-  // Trade tab switching — updates service chips and placeholder text
-  const TRADE_DATA = {
-    landscaping: { services: ['Mowing','Trimming','Mulching','Seasonal Cleanup','Snow Removal','Aeration','Fertilizing'] },
-    plumbing:    { services: ['Leak Repair','Drain Cleaning','Boiler Service','Water Heater','Emergency Plumbing','Pipe Install','Sump Pump'] },
-    hvac:        { services: ['AC Installation','Heating Repair','Ductwork','Maintenance','Emergency HVAC','Thermostat','Air Quality'] },
-    electrical:  { services: ['Panel Upgrade','Wiring','Outlets & Switches','Emergency','Inspection','EV Charger','Lighting'] },
-    contractor:  { services: ['Renovation','Roofing','Painting','Additions','Decks','Flooring','Basement Finishing'] },
-    other:       { services: ['Service 1','Service 2','Service 3','Service 4','Service 5'] },
-  };
-
-  let selectedServices = new Set(['Mowing','Trimming','Mulching','Seasonal Cleanup','Snow Removal']);
-  let activeTrade = 'landscaping';
-
-  function renderChips(trade) {
-    const chips = document.getElementById('serviceChips');
-    const services = TRADE_DATA[trade]?.services || [];
-    chips.innerHTML = '';
-    services.forEach(s => {
-      const el = document.createElement('div');
-      el.className = 'service-chip' + (selectedServices.has(s) ? ' selected' : '');
-      el.textContent = s;
-      el.addEventListener('click', () => {
-        if (selectedServices.has(s)) selectedServices.delete(s);
-        else selectedServices.add(s);
-        el.classList.toggle('selected');
-      });
-      chips.appendChild(el);
-    });
-  }
-
-  document.querySelectorAll('.trade-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.trade-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      activeTrade = tab.dataset.trade;
-      selectedServices = new Set((tab.dataset.services || '').split(','));
-      renderChips(activeTrade);
-    });
-  });
-
-  renderChips('landscaping');
-
-  // Wire submit button — carry filled values to signup
   document.getElementById('submitBtn').addEventListener('click', function(e) {
-    const name = document.getElementById('biz_name').value.trim();
+    const name  = document.getElementById('biz_name').value.trim();
+    const city  = document.getElementById('biz_city').value.trim();
     const email = document.getElementById('biz_email').value.trim();
-    if (!name || !email) {
-      e.preventDefault();
-      if (!name) document.getElementById('biz_name').focus();
-      else document.getElementById('biz_email').focus();
-      return;
-    }
-    // Pass trade + name as query params to signup so the create form can be pre-filled
-    const params = new URLSearchParams({
-      trade: activeTrade,
-      name: name,
-      email: email,
-      city: document.getElementById('biz_city').value.trim(),
-      phone: document.getElementById('biz_phone').value.trim(),
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+    // Clear previous errors
+    ['biz_name','biz_city','biz_email'].forEach(id => {
+      document.getElementById(id).classList.remove('error');
     });
+    ['err_name','err_city','err_email'].forEach(id => {
+      document.getElementById(id).classList.remove('visible');
+    });
+
+    let valid = true;
+
+    if (!name) {
+      document.getElementById('biz_name').classList.add('error');
+      document.getElementById('err_name').classList.add('visible');
+      valid = false;
+    }
+    if (!city) {
+      document.getElementById('biz_city').classList.add('error');
+      document.getElementById('err_city').classList.add('visible');
+      valid = false;
+    }
+    if (!emailOk) {
+      document.getElementById('biz_email').classList.add('error');
+      document.getElementById('err_email').classList.add('visible');
+      valid = false;
+    }
+
+    if (!valid) { e.preventDefault(); return; }
+
+    const params = new URLSearchParams({ name, city, email });
     this.href = `/signup?${params.toString()}`;
   });
 </script>
