@@ -20,6 +20,7 @@
     { "source": "/get-your-website", "destination": "/get-your-website.html" },
     { "source": "/get-started", "destination": "/get-started.html" },
     { "source": "/widget", "destination": "/widget.html" },
+{ "source": "/choose-path", "destination": "/choose-path.html" },
     { "source": "/for/landscaping-websites-massachusetts", "destination": "/for/landscaping-websites-massachusetts.html" },
     { "source": "/for/plumber-websites-massachusetts", "destination": "/for/plumber-websites-massachusetts.html" },
     { "source": "/for/lawn-care-website-agawam-ma", "destination": "/for/lawn-care-website-agawam-ma.html" },
