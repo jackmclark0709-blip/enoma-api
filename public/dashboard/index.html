@@ -466,45 +466,71 @@ async function loadDashboard(profile, session) {
     `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(publicUrl)}`;
 
   // ── Subscription status ──
-  const { data: sub } = await supabase
-    .from('subscriptions').select('*').eq('business_id', profile.business_id).maybeSingle();
-
   const statusEl  = document.getElementById('subscription-status');
   const bannerEl  = document.getElementById('upgrade-banner');
   const bannerTxt = document.getElementById('banner-text');
   const upgradeBtn = document.getElementById('upgrade-btn');
+  const renewalEl = document.getElementById('renewal-date');
 
-  if (sub) {
-    const trialExpiry  = sub.trial_expires_at ? new Date(sub.trial_expires_at) : null;
-    const trialExpired = trialExpiry ? trialExpiry < new Date() : false;
-    const daysLeft     = trialExpiry ? Math.max(0, Math.ceil((trialExpiry - new Date()) / 86400000)) : 0;
+  // Always reset first — prevents stale text/banner leaking in from a
+  // previously viewed business when switching the dropdown.
+  renewalEl.textContent = '';
+  bannerEl.style.display = 'none';
+  bannerTxt.innerHTML = '';
 
-    if (sub.status === 'active') {
-      statusEl.textContent = '● Active'; statusEl.className = 'pill active';
-      if (sub.current_period_end) {
-        document.getElementById('renewal-date').textContent =
-          `Renews ${new Date(sub.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
-      }
-    } else if (sub.is_trial && !trialExpired) {
-      statusEl.textContent = `Free trial — ${daysLeft}d left`; statusEl.className = 'pill trial';
-      document.getElementById('renewal-date').textContent =
-        `Trial ends ${trialExpiry.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
-      bannerTxt.innerHTML = `<strong>Your free trial ends in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}.</strong> Subscribe to keep your page live after ${trialExpiry.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}.`;
-      upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
-      bannerEl.style.display = 'flex';
-    } else if (trialExpired || sub.status === 'canceled') {
-      statusEl.textContent = '● Offline'; statusEl.className = 'pill expired';
-      bannerTxt.innerHTML = `<strong>Your website is currently offline.</strong> Subscribe to bring it back live and start getting leads again.`;
-      upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
-      bannerEl.style.display = 'flex';
-    } else if (sub.status === 'past_due') {
-      statusEl.textContent = '⚠ Payment due'; statusEl.className = 'pill expired';
-      bannerTxt.innerHTML = `<strong>Your last payment failed.</strong> Update your billing details to keep your website live.`;
-      upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
-      bannerEl.style.display = 'flex';
-    }
+  const { data: biz } = await supabase
+    .from('businesses').select('is_internal').eq('id', profile.business_id).maybeSingle();
+
+  if (biz?.is_internal) {
+    statusEl.textContent = '● Internal'; statusEl.className = 'pill active';
+    renewalEl.textContent = 'Always active — internal Enoma page';
   } else {
-    statusEl.textContent = 'No subscription'; statusEl.className = 'pill none';
+    const { data: sub } = await supabase
+      .from('subscriptions').select('*').eq('business_id', profile.business_id).maybeSingle();
+
+    if (sub) {
+      const trialExpiry  = sub.trial_expires_at ? new Date(sub.trial_expires_at) : null;
+      const trialExpired = trialExpiry ? trialExpiry < new Date() : false;
+      const daysLeft      = trialExpiry ? Math.max(0, Math.ceil((trialExpiry - new Date()) / 86400000)) : 0;
+      const periodEnd     = sub.current_period_end ? new Date(sub.current_period_end) : null;
+      const periodEndFmt  = periodEnd ? periodEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+
+      if (sub.status === 'active') {
+        statusEl.textContent = '● Active'; statusEl.className = 'pill active';
+        if (periodEnd) renewalEl.textContent = `Renews ${periodEndFmt}`;
+
+      } else if (sub.status === 'past_due') {
+        statusEl.textContent = '⚠ Payment due'; statusEl.className = 'pill expired';
+        renewalEl.textContent = 'Payment failed — update billing to avoid interruption';
+        bannerTxt.innerHTML = `<strong>Your last payment failed.</strong> Your page is still live while we retry, but update your billing details to avoid it going offline.`;
+        upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
+        bannerEl.style.display = 'flex';
+
+      } else if (sub.status === 'canceled' && periodEnd && periodEnd > new Date()) {
+        statusEl.textContent = '● Active'; statusEl.className = 'pill trial';
+        renewalEl.textContent = `Canceled — active until ${periodEndFmt}`;
+        bannerTxt.innerHTML = `<strong>Your subscription is canceled.</strong> Your page stays live until ${periodEndFmt}, then it will go offline.`;
+        upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
+        bannerEl.style.display = 'flex';
+
+      } else if (sub.is_trial && !trialExpired) {
+        statusEl.textContent = `Free trial — ${daysLeft}d left`; statusEl.className = 'pill trial';
+        renewalEl.textContent = `Trial ends ${trialExpiry.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+        bannerTxt.innerHTML = `<strong>Your free trial ends in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}.</strong> Subscribe to keep your page live after ${trialExpiry.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}.`;
+        upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
+        bannerEl.style.display = 'flex';
+
+      } else {
+        // Trial expired with no active/past_due/still-paid-through subscription, or fully canceled
+        statusEl.textContent = '● Offline'; statusEl.className = 'pill expired';
+        renewalEl.textContent = '';
+        bannerTxt.innerHTML = `<strong>Your website is currently offline.</strong> Subscribe to bring it back live and start getting leads again.`;
+        upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
+        bannerEl.style.display = 'flex';
+      }
+    } else {
+      statusEl.textContent = 'No subscription'; statusEl.className = 'pill none';
+    }
   }
 
   // ── Messages ──
