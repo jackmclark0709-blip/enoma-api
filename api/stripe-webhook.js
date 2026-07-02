@@ -53,9 +53,15 @@ export default async function handler(req, res) {
         const business_id = session.metadata?.business_id;
         if (!business_id) break;
 
-        const subscription = await stripe.subscriptions.retrieve(
-          session.subscription
-        );
+        // Guard: session may not have a subscription (e.g. free trial, one-time payment)
+        if (!session.subscription) {
+          console.log(`checkout.session.completed has no subscription for business ${business_id} — skipping subscription upsert`);
+          // Still publish the page if business_id is set
+          await supabase.from('businesses').update({ is_published: true }).eq('id', business_id);
+          break;
+        }
+
+        const subscription = await stripe.subscriptions.retrieve(session.subscription);
 
         await supabase
           .from('subscriptions')
@@ -67,8 +73,8 @@ export default async function handler(req, res) {
             plan_code: 'starter',
             status: 'active',
             is_trial: false,
-            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            current_period_start: subscription.current_period_start ? new Date(subscription.current_period_start * 1000).toISOString() : null,
+            current_period_end: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
             cancel_at_period_end: subscription.cancel_at_period_end,
             updated_at: new Date().toISOString(),
           }, { onConflict: 'business_id' });
@@ -103,8 +109,8 @@ export default async function handler(req, res) {
           .update({
             status: statusMap[sub.status] || sub.status,
             stripe_subscription_id: sub.id,
-            current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
-            current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+            current_period_start: sub.current_period_start ? new Date(sub.current_period_start * 1000).toISOString() : null,
+            current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
             cancel_at_period_end: sub.cancel_at_period_end,
             is_trial: false,
             updated_at: new Date().toISOString(),
@@ -149,6 +155,10 @@ export default async function handler(req, res) {
       // ── Payment failed ──
       case 'invoice.payment_failed': {
         const invoice = event.data.object;
+        if (!invoice.subscription) {
+          console.log('invoice.payment_failed has no subscription id — skipping');
+          break;
+        }
         const sub = await stripe.subscriptions.retrieve(invoice.subscription);
         const business_id = sub.metadata?.business_id;
         if (!business_id) break;
