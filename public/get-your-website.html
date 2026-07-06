@@ -495,7 +495,7 @@
       <div class="field-error" id="err_email">Please enter a valid email</div>
     </div>
 
-    <a href="/signup" class="submit-btn" id="submitBtn">
+    <a href="/choose-path" class="submit-btn" id="submitBtn">
       <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
       Build my free lead gen page →
     </a>
@@ -517,8 +517,8 @@
     </div>
     <div class="step">
       <div class="step__num">2</div>
-      <p class="step__title">AI builds your page</p>
-      <p class="step__desc">Enoma writes your copy and publishes your page instantly. Google indexes it within days — customers searching your trade in your town can now find you.</p>
+      <p class="step__title">Choose how it gets built</p>
+      <p class="step__desc">Build it yourself with our AI in about 5 minutes, or have Jack build it for you by hand — your call.</p>
     </div>
     <div class="step">
       <div class="step__num">3</div>
@@ -567,7 +567,7 @@
     if (!valid) { e.preventDefault(); return; }
 
     const params = new URLSearchParams({ name, city, email });
-    this.href = `/signup?${params.toString()}`;
+    this.href = `/choose-path?${params.toString()}`;
   });
 </script>
 </body>
