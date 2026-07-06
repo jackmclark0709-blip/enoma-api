@@ -79,6 +79,17 @@ var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 var btn = document.getElementById('signup-btn');
 var errorMsg = document.getElementById('error-msg');
 
+// Prefill from whatever the person already told us on the landing page /
+// choose-path screen, so they never have to retype it.
+var __params = new URLSearchParams(window.location.search);
+var __pendingName  = __params.get('name')  || '';
+var __pendingCity  = __params.get('city')  || '';
+var __pendingEmail = __params.get('email') || '';
+if (__pendingEmail) {
+  var __emailInput = document.getElementById('email');
+  if (__emailInput) __emailInput.value = __pendingEmail;
+}
+
 function initSupabase() {
   try {
     var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -100,7 +111,21 @@ function initSupabase() {
       btn.disabled = true;
       btn.textContent = 'Creating account…';
       try {
-        var res = await sb.auth.signUp({ email: email, password: password, options: { emailRedirectTo: 'https://enoma.io/create' } });
+        // Carry the pending business name/city into the user's account
+        // metadata (not just the URL) — this survives the email
+        // confirmation click-through even if it happens on a different
+        // device/tab than the one that filled out this form.
+        var res = await sb.auth.signUp({
+          email: email,
+          password: password,
+          options: {
+            emailRedirectTo: 'https://enoma.io/create',
+            data: {
+              pending_business_name: __pendingName || undefined,
+              pending_city: __pendingCity || undefined
+            }
+          }
+        });
         if (res.error) {
           errorMsg.textContent = res.error.message;
           btn.disabled = false;
