@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>How should we build your page? — Enoma</title>
+  <meta name="robots" content="noindex" />
+  <link rel="stylesheet" href="/styles/enoma.css" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-S8XTG72Y2Y');</script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue: #3882dc;
+      --dark: #0a1628;
+      --text: #f0f6ff;
+      --text-dim: rgba(240,246,255,0.62);
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--dark);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 760px;
+      margin-inline: auto;
+      padding: 4rem 1.5rem 5rem;
+      text-align: center;
+    }
+
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: rgba(56,130,220,0.12); border: 1px solid rgba(56,130,220,0.3);
+      border-radius: 999px; padding: 0.3rem 0.85rem;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: #7ab3e0; margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      font-size: clamp(1.8rem, 4vw, 2.4rem);
+      font-weight: 800; letter-spacing: -0.03em; line-height: 1.15;
+      color: #f0f6ff; margin-bottom: 0.75rem;
+    }
+    h1 span { color: #5aa8f0; }
+
+    .subhead {
+      font-size: 1rem; color: var(--text-dim); line-height: 1.6;
+      max-width: 480px; margin: 0 auto 3rem;
+    }
+
+    .options {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;
+      text-align: left;
+    }
+    @media (max-width: 640px) { .options { grid-template-columns: 1fr; } }
+
+    .option-card {
+      background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.10);
+      border-radius: 18px; padding: 1.75rem; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, transform 0.15s;
+      display: flex; flex-direction: column;
+    }
+    .option-card:hover { border-color: rgba(56,130,220,0.5); background: rgba(255,255,255,0.06); transform: translateY(-2px); }
+    .option-card.selected { border-color: #3882dc; background: rgba(56,130,220,0.08); }
+
+    .option-icon {
+      width: 42px; height: 42px; border-radius: 10px;
+      background: rgba(56,130,220,0.15); border: 1px solid rgba(56,130,220,0.3);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 1rem;
+    }
+    .option-icon svg { width: 20px; height: 20px; stroke: #7ab3e0; fill: none; stroke-width: 2; stroke-linecap: round; }
+
+    .option-title { font-size: 1.05rem; font-weight: 800; color: #f0f6ff; margin-bottom: 0.4rem; letter-spacing: -0.01em; }
+    .option-desc { font-size: 0.85rem; color: var(--text-dim); line-height: 1.55; margin-bottom: 1rem; flex: 1; }
+    .option-meta { font-size: 0.75rem; color: #7ab3e0; font-weight: 600; margin-bottom: 1.25rem; }
+
+    .option-btn {
+      display: block; text-align: center; text-decoration: none;
+      background: rgba(255,255,255,0.08); border: 1.5px solid rgba(255,255,255,0.15);
+      color: #fff; font-weight: 700; font-size: 0.9rem;
+      padding: 0.75rem 1rem; border-radius: 10px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .option-card:hover .option-btn,
+    .option-card.selected .option-btn {
+      background: #3882dc; border-color: #3882dc;
+    }
+
+    /* Concierge inline form (hidden until selected) */
+    .concierge-form { display: none; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1); }
+    .concierge-form.open { display: block; }
+    .concierge-form label {
+      display: block; font-size: 0.75rem; font-weight: 700; color: rgba(240,246,255,0.55);
+      letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 0.35rem;
+    }
+    .concierge-form input, .concierge-form select {
+      width: 100%; background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.12);
+      border-radius: 8px; padding: 0.65rem 0.75rem; font-size: 0.9rem; font-family: inherit;
+      color: #f0f6ff; outline: none; margin-bottom: 0.75rem;
+    }
+    .concierge-form input:focus, .concierge-form select:focus { border-color: rgba(56,130,220,0.6); }
+    .concierge-form select option { background: #0a1628; color: #f0f6ff; }
+
+    .success-msg { display: none; text-align: center; padding: 1rem 0; }
+    .success-msg.open { display: block; }
+    .success-msg .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    .success-msg p { color: var(--text-dim); font-size: 0.9rem; line-height: 1.5; }
+
+    .error-msg { color: #e07a7a; font-size: 0.8rem; margin-top: 0.5rem; display: none; }
+  </style>
+</head>
+<body>
+
+<script type="module" src="/partials/nav.js"></script>
+
+<div class="page">
+  <p class="eyebrow">One more step</p>
+  <h1 id="headline">How should we build <span id="bizNameSpan">your</span> page?</h1>
+  <p class="subhead">Both options are free to start and get you the same lead-gen page. Pick whichever fits your time.</p>
+
+  <div class="options">
+
+    <!-- SELF-SERVE -->
+    <div class="option-card" id="selfServeCard">
+      <div class="option-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      </div>
+      <p class="option-title">I'll build it myself</p>
+      <p class="option-desc">Fill in your business details and our AI writes your page copy instantly. Live in about 5 minutes.</p>
+      <p class="option-meta">⚡ Fastest — live today</p>
+      <a href="#" id="selfServeBtn" class="option-btn">Build it myself →</a>
+    </div>
+
+    <!-- CONCIERGE -->
+    <div class="option-card" id="conciergeCard">
+      <div class="option-icon">
+        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <p class="option-title">Have Jack build it for me</p>
+      <p class="option-desc">Tell us a bit more and we'll build your page by hand — no forms to fill out, no account needed right now.</p>
+      <p class="option-meta">🤝 Done for you — within 1 business day</p>
+      <button type="button" class="option-btn" id="conciergeToggleBtn" style="width:100%;border:none;font-family:inherit;">Have Jack build it →</button>
+
+      <div class="concierge-form" id="conciergeForm">
+        <label>Trade / Category</label>
+        <select id="con_trade">
+          <option value="" disabled selected>Select one</option>
+          <option>Landscaping</option>
+          <option>Plumbing</option>
+          <option>HVAC</option>
+          <option>Electrical</option>
+          <option>Contractor</option>
+          <option>Cleaning</option>
+          <option>Painting</option>
+          <option>Roofing</option>
+          <option>Other</option>
+        </select>
+        <label>Phone Number</label>
+        <input id="con_phone" type="tel" placeholder="(508) 555-0100" />
+        <button type="button" class="option-btn" id="conciergeSubmitBtn" style="width:100%;border:none;font-family:inherit;cursor:pointer;">Send my info →</button>
+        <p class="error-msg" id="conciergeError">Something went wrong — please try again or email jack@enoma.io</p>
+      </div>
+
+      <div class="success-msg" id="conciergeSuccess">
+        <div class="icon">🌿</div>
+        <p><strong>You're on the list!</strong><br>We'll build your page and send you the link within 1 business day.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="footer"></div>
+<script>fetch('/partials/footer.html').then(r=>r.text()).then(html=>{document.getElementById('footer').innerHTML=html});</script>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const name  = params.get('name')  || '';
+  const city  = params.get('city')  || '';
+  const email = params.get('email') || '';
+
+  if (name) {
+    document.getElementById('bizNameSpan').textContent = name + '\u2019s';
+  }
+
+  // Self-serve → carries all captured info through to signup, which create.html will prefill
+  const selfServeBtn = document.getElementById('selfServeBtn');
+  const signupParams = new URLSearchParams({ name, city, email });
+  selfServeBtn.href = `/signup?${signupParams.toString()}`;
+
+  // Concierge → expand inline form
+  const conciergeToggleBtn = document.getElementById('conciergeToggleBtn');
+  const conciergeForm = document.getElementById('conciergeForm');
+  const conciergeCard = document.getElementById('conciergeCard');
+  conciergeToggleBtn.addEventListener('click', () => {
+    conciergeForm.classList.add('open');
+    conciergeCard.classList.add('selected');
+    conciergeToggleBtn.style.display = 'none';
+  });
+
+  document.getElementById('conciergeSubmitBtn').addEventListener('click', async () => {
+    const trade = document.getElementById('con_trade').value;
+    const phone = document.getElementById('con_phone').value.trim();
+    const errorEl = document.getElementById('conciergeError');
+    errorEl.style.display = 'none';
+
+    if (!trade || !phone) {
+      errorEl.textContent = 'Please select a trade and enter a phone number.';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    const btn = document.getElementById('conciergeSubmitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+
+    try {
+      const res = await fetch('/api/send-contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name,
+          email: email,
+          phone: phone,
+          message: `Trade: ${trade}\nTown: ${city}\nSource: choose-path concierge`,
+          subject: `New page request: ${name}`,
+          source: 'choose_path_concierge',
+          businessName: name,
+          trade: trade,
+          town: city
+        })
+      });
+      if (!res.ok) throw new Error('Request failed');
+
+      conciergeForm.classList.remove('open');
+      document.getElementById('conciergeSuccess').classList.add('open');
+    } catch (err) {
+      errorEl.textContent = 'Something went wrong — please try again or email jack@enoma.io';
+      errorEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Send my info →';
+    }
+  });
+</script>
+
+</body>
+</html>
