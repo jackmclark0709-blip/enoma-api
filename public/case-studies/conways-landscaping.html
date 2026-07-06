@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Conway's Landscaping — A real Enoma website | Case study</title>
+  <meta name="description" content="See the real, live website Enoma built for Conway's Landscaping in Agawam, MA — and get one for your business." />
+  <link rel="canonical" href="https://enoma.io/case-studies/conways-landscaping" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Conway's Landscaping — A real Enoma website" />
+  <meta property="og:description" content="See the real, live website Enoma built for Conway's Landscaping — and get one for your business." />
+  <meta property="og:image" content="https://enoma.io/assets/og/enoma-default-v2.png" />
+  <meta property="og:url" content="https://enoma.io/case-studies/conways-landscaping" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="stylesheet" href="/styles/enoma.css" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-S8XTG72Y2Y');</script>
+  <style>
+    body { background: #f0f6ff; }
+    .cs-hero { background: #0d1f0f; padding: 5rem 1.5rem 4rem; position: relative; overflow: hidden; }
+    .cs-hero::before { content: ''; position: absolute; top: -80px; right: -80px; width: 480px; height: 480px; background: radial-gradient(circle, rgba(74,158,58,0.18) 0%, transparent 65%); pointer-events: none; }
+    .cs-hero__inner { max-width: 900px; margin-inline: auto; }
+    .cs-hero__eyebrow { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #7ac96a; margin-bottom: 0.9rem; }
+    .cs-hero__h1 { font-family: 'DM Sans', sans-serif; font-size: clamp(2rem, 3.5vw, 2.8rem); font-weight: 800; line-height: 1.1; letter-spacing: -0.025em; color: #f0f6ff; margin-bottom: 1rem; max-width: 18ch; }
+    .cs-hero__h1 em { color: #7ac96a; font-style: normal; }
+    .cs-hero__sub { font-size: 1.05rem; color: rgba(240,246,255,0.65); line-height: 1.6; margin-bottom: 1.75rem; max-width: 580px; }
+    .cs-hero__actions { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.25rem; }
+    .cs-hero__stats { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+    .cs-hero__stat { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: 999px; padding: 0.3rem 0.9rem; font-size: 0.8rem; color: rgba(240,246,255,0.65); }
+    .cs-hero__stat strong { color: #f0f6ff; font-weight: 700; }
+    .cs-hero__proof { font-size: 0.78rem; color: rgba(240,246,255,0.38); letter-spacing: 0.04em; }
+    .cs-example { background: white; padding: 4rem 1.5rem 5rem; border-top: 1px solid #d4e2f4; }
+    .cs-example__inner { max-width: 900px; margin-inline: auto; }
+    .cs-browser { background: #fff; border-radius: 10px; overflow: hidden; border: 1px solid #d4e2f4; box-shadow: 0 12px 40px rgba(10,22,40,0.10); }
+    .cs-browser__bar { background: #1e2d45; padding: 6px 10px; display: flex; align-items: center; gap: 5px; }
+    .cs-browser__dots { display: flex; gap: 4px; }
+    .cs-browser__dot { width: 8px; height: 8px; border-radius: 50%; }
+    .cs-browser__url { flex: 1; background: rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 8px; font-size: 9px; color: rgba(255,255,255,0.55); font-family: monospace; margin-left: 6px; }
+    .cs-browser__frame { position: relative; width: 100%; height: 640px; overflow: hidden; background: #0d1f0f; }
+    .cs-browser__frame iframe { width: 100%; height: 100%; border: none; }
+    .cs-browser__footnote { display: flex; justify-content: space-between; align-items: center; margin-top: 0.85rem; font-size: 0.85rem; color: #5a7a9a; flex-wrap: wrap; gap: 0.5rem; }
+    .cs-browser__footnote a { color: #2d6a2d; font-weight: 600; }
+    .cs-benefits { background: #f0f6ff; padding: 4rem 1.5rem; }
+    .cs-benefits__inner { max-width: 900px; margin-inline: auto; }
+    .cs-benefits__label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #2d6a2d; margin-bottom: 0.6rem; }
+    .cs-benefits__h2 { font-family: 'DM Sans', sans-serif; font-size: clamp(1.4rem, 2.5vw, 1.8rem); font-weight: 800; color: #0a1628; letter-spacing: -0.02em; margin-bottom: 2rem; }
+    .cs-benefits__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+    .cs-benefit { border: 1px solid #d4e2f4; border-radius: 14px; padding: 1.5rem; background: white; }
+    .cs-benefit__h3 { font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 700; color: #0a1628; margin-bottom: 0.4rem; }
+    .cs-benefit__p { font-size: 0.9rem; color: #5a7a9a; line-height: 1.6; margin: 0; }
+    .cs-cta { background: linear-gradient(160deg, #0d1f0f, #142b12); padding: 5rem 1.5rem; text-align: center; position: relative; overflow: hidden; }
+    .cs-cta::before { content: ''; position: absolute; bottom: -60px; left: 50%; transform: translateX(-50%); width: 600px; height: 300px; background: radial-gradient(ellipse, rgba(74,158,58,0.2) 0%, transparent 70%); pointer-events: none; }
+    .cs-cta__inner { max-width: 580px; margin-inline: auto; position: relative; }
+    .cs-cta__h2 { font-family: 'DM Sans', sans-serif; font-size: clamp(1.8rem, 3.5vw, 2.3rem); font-weight: 800; color: #f0f6ff; letter-spacing: -0.025em; margin-bottom: 0.75rem; }
+    .cs-cta__sub { font-size: 1rem; color: rgba(240,246,255,0.6); line-height: 1.6; margin-bottom: 2rem; }
+    .cs-cta__proof { margin-top: 1rem; font-size: 0.78rem; color: rgba(240,246,255,0.35); letter-spacing: 0.04em; }
+    @media (max-width: 768px) { .cs-benefits__grid { grid-template-columns: 1fr; } .cs-browser__frame { height: 480px; } }
+  </style>
+</head>
+<body>
+<script type="module" src="/partials/nav.js"></script>
+
+<section class="cs-hero">
+  <div class="cs-hero__inner">
+    <p class="cs-hero__eyebrow">Real Enoma website — not a mockup</p>
+    <h1 class="cs-hero__h1">This is <em>Conway's Landscaping</em>'s actual site. It's live right now.</h1>
+    <p class="cs-hero__sub">Conway's Landscaping, a landscaping company in Agawam, MA, got this page built and indexed on Google in under 5 minutes with Enoma — no agency, no web designer, no code.</p>
+    <div class="cs-hero__actions">
+      <a href="/get-your-website?industry=landscaping" class="btn-primary" data-cta="header">Get found free →</a>
+      <a href="/examples" class="btn-secondary">See more examples</a>
+    </div>
+    <div class="cs-hero__stats">
+      <span class="cs-hero__stat"><strong>4</strong> customer inquiries</span>
+      <span class="cs-hero__stat"><strong>&lt;5 min</strong> to go live</span>
+      <span class="cs-hero__stat"><strong>$0</strong> ad spend</span>
+    </div>
+    <p class="cs-hero__proof">First month free &nbsp;·&nbsp; No credit card &nbsp;·&nbsp; Cancel anytime &nbsp;·&nbsp; $19.99/mo after</p>
+  </div>
+</section>
+
+<section class="cs-example">
+  <div class="cs-example__inner">
+    <div class="cs-browser">
+      <div class="cs-browser__bar">
+        <div class="cs-browser__dots">
+          <div class="cs-browser__dot" style="background:#ff5f56"></div>
+          <div class="cs-browser__dot" style="background:#ffbd2e"></div>
+          <div class="cs-browser__dot" style="background:#27c93f"></div>
+        </div>
+        <div class="cs-browser__url">enoma.io/conways-landscaping</div>
+      </div>
+      <div class="cs-browser__frame">
+        <iframe src="/conways-landscaping" title="Conway's Landscaping — live Enoma website" loading="lazy" sandbox="allow-scripts allow-same-origin allow-popups"></iframe>
+      </div>
+    </div>
+    <div class="cs-browser__footnote">
+      <span>This is the real, live page — try scrolling or clicking around.</span>
+      <a href="/conways-landscaping" target="_blank" rel="noopener" data-cta="open_live_site">Open in a new tab ↗</a>
+    </div>
+  </div>
+</section>
+
+<section class="cs-benefits">
+  <div class="cs-benefits__inner">
+    <p class="cs-benefits__label">What's included</p>
+    <h2 class="cs-benefits__h2">What Conway's Landscaping gets from this page</h2>
+    <div class="cs-benefits__grid">
+      <div class="cs-benefit">
+        <h3 class="cs-benefit__h3">Shows up on Google</h3>
+        <p class="cs-benefit__p">Built with the right schema, headings, and keywords so customers find Conway's Landscaping when they search for a landscaping company nearby — not just whoever paid for ads.</p>
+      </div>
+      <div class="cs-benefit">
+        <h3 class="cs-benefit__h3">Turns visitors into calls</h3>
+        <p class="cs-benefit__p">A phone number, tap-to-call button, and contact form on every page. Leads go straight to the business — no shared leads, no competitors listed next to them.</p>
+      </div>
+      <div class="cs-benefit">
+        <h3 class="cs-benefit__h3">Zero design work</h3>
+        <p class="cs-benefit__p">Conway's Landscaping filled out a short form. Enoma wrote the copy, built the page, and put it live — no design skills or web experience needed.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cs-cta">
+  <div class="cs-cta__inner">
+    <h2 class="cs-cta__h2">Want a page like this for your business?</h2>
+    <p class="cs-cta__sub">Same setup, built around your services and your town. Live in under 5 minutes.</p>
+    <a class="btn-primary" data-cta="bottom" href="/get-your-website?industry=landscaping">Get found free →</a>
+    <p class="cs-cta__proof">First month free &nbsp;·&nbsp; No credit card required &nbsp;·&nbsp; Cancel anytime</p>
+  </div>
+</section>
+
+<div id="footer"></div>
+<script>fetch('/partials/footer.html').then(r=>r.text()).then(html=>{document.getElementById('footer').innerHTML=html});</script>
+
+<script>
+  (function () {
+    var PAGE_SLUG = 'conways-landscaping';
+    var BUSINESS = "Conway's Landscaping";
+    function track(eventName, params) {
+      if (typeof gtag === 'function') {
+        gtag('event', eventName, Object.assign({ case_study_slug: PAGE_SLUG, business_name: BUSINESS }, params || {}));
+      }
+    }
+    document.querySelectorAll('[data-cta]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        var ctaName = el.getAttribute('data-cta');
+        var eventName = ctaName === 'open_live_site' ? 'case_study_open_live_site' : 'case_study_cta_click';
+        track(eventName, { cta_position: ctaName });
+      });
+    });
+    var frame = document.querySelector('.cs-browser');
+    if (frame && 'IntersectionObserver' in window) {
+      var seen = false;
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting && !seen) {
+            seen = true;
+            track('case_study_embed_viewed');
+            observer.disconnect();
+          }
+        });
+      }, { threshold: 0.5 });
+      observer.observe(frame);
+    }
+  })();
+</script>
+</body>
+</html>
