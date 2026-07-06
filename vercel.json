@@ -42,8 +42,9 @@
     { "source": "/for/landscaping-websites-new-york", "destination": "/for/landscaping-websites-new-york.html" },
     { "source": "/for/plumber-websites-texas", "destination": "/for/plumber-websites-texas.html" },
     { "source": "/for/hvac-websites-florida", "destination": "/for/hvac-websites-florida.html" },
+    { "source": "/case-studies/conways-landscaping", "destination": "/case-studies/conways-landscaping.html" },
     {
-      "source": "/((?!assets|api|dashboard|styles|scripts|partials|website-live|pricing|examples|contact|request|privacy|terms|favicon|index|upgrade|for).*)",
+      "source": "/((?!assets|api|dashboard|styles|scripts|partials|website-live|pricing|examples|contact|request|privacy|terms|favicon|index|upgrade|for|case-studies).*)",
       "destination": "/api/p?slug=$1"
     }
   ],
@@ -75,7 +76,8 @@
     { "source": "/for/hvac-websites-florida.html", "destination": "/for/hvac-websites-florida", "permanent": true },
     { "source": "/get-your-website.html", "destination": "/get-your-website", "permanent": true },
     { "source": "/get-started.html", "destination": "/get-started", "permanent": true },
-    { "source": "/widget.html", "destination": "/widget", "permanent": true }
+    { "source": "/widget.html", "destination": "/widget", "permanent": true },
+    { "source": "/case-studies/conways-landscaping.html", "destination": "/case-studies/conways-landscaping", "permanent": true }
   ],
   "functions": {
     "api/*.js": {
