@@ -77,7 +77,8 @@
     { "source": "/get-your-website.html", "destination": "/get-your-website", "permanent": true },
     { "source": "/get-started.html", "destination": "/get-started", "permanent": true },
     { "source": "/widget.html", "destination": "/widget", "permanent": true },
-    { "source": "/case-studies/conways-landscaping.html", "destination": "/case-studies/conways-landscaping", "permanent": true }
+    { "source": "/case-studies/conways-landscaping.html", "destination": "/case-studies/conways-landscaping", "permanent": true },
+    { "source": "/get-started", "destination": "/choose-path?ref=get-started", "permanent": true }
   ],
   "functions": {
     "api/*.js": {
