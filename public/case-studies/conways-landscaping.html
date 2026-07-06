@@ -241,8 +241,8 @@
         if (!valid) return;
 
         track('case_study_lead_form_submit', { cta_position: 'form' });
-        var params = new URLSearchParams({ name: name, email: email, address: address, industry: 'landscaping' });
-        window.location.href = '/signup?' + params.toString();
+        var params = new URLSearchParams({ name: name, city: address, email: email });
+        window.location.href = '/choose-path?' + params.toString();
       });
     }
   })();
