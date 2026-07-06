@@ -18,18 +18,32 @@
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-S8XTG72Y2Y');</script>
   <style>
     body { background: #f0f6ff; }
-    .cs-hero { background: #0d1f0f; padding: 5rem 1.5rem 4rem; position: relative; overflow: hidden; }
-    .cs-hero::before { content: ''; position: absolute; top: -80px; right: -80px; width: 480px; height: 480px; background: radial-gradient(circle, rgba(74,158,58,0.18) 0%, transparent 65%); pointer-events: none; }
-    .cs-hero__inner { max-width: 900px; margin-inline: auto; }
-    .cs-hero__eyebrow { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #7ac96a; margin-bottom: 0.9rem; }
-    .cs-hero__h1 { font-family: 'DM Sans', sans-serif; font-size: clamp(2rem, 3.5vw, 2.8rem); font-weight: 800; line-height: 1.1; letter-spacing: -0.025em; color: #f0f6ff; margin-bottom: 1rem; max-width: 18ch; }
-    .cs-hero__h1 em { color: #7ac96a; font-style: normal; }
-    .cs-hero__sub { font-size: 1.05rem; color: rgba(240,246,255,0.65); line-height: 1.6; margin-bottom: 1.75rem; max-width: 580px; }
-    .cs-hero__actions { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.25rem; }
+    .cs-hero { background: #0a1628; padding: 5rem 1.5rem 4rem; position: relative; overflow: hidden; }
+    .cs-hero::before { content: ''; position: absolute; top: -80px; right: -80px; width: 480px; height: 480px; background: radial-gradient(circle, rgba(56,130,220,0.18) 0%, transparent 65%); pointer-events: none; }
+    .cs-hero__inner { max-width: 1040px; margin-inline: auto; display: grid; grid-template-columns: 1.1fr 1fr; gap: 3rem; align-items: center; }
+    .cs-hero__eyebrow { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #7ab3e0; margin-bottom: 0.9rem; }
+    .cs-hero__h1 { font-family: 'DM Sans', sans-serif; font-size: clamp(2rem, 3.5vw, 2.8rem); font-weight: 800; line-height: 1.1; letter-spacing: -0.025em; color: #f0f6ff; margin-bottom: 1rem; }
+    .cs-hero__h1 em { color: #5aa8f0; font-style: normal; }
+    .cs-hero__sub { font-size: 1.05rem; color: rgba(240,246,255,0.65); line-height: 1.6; margin-bottom: 1.75rem; max-width: 480px; }
     .cs-hero__stats { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
     .cs-hero__stat { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: 999px; padding: 0.3rem 0.9rem; font-size: 0.8rem; color: rgba(240,246,255,0.65); }
     .cs-hero__stat strong { color: #f0f6ff; font-weight: 700; }
     .cs-hero__proof { font-size: 0.78rem; color: rgba(240,246,255,0.38); letter-spacing: 0.04em; }
+    /* Embedded lead form card */
+    .cs-form-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); border-radius: 20px; padding: 2rem; backdrop-filter: blur(8px); box-shadow: 0 24px 80px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08); }
+    .cs-form-card__eyebrow { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #7ab3e0; margin-bottom: 0.4rem; }
+    .cs-form-card__title { font-family: 'DM Sans', sans-serif; font-size: 1.3rem; font-weight: 800; color: #f0f6ff; letter-spacing: -0.02em; margin-bottom: 1.5rem; }
+    .cs-form-field { margin-bottom: 1rem; }
+    .cs-form-field label { display: block; font-size: 0.78rem; font-weight: 700; color: rgba(240,246,255,0.55); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.35rem; }
+    .cs-form-field input { width: 100%; background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.8rem 0.9rem; font-size: 1rem; font-family: 'Inter', sans-serif; color: #f0f6ff; outline: none; transition: border-color 0.15s, box-shadow 0.15s, background 0.15s; }
+    .cs-form-field input::placeholder { color: rgba(240,246,255,0.28); }
+    .cs-form-field input:focus { border-color: rgba(56,130,220,0.6); box-shadow: 0 0 0 3px rgba(56,130,220,0.12); background: rgba(255,255,255,0.08); }
+    .cs-form-field input.error { border-color: rgba(220,80,80,0.6); box-shadow: 0 0 0 3px rgba(220,80,80,0.1); }
+    .cs-form-error { font-size: 0.75rem; color: #e07a7a; margin-top: 0.3rem; display: none; }
+    .cs-form-error.visible { display: block; }
+    .cs-form-submit { width: 100%; margin-top: 0.5rem; padding: 0.95rem 1.5rem; background: #3882dc; border: none; border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 1.02rem; font-weight: 800; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: transform 0.15s, box-shadow 0.15s, filter 0.15s; box-shadow: 0 8px 24px rgba(56,130,220,0.35); }
+    .cs-form-submit:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(56,130,220,0.45); filter: brightness(1.08); }
+    .cs-form-card__proof { text-align: center; font-size: 0.75rem; color: rgba(240,246,255,0.4); margin-top: 0.85rem; }
     .cs-example { background: white; padding: 4rem 1.5rem 5rem; border-top: 1px solid #d4e2f4; }
     .cs-example__inner { max-width: 900px; margin-inline: auto; }
     .cs-browser { background: #fff; border-radius: 10px; overflow: hidden; border: 1px solid #d4e2f4; box-shadow: 0 12px 40px rgba(10,22,40,0.10); }
@@ -55,6 +69,7 @@
     .cs-cta__h2 { font-family: 'DM Sans', sans-serif; font-size: clamp(1.8rem, 3.5vw, 2.3rem); font-weight: 800; color: #f0f6ff; letter-spacing: -0.025em; margin-bottom: 0.75rem; }
     .cs-cta__sub { font-size: 1rem; color: rgba(240,246,255,0.6); line-height: 1.6; margin-bottom: 2rem; }
     .cs-cta__proof { margin-top: 1rem; font-size: 0.78rem; color: rgba(240,246,255,0.35); letter-spacing: 0.04em; }
+    @media (max-width: 860px) { .cs-hero__inner { grid-template-columns: 1fr; } }
     @media (max-width: 768px) { .cs-benefits__grid { grid-template-columns: 1fr; } .cs-browser__frame { height: 480px; } }
   </style>
 </head>
@@ -63,19 +78,45 @@
 
 <section class="cs-hero">
   <div class="cs-hero__inner">
-    <p class="cs-hero__eyebrow">Real Enoma website — not a mockup</p>
-    <h1 class="cs-hero__h1">This is <em>Conway's Landscaping</em>'s actual site. It's live right now.</h1>
-    <p class="cs-hero__sub">Conway's Landscaping, a landscaping company in Agawam, MA, got this page built and indexed on Google in under 5 minutes with Enoma — no agency, no web designer, no code.</p>
-    <div class="cs-hero__actions">
-      <a href="/get-your-website?industry=landscaping" class="btn-primary" data-cta="header">Get found free →</a>
-      <a href="/examples" class="btn-secondary">See more examples</a>
+    <div class="cs-hero__copy">
+      <p class="cs-hero__eyebrow">Real Enoma website — not a mockup</p>
+      <h1 class="cs-hero__h1">This is <em>Conway's Landscaping</em>'s actual site. It's live right now.</h1>
+      <p class="cs-hero__sub">Conway's Landscaping, a landscaping company in Agawam, MA, got this page built and indexed on Google in under 5 minutes with Enoma — no agency, no web designer, no code.</p>
+      <div class="cs-hero__stats">
+        <span class="cs-hero__stat"><strong>4</strong> customer inquiries</span>
+        <span class="cs-hero__stat"><strong>&lt;5 min</strong> to go live</span>
+        <span class="cs-hero__stat"><strong>$0</strong> ad spend</span>
+      </div>
+      <p class="cs-hero__proof">First month free &nbsp;·&nbsp; No credit card &nbsp;·&nbsp; Cancel anytime &nbsp;·&nbsp; $19.99/mo after</p>
     </div>
-    <div class="cs-hero__stats">
-      <span class="cs-hero__stat"><strong>4</strong> customer inquiries</span>
-      <span class="cs-hero__stat"><strong>&lt;5 min</strong> to go live</span>
-      <span class="cs-hero__stat"><strong>$0</strong> ad spend</span>
+
+    <div class="cs-form-card">
+      <p class="cs-form-card__eyebrow">Start for free — no credit card</p>
+      <h2 class="cs-form-card__title">Get your site for free</h2>
+
+      <div class="cs-form-field">
+        <label for="lead_name">Your Name</label>
+        <input id="lead_name" type="text" placeholder="Jane Smith" autocomplete="name" />
+        <div class="cs-form-error" id="err_lead_name">Please enter your name</div>
+      </div>
+
+      <div class="cs-form-field">
+        <label for="lead_email">Your Email</label>
+        <input id="lead_email" type="email" placeholder="you@example.com" autocomplete="email" />
+        <div class="cs-form-error" id="err_lead_email">Please enter a valid email</div>
+      </div>
+
+      <div class="cs-form-field">
+        <label for="lead_address">Business Address</label>
+        <input id="lead_address" type="text" placeholder="123 Main St, Agawam, MA" autocomplete="street-address" />
+        <div class="cs-form-error" id="err_lead_address">Please enter your business address</div>
+      </div>
+
+      <button type="button" class="cs-form-submit" id="leadFormSubmit">
+        Get your site for free →
+      </button>
+      <p class="cs-form-card__proof">First month free &nbsp;·&nbsp; No credit card &nbsp;·&nbsp; Cancel anytime</p>
     </div>
-    <p class="cs-hero__proof">First month free &nbsp;·&nbsp; No credit card &nbsp;·&nbsp; Cancel anytime &nbsp;·&nbsp; $19.99/mo after</p>
   </div>
 </section>
 
@@ -163,6 +204,46 @@
         });
       }, { threshold: 0.5 });
       observer.observe(frame);
+    }
+
+    // Embedded lead form — same validate-then-redirect pattern as /get-your-website
+    var leadBtn = document.getElementById('leadFormSubmit');
+    if (leadBtn) {
+      leadBtn.addEventListener('click', function () {
+        var name = document.getElementById('lead_name').value.trim();
+        var email = document.getElementById('lead_email').value.trim();
+        var address = document.getElementById('lead_address').value.trim();
+        var emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+        ['lead_name', 'lead_email', 'lead_address'].forEach(function (id) {
+          document.getElementById(id).classList.remove('error');
+        });
+        ['err_lead_name', 'err_lead_email', 'err_lead_address'].forEach(function (id) {
+          document.getElementById(id).classList.remove('visible');
+        });
+
+        var valid = true;
+        if (!name) {
+          document.getElementById('lead_name').classList.add('error');
+          document.getElementById('err_lead_name').classList.add('visible');
+          valid = false;
+        }
+        if (!emailOk) {
+          document.getElementById('lead_email').classList.add('error');
+          document.getElementById('err_lead_email').classList.add('visible');
+          valid = false;
+        }
+        if (!address) {
+          document.getElementById('lead_address').classList.add('error');
+          document.getElementById('err_lead_address').classList.add('visible');
+          valid = false;
+        }
+        if (!valid) return;
+
+        track('case_study_lead_form_submit', { cta_position: 'form' });
+        var params = new URLSearchParams({ name: name, email: email, address: address, industry: 'landscaping' });
+        window.location.href = '/signup?' + params.toString();
+      });
     }
   })();
 </script>
