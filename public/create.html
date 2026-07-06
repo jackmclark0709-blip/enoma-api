@@ -633,6 +633,35 @@ industrySelect?.addEventListener("change", () => {
 const params = new URLSearchParams(window.location.search);
 const editBusinessId = params.get("business_id");
 if (!editBusinessId && session?.user?.email && !form.email.value) form.email.value = session.user.email;
+
+// ── Prefill from landing-page capture (business name / city) ──
+// Two sources, in priority order:
+//  1. URL query params — covers same-tab flows (already logged in, no
+//     email confirmation needed).
+//  2. Supabase user_metadata set at signup time — covers the common case
+//     where email confirmation happens in a different tab/device, so the
+//     original URL params are long gone by the time this page loads.
+if (!editBusinessId) {
+  const urlName = params.get("name") || "";
+  const urlCity = params.get("city") || "";
+  const metaName = session?.user?.user_metadata?.pending_business_name || "";
+  const metaCity = session?.user?.user_metadata?.pending_city || "";
+  const prefillName = urlName || metaName;
+  const prefillCity = urlCity || metaCity;
+
+  if (prefillName && !form.business_name.value) {
+    form.business_name.value = prefillName;
+    document.getElementById("google_place").value = prefillName;
+  }
+  if (prefillCity && !form.querySelector('[name="city"]').value) {
+    form.querySelector('[name="city"]').value = prefillCity;
+    // Also seed the visible service-area field as a starting point —
+    // person can edit/expand it, but shouldn't have to type their own
+    // town again from scratch.
+    if (!form.service_area.value) form.service_area.value = prefillCity;
+  }
+}
+
 if (editBusinessId) {
   document.getElementById("business_id").value = editBusinessId;
   document.getElementById("createBtn").style.display = "none";
