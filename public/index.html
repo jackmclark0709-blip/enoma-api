@@ -38,19 +38,167 @@
     .hp-hero__stat-pill strong{color:#f0f6ff;font-weight:700}
     .hp-hero__right{display:flex;flex-direction:column;}
 
-    /* Proof callout */
-    .hp-hero__proof-callout{background:rgba(56,130,220,0.12);border:1px solid rgba(56,130,220,0.25);border-radius:10px;padding:0.85rem 1rem;margin-bottom:1rem}
-    .hp-hero__proof-callout__label{font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#7ab3e0;margin-bottom:0.25rem}
-    .hp-hero__proof-callout__text{font-size:0.88rem;color:rgba(240,246,255,0.8);line-height:1.5}
+    /* ---------- 3D FLOATING SITE-CARD HERO STAGE ---------- */
+    .hp-stage-outer{ position:relative; height:460px; perspective:1300px; }
+    .hp-glow{
+      position:absolute; width:380px; height:380px; top:50%; left:50%;
+      transform:translate(-50%,-50%);
+      background: radial-gradient(circle, rgba(56,130,220,0.35) 0%, rgba(56,130,220,0.08) 45%, transparent 70%);
+      filter: blur(6px); z-index:0;
+    }
+    .hp-stage{ position:relative; width:100%; height:100%; transform-style:preserve-3d; z-index:1; }
 
-    /* Browser mockup */
-    .hp-browser{background:#fff;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);box-shadow:0 20px 60px rgba(0,0,0,0.35)}
-    .hp-browser__bar{background:#1e2d45;padding:6px 10px;display:flex;align-items:center;gap:5px}
-    .hp-browser__dots{display:flex;gap:4px}
-    .hp-browser__dot{width:8px;height:8px;border-radius:50%}
-    .hp-browser__url{flex:1;background:rgba(255,255,255,0.1);border-radius:4px;padding:3px 8px;font-size:9px;color:rgba(255,255,255,0.55);font-family:monospace;margin-left:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .hp-site-card{
+      position:absolute;
+      width: 278px;
+      background:#fff;
+      border-radius:10px;
+      box-shadow: 0 24px 50px -16px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,0,0,0.04);
+      overflow:hidden;
+      transform-style:preserve-3d;
+      animation: hpFloat 7s ease-in-out infinite;
+    }
+    @keyframes hpFloat{ 0%,100%{ margin-top:0; } 50%{ margin-top:-12px; } }
 
-    /* PROBLEM SECTION */
+    .hp-card-bar{ display:flex; align-items:center; gap:6px; padding:8px 10px; background:#1e2d45; }
+    .hp-card-bar .hp-dot{ width:7px; height:7px; border-radius:50%; }
+    .hp-card-bar .hp-url{
+      margin-left:4px; font-family: monospace; font-size:9.5px;
+      color: rgba(255,255,255,0.55); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+
+    .hp-card-photo{ height:82px; width:100%; object-fit:cover; display:block; background:#0d1f0f; }
+    .hp-card-photos-grid{ display:grid; grid-template-columns:1fr 1fr; gap:2px; height:82px; background:#0d1f0f; }
+    .hp-card-photos-grid img{ width:100%; height:100%; object-fit:cover; display:block; }
+
+    .hp-card-body{ padding:13px 14px 15px; }
+    .hp-card-tag{
+      display:inline-block; font-family: monospace; font-size:9px; letter-spacing:0.06em;
+      text-transform:uppercase; padding:3px 7px; border-radius:5px; margin-bottom:8px; font-weight:700;
+      background: rgba(56,130,220,0.12); color:#3882dc;
+    }
+    .hp-card-h{ font-family:'DM Sans',sans-serif; font-weight:700; font-size:14.5px; color:#0a1628; margin-bottom:5px; line-height:1.22; }
+    .hp-card-p{ font-size:10.5px; color:#5a7a9a; line-height:1.4; margin:0; }
+    .hp-card-quote{ font-size:11px; font-style:italic; color:#2a4060; line-height:1.45; margin-bottom:7px; }
+    .hp-card-author{ font-size:10px; font-weight:700; color:#3882dc; }
+
+    /* ---------- TRADE TICKER ---------- */
+    .hp-ticker-wrap{
+      background:#0a1628; border-top:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.08);
+      padding:16px 0; overflow:hidden; position:relative;
+    }
+    .hp-ticker-label{
+      position:absolute; left:0; top:0; bottom:0; display:flex; align-items:center;
+      padding-left:1.5rem; padding-right:2.5rem;
+      background: linear-gradient(90deg, #0a1628 60%, transparent);
+      z-index:2; font-family: monospace; font-size:11px; letter-spacing:0.1em;
+      color:#7ab3e0; text-transform:uppercase; white-space:nowrap;
+    }
+    .hp-ticker-track{
+      display:flex; gap:44px; white-space:nowrap;
+      animation: hpScroll 24s linear infinite;
+      padding-left:210px;
+    }
+    .hp-ticker-track span{ font-size:14px; color:rgba(240,246,255,0.75); font-weight:500; }
+    .hp-ticker-track span::after{ content:"•"; margin-left:44px; color:rgba(255,255,255,0.15); }
+    @keyframes hpScroll{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+
+    /* ---------- NEW: REAL RESULTS BANNER ---------- */
+    .hp-results-banner{ background:#e6f1fb; border-bottom:1px solid #d4e2f4; padding:1.75rem 1.5rem; }
+    .hp-results-banner__inner{
+      max-width:900px; margin-inline:auto; display:flex; align-items:center; gap:1.75rem; flex-wrap:wrap;
+    }
+    .hp-results-banner__stat{
+      font-family:'DM Sans',sans-serif; font-weight:800; font-size:2.75rem; color:#3882dc; line-height:1; flex-shrink:0;
+    }
+    .hp-results-banner__text{ flex:1; min-width:260px; }
+    .hp-results-banner__label{
+      font-size:0.68rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:#3882dc; margin-bottom:0.2rem;
+    }
+    .hp-results-banner__desc{ font-size:0.92rem; color:#2a4060; line-height:1.5; margin:0; }
+    .hp-results-banner__link{
+      flex-shrink:0; font-weight:700; font-size:0.9rem; color:#3882dc; white-space:nowrap;
+      border-bottom:1.5px solid rgba(56,130,220,0.3); padding-bottom:2px; transition: border-color .2s ease, color .2s ease;
+    }
+    .hp-results-banner__link:hover{ color:#1e5fa8; border-color:#1e5fa8; }
+    @media(max-width:640px){ .hp-results-banner__inner{ flex-direction:column; text-align:center; } }
+
+    /* ---------- NEW: ANIMATED ICON MODULES (Problem section) ---------- */
+    .hp-prob-icon{
+      width:44px; height:44px; border-radius:11px; background:#e6f1fb;
+      display:flex; align-items:center; justify-content:center; margin-bottom:0.9rem; position:relative; overflow:hidden;
+    }
+    .hp-prob-icon svg{ width:22px; height:22px; stroke:#3882dc; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; position:relative; z-index:1; }
+
+    /* icon 1: signal bars fading — "you're invisible" */
+    .hp-prob-icon--signal .bar1{ animation: hpFade 2.4s ease-in-out infinite; }
+    .hp-prob-icon--signal .bar2{ animation: hpFade 2.4s ease-in-out 0.25s infinite; }
+    .hp-prob-icon--signal .bar3{ animation: hpFade 2.4s ease-in-out 0.5s infinite; }
+    @keyframes hpFade{ 0%,100%{ opacity:1; } 50%{ opacity:0.2; } }
+
+    /* icon 2: two pins — "shared with competitors" */
+    .hp-prob-icon--pins .pin-b{ animation: hpDrift 3s ease-in-out infinite; transform-origin:center; }
+    @keyframes hpDrift{ 0%,100%{ transform:translateX(0); opacity:0.55; } 50%{ transform:translateX(2px); opacity:1; } }
+
+    /* icon 3: flatline pulse — "not generating leads" */
+    .hp-prob-icon--flatline .pulse-line{
+      stroke-dasharray: 60; stroke-dashoffset:60;
+      animation: hpFlatline 3.2s linear infinite;
+    }
+    @keyframes hpFlatline{ 0%{ stroke-dashoffset:60; } 100%{ stroke-dashoffset:0; } }
+
+    /* ---------- NEW: COMPARE — living highlight on featured card ---------- */
+    .hp-comp-card--featured{ animation: hpGlow 3.4s ease-in-out infinite; }
+    @keyframes hpGlow{
+      0%,100%{ box-shadow: 0 0 0 0 rgba(56,130,220,0.0); }
+      50%{ box-shadow: 0 0 0 8px rgba(56,130,220,0.08); }
+    }
+
+    /* ---------- NEW: FEATURES — pulse ring behind icon ---------- */
+    .hp-feature__icon{ position:relative; }
+    .hp-feature__icon::before{
+      content:''; position:absolute; inset:-6px; border-radius:14px;
+      border:1.5px solid rgba(56,130,220,0.35); opacity:0; transform:scale(0.85);
+      animation: hpRing 3.6s ease-out infinite;
+    }
+    .hp-feature:nth-child(2) .hp-feature__icon::before{ animation-delay:0.6s; }
+    .hp-feature:nth-child(3) .hp-feature__icon::before{ animation-delay:1.2s; }
+    .hp-feature:nth-child(4) .hp-feature__icon::before{ animation-delay:1.8s; }
+    .hp-feature:nth-child(5) .hp-feature__icon::before{ animation-delay:2.4s; }
+    .hp-feature:nth-child(6) .hp-feature__icon::before{ animation-delay:3.0s; }
+    @keyframes hpRing{
+      0%{ opacity:0.55; transform:scale(0.85); }
+      70%{ opacity:0; transform:scale(1.25); }
+      100%{ opacity:0; transform:scale(1.25); }
+    }
+
+    /* ---------- NEW: STEPS — traveling rail ---------- */
+    .hp-steps__list{ position:relative; }
+    .hp-steps__rail{
+      position:absolute; left:15px; top:16px; bottom:16px; width:2px;
+      background: rgba(56,130,220,0.15); z-index:0; border-radius:2px; overflow:hidden;
+    }
+    .hp-steps__rail-fill{
+      position:absolute; left:0; width:100%; height:22%;
+      background: linear-gradient(#5aa8f0, #3882dc);
+      animation: hpRailTravel 5.5s ease-in-out infinite;
+      border-radius:2px;
+    }
+    @keyframes hpRailTravel{
+      0%{ top:0%; }
+      45%{ top:78%; }
+      55%{ top:78%; }
+      100%{ top:0%; }
+    }
+    .hp-step{ position:relative; z-index:1; }
+
+    @media (prefers-reduced-motion: reduce){
+      .hp-site-card, .hp-ticker-track, .hp-prob-icon--signal .bar1, .hp-prob-icon--signal .bar2, .hp-prob-icon--signal .bar3,
+      .hp-prob-icon--pins .pin-b, .hp-prob-icon--flatline .pulse-line, .hp-comp-card--featured, .hp-feature__icon::before,
+      .hp-steps__rail-fill{ animation:none; }
+    }
+
+    /* THE PROBLEM */
     .hp-problem{background:white;padding:5rem 1.5rem;border-top:1px solid #d4e2f4}
     .hp-problem__inner{max-width:860px;margin-inline:auto;text-align:center}
     .hp-problem__label{font-size:0.7rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#3882dc;margin-bottom:0.6rem}
@@ -58,7 +206,6 @@
     .hp-problem__sub{color:#5a7a9a;font-size:1rem;max-width:580px;margin:0 auto 2.5rem;line-height:1.6}
     .hp-problem__cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
     .hp-prob-card{border-radius:14px;padding:1.5rem;text-align:left;border:1px solid #d4e2f4;background:#f7faff}
-    .hp-prob-card__icon{font-size:1.4rem;margin-bottom:0.6rem}
     .hp-prob-card__h3{font-family:'DM Sans',sans-serif;font-size:0.97rem;font-weight:700;color:#0a1628;margin-bottom:0.35rem}
     .hp-prob-card__p{font-size:0.88rem;color:#5a7a9a;line-height:1.6;margin:0}
 
@@ -111,8 +258,6 @@
     .hp-proof__h2{font-family:'DM Sans',sans-serif;font-size:clamp(1.5rem,3vw,1.9rem);font-weight:800;color:#0a1628;letter-spacing:-0.02em;margin-bottom:2rem}
     .hp-proof__cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
     .hp-proof-card{background:#f7faff;border:1px solid #d4e2f4;border-radius:14px;padding:1.5rem;text-align:left}
-    .hp-proof-card__quote{font-size:0.92rem;color:#0a1628;line-height:1.6;margin-bottom:0.75rem;font-style:italic}
-    .hp-proof-card__meta{font-size:0.78rem;font-weight:700;color:#5a7a9a}
     .hp-proof-card__stat{font-family:'DM Sans',sans-serif;font-size:1.8rem;font-weight:800;color:#3882dc;letter-spacing:-0.03em;line-height:1;margin-bottom:0.25rem}
     .hp-proof-card__stat-label{font-size:0.82rem;color:#5a7a9a;line-height:1.4}
 
@@ -129,9 +274,11 @@
     @media(max-width:768px){
       .hp-hero__inner{grid-template-columns:1fr}
       .hp-problem__cards,.hp-compare__cards,.hp-features__grid,.hp-proof__cards{grid-template-columns:1fr}
+      .hp-stage-outer{ height:400px; margin-top:2rem; }
     }
     @media(max-width:480px){
       .hp-hero{padding:3rem 1.25rem 2.5rem}
+      .hp-site-card{ width: 230px; }
     }
   </style>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Enoma","applicationCategory":"BusinessApplication","description":"Enoma is a lead gen platform for local service businesses — landscapers, plumbers, HVAC, contractors. A dedicated Google-indexed page that sends customer inquiries directly to you. Live in minutes, first month free.","operatingSystem":"Web","url":"https://enoma.io","offers":{"@type":"Offer","price":"19.99","priceCurrency":"USD"},"audience":{"@type":"Audience","audienceType":"Local Service Businesses"}}</script>
@@ -147,10 +294,6 @@
       <p class="hp-hero__eyebrow">For local service businesses</p>
       <h1 class="hp-hero__h1">Get found online.<br><em>Get more calls.</em></h1>
       <p class="hp-hero__sub">Your current site — or Facebook page — is missing leads every day. Enoma gives your landscaping, plumbing, HVAC, or trade business a dedicated lead gen page that catches those searches and sends customers straight to you. First month free.</p>
-      <div class="hp-hero__proof-callout">
-        <p class="hp-hero__proof-callout__label">Real result</p>
-        <p class="hp-hero__proof-callout__text">Conway's Landscaping in Agawam, MA generated 4 real customer inquiries through their Enoma page — homeowners who found them on Google and reached out directly. Zero ad spend.</p>
-      </div>
       <div class="hp-hero__actions">
         <a href="/get-your-website" class="btn-primary">Get found free →</a>
         <a href="/examples" class="btn-secondary">See live examples</a>
@@ -162,27 +305,88 @@
       </div>
       <p class="hp-hero__proof">No credit card &nbsp;·&nbsp; No contracts &nbsp;·&nbsp; Cancel anytime</p>
     </div>
+
     <div class="hp-hero__right">
-      <div class="hp-browser">
-        <div class="hp-browser__bar">
-          <div class="hp-browser__dots">
-            <div class="hp-browser__dot" style="background:#ff5f56"></div>
-            <div class="hp-browser__dot" style="background:#ffbd2e"></div>
-            <div class="hp-browser__dot" style="background:#27c93f"></div>
+      <div class="hp-stage-outer" id="hpStageOuter">
+        <div class="hp-glow"></div>
+        <div class="hp-stage" id="hpStage">
+
+          <!-- Card 1: Conway's Landscaping — HERO section -->
+          <div class="hp-site-card" style="top:6px; left:6%; transform:rotateY(-13deg) rotateX(4deg) translateZ(30px); animation-delay:0s; z-index:3;">
+            <div class="hp-card-bar">
+              <div class="hp-dot" style="background:#ff5f56"></div>
+              <div class="hp-dot" style="background:#ffbd2e"></div>
+              <div class="hp-dot" style="background:#27c93f"></div>
+              <div class="hp-url">enoma.io/conways-landscaping</div>
+            </div>
+            <img class="hp-card-photo" src="https://qhsivcenpnxwmvwznqie.supabase.co/storage/v1/object/public/business-images/6ec4d119-4fc0-450e-8a89-27a372986903/1774625993664-jack-conway-fb3.jpg" alt="Conway's Landscaping — hero photo" loading="lazy" />
+            <div class="hp-card-body">
+              <span class="hp-card-tag">Hero</span>
+              <div class="hp-card-h">Reliable Lawn Care in Agawam &amp; West Springfield</div>
+              <div class="hp-card-p">Weekly mowing, trimming, mulching &amp; seasonal cleanups.</div>
+            </div>
           </div>
-          <div class="hp-browser__url">enoma.io/conways-landscaping</div>
-        </div>
-        <div style="position:relative;width:100%;height:440px;overflow:hidden;background:#0d1f0f;">
-          <iframe
-            src="/conways-landscaping"
-            title="Conway's Landscaping — live Enoma lead page"
-            loading="lazy"
-            sandbox="allow-scripts allow-same-origin"
-            style="width:166.67%;height:166.67%;transform:scale(0.6);transform-origin:top left;border:none;pointer-events:none;"
-          ></iframe>
+
+          <!-- Card 2: Conway's Landscaping — RECENT WORK section -->
+          <div class="hp-site-card" style="top:138px; left:38%; transform:rotateY(9deg) rotateX(-3deg) translateZ(80px) scale(1.05); animation-delay:1.4s; z-index:4;">
+            <div class="hp-card-bar">
+              <div class="hp-dot" style="background:#ff5f56"></div>
+              <div class="hp-dot" style="background:#ffbd2e"></div>
+              <div class="hp-dot" style="background:#27c93f"></div>
+              <div class="hp-url">enoma.io/conways-landscaping</div>
+            </div>
+            <div class="hp-card-photos-grid">
+              <img src="https://qhsivcenpnxwmvwznqie.supabase.co/storage/v1/object/public/business-images/6ec4d119-4fc0-450e-8a89-27a372986903/1774625994364-jack-conway-fb2.jpg" alt="Conway's Landscaping — recent job photo" loading="lazy" />
+              <img src="https://qhsivcenpnxwmvwznqie.supabase.co/storage/v1/object/public/business-images/6ec4d119-4fc0-450e-8a89-27a372986903/1774625994758-jack-conway-fb1.jpg" alt="Conway's Landscaping — recent job photo" loading="lazy" />
+            </div>
+            <div class="hp-card-body">
+              <span class="hp-card-tag">Recent Work</span>
+              <div class="hp-card-h">Real jobs, real photos</div>
+              <div class="hp-card-p">Uploaded straight from the owner's phone.</div>
+            </div>
+          </div>
+
+          <!-- Card 3: Arno Plumbing & Heating — WHAT CLIENTS SAY section -->
+          <div class="hp-site-card" style="top:298px; left:4%; transform:rotateY(-6deg) rotateX(2deg) translateZ(-10px) scale(0.94); animation-delay:2.8s; z-index:2; opacity:0.96;">
+            <div class="hp-card-bar">
+              <div class="hp-dot" style="background:#ff5f56"></div>
+              <div class="hp-dot" style="background:#ffbd2e"></div>
+              <div class="hp-dot" style="background:#27c93f"></div>
+              <div class="hp-url">enoma.io/arno-plumbing-and-heating</div>
+            </div>
+            <div class="hp-card-body" style="padding-top:16px;">
+              <span class="hp-card-tag">What Clients Say</span>
+              <div class="hp-card-quote">"Arno came out same day when our boiler stopped working in January. Had it running within two hours. Lifesavers."</div>
+              <div class="hp-card-author">— Karen T., North Attleboro</div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- TRADE TICKER -->
+<div class="hp-ticker-wrap">
+  <div class="hp-ticker-label">Built for every trade</div>
+  <div class="hp-ticker-track">
+    <span>Landscaping</span><span>Plumbing</span><span>Heating</span><span>HVAC</span>
+    <span>Roofing</span><span>Electrical</span><span>Painting</span><span>Snow Removal</span>
+    <span>Landscaping</span><span>Plumbing</span><span>Heating</span><span>HVAC</span>
+    <span>Roofing</span><span>Electrical</span><span>Painting</span><span>Snow Removal</span>
+  </div>
+</div>
+
+<!-- REAL RESULTS BANNER -->
+<section class="hp-results-banner">
+  <div class="hp-results-banner__inner">
+    <div class="hp-results-banner__stat">4</div>
+    <div class="hp-results-banner__text">
+      <p class="hp-results-banner__label">Real result</p>
+      <p class="hp-results-banner__desc">Conway's Landscaping in Agawam, MA generated 4 real customer inquiries through their Enoma page — homeowners who found them on Google and reached out directly. Zero ad spend.</p>
+    </div>
+    <a href="/case-studies/conways-landscaping" class="hp-results-banner__link">Read the case study →</a>
   </div>
 </section>
 
@@ -194,17 +398,26 @@
     <p class="hp-problem__sub">When a homeowner searches "landscaper near me" or "plumber in Agawam MA," they see whoever shows up first in Google — not whoever's best. If you're not showing up, those jobs are going to someone else.</p>
     <div class="hp-problem__cards">
       <div class="hp-prob-card">
-        <div class="hp-prob-card__icon">📵</div>
+        <div class="hp-prob-icon hp-prob-icon--signal">
+          <svg viewBox="0 0 24 24"><path class="bar1" d="M4 18v-2"/><path class="bar2" d="M10 18v-6"/><path class="bar3" d="M16 18V8"/><path d="M2 20h20" stroke-width="1.4" opacity="0.4"/></svg>
+        </div>
         <h3 class="hp-prob-card__h3">Facebook-only presence</h3>
         <p class="hp-prob-card__p">Your Facebook page doesn't rank on Google. Customers searching for your trade in your town won't find you.</p>
       </div>
       <div class="hp-prob-card">
-        <div class="hp-prob-card__icon">📋</div>
+        <div class="hp-prob-icon hp-prob-icon--pins">
+          <svg viewBox="0 0 24 24">
+            <path class="pin-a" d="M9 21s-6-5.2-6-10a6 6 0 1112 0c0 4.8-6 10-6 10z"/><circle class="pin-a" cx="9" cy="11" r="2"/>
+            <path class="pin-b" d="M17 15s-3-2.6-3-5a3 3 0 116 0c0 2.4-3 5-3 5z" opacity="0.55"/>
+          </svg>
+        </div>
         <h3 class="hp-prob-card__h3">Directory listings share your leads</h3>
         <p class="hp-prob-card__p">Yelp and Angie's List show your competitors right next to you. You're generating leads for them too.</p>
       </div>
       <div class="hp-prob-card">
-        <div class="hp-prob-card__icon">🏗️</div>
+        <div class="hp-prob-icon hp-prob-icon--flatline">
+          <svg viewBox="0 0 24 24"><path class="pulse-line" d="M2 12h5l2-6 3 12 2-6h8"/></svg>
+        </div>
         <h3 class="hp-prob-card__h3">Your current site isn't generating leads</h3>
         <p class="hp-prob-card__p">Most trades websites are digital brochures — they look fine but don't convert visitors into calls. An agency charges $3,000+ to fix that. There's a better way.</p>
       </div>
@@ -217,7 +430,7 @@
   <div class="hp-compare__inner">
     <p class="hp-compare__label">How Enoma compares</p>
     <h2 class="hp-compare__h2">Everything you need. Nothing you don't.</h2>
-    <p class="hp-compare__sub">A dedicated lead gen page for your business — not a shared directory listing, not a DIY builder, not a ,000 agency project. Just your business, showing up where customers are already looking.</p>
+    <p class="hp-compare__sub">A dedicated lead gen page for your business — not a shared directory listing, not a DIY builder, not a $3,000 agency project. Just your business, showing up where customers are already looking.</p>
     <div class="hp-compare__cards">
       <div class="hp-comp-card">
         <div class="hp-comp-card__label">Web Agency</div>
@@ -290,6 +503,7 @@
       <h2 class="hp-steps__h2">Generating leads in four steps. Under 5 minutes.</h2>
     </div>
     <div class="hp-steps__list">
+      <div class="hp-steps__rail"><div class="hp-steps__rail-fill"></div></div>
       <div class="hp-step">
         <div class="hp-step__num">1</div>
         <div class="hp-step__content">
@@ -360,5 +574,25 @@
 
 <div id="footer"></div>
 <script>fetch('/partials/footer.html').then(r=>r.text()).then(html=>{document.getElementById('footer').innerHTML=html});</script>
+
+<script>
+  // Parallax tilt for the hero site-card stage
+  var hpStageOuter = document.getElementById('hpStageOuter');
+  var hpStage = document.getElementById('hpStage');
+  var hpReduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (hpStageOuter && hpStage && !hpReduceMotion) {
+    hpStageOuter.addEventListener('mousemove', function(e){
+      var rect = hpStageOuter.getBoundingClientRect();
+      var x = (e.clientX - rect.left) / rect.width - 0.5;
+      var y = (e.clientY - rect.top) / rect.height - 0.5;
+      hpStage.style.transform = 'rotateY(' + (x * 12) + 'deg) rotateX(' + (-y * 8) + 'deg)';
+    });
+    hpStageOuter.addEventListener('mouseleave', function(){
+      hpStage.style.transform = 'rotateY(0deg) rotateX(0deg)';
+    });
+  }
+</script>
+
 </body>
 </html>
