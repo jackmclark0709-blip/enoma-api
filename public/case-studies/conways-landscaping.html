@@ -241,6 +241,23 @@
         if (!valid) return;
 
         track('case_study_lead_form_submit', { cta_position: 'form' });
+
+        // Notify Jack (and confirm to the submitter) as soon as they start —
+        // keepalive lets the request finish even though we navigate away immediately.
+        fetch('/api/send-contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          keepalive: true,
+          body: JSON.stringify({
+            name: name,
+            email: email,
+            message: 'New lead from the ' + BUSINESS + ' case study page.\nAddress: ' + address,
+            source: 'started_form',
+            businessName: name,
+            town: address
+          })
+        }).catch(function () {});
+
         var params = new URLSearchParams({ name: name, city: address, email: email });
         window.location.href = '/choose-path?' + params.toString();
       });
