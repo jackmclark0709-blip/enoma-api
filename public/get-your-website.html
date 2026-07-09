@@ -400,6 +400,20 @@
       color: var(--text-dim);
       line-height: 1.6;
     }
+    .step__options {
+      list-style: none;
+      text-align: left;
+      margin-top: 0.75rem;
+      padding: 0.75rem 0.9rem;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      font-size: 0.8rem;
+      line-height: 1.55;
+      color: var(--text-dim);
+    }
+    .step__options li + li { margin-top: 0.5rem; }
+    .step__options strong { color: #f0f6ff; }
 
     @media (max-width: 860px) {
       .page { grid-template-columns: 1fr; gap: 2.5rem; }
@@ -420,7 +434,7 @@
 
   <!-- LEFT: COPY -->
   <div class="copy">
-    <div class="eyebrow">For local service businesses in MA &amp; RI</div>
+    <div class="eyebrow">For local service businesses everywhere</div>
 
     <h1 class="headline">
       Start getting leads<br>
@@ -518,7 +532,11 @@
     <div class="step">
       <div class="step__num">2</div>
       <p class="step__title">Choose how it gets built</p>
-      <p class="step__desc">Build it yourself with our AI in about 5 minutes, or have Jack build it for you by hand — your call.</p>
+      <p class="step__desc">Two ways to go — your call:</p>
+      <ul class="step__options">
+        <li><strong>Build it myself</strong> — our AI writes your page copy instantly. Live in about 5 minutes.</li>
+        <li><strong>Have Jack build it</strong> — tell us a bit more and we'll build it by hand for you. Ready within 1 business day.</li>
+      </ul>
     </div>
     <div class="step">
       <div class="step__num">3</div>
@@ -565,6 +583,22 @@
     }
 
     if (!valid) { e.preventDefault(); return; }
+
+    // Notify Jack (and confirm to the submitter) as soon as they start —
+    // keepalive lets the request finish even though we navigate away immediately.
+    fetch('/api/send-contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      keepalive: true,
+      body: JSON.stringify({
+        name,
+        email,
+        message: `New lead from the Get Your Website form.\nTown: ${city}`,
+        source: 'started_form',
+        businessName: name,
+        town: city
+      })
+    }).catch(() => {});
 
     const params = new URLSearchParams({ name, city, email });
     this.href = `/choose-path?${params.toString()}`;
