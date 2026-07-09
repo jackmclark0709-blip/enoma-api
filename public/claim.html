@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Claim your business — Enoma</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <link rel="stylesheet" href="/styles/enoma.css" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-S8XTG72Y2Y');</script>
+  <style>
+    body { background: #f0f6ff; min-height: 100vh; display: flex; flex-direction: column; }
+    .auth-page { flex: 1; display: flex; align-items: center; justify-content: center; padding: 3rem 1.5rem; }
+    .auth-card { width: 100%; max-width: 440px; background: #fff; border: 1px solid #d4e2f4; border-radius: 20px; padding: 2.5rem; text-align: center; box-shadow: 0 12px 40px rgba(10,22,40,0.10); }
+    .auth-eyebrow { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #3882dc; margin-bottom: 0.75rem; }
+    .auth-card h1 { font-family: 'DM Sans', sans-serif; font-size: 1.5rem; font-weight: 800; color: #0a1628; letter-spacing: -0.02em; margin: 0 0 0.5rem; }
+    .auth-subtitle { font-size: 0.9rem; color: #5a7a9a; margin: 0; line-height: 1.6; }
+    .spinner { width: 32px; height: 32px; border: 3px solid #d4e2f4; border-top-color: #3882dc; border-radius: 50%; margin: 0 auto 1.25rem; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .claim-link { display: inline-block; margin-top: 1.25rem; font-size: 0.9rem; font-weight: 700; color: #3882dc; text-decoration: none; }
+    #site-footer { margin-top: auto; }
+  </style>
+</head>
+<body>
+<script type="module" src="/partials/nav.js"></script>
+
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="spinner" id="claim-spinner"></div>
+    <p class="auth-eyebrow">Claim this page</p>
+    <h1 id="claim-heading">Confirming your account…</h1>
+    <p class="auth-subtitle" id="claim-message">Just a moment.</p>
+    <a class="claim-link" id="claim-link" style="display:none;">Go to your dashboard →</a>
+  </div>
+</div>
+
+<script>
+var SUPABASE_URL = 'https://qhsivcenpnxwmvwznqie.supabase.co';
+var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc';
+
+var params = new URLSearchParams(window.location.search);
+var slug = params.get('business') || '';
+
+function setStatus(heading, message, isError) {
+  document.getElementById('claim-spinner').style.display = 'none';
+  document.getElementById('claim-heading').textContent = heading;
+  var msgEl = document.getElementById('claim-message');
+  msgEl.textContent = message;
+  msgEl.style.color = isError ? '#d94040' : '#5a7a9a';
+}
+
+function showDashboardLink(businessId) {
+  var link = document.getElementById('claim-link');
+  link.href = '/dashboard?business_id=' + encodeURIComponent(businessId);
+  link.style.display = 'inline-block';
+}
+
+async function run() {
+  if (!slug) {
+    setStatus('Missing business', 'No business was specified to claim.', true);
+    return;
+  }
+
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  var sessionRes = await sb.auth.getSession();
+  var session = sessionRes.data && sessionRes.data.session;
+
+  if (!session) {
+    setStatus('Please sign in', 'Redirecting you to sign in first…', false);
+    var next = '/claim?business=' + encodeURIComponent(slug);
+    setTimeout(function () {
+      window.location.href = '/login?next=' + encodeURIComponent(next);
+    }, 1200);
+    return;
+  }
+
+  try {
+    var res = await fetch('/api/claim-business', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
+      body: JSON.stringify({ slug: slug })
+    });
+    var data = await res.json();
+    if (!res.ok) {
+      setStatus('Could not claim this page', data.error || 'Something went wrong.', true);
+      return;
+    }
+    try { gtag('event', 'business_claimed', { slug: slug }); } catch (e) {}
+    setStatus(
+      data.already_claimed_by_you ? 'You already claimed this page' : 'Page claimed!',
+      'Redirecting to your dashboard…',
+      false
+    );
+    showDashboardLink(data.business_id);
+    setTimeout(function () {
+      window.location.href = '/dashboard?business_id=' + encodeURIComponent(data.business_id);
+    }, 1500);
+  } catch (e) {
+    setStatus('Something went wrong', 'Please refresh and try again, or contact support.', true);
+  }
+}
+
+function loadScript(src, onload, onerror) {
+  var s = document.createElement('script');
+  s.src = src;
+  s.onload = onload;
+  s.onerror = onerror;
+  document.head.appendChild(s);
+}
+
+loadScript(
+  'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js',
+  run,
+  function () {
+    loadScript(
+      'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js',
+      run,
+      function () { setStatus('Failed to load', 'Please refresh the page and try again.', true); }
+    );
+  }
+);
+</script>
+
+<div id="site-footer"></div>
+<script>fetch("/partials/footer.html").then(r=>r.text()).then(h=>{document.getElementById("site-footer").innerHTML=h});</script>
+</body>
+</html>

@@ -21,6 +21,7 @@
     { "source": "/get-started", "destination": "/get-started.html" },
     { "source": "/widget", "destination": "/widget.html" },
 { "source": "/choose-path", "destination": "/choose-path.html" },
+    { "source": "/claim", "destination": "/claim.html" },
     { "source": "/for/landscaping-websites-massachusetts", "destination": "/for/landscaping-websites-massachusetts.html" },
     { "source": "/for/plumber-websites-massachusetts", "destination": "/for/plumber-websites-massachusetts.html" },
     { "source": "/for/lawn-care-website-agawam-ma", "destination": "/for/lawn-care-website-agawam-ma.html" },
@@ -78,7 +79,8 @@
     { "source": "/get-started.html", "destination": "/get-started", "permanent": true },
     { "source": "/widget.html", "destination": "/widget", "permanent": true },
     { "source": "/case-studies/conways-landscaping.html", "destination": "/case-studies/conways-landscaping", "permanent": true },
-    { "source": "/get-started", "destination": "/choose-path?ref=get-started", "permanent": true }
+    { "source": "/get-started", "destination": "/choose-path?ref=get-started", "permanent": true },
+    { "source": "/claim.html", "destination": "/claim", "permanent": true }
   ],
   "functions": {
     "api/*.js": {
