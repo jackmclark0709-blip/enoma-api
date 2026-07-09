@@ -67,7 +67,7 @@
       <h2>Check your email</h2>
       <p>We sent a confirmation link to</p>
       <p class="email-highlight" id="confirm-email"></p>
-      <p style="margin-top:0.75rem;">Click the link to confirm your account — you'll be taken straight to building your website.</p>
+      <p style="margin-top:0.75rem;" id="confirm-next-step">Click the link to confirm your account — you'll be taken straight to building your website.</p>
       <p class="junk-note">Don't see it? Check your junk or spam folder.</p>
     </div>
   </div>
@@ -85,18 +85,25 @@ var __params = new URLSearchParams(window.location.search);
 var __pendingName  = __params.get('name')  || '';
 var __pendingCity  = __params.get('city')  || '';
 var __pendingEmail = __params.get('email') || '';
+var __claimSlug    = __params.get('business') || '';
 if (__pendingEmail) {
   var __emailInput = document.getElementById('email');
   if (__emailInput) __emailInput.value = __pendingEmail;
+}
+if (__claimSlug) {
+  var __subtitleEl = document.querySelector('.auth-subtitle');
+  if (__subtitleEl) __subtitleEl.innerHTML = 'Create an account to claim this business page.';
 }
 
 function initSupabase() {
   try {
     var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // If already signed in, skip to create
+    // If already signed in, skip straight to the relevant next step
     sb.auth.getSession().then(function(r) {
-      if (r.data && r.data.session) window.location.href = '/create';
+      if (r.data && r.data.session) {
+        window.location.href = __claimSlug ? ('/claim?business=' + encodeURIComponent(__claimSlug)) : '/create';
+      }
     });
 
     btn.disabled = false;
@@ -119,7 +126,9 @@ function initSupabase() {
           email: email,
           password: password,
           options: {
-            emailRedirectTo: 'https://enoma.io/create',
+            emailRedirectTo: __claimSlug
+              ? ('https://enoma.io/claim?business=' + encodeURIComponent(__claimSlug))
+              : 'https://enoma.io/create',
             data: {
               pending_business_name: __pendingName || undefined,
               pending_city: __pendingCity || undefined
@@ -136,6 +145,9 @@ function initSupabase() {
         document.getElementById('signup-form-view').style.display = 'none';
         document.getElementById('confirm-view').style.display = 'block';
         document.getElementById('confirm-email').textContent = email;
+        if (__claimSlug) {
+          document.getElementById('confirm-next-step').textContent = 'Click the link to confirm your account — you\'ll be taken straight to claiming this page.';
+        }
       } catch(err) {
         errorMsg.textContent = 'Something went wrong — please try again.';
         btn.disabled = false;
