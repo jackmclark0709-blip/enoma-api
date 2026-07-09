@@ -763,12 +763,90 @@ body.persona-retail .section::before { background: #9a3a8a; }
 a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s ease, background 0.15s ease, filter 0.15s ease; }
 .hidden { display: none !important; }
 #contact { scroll-margin-top: 80px; }
+
+/* ── Unclaimed-page banner ── */
+.unclaimed-banner {
+  background: #fff7e6;
+  border-bottom: 1px solid #f0d9a8;
+  padding: 0.65rem 1.25rem;
+  text-align: center;
+}
+.unclaimed-banner p { margin: 0; font-size: 0.85rem; color: #7a5a10; line-height: 1.5; }
+.unclaimed-cta { font-weight: 700; color: #0a1628; text-decoration: underline; white-space: nowrap; margin-left: 0.4rem; }
+.unclaimed-cta:hover { color: var(--brand-primary, #1a3a2a); }
+
+/* ── Before/After slider ── */
+.ba-section { max-width: 900px; margin: 2.5rem auto; padding: 0 1.5rem; }
+.ba-header { padding: 0 0.25rem; margin-bottom: 1rem; }
+.ba-header h2 { font-family: 'DM Sans', sans-serif; font-size: 1.45rem; font-weight: 700; color: #0a1628; margin: 0; letter-spacing: -0.02em; }
+.ba-list { display: flex; flex-direction: column; gap: 2rem; }
+.ba-slider {
+  position: relative; width: 100%; aspect-ratio: 4/3;
+  border-radius: 14px; overflow: hidden; border: 1px solid #e4edf5; background: #f7faff;
+  touch-action: pan-y;
+}
+.ba-slider img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; -webkit-user-select: none; user-select: none; pointer-events: none; }
+.ba-slider .ba-after { z-index: 1; }
+.ba-slider .ba-before-wrap { position: absolute; top: 0; left: 0; height: 100%; width: 50%; overflow: hidden; z-index: 2; border-right: 2px solid #fff; }
+.ba-slider .ba-before-wrap img { max-width: none; height: 100%; }
+.ba-handle { position: absolute; top: 0; bottom: 0; left: 50%; z-index: 3; pointer-events: none; transform: translateX(-50%); }
+.ba-handle::before { content: ''; position: absolute; top: 0; bottom: 0; left: -1px; width: 2px; background: #fff; box-shadow: 0 0 6px rgba(0,0,0,0.4); }
+.ba-handle::after {
+  content: '⟺'; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  width: 38px; height: 38px; border-radius: 50%; background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; color: #0a1628; box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+}
+.ba-range {
+  position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; z-index: 4;
+  opacity: 0; cursor: ew-resize; -webkit-appearance: none; appearance: none; background: transparent;
+}
+.ba-range::-webkit-slider-runnable-track { -webkit-appearance: none; background: transparent; }
+.ba-range::-webkit-slider-thumb { -webkit-appearance: none; width: 100%; height: 100%; background: transparent; }
+.ba-range::-moz-range-track { background: transparent; border: none; }
+.ba-range::-moz-range-thumb { width: 20px; height: 100%; background: transparent; border: none; border-radius: 0; }
+.ba-tag {
+  position: absolute; top: 0.6rem; z-index: 3;
+  background: rgba(10,22,40,0.65); color: #fff; font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.05em; text-transform: uppercase; padding: 0.25rem 0.6rem; border-radius: 999px;
+  pointer-events: none;
+}
+.ba-tag-before { left: 0.6rem; }
+.ba-tag-after { right: 0.6rem; }
+.ba-caption { margin: 0.6rem 0 0; font-size: 0.88rem; color: #6b7280; text-align: center; }
+
+/* ── Sticky mobile call bar ── */
+.mobile-call-bar { display: none; }
+@media (max-width: 640px) {
+  .mobile-call-bar {
+    display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 1200;
+    background: #fff; border-top: 1px solid #e0eaf5;
+    box-shadow: 0 -4px 16px rgba(10,22,40,0.12);
+    padding: 0.6rem 0.75rem;
+    padding-bottom: calc(0.6rem + env(safe-area-inset-bottom));
+    gap: 0.6rem;
+  }
+  .mobile-call-bar a {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+    height: 46px; border-radius: 999px; font-weight: 700; font-size: 0.92rem;
+    text-decoration: none;
+  }
+  .mobile-call-bar .mcb-call { background: var(--brand-primary, #1a3a2a); color: #fff; }
+  .mobile-call-bar .mcb-quote { background: #f0f5fb; color: #0a1628; border: 1.5px solid #d4e2f4; }
+  .mobile-call-bar svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; flex-shrink: 0; }
+  body.has-mobile-call-bar { padding-bottom: 70px; }
+}
 </style>
 {{BRAND_COLOR_STYLE}}
 </head>
 
 <body>
 <script>window.__PROFILE__ = {{PROFILE_JSON}};</script>
+
+<!-- UNCLAIMED PAGE BANNER -->
+<div class="unclaimed-banner hidden" id="unclaimedBanner">
+  <p><span id="unclaimedText"></span><a id="unclaimedCta" class="unclaimed-cta">Claim this page →</a></p>
+</div>
 
 <!-- STICKY NAV -->
 <nav class="contact-strip" id="contactStrip">
@@ -869,6 +947,14 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
   <div id="gallery" class="image-grid"></div>
 </div>
 
+<!-- BEFORE / AFTER SLIDER -->
+<div class="ba-section hidden" id="baSection">
+  <div class="ba-header">
+    <h2>Before &amp; After</h2>
+  </div>
+  <div id="baList" class="ba-list"></div>
+</div>
+
 <!-- No-photos nudge for business owner -->
 <div class="no-photos-nudge hidden" id="noPhotosNudge">
   <p>📸 Adding photos of your work builds trust and gets you more calls.</p>
@@ -955,6 +1041,17 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
   </div>
 </footer>
 
+<!-- STICKY MOBILE CALL BAR -->
+<div class="mobile-call-bar hidden" id="mobileCallBar">
+  <a id="mcbCall" class="mcb-call">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.08 4.18 2 2 0 0 1 4.06 2h3a2 2 0 0 1 2 1.72c.12.86.31 1.7.57 2.5a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.58-1.09a2 2 0 0 1 2.11-.45c.8.26 1.64.45 2.5.57A2 2 0 0 1 22 16.92z"/></svg>
+    Call Now
+  </a>
+  <a href="#contact" id="mcbQuote" class="mcb-quote">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><path d="M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2H9V5z"/><path d="M9 12h6M9 16h6M9 20h4"/></svg>
+    Get a Quote
+  </a>
+</div>
 
 <script>
 /* ── Utilities ── */
@@ -1020,6 +1117,51 @@ function extractDominantColor(img, callback) {
   callback(ensureUsableBrandColor([r, g, b]));
 }
 
+/* ── Before/After slider ── */
+function baDemoSvg(label, bg) {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='800' height='600'><rect width='100%' height='100%' fill='${bg}'/><text x='50%' y='50%' font-family='sans-serif' font-size='42' fill='white' text-anchor='middle' dominant-baseline='middle'>${label}</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+const BA_DEMO_IMAGES = [
+  { before: baDemoSvg('BEFORE (demo)', '#8a6d3b'), after: baDemoSvg('AFTER (demo)', '#2d6a2d'), caption: 'Demo placeholder — front yard renovation' },
+  { before: baDemoSvg('BEFORE (demo)', '#5a4a3a'), after: baDemoSvg('AFTER (demo)', '#1a5a3a'), caption: 'Demo placeholder — backyard patio install' }
+];
+function buildBASlider(item) {
+  const outer = document.createElement('div');
+  const frame = document.createElement('div');
+  frame.className = 'ba-slider';
+  frame.innerHTML = `
+    <img class="ba-after" src="${item.after}" alt="After" loading="lazy" />
+    <span class="ba-tag ba-tag-after">After</span>
+    <div class="ba-before-wrap"><img class="ba-before" src="${item.before}" alt="Before" loading="lazy" /></div>
+    <span class="ba-tag ba-tag-before">Before</span>
+    <div class="ba-handle"></div>
+    <input type="range" class="ba-range" min="0" max="100" value="50" aria-label="Drag to compare before and after photos" />
+  `;
+  outer.appendChild(frame);
+  if (item.caption) {
+    const cap = document.createElement('p');
+    cap.className = 'ba-caption';
+    cap.textContent = item.caption;
+    outer.appendChild(cap);
+  }
+
+  const beforeWrap = frame.querySelector('.ba-before-wrap');
+  const beforeImg = frame.querySelector('.ba-before');
+  const afterImg = frame.querySelector('.ba-after');
+  const handle = frame.querySelector('.ba-handle');
+  const range = frame.querySelector('.ba-range');
+
+  const syncWidth = () => { beforeImg.style.width = frame.clientWidth + 'px'; };
+  const setPos = val => { beforeWrap.style.width = val + '%'; handle.style.left = val + '%'; };
+  range.addEventListener('input', () => setPos(range.value));
+  window.addEventListener('resize', syncWidth);
+  if (afterImg.complete) syncWidth(); else afterImg.addEventListener('load', syncWidth);
+  setPos(50);
+
+  return outer;
+}
+
 /* ── Main ── */
 async function loadProfile() {
   const urlParams = new URLSearchParams(location.search);
@@ -1056,6 +1198,18 @@ async function loadProfile() {
   const persona = categoryMap[rawCat] || null;
   if (persona) document.body.classList.add(`persona-${persona}`);
 
+  /* ── Unclaimed-page banner ── */
+  if (p.is_claimed === false) {
+    const unclaimedBanner = getEl('unclaimedBanner');
+    const unclaimedText = getEl('unclaimedText');
+    const unclaimedCta = getEl('unclaimedCta');
+    if (unclaimedBanner) {
+      if (unclaimedText) unclaimedText.textContent = `This is a preview page for ${p.business_name || 'this business'} — not yet claimed by the business owner.`;
+      if (unclaimedCta) unclaimedCta.href = `/signup?business=${encodeURIComponent(p.username || slug || '')}`;
+      unclaimedBanner.classList.remove('hidden');
+    }
+  }
+
   // ── Set brand RGB for CSS glow effects ──
   // (applied after logo color extraction; this sets a default)
   const defaultRgb = persona === 'landscaping' ? '26,90,42'
@@ -1076,6 +1230,18 @@ async function loadProfile() {
     contactCall.href = `tel:${p.phone}`;
     contactCall.classList.remove('hidden');
     contactCall.addEventListener('click', () => trackContactClick('call'));
+  }
+
+  /* ── Sticky mobile call bar ── */
+  const mobileCallBar = getEl('mobileCallBar');
+  const mcbCall = getEl('mcbCall');
+  if (mobileCallBar && mcbCall && p.phone) {
+    mcbCall.href = `tel:${p.phone}`;
+    mcbCall.addEventListener('click', () => trackContactClick('mobile_bar_call'));
+    const mcbQuote = getEl('mcbQuote');
+    if (mcbQuote) mcbQuote.addEventListener('click', () => trackContactClick('mobile_bar_quote'));
+    mobileCallBar.classList.remove('hidden');
+    document.body.classList.add('has-mobile-call-bar');
   }
 
   /* ── Hero headline / tagline ── */
@@ -1276,6 +1442,18 @@ async function loadProfile() {
         });
       }, 800);
     }
+  }
+
+  /* ── Before/After slider ── */
+  const baSection = getEl('baSection');
+  const baList = getEl('baList');
+  let baImages = Array.isArray(p.before_after_images) ? p.before_after_images : [];
+  if (!baImages.length && urlParams.get('demoBA') === '1') baImages = BA_DEMO_IMAGES;
+  const validBaImages = baImages.filter(item => item && item.before && item.after);
+  if (baSection && baList && validBaImages.length) {
+    baList.innerHTML = '';
+    validBaImages.forEach(item => baList.appendChild(buildBASlider(item)));
+    baSection.classList.remove('hidden');
   }
 
   /* ── Service area map — handled in location section below ── */
