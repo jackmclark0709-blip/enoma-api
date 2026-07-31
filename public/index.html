@@ -78,22 +78,25 @@
     .hero__actions{display:flex;gap:.85rem;flex-wrap:wrap;justify-content:center;margin-top:2.25rem;}
     .hero__proof{margin-top:1.1rem;font-size:.78rem;color:var(--text-3);letter-spacing:.03em;}
 
-    /* floating product cards beneath the fold of the hero */
-    .hero__stage{position:relative;height:280px;width:100%;max-width:900px;margin-top:4rem;perspective:1300px;}
-    .site-card{
-      position:absolute; width:230px; background:#fff; border-radius:10px; overflow:hidden;
-      box-shadow:0 24px 50px -16px rgba(0,0,0,.5); transform-style:preserve-3d;
-      animation:cardFloat 7s ease-in-out infinite;
+    /* ---------- signal graphic: query channels converging on a found result ---------- */
+    .signal{position:relative;width:100%;max-width:480px;aspect-ratio:480/240;margin:4.5rem auto 0;}
+    .signal__svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;}
+    .signal__line{fill:none;stroke:var(--sky-light);stroke-width:1.4;opacity:.4;stroke-dasharray:5 7;animation:signalFlow 2.2s linear infinite;}
+    @keyframes signalFlow{to{stroke-dashoffset:-24;}}
+    .signal__label{position:absolute;font-family:'IBM Plex Mono',monospace;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);}
+    .signal__label--left{left:0;top:4%;}
+    .signal__label--right{right:0;top:4%;}
+    .signal__core{position:absolute;left:50%;top:85%;width:0;height:0;}
+    .signal__ring{position:absolute;left:0;top:0;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;border:1px solid var(--sky-light);opacity:0;animation:signalPing 3s ease-out infinite;}
+    .signal__ring:nth-child(2){animation-delay:1s;}
+    .signal__ring:nth-child(3){animation-delay:2s;}
+    @keyframes signalPing{0%{transform:scale(1);opacity:.6;}100%{transform:scale(9);opacity:0;}}
+    .signal__dot{position:absolute;left:0;top:0;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:var(--sky-light);box-shadow:0 0 18px 4px rgba(90,168,240,.55);}
+    .signal__caption{margin-top:1.5rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text-3);letter-spacing:.03em;}
+    @media (prefers-reduced-motion: reduce){
+      .signal__line,.signal__ring{animation:none;}
+      .signal__ring{opacity:.2;transform:scale(4);}
     }
-    @keyframes cardFloat{0%,100%{margin-top:0;}50%{margin-top:-10px;}}
-    .site-card__bar{display:flex;align-items:center;gap:5px;padding:7px 9px;background:#1e2d45;}
-    .site-card__bar .dot{width:6px;height:6px;border-radius:50%;}
-    .site-card__bar .url{margin-left:4px;font-family:monospace;font-size:8.5px;color:rgba(255,255,255,0.55);white-space:nowrap;overflow:hidden;}
-    .site-card__photo{height:66px;width:100%;object-fit:cover;display:block;background:#0d1f0f;}
-    .site-card__body{padding:11px 12px 13px;text-align:left;}
-    .site-card__tag{display:inline-block;font-family:monospace;font-size:8px;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:5px;margin-bottom:6px;font-weight:700;background:rgba(56,130,220,.12);color:#3882dc;}
-    .site-card__h{font-weight:700;font-size:12.5px;color:#0a1628;margin-bottom:3px;line-height:1.25;}
-    .site-card__p{font-size:9.5px;color:#5a7a9a;line-height:1.4;}
 
     /* ---------- BOTTLENECK / channel split ---------- */
     .channels{display:grid;grid-template-columns:1fr auto 1fr;gap:1.5rem;align-items:center;margin-top:3rem;max-width:640px;margin-inline:auto;}
@@ -185,14 +188,13 @@
     .finale .hero__actions{margin-top:2rem;}
 
     @media(max-width:640px){
-      .hero__stage{display:none;}
       .scene{padding:6rem 1.25rem;}
       .query-bar__text{font-size:.8rem;}
     }
 
     @media (prefers-reduced-motion: reduce){
       html{scroll-behavior:auto;}
-      .site-card,.query-bar__cursor,.preview-chart-col{animation:none;}
+      .query-bar__cursor,.preview-chart-col{animation:none;}
     }
   </style>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Enoma","applicationCategory":"BusinessApplication","description":"Enoma is a lead gen platform for local service businesses — landscapers, plumbers, HVAC, contractors. A dedicated Google-indexed page that sends customer inquiries directly to you. Live in minutes, first month free.","operatingSystem":"Web","url":"https://enoma.io","offers":{"@type":"Offer","price":"19.99","priceCurrency":"USD"},"audience":{"@type":"Audience","audienceType":"Local Service Businesses"}}</script>
@@ -226,45 +228,21 @@
     </div>
     <p class="hero__proof">No credit card &nbsp;·&nbsp; First month free &nbsp;·&nbsp; Live in minutes</p>
 
-    <div class="hero__stage" id="heroStage">
-      <div class="site-card" style="top:0;left:6%;animation-delay:0s;z-index:2;">
-        <div class="site-card__bar">
-          <div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#ffbd2e"></div><div class="dot" style="background:#27c93f"></div>
-          <div class="url">enoma.io/conways-landscaping</div>
-        </div>
-        <img class="site-card__photo" src="https://qhsivcenpnxwmvwznqie.supabase.co/storage/v1/object/public/business-images/6ec4d119-4fc0-450e-8a89-27a372986903/1774625993664-jack-conway-fb3.jpg" alt="Conway's Landscaping" loading="lazy" />
-        <div class="site-card__body">
-          <span class="site-card__tag">Hero</span>
-          <div class="site-card__h">Lawn Care in Agawam &amp; West Springfield</div>
-          <div class="site-card__p">Weekly mowing, trimming, mulching &amp; cleanups.</div>
-        </div>
-      </div>
-      <div class="site-card" style="top:60px;left:38%;animation-delay:1.4s;z-index:3;transform:scale(1.05);">
-        <div class="site-card__bar">
-          <div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#ffbd2e"></div><div class="dot" style="background:#27c93f"></div>
-          <div class="url">enoma.io/arno-plumbing-and-heating</div>
-        </div>
-        <div class="site-card__body" style="padding-top:14px;">
-          <span class="site-card__tag">What Clients Say</span>
-          <div class="site-card__h" style="font-style:italic;font-weight:500;">"Came out same day when our boiler stopped in January. Running within two hours."</div>
-          <div class="site-card__p">— Karen T., North Attleboro</div>
-        </div>
-      </div>
-      <div class="site-card" style="top:130px;left:4%;animation-delay:2.8s;z-index:1;opacity:.92;">
-        <div class="site-card__bar">
-          <div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#ffbd2e"></div><div class="dot" style="background:#27c93f"></div>
-          <div class="url">enoma.io/conways-landscaping</div>
-        </div>
-        <div class="site-card__photos" style="display:grid;grid-template-columns:1fr 1fr;gap:2px;height:56px;background:#0d1f0f;">
-          <img src="https://qhsivcenpnxwmvwznqie.supabase.co/storage/v1/object/public/business-images/6ec4d119-4fc0-450e-8a89-27a372986903/1774625994364-jack-conway-fb2.jpg" style="width:100%;height:100%;object-fit:cover;" loading="lazy" />
-          <img src="https://qhsivcenpnxwmvwznqie.supabase.co/storage/v1/object/public/business-images/6ec4d119-4fc0-450e-8a89-27a372986903/1774625994758-jack-conway-fb1.jpg" style="width:100%;height:100%;object-fit:cover;" loading="lazy" />
-        </div>
-        <div class="site-card__body">
-          <span class="site-card__tag">Recent Work</span>
-          <div class="site-card__h">Real jobs, real photos</div>
-        </div>
+    <div class="signal" id="heroSignal">
+      <svg class="signal__svg" viewBox="0 0 480 240" aria-hidden="true">
+        <path class="signal__line" d="M30,30 C160,30 200,140 240,204" />
+        <path class="signal__line" d="M450,30 C320,30 280,140 240,204" />
+      </svg>
+      <span class="signal__label signal__label--left">Google</span>
+      <span class="signal__label signal__label--right">AI assistants</span>
+      <div class="signal__core">
+        <span class="signal__ring"></span>
+        <span class="signal__ring"></span>
+        <span class="signal__ring"></span>
+        <span class="signal__dot"></span>
       </div>
     </div>
+    <p class="signal__caption">Two channels. One answer, if you're built to be found.</p>
   </section>
 
   <!-- ============ THE GAP — the bottleneck, explained ============ -->
@@ -542,20 +520,6 @@
       gsap.to('.glow--b', { y: '-14vh', x: '-3vw', ease: 'none', scrollTrigger: { trigger: document.body, start: 'top top', end: 'bottom bottom', scrub: 1 } });
       gsap.to('.glow--c', { y: '10vh', ease: 'none', scrollTrigger: { trigger: document.body, start: 'top top', end: 'bottom bottom', scrub: 1 } });
     }
-  })();
-
-  // ---- hero parallax tilt on the floating site-cards ----
-  (function(){
-    var stage = document.getElementById('heroStage');
-    if (!stage || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    stage.addEventListener('mousemove', function(e){
-      var rect = stage.getBoundingClientRect();
-      var x = (e.clientX - rect.left) / rect.width - 0.5;
-      var y = (e.clientY - rect.top) / rect.height - 0.5;
-      stage.style.transform = 'rotateY(' + (x * 8) + 'deg) rotateX(' + (-y * 5) + 'deg)';
-      stage.style.transformStyle = 'preserve-3d';
-    });
-    stage.addEventListener('mouseleave', function(){ stage.style.transform = 'rotateY(0) rotateX(0)'; });
   })();
 
   // ---- lightweight ambient particle field (canvas 2D, no WebGL) ----
