@@ -23,6 +23,20 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+async function logNotificationFailure(source, recipient, error, context) {
+  console.error(`🚨 Notification email failed [${source}]:`, error?.message || error);
+  try {
+    await supabaseAdmin.from("notification_failures").insert({
+      source,
+      recipient,
+      error: error?.message || String(error),
+      context
+    });
+  } catch (e) {
+    console.error("🚨 Also failed to record notification_failures row:", e?.message);
+  }
+}
+
 const first = v => (Array.isArray(v) ? v[0] : v || "");
 const hasField = (fields, key) =>
   fields && Object.prototype.hasOwnProperty.call(fields, key);
@@ -336,27 +350,31 @@ export default async function handler(req, res) {
     }
 
     /* ---------- NOTIFICATION EMAIL ---------- */
-    if (!incomingBusinessId && process.env.RESEND_API_KEY) {
-      try {
-        await resend.emails.send({
-          from: "Enoma <notifications@enoma.io>",
-          to: "jack@enoma.io",
-          reply_to: email,
-          subject: `New Enoma website: ${business_name || "Unknown"}`,
-          html: `
-            <h2>New Website Created</h2>
-            <p><strong>Business:</strong> ${business_name || "—"}</p>
-            <p><strong>Owner:</strong> ${owner_name || "—"}</p>
-            <p><strong>Email:</strong> ${email || "—"}</p>
-            <p><strong>Phone:</strong> ${first(fields.phone) || "—"}</p>
-            <p><strong>City:</strong> ${first(fields.city) || "—"}</p>
-            <p><strong>Submitted:</strong> ${new Date().toLocaleString()}</p>
-            <hr />
-            <pre style="white-space:pre-wrap">${about_input || "—"}</pre>
-          `
-        });
-      } catch (err) {
-        console.warn("⚠️ Notification email failed:", err);
+    if (!incomingBusinessId) {
+      if (process.env.RESEND_API_KEY) {
+        try {
+          await resend.emails.send({
+            from: "Enoma <noreply@enoma.io>",
+            to: "jack@enoma.io",
+            reply_to: email,
+            subject: `New Enoma website: ${business_name || "Unknown"}`,
+            html: `
+              <h2>New Website Created</h2>
+              <p><strong>Business:</strong> ${business_name || "—"}</p>
+              <p><strong>Owner:</strong> ${owner_name || "—"}</p>
+              <p><strong>Email:</strong> ${email || "—"}</p>
+              <p><strong>Phone:</strong> ${first(fields.phone) || "—"}</p>
+              <p><strong>City:</strong> ${first(fields.city) || "—"}</p>
+              <p><strong>Submitted:</strong> ${new Date().toLocaleString()}</p>
+              <hr />
+              <pre style="white-space:pre-wrap">${about_input || "—"}</pre>
+            `
+          });
+        } catch (err) {
+          await logNotificationFailure("generate-business:new-website", "jack@enoma.io", err, { business_name, email });
+        }
+      } else {
+        await logNotificationFailure("generate-business:new-website", "jack@enoma.io", new Error("RESEND_API_KEY not set"), { business_name, email });
       }
     }
 

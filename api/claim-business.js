@@ -14,6 +14,20 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+async function logNotificationFailure(source, recipient, error, context) {
+  console.error(`🚨 Notification email failed [${source}]:`, error?.message || error);
+  try {
+    await supabaseAdmin.from("notification_failures").insert({
+      source,
+      recipient,
+      error: error?.message || String(error),
+      context
+    });
+  } catch (e) {
+    console.error("🚨 Also failed to record notification_failures row:", e?.message);
+  }
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -73,15 +87,17 @@ export default async function handler(req, res) {
     if (process.env.RESEND_API_KEY) {
       try {
         await resend.emails.send({
-          from: "Enoma <notifications@enoma.io>",
+          from: "Enoma <noreply@enoma.io>",
           to: "jack@enoma.io",
           reply_to: user.email,
           subject: `Page claimed: ${profile.business_name || slug}`,
           html: `<p><strong>${profile.business_name || slug}</strong> (/${slug}) was just claimed by ${user.email}.</p>`
         });
       } catch (e) {
-        console.warn("⚠️ Claim notification email failed:", e?.message);
+        await logNotificationFailure("claim-business", "jack@enoma.io", e, { slug, claimed_by: user.email });
       }
+    } else {
+      await logNotificationFailure("claim-business", "jack@enoma.io", new Error("RESEND_API_KEY not set"), { slug, claimed_by: user.email });
     }
 
     return res.json({ success: true, business_id: profile.business_id, slug: profile.username });
