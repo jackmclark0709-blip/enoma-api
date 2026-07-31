@@ -21,8 +21,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    const [response] = await client.runReport({
-      property: `properties/${process.env.GA_PROPERTY_ID}`,
+    const property = `properties/${process.env.GA_PROPERTY_ID}`;
+
+    const [daily] = await client.runReport({
+      property,
       dateRanges: [{ startDate: "7daysAgo", endDate: "today" }],
       metrics: [
         { name: "activeUsers" },
@@ -33,14 +35,27 @@ export default async function handler(req, res) {
       orderBys: [{ dimension: { dimensionName: "date" } }]
     });
 
+    const [channels] = await client.runReport({
+      property,
+      dateRanges: [{ startDate: "30daysAgo", endDate: "today" }],
+      metrics: [{ name: "sessions" }, { name: "activeUsers" }],
+      dimensions: [{ name: "sessionDefaultChannelGroup" }],
+      orderBys: [{ metric: { metricName: "sessions" }, desc: true }]
+    });
+
     res.json({
       success: true,
-      rowCount: response.rowCount,
-      rows: (response.rows || []).map(r => ({
+      rowCount: daily.rowCount,
+      rows: (daily.rows || []).map(r => ({
         date: r.dimensionValues[0].value,
         activeUsers: r.metricValues[0].value,
         pageViews: r.metricValues[1].value,
         sessions: r.metricValues[2].value
+      })),
+      channels: (channels.rows || []).map(r => ({
+        channel: r.dimensionValues[0].value,
+        sessions: r.metricValues[0].value,
+        activeUsers: r.metricValues[1].value
       }))
     });
   } catch (err) {
