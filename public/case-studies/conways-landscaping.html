@@ -13,16 +13,18 @@
   <meta property="og:url" content="https://enoma.io/case-studies/conways-landscaping" />
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="stylesheet" href="/styles/enoma.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-S8XTG72Y2Y');</script>
   <style>
-    body { background: #f0f6ff; }
+    body { background: #f0f6ff; font-family: 'Instrument Sans', sans-serif; }
     .cs-hero { background: #0a1628; padding: 5rem 1.5rem 4rem; position: relative; overflow: hidden; }
     .cs-hero::before { content: ''; position: absolute; top: -80px; right: -80px; width: 480px; height: 480px; background: radial-gradient(circle, rgba(56,130,220,0.18) 0%, transparent 65%); pointer-events: none; }
     .cs-hero__inner { max-width: 1040px; margin-inline: auto; display: grid; grid-template-columns: 1.1fr 1fr; gap: 3rem; align-items: center; }
     .cs-hero__eyebrow { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #7ab3e0; margin-bottom: 0.9rem; }
-    .cs-hero__h1 { font-family: 'DM Sans', sans-serif; font-size: clamp(2rem, 3.5vw, 2.8rem); font-weight: 800; line-height: 1.1; letter-spacing: -0.025em; color: #f0f6ff; margin-bottom: 1rem; }
+    .cs-hero__h1 { font-family: 'Fraunces', serif; font-size: clamp(2rem, 3.5vw, 2.8rem); font-weight: 800; line-height: 1.1; letter-spacing: -0.025em; color: #f0f6ff; margin-bottom: 1rem; }
     .cs-hero__h1 em { color: #5aa8f0; font-style: normal; }
     .cs-hero__sub { font-size: 1.05rem; color: rgba(240,246,255,0.65); line-height: 1.6; margin-bottom: 1.75rem; max-width: 480px; }
     .cs-hero__stats { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
@@ -32,7 +34,7 @@
     /* Embedded lead form card */
     .cs-form-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); border-radius: 20px; padding: 2rem; backdrop-filter: blur(8px); box-shadow: 0 24px 80px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08); }
     .cs-form-card__eyebrow { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #7ab3e0; margin-bottom: 0.4rem; }
-    .cs-form-card__title { font-family: 'DM Sans', sans-serif; font-size: 1.3rem; font-weight: 800; color: #f0f6ff; letter-spacing: -0.02em; margin-bottom: 1.5rem; }
+    .cs-form-card__title { font-family: 'Fraunces', serif; font-size: 1.3rem; font-weight: 800; color: #f0f6ff; letter-spacing: -0.02em; margin-bottom: 1.5rem; }
     .cs-form-field { margin-bottom: 1rem; }
     .cs-form-field label { display: block; font-size: 0.78rem; font-weight: 700; color: rgba(240,246,255,0.55); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.35rem; }
     .cs-form-field input { width: 100%; background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.8rem 0.9rem; font-size: 1rem; font-family: 'Inter', sans-serif; color: #f0f6ff; outline: none; transition: border-color 0.15s, box-shadow 0.15s, background 0.15s; }
@@ -41,7 +43,7 @@
     .cs-form-field input.error { border-color: rgba(220,80,80,0.6); box-shadow: 0 0 0 3px rgba(220,80,80,0.1); }
     .cs-form-error { font-size: 0.75rem; color: #e07a7a; margin-top: 0.3rem; display: none; }
     .cs-form-error.visible { display: block; }
-    .cs-form-submit { width: 100%; margin-top: 0.5rem; padding: 0.95rem 1.5rem; background: #3882dc; border: none; border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 1.02rem; font-weight: 800; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: transform 0.15s, box-shadow 0.15s, filter 0.15s; box-shadow: 0 8px 24px rgba(56,130,220,0.35); }
+    .cs-form-submit { width: 100%; margin-top: 0.5rem; padding: 0.95rem 1.5rem; background: #3882dc; border: none; border-radius: 12px; font-family: 'Fraunces', serif; font-size: 1.02rem; font-weight: 800; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: transform 0.15s, box-shadow 0.15s, filter 0.15s; box-shadow: 0 8px 24px rgba(56,130,220,0.35); }
     .cs-form-submit:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(56,130,220,0.45); filter: brightness(1.08); }
     .cs-form-card__proof { text-align: center; font-size: 0.75rem; color: rgba(240,246,255,0.4); margin-top: 0.85rem; }
     .cs-example { background: white; padding: 4rem 1.5rem 5rem; border-top: 1px solid #d4e2f4; }
@@ -58,15 +60,15 @@
     .cs-benefits { background: #f0f6ff; padding: 4rem 1.5rem; }
     .cs-benefits__inner { max-width: 900px; margin-inline: auto; }
     .cs-benefits__label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #2d6a2d; margin-bottom: 0.6rem; }
-    .cs-benefits__h2 { font-family: 'DM Sans', sans-serif; font-size: clamp(1.4rem, 2.5vw, 1.8rem); font-weight: 800; color: #0a1628; letter-spacing: -0.02em; margin-bottom: 2rem; }
+    .cs-benefits__h2 { font-family: 'Fraunces', serif; font-size: clamp(1.4rem, 2.5vw, 1.8rem); font-weight: 800; color: #0a1628; letter-spacing: -0.02em; margin-bottom: 2rem; }
     .cs-benefits__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
     .cs-benefit { border: 1px solid #d4e2f4; border-radius: 14px; padding: 1.5rem; background: white; }
-    .cs-benefit__h3 { font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 700; color: #0a1628; margin-bottom: 0.4rem; }
+    .cs-benefit__h3 { font-family: 'Fraunces', serif; font-size: 1rem; font-weight: 700; color: #0a1628; margin-bottom: 0.4rem; }
     .cs-benefit__p { font-size: 0.9rem; color: #5a7a9a; line-height: 1.6; margin: 0; }
     .cs-cta { background: linear-gradient(160deg, #0a1628, #12244a); padding: 5rem 1.5rem; text-align: center; position: relative; overflow: hidden; }
     .cs-cta::before { content: ''; position: absolute; bottom: -60px; left: 50%; transform: translateX(-50%); width: 600px; height: 300px; background: radial-gradient(ellipse, rgba(56,130,220,0.22) 0%, transparent 70%); pointer-events: none; }
     .cs-cta__inner { max-width: 580px; margin-inline: auto; position: relative; }
-    .cs-cta__h2 { font-family: 'DM Sans', sans-serif; font-size: clamp(1.8rem, 3.5vw, 2.3rem); font-weight: 800; color: #f0f6ff; letter-spacing: -0.025em; margin-bottom: 0.75rem; }
+    .cs-cta__h2 { font-family: 'Fraunces', serif; font-size: clamp(1.8rem, 3.5vw, 2.3rem); font-weight: 800; color: #f0f6ff; letter-spacing: -0.025em; margin-bottom: 0.75rem; }
     .cs-cta__sub { font-size: 1rem; color: rgba(240,246,255,0.6); line-height: 1.6; margin-bottom: 2rem; }
     .cs-cta__proof { margin-top: 1rem; font-size: 0.78rem; color: rgba(240,246,255,0.35); letter-spacing: 0.04em; }
     @media (max-width: 860px) { .cs-hero__inner { grid-template-columns: 1fr; } }
