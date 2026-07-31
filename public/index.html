@@ -18,391 +18,126 @@
   <meta name="twitter:image" content="https://enoma.io/assets/og/enoma-default-v2.png" />
   <link rel="stylesheet" href="/styles/enoma.css" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-S8XTG72Y2Y');</script>
+
   <style>
-    body{background:#f0f6ff}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-    /* HERO */
-    .hp-hero{background:#0a1628;padding:5rem 1.5rem 4rem;position:relative;overflow:hidden}
-    .hp-hero::before{content:'';position:absolute;top:-80px;right:-80px;width:480px;height:480px;background:radial-gradient(circle,rgba(56,130,220,0.18) 0%,transparent 65%);pointer-events:none}
-    .hp-hero__inner{max-width:1100px;margin-inline:auto;display:grid;grid-template-columns:1fr 1.15fr;gap:3.5rem;align-items:center}
-    .hp-hero__eyebrow{font-size:0.7rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#7ab3e0;margin-bottom:0.9rem}
-    .hp-hero__h1{font-family:'DM Sans',sans-serif;font-size:clamp(2rem,3.5vw,2.6rem);font-weight:800;line-height:1.1;letter-spacing:-0.025em;color:#f0f6ff;margin-bottom:1rem}
-    .hp-hero__h1 em{color:#5aa8f0;font-style:normal}
-    .hp-hero__sub{font-size:1rem;color:rgba(240,246,255,0.65);line-height:1.6;margin-bottom:1.75rem;max-width:420px}
-    .hp-hero__actions{display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-bottom:0.9rem}
-    .hp-hero__proof{font-size:0.78rem;color:rgba(240,246,255,0.38);letter-spacing:0.04em}
-    .hp-hero__stats-strip{display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.75rem}
-    .hp-hero__stat-pill{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:999px;padding:0.3rem 0.8rem;font-size:0.78rem;color:rgba(240,246,255,0.65)}
-    .hp-hero__stat-pill strong{color:#f0f6ff;font-weight:700}
-    .hp-hero__right{display:flex;flex-direction:column;}
-
-    /* ---------- 3D FLOATING SITE-CARD HERO STAGE ---------- */
-    .hp-stage-outer{ position:relative; height:460px; perspective:1300px; }
-    .hp-glow{
-      position:absolute; width:380px; height:380px; top:50%; left:50%;
-      transform:translate(-50%,-50%);
-      background: radial-gradient(circle, rgba(56,130,220,0.35) 0%, rgba(56,130,220,0.08) 45%, transparent 70%);
-      filter: blur(6px); z-index:0;
-    }
-    .hp-stage{ position:relative; width:100%; height:100%; transform-style:preserve-3d; z-index:1; }
-
-    .hp-site-card{
-      position:absolute;
-      width: 278px;
-      background:#fff;
-      border-radius:10px;
-      box-shadow: 0 24px 50px -16px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,0,0,0.04);
-      overflow:hidden;
-      transform-style:preserve-3d;
-      animation: hpFloat 7s ease-in-out infinite;
-    }
-    @keyframes hpFloat{ 0%,100%{ margin-top:0; } 50%{ margin-top:-12px; } }
-
-    .hp-card-bar{ display:flex; align-items:center; gap:6px; padding:8px 10px; background:#1e2d45; }
-    .hp-card-bar .hp-dot{ width:7px; height:7px; border-radius:50%; }
-    .hp-card-bar .hp-url{
-      margin-left:4px; font-family: monospace; font-size:9.5px;
-      color: rgba(255,255,255,0.55); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    :root{
+      --void:#070d18; --panel:rgba(255,255,255,0.045); --panel-border:rgba(255,255,255,0.10);
+      --sky:#3882dc; --sky-light:#5aa8f0; --sky-dim:rgba(56,130,220,0.16);
+      --text-1:#f0f6ff; --text-2:rgba(240,246,255,0.68); --text-3:rgba(240,246,255,0.42);
     }
 
-    .hp-card-photo{ height:82px; width:100%; object-fit:cover; display:block; background:#0d1f0f; }
-    .hp-card-photos-grid{ display:grid; grid-template-columns:1fr 1fr; gap:2px; height:82px; background:#0d1f0f; }
-    .hp-card-photos-grid img{ width:100%; height:100%; object-fit:cover; display:block; }
-
-    .hp-card-body{ padding:13px 14px 15px; }
-    .hp-card-tag{
-      display:inline-block; font-family: monospace; font-size:9px; letter-spacing:0.06em;
-      text-transform:uppercase; padding:3px 7px; border-radius:5px; margin-bottom:8px; font-weight:700;
-      background: rgba(56,130,220,0.12); color:#3882dc;
-    }
-    .hp-card-h{ font-family:'DM Sans',sans-serif; font-weight:700; font-size:14.5px; color:#0a1628; margin-bottom:5px; line-height:1.22; }
-    .hp-card-p{ font-size:10.5px; color:#5a7a9a; line-height:1.4; margin:0; }
-    .hp-card-quote{ font-size:11px; font-style:italic; color:#2a4060; line-height:1.45; margin-bottom:7px; }
-    .hp-card-author{ font-size:10px; font-weight:700; color:#3882dc; }
-
-    /* ---------- TRADE TICKER ---------- */
-    .hp-ticker-wrap{
-      background:#0a1628; border-top:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.08);
-      padding:16px 0; overflow:hidden; position:relative;
-    }
-    .hp-ticker-label{
-      position:absolute; left:0; top:0; bottom:0; display:flex; align-items:center;
-      padding-left:1.5rem; padding-right:2.5rem;
-      background: linear-gradient(90deg, #0a1628 60%, transparent);
-      z-index:2; font-family: monospace; font-size:11px; letter-spacing:0.1em;
-      color:#7ab3e0; text-transform:uppercase; white-space:nowrap;
-    }
-    .hp-ticker-track{
-      display:flex; gap:44px; white-space:nowrap;
-      animation: hpScroll 24s linear infinite;
-      padding-left:210px;
-    }
-    .hp-ticker-track span{ font-size:14px; color:rgba(240,246,255,0.75); font-weight:500; }
-    .hp-ticker-track span::after{ content:"•"; margin-left:44px; color:rgba(255,255,255,0.15); }
-    @keyframes hpScroll{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
-
-    /* ---------- REAL RESULTS BANNER ---------- */
-    .hp-results-banner{ background:#e6f1fb; border-bottom:1px solid #d4e2f4; padding:1.75rem 1.5rem; }
-    .hp-results-banner__inner{
-      max-width:900px; margin-inline:auto; display:flex; align-items:center; gap:1.75rem; flex-wrap:wrap;
-    }
-    .hp-results-banner__stat{
-      font-family:'DM Sans',sans-serif; font-weight:800; font-size:2.75rem; color:#3882dc; line-height:1; flex-shrink:0;
-    }
-    .hp-results-banner__text{ flex:1; min-width:260px; }
-    .hp-results-banner__label{
-      font-size:0.68rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:#3882dc; margin-bottom:0.2rem;
-    }
-    .hp-results-banner__desc{ font-size:0.92rem; color:#2a4060; line-height:1.5; margin:0; }
-    .hp-results-banner__link{
-      flex-shrink:0; font-weight:700; font-size:0.9rem; color:#3882dc; white-space:nowrap;
-      border-bottom:1.5px solid rgba(56,130,220,0.3); padding-bottom:2px; transition: border-color .2s ease, color .2s ease;
-    }
-    .hp-results-banner__link:hover{ color:#1e5fa8; border-color:#1e5fa8; }
-    @media(max-width:640px){ .hp-results-banner__inner{ flex-direction:column; text-align:center; } }
-
-    /* ---------- LOCAL VISIBILITY SIMULATOR (illustrative, not personalized) ---------- */
-    .hp-sim{background:white;padding:5rem 1.5rem;border-top:1px solid #d4e2f4}
-    .hp-sim__inner{max-width:720px;margin-inline:auto;text-align:center}
-    .hp-sim__label{font-size:0.7rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#3882dc;margin-bottom:0.6rem}
-    .hp-sim__h2{font-family:'DM Sans',sans-serif;font-size:clamp(1.6rem,3vw,2rem);font-weight:800;color:#0a1628;letter-spacing:-0.02em;margin-bottom:0.6rem}
-    .hp-sim__sub{color:#5a7a9a;font-size:1rem;max-width:560px;margin:0 auto 2rem;line-height:1.6}
-    .hp-sim__card{background:#f7faff;border:1px solid #d4e2f4;border-radius:20px;padding:1.75rem;box-shadow:0 30px 60px -35px rgba(10,22,40,0.35);text-align:left}
-    .hp-sim__form{display:grid;grid-template-columns:1fr 1fr auto;gap:0.65rem;align-items:end}
-    .hp-sim__field{display:flex;flex-direction:column;gap:0.3rem}
-    .hp-sim__field label{font-size:0.72rem;font-weight:700;color:#0a1628}
-    .hp-sim__field select,.hp-sim__field input{
-      padding:0.65rem 0.75rem;border-radius:10px;border:1px solid #c7d9ef;background:white;
-      font-size:0.88rem;color:#0a1628;font-family:inherit;
-    }
-    .hp-sim__field select:focus,.hp-sim__field input:focus{outline:2px solid #3882dc;outline-offset:1px}
-    .hp-sim__submit{
-      padding:0.7rem 1.1rem;border-radius:10px;border:none;background:#3882dc;color:white;font-weight:700;
-      font-size:0.88rem;cursor:pointer;transition:background .2s ease;white-space:nowrap;
-    }
-    .hp-sim__submit:hover{background:#1e5fa8}
-    .hp-sim__results{display:none;margin-top:1.75rem;padding-top:1.75rem;border-top:1px dashed #c7d9ef}
-    .hp-sim__results.is-visible{display:block;animation:hpSimIn .5s ease}
-    @keyframes hpSimIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-    .hp-sim__score-row{display:flex;align-items:center;gap:1.25rem;margin-bottom:1.5rem;flex-wrap:wrap}
-    .hp-sim__score-num{font-family:'DM Sans',sans-serif;font-weight:800;font-size:2.75rem;color:#0a1628;line-height:1}
-    .hp-sim__score-num span{font-size:1.1rem;color:#9db3cc;font-weight:700}
-    .hp-sim__score-label{font-size:0.85rem;color:#5a7a9a;max-width:360px;line-height:1.5}
-    .hp-sim__bars{display:flex;flex-direction:column;gap:0.85rem}
-    .hp-sim__bar-row{display:grid;grid-template-columns:170px 1fr 40px;align-items:center;gap:0.75rem}
-    .hp-sim__bar-label{font-size:0.82rem;color:#0a1628;font-weight:600}
-    .hp-sim__bar-track{height:8px;background:#e2ecf9;border-radius:999px;overflow:hidden}
-    .hp-sim__bar-fill{height:100%;width:0;border-radius:999px;transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
-    .hp-sim__bar-pct{font-size:0.78rem;font-weight:700;color:#5a7a9a;text-align:right}
-    .hp-sim__cta{margin-top:1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
-    .hp-sim__disclaimer{font-size:0.76rem;color:#8199b3;margin-top:1rem;line-height:1.5}
-
-    /* ---------- ANIMATED ICON MODULES (Problem section) ---------- */
-    .hp-prob-icon{
-      width:44px; height:44px; border-radius:11px; background:#e6f1fb;
-      display:flex; align-items:center; justify-content:center; margin-bottom:0.9rem; position:relative; overflow:hidden;
-    }
-    .hp-prob-icon svg{ width:22px; height:22px; stroke:#3882dc; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; position:relative; z-index:1; }
-
-    .hp-prob-icon--signal .bar1{ animation: hpFade 2.4s ease-in-out infinite; }
-    .hp-prob-icon--signal .bar2{ animation: hpFade 2.4s ease-in-out 0.25s infinite; }
-    .hp-prob-icon--signal .bar3{ animation: hpFade 2.4s ease-in-out 0.5s infinite; }
-    @keyframes hpFade{ 0%,100%{ opacity:1; } 50%{ opacity:0.2; } }
-
-    .hp-prob-icon--pins .pin-b{ animation: hpDrift 3s ease-in-out infinite; transform-origin:center; }
-    @keyframes hpDrift{ 0%,100%{ transform:translateX(0); opacity:0.55; } 50%{ transform:translateX(2px); opacity:1; } }
-
-    .hp-prob-icon--flatline .pulse-line{
-      stroke-dasharray: 60; stroke-dashoffset:60;
-      animation: hpFlatline 3.2s linear infinite;
-    }
-    @keyframes hpFlatline{ 0%{ stroke-dashoffset:60; } 100%{ stroke-dashoffset:0; } }
-
-    /* ---------- LIVE DASHBOARD PREVIEW (abstract/illustrative example data) ---------- */
-    .hp-dash{background:#0a1628;padding:5rem 1.5rem;position:relative;overflow:hidden}
-    .hp-dash::before{content:'';position:absolute;top:-100px;left:-100px;width:460px;height:460px;background:radial-gradient(circle,rgba(56,130,220,0.16) 0%,transparent 65%);pointer-events:none}
-    .hp-dash__inner{max-width:980px;margin-inline:auto;position:relative}
-    .hp-dash__header{text-align:center;margin-bottom:2.5rem}
-    .hp-dash__label{font-size:0.7rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#7ab3e0;margin-bottom:0.6rem}
-    .hp-dash__h2{font-family:'DM Sans',sans-serif;font-size:clamp(1.6rem,3vw,2rem);font-weight:800;color:#f0f6ff;letter-spacing:-0.02em;margin-bottom:0.6rem}
-    .hp-dash__sub{color:rgba(240,246,255,0.6);font-size:1rem;max-width:520px;margin:0 auto;line-height:1.6}
-    .hp-dash__panel{background:#101d33;border:1px solid rgba(255,255,255,0.08);border-radius:16px;overflow:hidden;box-shadow:0 40px 80px -30px rgba(0,0,0,0.55)}
-    .hp-dash__bar{display:flex;align-items:center;gap:6px;padding:10px 14px;background:#1e2d45}
-    .hp-dash__bar .hp-dot{width:8px;height:8px;border-radius:50%}
-    .hp-dash__bar .hp-dash__url{margin-left:6px;font-family:monospace;font-size:11px;color:rgba(255,255,255,0.55)}
-    .hp-dash__body{padding:1.75rem}
-    .hp-dash__kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:0.9rem;margin-bottom:1.5rem}
-    .hp-dash__kpi{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:1rem;cursor:default;position:relative}
-    .hp-dash__kpi-value{font-family:'DM Sans',sans-serif;font-weight:800;font-size:1.55rem;color:#f0f6ff;letter-spacing:-0.02em}
-    .hp-dash__kpi-label{font-size:0.72rem;color:rgba(240,246,255,0.55);margin-top:0.2rem;line-height:1.3}
-    .hp-dash__kpi[data-tip]::after{
-      content:attr(data-tip); position:absolute; left:50%; bottom:calc(100% + 8px); transform:translateX(-50%) translateY(4px);
-      background:#0a1628; color:#f0f6ff; font-size:0.72rem; padding:5px 9px; border-radius:6px; white-space:nowrap;
-      opacity:0; pointer-events:none; transition:opacity .18s ease, transform .18s ease; border:1px solid rgba(255,255,255,0.1);
-    }
-    .hp-dash__kpi:hover[data-tip]::after{ opacity:1; transform:translateX(-50%) translateY(0); }
-    .hp-dash__grid{display:grid;grid-template-columns:1.5fr 1fr;gap:1rem}
-    .hp-dash__chart-card,.hp-dash__side-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:1.1rem}
-    .hp-dash__chart-caption{font-size:0.75rem;color:rgba(240,246,255,0.5);margin-bottom:0.75rem}
-    .hp-dash__chart{display:flex;align-items:flex-end;gap:5px;height:110px}
-    .hp-dash__chart-col{flex:1;background:linear-gradient(#5aa8f0,#3882dc);border-radius:3px 3px 0 0;transform:scaleY(0);transform-origin:bottom;animation:hpBarGrow 0.8s ease forwards;animation-delay:calc(var(--i) * 0.03s)}
-    @keyframes hpBarGrow{ to{ transform:scaleY(1); } }
-    .hp-dash__side-title{font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:rgba(240,246,255,0.5);margin-bottom:0.7rem}
-    .hp-dash__terms{list-style:none;margin:0 0 1.1rem;padding:0;display:flex;flex-direction:column;gap:0.5rem}
-    .hp-dash__terms li{font-size:0.82rem;color:rgba(240,246,255,0.8);padding-left:0.9rem;position:relative}
-    .hp-dash__terms li::before{content:'';position:absolute;left:0;top:0.5em;width:5px;height:5px;border-radius:50%;background:#5aa8f0}
-    .hp-dash__sources{display:flex;flex-wrap:wrap;gap:0.4rem}
-    .hp-dash__source-pill{font-size:0.72rem;color:rgba(240,246,255,0.8);background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:999px;padding:3px 9px}
-    .hp-dash__insight{margin-top:1rem;background:rgba(56,130,220,0.12);border:1px solid rgba(56,130,220,0.25);border-radius:10px;padding:0.85rem 1rem;font-size:0.85rem;color:rgba(240,246,255,0.85);line-height:1.5}
-
-    /* ---------- TRADE CAROUSEL — coverflow style, center card enlarged ---------- */
-    .hp-carousel{background:white;padding:5rem 1.5rem;border-top:1px solid #d4e2f4}
-    .hp-carousel__inner{max-width:1100px;margin-inline:auto}
-    .hp-carousel__header{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;margin-bottom:0.5rem;flex-wrap:wrap}
-    .hp-carousel__label{font-size:0.7rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#3882dc;margin-bottom:0.6rem}
-    .hp-carousel__h2{font-family:'DM Sans',sans-serif;font-size:clamp(1.6rem,3vw,2rem);font-weight:800;color:#0a1628;letter-spacing:-0.02em}
-    .hp-carousel__nav{display:flex;gap:0.5rem}
-    .hp-carousel__nav-btn{
-      width:38px;height:38px;border-radius:50%;border:1px solid #d4e2f4;background:white;color:#3882dc;
-      display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .2s ease,border-color .2s ease;flex-shrink:0;
-    }
-    .hp-carousel__nav-btn:hover{background:#e6f1fb;border-color:#3882dc}
-    .hp-carousel__nav-btn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-    .hp-carousel__viewport{position:relative;overflow:hidden;padding:2rem 0 0.5rem}
-    .hp-carousel__track{display:flex;align-items:center;transition:transform .5s cubic-bezier(.22,.9,.28,1);will-change:transform}
-    .hp-carousel__slot{flex:0 0 220px;margin:0 10px;display:flex;justify-content:center}
-    .hp-carousel__card{
-      width:100%;border:1px solid #d4e2f4;border-radius:14px;overflow:hidden;background:#f7faff;
-      transform:scale(0.82);opacity:0.5;cursor:pointer;
-      transition:transform .45s cubic-bezier(.22,.9,.28,1),opacity .45s ease,box-shadow .45s ease;
-    }
-    .hp-carousel__slot.is-active{z-index:3}
-    .hp-carousel__slot.is-active .hp-carousel__card{transform:scale(1.18);opacity:1;box-shadow:0 30px 60px -20px rgba(10,22,40,0.35);cursor:default}
-    .hp-carousel__slot:not(.is-active):hover .hp-carousel__card{opacity:0.8;transform:scale(0.88)}
-    .hp-carousel__photo{height:128px;display:flex;align-items:center;justify-content:center;position:relative}
-    .hp-carousel__photo svg{width:34px;height:34px;stroke:rgba(255,255,255,0.9);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-    .hp-carousel__body{padding:1rem}
-    .hp-carousel__trade{font-family:'DM Sans',sans-serif;font-weight:700;font-size:0.95rem;color:#0a1628;margin-bottom:0.3rem}
-    .hp-carousel__line{font-size:0.8rem;color:#5a7a9a;line-height:1.45;margin-bottom:0.6rem;min-height:2.3em}
-    .hp-carousel__badge{display:inline-block;font-size:0.66rem;font-weight:700;letter-spacing:0.03em;color:#3882dc;background:#e6f1fb;border-radius:999px;padding:3px 8px;margin-bottom:0.6rem}
-    .hp-carousel__cta{display:block;font-size:0.82rem;font-weight:700;color:#3882dc}
-    .hp-carousel__dots{display:flex;justify-content:center;gap:6px;margin-top:1.5rem}
-    .hp-carousel__dot{width:7px;height:7px;border-radius:50%;background:#c7d9ef;border:none;cursor:pointer;padding:0;transition:background .2s ease, transform .2s ease}
-    .hp-carousel__dot.is-active{background:#3882dc;transform:scale(1.4)}
-
-    /* ---------- COMPARE — living highlight + expandable detail ---------- */
-    .hp-comp-card--featured{ animation: hpGlow 3.4s ease-in-out infinite; }
-    @keyframes hpGlow{
-      0%,100%{ box-shadow: 0 0 0 0 rgba(56,130,220,0.0); }
-      50%{ box-shadow: 0 0 0 8px rgba(56,130,220,0.08); }
-    }
-    .hp-comp-card__details{margin-top:0.85rem;text-align:left}
-    .hp-comp-card__details summary{
-      list-style:none;cursor:pointer;font-size:0.78rem;font-weight:700;color:#3882dc;text-align:center;
-      display:flex;align-items:center;justify-content:center;gap:0.3rem;padding-top:0.6rem;border-top:1px dashed #c7d9ef;
-    }
-    .hp-comp-card__details summary::-webkit-details-marker{display:none}
-    .hp-comp-card__details summary::after{content:'▾';font-size:0.7rem;transition:transform .2s ease}
-    .hp-comp-card__details[open] summary::after{transform:rotate(180deg)}
-    .hp-comp-card__details p{font-size:0.83rem;color:#2a4060;line-height:1.55;margin:0.6rem 0 0}
-
-    /* ---------- FEATURES — pulse ring behind icon ---------- */
-    .hp-feature__icon{ position:relative; }
-    .hp-feature__icon::before{
-      content:''; position:absolute; inset:-6px; border-radius:14px;
-      border:1.5px solid rgba(56,130,220,0.35); opacity:0; transform:scale(0.85);
-      animation: hpRing 3.6s ease-out infinite;
-    }
-    .hp-feature:nth-child(2) .hp-feature__icon::before{ animation-delay:0.6s; }
-    .hp-feature:nth-child(3) .hp-feature__icon::before{ animation-delay:1.2s; }
-    .hp-feature:nth-child(4) .hp-feature__icon::before{ animation-delay:1.8s; }
-    .hp-feature:nth-child(5) .hp-feature__icon::before{ animation-delay:2.4s; }
-    .hp-feature:nth-child(6) .hp-feature__icon::before{ animation-delay:3.0s; }
-    @keyframes hpRing{
-      0%{ opacity:0.55; transform:scale(0.85); }
-      70%{ opacity:0; transform:scale(1.25); }
-      100%{ opacity:0; transform:scale(1.25); }
+    html{scroll-behavior:smooth}
+    body{
+      background:var(--void); color:var(--text-1); font-family:'DM Sans',-apple-system,sans-serif;
+      -webkit-font-smoothing:antialiased; position:relative; overflow-x:hidden;
     }
 
-    /* ---------- STEPS — traveling rail ---------- */
-    .hp-steps__list{ position:relative; }
-    .hp-steps__rail{
-      position:absolute; left:15px; top:16px; bottom:16px; width:2px;
-      background: rgba(56,130,220,0.15); z-index:0; border-radius:2px; overflow:hidden;
+    /* ---------- persistent atmosphere: grain + drifting glows + particle canvas ---------- */
+    body::before{
+      content:''; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.35;
+      background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
     }
-    .hp-steps__rail-fill{
-      position:absolute; left:0; width:100%; height:22%;
-      background: linear-gradient(#5aa8f0, #3882dc);
-      animation: hpRailTravel 5.5s ease-in-out infinite;
-      border-radius:2px;
+    #bgcanvas{position:fixed;inset:0;z-index:0;width:100%;height:100%;opacity:.5;pointer-events:none;}
+    .glow{position:fixed;border-radius:50%;pointer-events:none;z-index:0;filter:blur(10px);}
+    .glow--a{width:56vw;height:56vw;top:-18vw;left:-14vw;background:radial-gradient(circle,rgba(56,130,220,.16),transparent 70%);}
+    .glow--b{width:46vw;height:46vw;bottom:8vw;right:-16vw;background:radial-gradient(circle,rgba(90,168,240,.13),transparent 70%);}
+    .glow--c{width:40vw;height:40vw;top:60vh;left:30vw;background:radial-gradient(circle,rgba(56,130,220,.10),transparent 70%);}
+
+    .stage{position:relative;z-index:1;}
+    .scene{max-width:760px;margin-inline:auto;padding:9rem 1.5rem;text-align:center;}
+    .scene--wide{max-width:1040px;}
+    .eyebrow{font-family:'DM Mono',monospace;font-size:.72rem;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--sky-light);margin-bottom:1.25rem;opacity:.9;}
+    .scene h2{font-size:clamp(1.9rem,4.2vw,3rem);font-weight:800;letter-spacing:-.03em;line-height:1.1;color:var(--text-1);margin-bottom:1.1rem;}
+    .scene p.lead{font-size:1.05rem;color:var(--text-2);line-height:1.65;max-width:560px;margin-inline:auto;}
+    .reveal{opacity:0;transform:translateY(26px);}
+
+    /* ---------- HERO ---------- */
+    .hero{min-height:92vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:7rem 1.5rem 4rem;position:relative;}
+    .hero__eyebrow{font-family:'DM Mono',monospace;font-size:.74rem;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--sky-light);margin-bottom:1.5rem;}
+    .hero h1{font-size:clamp(2.1rem,5.4vw,3.6rem);font-weight:800;letter-spacing:-.035em;line-height:1.08;color:var(--text-1);max-width:820px;}
+    .hero h1 em{font-style:normal;color:var(--sky-light);}
+
+    .query-bar{
+      margin:2.25rem auto 0; max-width:560px; display:flex; align-items:center; gap:.7rem;
+      background:rgba(255,255,255,0.05); border:1px solid var(--panel-border); border-radius:999px;
+      padding:.9rem 1.4rem; backdrop-filter:blur(6px);
     }
-    @keyframes hpRailTravel{
-      0%{ top:0%; }
-      45%{ top:78%; }
-      55%{ top:78%; }
-      100%{ top:0%; }
+    .query-bar svg{width:17px;height:17px;stroke:var(--text-3);fill:none;stroke-width:2;flex-shrink:0;}
+    .query-bar__text{font-family:'DM Mono',monospace;font-size:.92rem;color:var(--text-2);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .query-bar__cursor{display:inline-block;width:1px;height:1em;background:var(--sky-light);vertical-align:-2px;animation:blink 1s step-end infinite;margin-left:1px;}
+    @keyframes blink{50%{opacity:0;}}
+
+    .hero__sub{margin-top:1.75rem;font-size:1.05rem;color:var(--text-2);max-width:480px;line-height:1.6;}
+    .hero__actions{display:flex;gap:.85rem;flex-wrap:wrap;justify-content:center;margin-top:2.25rem;}
+    .hero__proof{margin-top:1.1rem;font-size:.78rem;color:var(--text-3);letter-spacing:.03em;}
+
+    /* floating product cards beneath the fold of the hero */
+    .hero__stage{position:relative;height:280px;width:100%;max-width:900px;margin-top:4rem;perspective:1300px;}
+    .site-card{
+      position:absolute; width:230px; background:#fff; border-radius:10px; overflow:hidden;
+      box-shadow:0 24px 50px -16px rgba(0,0,0,.5); transform-style:preserve-3d;
+      animation:cardFloat 7s ease-in-out infinite;
     }
-    .hp-step{ position:relative; z-index:1; }
+    @keyframes cardFloat{0%,100%{margin-top:0;}50%{margin-top:-10px;}}
+    .site-card__bar{display:flex;align-items:center;gap:5px;padding:7px 9px;background:#1e2d45;}
+    .site-card__bar .dot{width:6px;height:6px;border-radius:50%;}
+    .site-card__bar .url{margin-left:4px;font-family:monospace;font-size:8.5px;color:rgba(255,255,255,0.55);white-space:nowrap;overflow:hidden;}
+    .site-card__photo{height:66px;width:100%;object-fit:cover;display:block;background:#0d1f0f;}
+    .site-card__body{padding:11px 12px 13px;text-align:left;}
+    .site-card__tag{display:inline-block;font-family:monospace;font-size:8px;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:5px;margin-bottom:6px;font-weight:700;background:rgba(56,130,220,.12);color:#3882dc;}
+    .site-card__h{font-weight:700;font-size:12.5px;color:#0a1628;margin-bottom:3px;line-height:1.25;}
+    .site-card__p{font-size:9.5px;color:#5a7a9a;line-height:1.4;}
+
+    /* ---------- BOTTLENECK / channel split ---------- */
+    .channels{display:grid;grid-template-columns:1fr auto 1fr;gap:1.5rem;align-items:center;margin-top:3rem;max-width:640px;margin-inline:auto;}
+    .channel{background:var(--panel);border:1px solid var(--panel-border);border-radius:16px;padding:1.5rem 1.25rem;text-align:left;}
+    .channel__label{font-family:'DM Mono',monospace;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sky-light);margin-bottom:.6rem;}
+    .channel__q{font-size:.92rem;color:var(--text-1);line-height:1.5;font-style:italic;}
+    .channel__x{font-family:'DM Mono',monospace;font-size:1.4rem;color:var(--text-3);}
+    @media(max-width:600px){.channels{grid-template-columns:1fr;}.channel__x{display:none;}}
+
+    /* ---------- what enoma is: inline stat row ---------- */
+    .statline{display:flex;gap:2.5rem;justify-content:center;flex-wrap:wrap;margin-top:2.75rem;}
+    .statline__item{text-align:center;}
+    .statline__num{font-family:'DM Mono',monospace;font-weight:700;font-size:1.7rem;color:var(--sky-light);letter-spacing:-.02em;}
+    .statline__label{font-size:.76rem;color:var(--text-3);margin-top:.2rem;letter-spacing:.02em;}
+
+    /* ---------- proof ---------- */
+    .proof-card{
+      margin-top:2.25rem;display:inline-flex;align-items:center;gap:1.5rem;text-align:left;
+      background:var(--panel);border:1px solid var(--panel-border);border-radius:18px;padding:1.5rem 1.85rem;
+    }
+    .proof-card__num{font-family:'DM Sans',sans-serif;font-weight:800;font-size:2.6rem;color:var(--sky-light);line-height:1;flex-shrink:0;}
+    .proof-card__text{font-size:.92rem;color:var(--text-2);line-height:1.5;max-width:340px;}
+    .proof-card__text a{color:var(--sky-light);font-weight:600;}
+    @media(max-width:560px){.proof-card{flex-direction:column;text-align:center;}}
+
+    /* ---------- how it works ---------- */
+    .steps2{display:flex;flex-direction:column;gap:2.5rem;text-align:left;max-width:520px;margin:3rem auto 0;}
+    .step2{display:flex;gap:1.5rem;align-items:baseline;}
+    .step2__num{font-family:'DM Mono',monospace;font-weight:700;font-size:1.6rem;color:var(--text-3);flex-shrink:0;width:2.2rem;}
+    .step2__title{font-weight:700;font-size:1.05rem;color:var(--text-1);margin-bottom:.3rem;}
+    .step2__desc{font-size:.9rem;color:var(--text-2);line-height:1.55;}
+
+    /* ---------- final cta ---------- */
+    .finale h2{font-size:clamp(2rem,4.6vw,3rem);}
+    .finale .hero__actions{margin-top:2rem;}
+
+    @media(max-width:640px){
+      .hero__stage{display:none;}
+      .scene{padding:6rem 1.25rem;}
+      .query-bar__text{font-size:.8rem;}
+    }
 
     @media (prefers-reduced-motion: reduce){
-      .hp-site-card, .hp-ticker-track, .hp-prob-icon--signal .bar1, .hp-prob-icon--signal .bar2, .hp-prob-icon--signal .bar3,
-      .hp-prob-icon--pins .pin-b, .hp-prob-icon--flatline .pulse-line, .hp-comp-card--featured, .hp-feature__icon::before,
-      .hp-steps__rail-fill, .hp-dash__chart-col{ animation:none; }
-    }
-
-    /* THE PROBLEM */
-    .hp-problem{background:white;padding:5rem 1.5rem;border-top:1px solid #d4e2f4}
-    .hp-problem__inner{max-width:860px;margin-inline:auto;text-align:center}
-    .hp-problem__label{font-size:0.7rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#3882dc;margin-bottom:0.6rem}
-    .hp-problem__h2{font-family:'DM Sans',sans-serif;font-size:clamp(1.6rem,3vw,2rem);font-weight:800;color:#0a1628;letter-spacing:-0.02em;margin-bottom:0.6rem}
-    .hp-problem__sub{color:#5a7a9a;font-size:1rem;max-width:580px;margin:0 auto 2.5rem;line-height:1.6}
-    .hp-problem__cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
-    .hp-prob-card{border-radius:14px;padding:1.5rem;text-align:left;border:1px solid #d4e2f4;background:#f7faff}
-    .hp-prob-card__h3{font-family:'DM Sans',sans-serif;font-size:0.97rem;font-weight:700;color:#0a1628;margin-bottom:0.35rem}
-    .hp-prob-card__p{font-size:0.88rem;color:#5a7a9a;line-height:1.6;margin:0}
-
-    /* COMPARE */
-    .hp-compare{background:#f0f6ff;padding:4rem 1.5rem}
-    .hp-compare__inner{max-width:860px;margin-inline:auto;text-align:center}
-    .hp-compare__label{font-size:0.7rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#3882dc;margin-bottom:0.6rem}
-    .hp-compare__h2{font-family:'DM Sans',sans-serif;font-size:clamp(1.6rem,3vw,2rem);font-weight:800;color:#0a1628;letter-spacing:-0.02em;margin-bottom:0.6rem}
-    .hp-compare__sub{color:#5a7a9a;font-size:1rem;max-width:560px;margin:0 auto 2.5rem;line-height:1.6}
-    .hp-compare__cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;align-items:start}
-    .hp-comp-card{border-radius:14px;padding:1.5rem;text-align:center;border:1px solid #d4e2f4;background:white;display:flex;flex-direction:column}
-    .hp-comp-card--featured{border:2px solid #3882dc;background:#e6f1fb;position:relative}
-    .hp-comp-card__badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#3882dc;color:white;font-size:0.65rem;font-weight:700;padding:3px 10px;border-radius:999px;letter-spacing:0.06em;text-transform:uppercase;white-space:nowrap}
-    .hp-comp-card__label{font-size:0.78rem;font-weight:700;color:#0a1628;margin-bottom:0.5rem}
-    .hp-comp-card__price{font-family:'DM Sans',sans-serif;font-size:1.65rem;font-weight:800;color:#0a1628;letter-spacing:-0.03em;line-height:1}
-    .hp-comp-card--featured .hp-comp-card__price{color:#3882dc}
-    .hp-comp-card__note{font-size:0.78rem;color:#5a7a9a;margin-top:0.3rem}
-
-    /* FEATURES */
-    .hp-features{background:white;padding:5rem 1.5rem;border-top:1px solid #d4e2f4}
-    .hp-features__inner{max-width:1040px;margin-inline:auto}
-    .hp-features__header{text-align:center;margin-bottom:3rem}
-    .hp-features__label{font-size:0.7rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#3882dc;margin-bottom:0.6rem}
-    .hp-features__h2{font-family:'DM Sans',sans-serif;font-size:clamp(1.6rem,3vw,2rem);font-weight:800;color:#0a1628;letter-spacing:-0.02em;margin-bottom:0.6rem}
-    .hp-features__sub{color:#5a7a9a;max-width:520px;margin:0 auto;font-size:1rem;line-height:1.6}
-    .hp-features__grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem}
-    .hp-feature{background:#f7faff;border:1px solid #d4e2f4;border-radius:16px;padding:1.75rem}
-    .hp-feature__icon{width:40px;height:40px;border-radius:10px;background:#e6f1fb;display:flex;align-items:center;justify-content:center;margin-bottom:1rem}
-    .hp-feature__icon svg{width:20px;height:20px;stroke:#3882dc;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-    .hp-feature__h3{font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:700;color:#0a1628;margin-bottom:0.4rem;letter-spacing:-0.01em}
-    .hp-feature__p{font-size:0.9rem;color:#5a7a9a;line-height:1.6;margin:0}
-
-    /* STEPS */
-    .hp-steps{background:#f0f6ff;padding:5rem 1.5rem}
-    .hp-steps__inner{max-width:680px;margin-inline:auto}
-    .hp-steps__header{text-align:left;margin-bottom:2.5rem}
-    .hp-steps__label{font-size:0.7rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#3882dc;margin-bottom:0.6rem}
-    .hp-steps__h2{font-family:'DM Sans',sans-serif;font-size:clamp(1.6rem,3vw,2rem);font-weight:800;color:#0a1628;letter-spacing:-0.02em}
-    .hp-steps__list{display:flex;flex-direction:column;gap:1.25rem}
-    .hp-step{display:flex;gap:1.1rem;align-items:flex-start}
-    .hp-step__num{width:32px;height:32px;border-radius:50%;background:#3882dc;color:white;font-family:'DM Sans',sans-serif;font-size:0.85rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
-    .hp-step__title{font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:700;color:#0a1628;margin-bottom:0.2rem}
-    .hp-step__desc{font-size:0.9rem;color:#5a7a9a;line-height:1.55;margin:0}
-    .hp-steps__note{margin-top:2rem;font-size:0.88rem;color:#7ab3e0;font-style:italic;padding-left:calc(32px + 1.1rem)}
-
-    /* SOCIAL PROOF */
-    .hp-proof{background:white;padding:5rem 1.5rem;border-top:1px solid #d4e2f4}
-    .hp-proof__inner{max-width:860px;margin-inline:auto;text-align:center}
-    .hp-proof__label{font-size:0.7rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#3882dc;margin-bottom:0.6rem}
-    .hp-proof__h2{font-family:'DM Sans',sans-serif;font-size:clamp(1.5rem,3vw,1.9rem);font-weight:800;color:#0a1628;letter-spacing:-0.02em;margin-bottom:2rem}
-    .hp-proof__cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
-    .hp-proof-card{background:#f7faff;border:1px solid #d4e2f4;border-radius:14px;padding:1.5rem;text-align:left}
-    .hp-proof-card__stat{font-family:'DM Sans',sans-serif;font-size:1.8rem;font-weight:800;color:#3882dc;letter-spacing:-0.03em;line-height:1;margin-bottom:0.25rem}
-    .hp-proof-card__stat-label{font-size:0.82rem;color:#5a7a9a;line-height:1.4}
-
-    /* FINAL CTA */
-    .hp-cta{background:linear-gradient(160deg,#0a1628,#162540);padding:6rem 1.5rem;text-align:center;position:relative;overflow:hidden}
-    .hp-cta::before{content:'';position:absolute;bottom:-60px;left:50%;transform:translateX(-50%);width:600px;height:300px;background:radial-gradient(ellipse,rgba(56,130,220,0.2) 0%,transparent 70%);pointer-events:none}
-    .hp-cta__inner{max-width:600px;margin-inline:auto;position:relative}
-    .hp-cta__h2{font-family:'DM Sans',sans-serif;font-size:clamp(1.8rem,4vw,2.4rem);font-weight:800;color:#f0f6ff;letter-spacing:-0.025em;margin-bottom:0.75rem}
-    .hp-cta__sub{font-size:1rem;color:rgba(240,246,255,0.6);line-height:1.6;max-width:480px;margin:0 auto 2rem}
-    .hp-cta__actions{display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap}
-    .hp-cta__proof{margin-top:1rem;font-size:0.78rem;color:rgba(240,246,255,0.35);letter-spacing:0.04em}
-
-    /* RESPONSIVE */
-    @media(max-width:768px){
-      .hp-hero__inner{grid-template-columns:1fr}
-      .hp-problem__cards,.hp-compare__cards,.hp-features__grid,.hp-proof__cards{grid-template-columns:1fr}
-      .hp-stage-outer{ height:400px; margin-top:2rem; }
-      .hp-sim__form{grid-template-columns:1fr}
-      .hp-sim__submit{width:100%}
-      .hp-sim__score-row{flex-direction:column;align-items:flex-start}
-      .hp-sim__bar-row{grid-template-columns:120px 1fr 36px}
-      .hp-dash__kpis{grid-template-columns:1fr 1fr}
-      .hp-dash__grid{grid-template-columns:1fr}
-      .hp-carousel__slot{flex-basis:180px}
-    }
-    @media(max-width:480px){
-      .hp-hero{padding:3rem 1.25rem 2.5rem}
-      .hp-site-card{ width: 230px; }
-      .hp-dash__kpis{grid-template-columns:1fr 1fr}
-      .hp-carousel__slot{flex-basis:150px;margin:0 6px}
-      .hp-carousel__slot.is-active .hp-carousel__card{transform:scale(1.1)}
+      html{scroll-behavior:auto;}
+      .site-card,.query-bar__cursor{animation:none;}
     }
   </style>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Enoma","applicationCategory":"BusinessApplication","description":"Enoma is a lead gen platform for local service businesses — landscapers, plumbers, HVAC, contractors. A dedicated Google-indexed page that sends customer inquiries directly to you. Live in minutes, first month free.","operatingSystem":"Web","url":"https://enoma.io","offers":{"@type":"Offer","price":"19.99","priceCurrency":"USD"},"audience":{"@type":"Audience","audienceType":"Local Service Businesses"}}</script>
@@ -411,713 +146,258 @@
 
 <script type="module" src="/partials/nav.js"></script>
 
-<!-- HERO -->
-<section class="hp-hero">
-  <div class="hp-hero__inner">
-    <div class="hp-hero__left">
-      <p class="hp-hero__eyebrow">For local service businesses</p>
-      <h1 class="hp-hero__h1">Get found online.<br><em>Get more calls.</em></h1>
-      <p class="hp-hero__sub">Your current site — or Facebook page — is missing leads every day. Enoma gives your landscaping, plumbing, HVAC, or trade business a dedicated lead gen page that catches those searches and sends customers straight to you. First month free.</p>
-      <div class="hp-hero__actions">
-        <a href="/get-your-website" class="btn-primary">Get found free →</a>
-        <a href="/examples" class="btn-secondary">See live examples</a>
-      </div>
-      <div class="hp-hero__stats-strip">
-        <span class="hp-hero__stat-pill"><strong>Indexed online</strong> from day one</span>
-        <span class="hp-hero__stat-pill"><strong>&lt;&nbsp;5 min</strong> to go live</span>
-        <span class="hp-hero__stat-pill"><strong>$0</strong> first month</span>
-      </div>
-      <p class="hp-hero__proof">No credit card &nbsp;·&nbsp; No contracts &nbsp;·&nbsp; Cancel anytime</p>
+<canvas id="bgcanvas"></canvas>
+<div class="glow glow--a"></div>
+<div class="glow glow--b"></div>
+<div class="glow glow--c"></div>
+
+<div class="stage">
+
+  <!-- ============ HERO — states the bottleneck immediately ============ -->
+  <section class="hero">
+    <p class="hero__eyebrow">For local service businesses</p>
+    <h1>Someone is searching for a<br><em>business like yours</em> right now.</h1>
+
+    <div class="query-bar">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <span class="query-bar__text" id="queryText">"landscaper near me"</span><span class="query-bar__cursor"></span>
     </div>
 
-    <div class="hp-hero__right">
-      <div class="hp-stage-outer" id="hpStageOuter">
-        <div class="hp-glow"></div>
-        <div class="hp-stage" id="hpStage">
+    <p class="hero__sub">Google saw that search. So did ChatGPT. Enoma makes sure your business is the answer — not whoever happened to show up first.</p>
 
-          <!-- Card 1: Conway's Landscaping — HERO section -->
-          <div class="hp-site-card" style="top:6px; left:6%; transform:rotateY(-13deg) rotateX(4deg) translateZ(30px); animation-delay:0s; z-index:3;">
-            <div class="hp-card-bar">
-              <div class="hp-dot" style="background:#ff5f56"></div>
-              <div class="hp-dot" style="background:#ffbd2e"></div>
-              <div class="hp-dot" style="background:#27c93f"></div>
-              <div class="hp-url">enoma.io/conways-landscaping</div>
-            </div>
-            <img class="hp-card-photo" src="https://qhsivcenpnxwmvwznqie.supabase.co/storage/v1/object/public/business-images/6ec4d119-4fc0-450e-8a89-27a372986903/1774625993664-jack-conway-fb3.jpg" alt="Conway's Landscaping — hero photo" loading="lazy" />
-            <div class="hp-card-body">
-              <span class="hp-card-tag">Hero</span>
-              <div class="hp-card-h">Reliable Lawn Care in Agawam &amp; West Springfield</div>
-              <div class="hp-card-p">Weekly mowing, trimming, mulching &amp; seasonal cleanups.</div>
-            </div>
-          </div>
-
-          <!-- Card 2: Conway's Landscaping — RECENT WORK section -->
-          <div class="hp-site-card" style="top:138px; left:38%; transform:rotateY(9deg) rotateX(-3deg) translateZ(80px) scale(1.05); animation-delay:1.4s; z-index:4;">
-            <div class="hp-card-bar">
-              <div class="hp-dot" style="background:#ff5f56"></div>
-              <div class="hp-dot" style="background:#ffbd2e"></div>
-              <div class="hp-dot" style="background:#27c93f"></div>
-              <div class="hp-url">enoma.io/conways-landscaping</div>
-            </div>
-            <div class="hp-card-photos-grid">
-              <img src="https://qhsivcenpnxwmvwznqie.supabase.co/storage/v1/object/public/business-images/6ec4d119-4fc0-450e-8a89-27a372986903/1774625994364-jack-conway-fb2.jpg" alt="Conway's Landscaping — recent job photo" loading="lazy" />
-              <img src="https://qhsivcenpnxwmvwznqie.supabase.co/storage/v1/object/public/business-images/6ec4d119-4fc0-450e-8a89-27a372986903/1774625994758-jack-conway-fb1.jpg" alt="Conway's Landscaping — recent job photo" loading="lazy" />
-            </div>
-            <div class="hp-card-body">
-              <span class="hp-card-tag">Recent Work</span>
-              <div class="hp-card-h">Real jobs, real photos</div>
-              <div class="hp-card-p">Uploaded straight from the owner's phone.</div>
-            </div>
-          </div>
-
-          <!-- Card 3: Arno Plumbing & Heating — WHAT CLIENTS SAY section -->
-          <div class="hp-site-card" style="top:298px; left:4%; transform:rotateY(-6deg) rotateX(2deg) translateZ(-10px) scale(0.94); animation-delay:2.8s; z-index:2; opacity:0.96;">
-            <div class="hp-card-bar">
-              <div class="hp-dot" style="background:#ff5f56"></div>
-              <div class="hp-dot" style="background:#ffbd2e"></div>
-              <div class="hp-dot" style="background:#27c93f"></div>
-              <div class="hp-url">enoma.io/arno-plumbing-and-heating</div>
-            </div>
-            <div class="hp-card-body" style="padding-top:16px;">
-              <span class="hp-card-tag">What Clients Say</span>
-              <div class="hp-card-quote">"Arno came out same day when our boiler stopped working in January. Had it running within two hours. Lifesavers."</div>
-              <div class="hp-card-author">— Karen T., North Attleboro</div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- TRADE TICKER -->
-<div class="hp-ticker-wrap">
-  <div class="hp-ticker-label">Built for every trade</div>
-  <div class="hp-ticker-track">
-    <span>Landscaping</span><span>Plumbing</span><span>Heating</span><span>HVAC</span>
-    <span>Roofing</span><span>Electrical</span><span>Painting</span><span>Snow Removal</span>
-    <span>Landscaping</span><span>Plumbing</span><span>Heating</span><span>HVAC</span>
-    <span>Roofing</span><span>Electrical</span><span>Painting</span><span>Snow Removal</span>
-  </div>
-</div>
-
-<!-- REAL RESULTS BANNER -->
-<section class="hp-results-banner">
-  <div class="hp-results-banner__inner">
-    <div class="hp-results-banner__stat">4</div>
-    <div class="hp-results-banner__text">
-      <p class="hp-results-banner__label">Real result</p>
-      <p class="hp-results-banner__desc">Conway's Landscaping in Agawam, MA generated 4 real customer inquiries through their Enoma page — homeowners who found them on Google and reached out directly. Zero ad spend.</p>
-    </div>
-    <a href="/case-studies/conways-landscaping" class="hp-results-banner__link">Read the case study →</a>
-  </div>
-</section>
-
-<!-- LOCAL VISIBILITY SIMULATOR -->
-<section class="hp-sim">
-  <div class="hp-sim__inner">
-    <p class="hp-sim__label">Free check</p>
-    <h2 class="hp-sim__h2">How findable are businesses like yours?</h2>
-    <p class="hp-sim__sub">Pick your trade and town — we'll show you the visibility gaps we typically see for businesses before they have a dedicated page.</p>
-
-    <div class="hp-sim__card">
-      <form class="hp-sim__form" id="hpSimForm">
-        <div class="hp-sim__field">
-          <label for="hpSimTrade">Trade</label>
-          <select id="hpSimTrade">
-            <option>Landscaping</option>
-            <option>HVAC</option>
-            <option>Plumbing</option>
-            <option>Junk Removal</option>
-            <option>Painting</option>
-            <option>Masonry</option>
-            <option>Cleaning</option>
-            <option>Roofing</option>
-          </select>
-        </div>
-        <div class="hp-sim__field">
-          <label for="hpSimTown">Town</label>
-          <input type="text" id="hpSimTown" placeholder="e.g. Agawam, MA" />
-        </div>
-        <button type="submit" class="hp-sim__submit">Check typical visibility →</button>
-      </form>
-
-      <div class="hp-sim__results" id="hpSimResults">
-        <div class="hp-sim__score-row">
-          <div class="hp-sim__score-num"><span id="hpSimScoreNum">0</span><span>/100</span></div>
-          <p class="hp-sim__score-label" id="hpSimScoreLabel">A representative visibility score for this trade and town — most businesses without a dedicated page score below 50.</p>
-        </div>
-        <div class="hp-sim__bars" id="hpSimBars">
-          <div class="hp-sim__bar-row">
-            <span class="hp-sim__bar-label">Google search presence</span>
-            <div class="hp-sim__bar-track"><div class="hp-sim__bar-fill" data-key="google"></div></div>
-            <span class="hp-sim__bar-pct" data-pct="google">0%</span>
-          </div>
-          <div class="hp-sim__bar-row">
-            <span class="hp-sim__bar-label">Facebook-only risk</span>
-            <div class="hp-sim__bar-track"><div class="hp-sim__bar-fill" data-key="facebook"></div></div>
-            <span class="hp-sim__bar-pct" data-pct="facebook">0%</span>
-          </div>
-          <div class="hp-sim__bar-row">
-            <span class="hp-sim__bar-label">Directory competition</span>
-            <div class="hp-sim__bar-track"><div class="hp-sim__bar-fill" data-key="directory"></div></div>
-            <span class="hp-sim__bar-pct" data-pct="directory">0%</span>
-          </div>
-          <div class="hp-sim__bar-row">
-            <span class="hp-sim__bar-label">Lead capture readiness</span>
-            <div class="hp-sim__bar-track"><div class="hp-sim__bar-fill" data-key="capture"></div></div>
-            <span class="hp-sim__bar-pct" data-pct="capture">0%</span>
-          </div>
-        </div>
-        <div class="hp-sim__cta">
-          <p style="font-size:0.88rem;color:#0a1628;font-weight:600;margin:0;">Enoma fixes all four in under 5 minutes.</p>
-          <a href="/get-your-website" class="btn-primary">See how →</a>
-        </div>
-        <p class="hp-sim__disclaimer">Illustrative example based on common patterns for this trade — not a live scan of any specific business or website.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- THE PROBLEM -->
-<section class="hp-problem">
-  <div class="hp-problem__inner">
-    <p class="hp-problem__label">The problem</p>
-    <h2 class="hp-problem__h2">Every day, customers search for your trade online. Most of them never find you.</h2>
-    <p class="hp-problem__sub">When a homeowner searches "landscaper near me" or "plumber in Agawam MA," they see whoever shows up first in Google — not whoever's best. If you're not showing up, those jobs are going to someone else.</p>
-    <div class="hp-problem__cards">
-      <div class="hp-prob-card">
-        <div class="hp-prob-icon hp-prob-icon--signal">
-          <svg viewBox="0 0 24 24"><path class="bar1" d="M4 18v-2"/><path class="bar2" d="M10 18v-6"/><path class="bar3" d="M16 18V8"/><path d="M2 20h20" stroke-width="1.4" opacity="0.4"/></svg>
-        </div>
-        <h3 class="hp-prob-card__h3">Facebook-only presence</h3>
-        <p class="hp-prob-card__p">Your Facebook page doesn't rank on Google. Customers searching for your trade in your town won't find you.</p>
-      </div>
-      <div class="hp-prob-card">
-        <div class="hp-prob-icon hp-prob-icon--pins">
-          <svg viewBox="0 0 24 24">
-            <path class="pin-a" d="M9 21s-6-5.2-6-10a6 6 0 1112 0c0 4.8-6 10-6 10z"/><circle class="pin-a" cx="9" cy="11" r="2"/>
-            <path class="pin-b" d="M17 15s-3-2.6-3-5a3 3 0 116 0c0 2.4-3 5-3 5z" opacity="0.55"/>
-          </svg>
-        </div>
-        <h3 class="hp-prob-card__h3">Directory listings share your leads</h3>
-        <p class="hp-prob-card__p">Yelp and Angie's List show your competitors right next to you. You're generating leads for them too.</p>
-      </div>
-      <div class="hp-prob-card">
-        <div class="hp-prob-icon hp-prob-icon--flatline">
-          <svg viewBox="0 0 24 24"><path class="pulse-line" d="M2 12h5l2-6 3 12 2-6h8"/></svg>
-        </div>
-        <h3 class="hp-prob-card__h3">Your current site isn't generating leads</h3>
-        <p class="hp-prob-card__p">Most trades websites are digital brochures — they look fine but don't convert visitors into calls. An agency charges $3,000+ to fix that. There's a better way.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- LIVE DASHBOARD PREVIEW (abstract/illustrative example) -->
-<section class="hp-dash">
-  <div class="hp-dash__inner">
-    <div class="hp-dash__header">
-      <p class="hp-dash__label">Live Enoma dashboard preview</p>
-      <h2 class="hp-dash__h2">What you see after your Enoma page goes live.</h2>
-      <p class="hp-dash__sub">Every call, click, and quote request — tracked automatically. No extra software, no setup. (Example data shown.)</p>
-    </div>
-    <div class="hp-dash__panel">
-      <div class="hp-dash__bar">
-        <div class="hp-dot" style="background:#ff5f56"></div>
-        <div class="hp-dot" style="background:#ffbd2e"></div>
-        <div class="hp-dot" style="background:#27c93f"></div>
-        <div class="hp-dash__url">dashboard.enoma.io</div>
-      </div>
-      <div class="hp-dash__body">
-        <div class="hp-dash__kpis">
-          <div class="hp-dash__kpi" data-tip="+18% vs. last month">
-            <div class="hp-dash__kpi-value">214</div>
-            <div class="hp-dash__kpi-label">Page views</div>
-          </div>
-          <div class="hp-dash__kpi" data-tip="Direct calls from your page">
-            <div class="hp-dash__kpi-value">38</div>
-            <div class="hp-dash__kpi-label">Call / button clicks</div>
-          </div>
-          <div class="hp-dash__kpi" data-tip="Sent straight to your inbox">
-            <div class="hp-dash__kpi-value">17</div>
-            <div class="hp-dash__kpi-label">Quote requests</div>
-          </div>
-          <div class="hp-dash__kpi" data-tip="Customers getting directions to you">
-            <div class="hp-dash__kpi-value">9</div>
-            <div class="hp-dash__kpi-label">Map / direction clicks</div>
-          </div>
-        </div>
-        <div class="hp-dash__grid">
-          <div class="hp-dash__chart-card">
-            <p class="hp-dash__chart-caption">Customer actions — last 30 days</p>
-            <div class="hp-dash__chart" id="hpDashChart"></div>
-          </div>
-          <div class="hp-dash__side-card">
-            <p class="hp-dash__side-title">Top search terms</p>
-            <ul class="hp-dash__terms">
-              <li>"landscaper near me"</li>
-              <li>"mulch delivery Attleboro"</li>
-              <li>"lawn cleanup"</li>
-            </ul>
-            <p class="hp-dash__side-title">Top sources</p>
-            <div class="hp-dash__sources">
-              <span class="hp-dash__source-pill">Google</span>
-              <span class="hp-dash__source-pill">Facebook</span>
-              <span class="hp-dash__source-pill">Direct</span>
-              <span class="hp-dash__source-pill">Local referrals</span>
-            </div>
-          </div>
-        </div>
-        <div class="hp-dash__insight">💡 Recommended: Add 2 more before/after photos — Enoma pages with 6+ photos get 2× more quote requests.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- TRADE CAROUSEL — coverflow -->
-<section class="hp-carousel">
-  <div class="hp-carousel__inner">
-    <div class="hp-carousel__header">
-      <div>
-        <p class="hp-carousel__label">Built for your trade</p>
-        <h2 class="hp-carousel__h2">Pages built for trades like yours.</h2>
-      </div>
-      <div class="hp-carousel__nav">
-        <button class="hp-carousel__nav-btn" id="hpCarPrev" aria-label="Previous"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
-        <button class="hp-carousel__nav-btn" id="hpCarNext" aria-label="Next"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
-      </div>
-    </div>
-    <div class="hp-carousel__viewport" id="hpCarViewport">
-      <div class="hp-carousel__track" id="hpCarTrack">
-
-        <div class="hp-carousel__slot">
-          <div class="hp-carousel__card">
-            <div class="hp-carousel__photo" style="background:linear-gradient(135deg,#2f6b3f,#4c9a5f)">
-              <svg viewBox="0 0 24 24"><path d="M4 20c0-9 7-16 16-16 0 9-7 16-16 16z"/><path d="M4 20c4-4 8-8 12-12"/></svg>
-            </div>
-            <div class="hp-carousel__body">
-              <div class="hp-carousel__trade">Landscaping</div>
-              <p class="hp-carousel__line">Weekly care, seasonal cleanups &amp; mulch jobs.</p>
-              <span class="hp-carousel__badge">Built for calls + quotes</span>
-              <a href="/examples" class="hp-carousel__cta">See example →</a>
-            </div>
-          </div>
-        </div>
-
-        <div class="hp-carousel__slot">
-          <div class="hp-carousel__card">
-            <div class="hp-carousel__photo" style="background:linear-gradient(135deg,#2a4060,#3882dc)">
-              <svg viewBox="0 0 24 24"><path d="M12 14V5a2 2 0 10-4 0v9a4 4 0 104 0z"/></svg>
-            </div>
-            <div class="hp-carousel__body">
-              <div class="hp-carousel__trade">HVAC</div>
-              <p class="hp-carousel__line">Emergency repairs &amp; seasonal tune-ups.</p>
-              <span class="hp-carousel__badge">Built for same-day calls</span>
-              <a href="/examples" class="hp-carousel__cta">See example →</a>
-            </div>
-          </div>
-        </div>
-
-        <div class="hp-carousel__slot">
-          <div class="hp-carousel__card">
-            <div class="hp-carousel__photo" style="background:linear-gradient(135deg,#1e5f8a,#3aa0c9)">
-              <svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 10-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 005.4-5.4l-2.8 2.8-2-2z"/></svg>
-            </div>
-            <div class="hp-carousel__body">
-              <div class="hp-carousel__trade">Plumbing</div>
-              <p class="hp-carousel__line">Leaks, installs &amp; after-hours emergencies.</p>
-              <span class="hp-carousel__badge">Built for urgent calls</span>
-              <a href="/examples" class="hp-carousel__cta">See example →</a>
-            </div>
-          </div>
-        </div>
-
-        <div class="hp-carousel__slot">
-          <div class="hp-carousel__card">
-            <div class="hp-carousel__photo" style="background:linear-gradient(135deg,#4a4a4a,#6b6b6b)">
-              <svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/></svg>
-            </div>
-            <div class="hp-carousel__body">
-              <div class="hp-carousel__trade">Junk Removal</div>
-              <p class="hp-carousel__line">Same-day pickup &amp; full-property hauling.</p>
-              <span class="hp-carousel__badge">Built for quick bookings</span>
-              <a href="/examples" class="hp-carousel__cta">See example →</a>
-            </div>
-          </div>
-        </div>
-
-        <div class="hp-carousel__slot">
-          <div class="hp-carousel__card">
-            <div class="hp-carousel__photo" style="background:linear-gradient(135deg,#7a4fa0,#a578c9)">
-              <svg viewBox="0 0 24 24"><rect x="3" y="4" width="12" height="6" rx="1"/><path d="M9 10v4h4v6"/></svg>
-            </div>
-            <div class="hp-carousel__body">
-              <div class="hp-carousel__trade">Painting</div>
-              <p class="hp-carousel__line">Interior, exterior &amp; cabinet refinishing.</p>
-              <span class="hp-carousel__badge">Built for quote requests</span>
-              <a href="/examples" class="hp-carousel__cta">See example →</a>
-            </div>
-          </div>
-        </div>
-
-        <div class="hp-carousel__slot">
-          <div class="hp-carousel__card">
-            <div class="hp-carousel__photo" style="background:linear-gradient(135deg,#8a5a3a,#b3805a)">
-              <svg viewBox="0 0 24 24"><path d="M2 8h20M2 16h20M7 2v6M17 2v6M12 8v8M7 16v6M17 16v6"/></svg>
-            </div>
-            <div class="hp-carousel__body">
-              <div class="hp-carousel__trade">Masonry</div>
-              <p class="hp-carousel__line">Patios, retaining walls &amp; walkways.</p>
-              <span class="hp-carousel__badge">Built for project leads</span>
-              <a href="/examples" class="hp-carousel__cta">See example →</a>
-            </div>
-          </div>
-        </div>
-
-        <div class="hp-carousel__slot">
-          <div class="hp-carousel__card">
-            <div class="hp-carousel__photo" style="background:linear-gradient(135deg,#2a7d8c,#4fb3c2)">
-              <svg viewBox="0 0 24 24"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z"/><path d="M19 15l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/></svg>
-            </div>
-            <div class="hp-carousel__body">
-              <div class="hp-carousel__trade">Cleaning</div>
-              <p class="hp-carousel__line">Recurring maintenance &amp; one-time deep cleans.</p>
-              <span class="hp-carousel__badge">Built for repeat bookings</span>
-              <a href="/examples" class="hp-carousel__cta">See example →</a>
-            </div>
-          </div>
-        </div>
-
-        <div class="hp-carousel__slot">
-          <div class="hp-carousel__card">
-            <div class="hp-carousel__photo" style="background:linear-gradient(135deg,#0a1628,#2a4060)">
-              <svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v9h14v-9"/></svg>
-            </div>
-            <div class="hp-carousel__body">
-              <div class="hp-carousel__trade">Roofing</div>
-              <p class="hp-carousel__line">Repairs, replacements &amp; storm inspections.</p>
-              <span class="hp-carousel__badge">Built for estimate requests</span>
-              <a href="/examples" class="hp-carousel__cta">See example →</a>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-    <div class="hp-carousel__dots" id="hpCarDots"></div>
-  </div>
-</section>
-
-<!-- HOW ENOMA COMPARES -->
-<section class="hp-compare">
-  <div class="hp-compare__inner">
-    <p class="hp-compare__label">How Enoma compares</p>
-    <h2 class="hp-compare__h2">Everything you need. Nothing you don't.</h2>
-    <p class="hp-compare__sub">A dedicated lead gen page for your business — not a shared directory listing, not a DIY builder, not a $3,000 agency project. Just your business, showing up where customers are already looking.</p>
-    <div class="hp-compare__cards">
-      <div class="hp-comp-card">
-        <div class="hp-comp-card__label">Web Agency</div>
-        <div class="hp-comp-card__price">$3,000+</div>
-        <div class="hp-comp-card__note">Upfront + ongoing fees</div>
-        <details class="hp-comp-card__details">
-          <summary>What you get</summary>
-          <p>Best for custom brands, but expensive and slow to launch for a solo trade business.</p>
-        </details>
-      </div>
-      <div class="hp-comp-card hp-comp-card--featured">
-        <span class="hp-comp-card__badge">⭐ Enoma</span>
-        <div class="hp-comp-card__label" style="margin-top:0.5rem;">First month</div>
-        <div class="hp-comp-card__price">$0 free</div>
-        <div class="hp-comp-card__note">then $19.99/mo</div>
-        <details class="hp-comp-card__details">
-          <summary>What you get</summary>
-          <p>Dedicated page, contact form, call tracking, photo gallery, and a dashboard — set up for you in minutes.</p>
-        </details>
-      </div>
-      <div class="hp-comp-card">
-        <div class="hp-comp-card__label">Yelp / Angie's List</div>
-        <div class="hp-comp-card__price">Free–$100</div>
-        <div class="hp-comp-card__note">Your competitors shown next to you</div>
-        <details class="hp-comp-card__details">
-          <summary>What you get</summary>
-          <p>You're listed beside competitors on a page the platform owns — not you.</p>
-        </details>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- WHAT YOU GET -->
-<section class="hp-features">
-  <div class="hp-features__inner">
-    <div class="hp-features__header">
-      <p class="hp-features__label">What you get</p>
-      <h2 class="hp-features__h2">A lead page that works while you're on the job.</h2>
-      <p class="hp-features__sub">Enoma creates a Google-indexed lead page for your business — your services, your photos, your contact form. Customers searching your trade in your town find you, not a competitor.</p>
-    </div>
-    <div class="hp-features__grid">
-      <div class="hp-feature">
-        <div class="hp-feature__icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></div>
-        <h3 class="hp-feature__h3">Shows up on Google</h3>
-        <p class="hp-feature__p">Your page is structured for local search from day one — the right schema, headings, and keywords so customers find you when they search your trade in your town.</p>
-      </div>
-      <div class="hp-feature">
-        <div class="hp-feature__icon"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.8 19.8 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.8 19.8 0 012.08 4.18 2 2 0 014.06 2h3a2 2 0 012 1.72c.12.86.31 1.7.57 2.5a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.58-1.09a2 2 0 012.11-.45c.8.26 1.64.45 2.5.57A2 2 0 0122 16.92z"/></svg></div>
-        <h3 class="hp-feature__h3">Turns visitors into calls</h3>
-        <p class="hp-feature__p">Every visitor sees your phone number, a tap-to-call button, and a contact form. Leads go straight to you — no middleman, no shared leads, no competitors next to your listing.</p>
-      </div>
-      <div class="hp-feature">
-        <div class="hp-feature__icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg></div>
-        <h3 class="hp-feature__h3">Built from your notes in minutes</h3>
-        <p class="hp-feature__p">Fill out a short form about your business. AI writes your services, about section, and headlines. Your page is live in under 5 minutes — no design skills needed.</p>
-      </div>
-      <div class="hp-feature">
-        <div class="hp-feature__icon"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
-        <h3 class="hp-feature__h3">Your real job photos</h3>
-        <p class="hp-feature__p">Upload photos of your actual work and they appear prominently on your page. Real photos build more trust than any stock image — and help customers know exactly what they're getting.</p>
-      </div>
-      <div class="hp-feature">
-        <div class="hp-feature__icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
-        <h3 class="hp-feature__h3">No competitors next to you</h3>
-        <p class="hp-feature__p">Unlike Yelp or Angie's List, your Enoma page is just yours. No ads. No "similar businesses nearby." Customers who find you stay on your page.</p>
-      </div>
-      <div class="hp-feature">
-        <div class="hp-feature__icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
-        <h3 class="hp-feature__h3">See your leads in one place</h3>
-        <p class="hp-feature__p">Your dashboard shows every contact form submission, call click, and page view. Know exactly who's finding you and how they're reaching out.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- HOW IT WORKS -->
-<section class="hp-steps">
-  <div class="hp-steps__inner">
-    <div class="hp-steps__header">
-      <p class="hp-steps__label">How it works</p>
-      <h2 class="hp-steps__h2">Generating leads in four steps. Under 5 minutes.</h2>
-    </div>
-    <div class="hp-steps__list">
-      <div class="hp-steps__rail"><div class="hp-steps__rail-fill"></div></div>
-      <div class="hp-step">
-        <div class="hp-step__num">1</div>
-        <div class="hp-step__content">
-          <p class="hp-step__title">Create your free account</p>
-          <p class="hp-step__desc">Sign up with your email in 30 seconds — no credit card required.</p>
-        </div>
-      </div>
-      <div class="hp-step">
-        <div class="hp-step__num">2</div>
-        <div class="hp-step__content">
-          <p class="hp-step__title">Tell us about your business</p>
-          <p class="hp-step__desc">Your services, location, phone number, and a few notes. That's all we need — AI writes the rest.</p>
-        </div>
-      </div>
-      <div class="hp-step">
-        <div class="hp-step__num">3</div>
-        <div class="hp-step__content">
-          <p class="hp-step__title">Your lead page is live — and finding customers</p>
-          <p class="hp-step__desc">Review it, share the link, and add it to your Google Business Profile. Every search for your trade in your area is now a chance for a customer to find and contact you directly.</p>
-        </div>
-      </div>
-      <div class="hp-step">
-        <div class="hp-step__num">4</div>
-        <div class="hp-step__content">
-          <p class="hp-step__title">Keep it live for $19.99/month</p>
-          <p class="hp-step__desc">After your free month, subscribe to keep your page live. Cancel anytime — no contracts, no cancellation fees.</p>
-        </div>
-      </div>
-    </div>
-    <p class="hp-steps__note">First month free. No obligation. See your page live before you pay anything.</p>
-  </div>
-</section>
-
-<!-- PROOF -->
-<section class="hp-proof">
-  <div class="hp-proof__inner">
-    <p class="hp-proof__label">Real results</p>
-    <h2 class="hp-proof__h2">Real leads. Real businesses. No ad spend.</h2>
-    <div class="hp-proof__cards">
-      <div class="hp-proof-card">
-        <div class="hp-proof-card__stat">4</div>
-        <div class="hp-proof-card__stat-label">Customer inquiries generated through a single Enoma page for a landscaping company in Agawam, MA</div>
-      </div>
-      <div class="hp-proof-card">
-        <div class="hp-proof-card__stat">&lt;5 min</div>
-        <div class="hp-proof-card__stat-label">Average time from signup to a live, Google-indexed page — no design skills or technical knowledge needed</div>
-      </div>
-      <div class="hp-proof-card">
-        <div class="hp-proof-card__stat">$0</div>
-        <div class="hp-proof-card__stat-label">Cost to get started — your first month is completely free, and you only pay once you've seen your page live</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- FINAL CTA -->
-<section class="hp-cta">
-  <div class="hp-cta__inner">
-    <h2 class="hp-cta__h2">Start getting leads from Google — not just referrals.</h2>
-    <p class="hp-cta__sub">Enoma gives your trades business a dedicated lead gen page that shows up when customers search — and sends them straight to you. Free for the first month, no card required.</p>
-    <div class="hp-cta__actions">
+    <div class="hero__actions">
       <a href="/get-your-website" class="btn-primary">Get found free →</a>
       <a href="/examples" class="btn-secondary">See live examples</a>
     </div>
-    <p class="hp-cta__proof">First month free &nbsp;·&nbsp; $19.99/mo after &nbsp;·&nbsp; Cancel anytime</p>
-  </div>
-</section>
+    <p class="hero__proof">No credit card &nbsp;·&nbsp; First month free &nbsp;·&nbsp; Live in minutes</p>
+
+    <div class="hero__stage" id="heroStage">
+      <div class="site-card" style="top:0;left:6%;animation-delay:0s;z-index:2;">
+        <div class="site-card__bar">
+          <div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#ffbd2e"></div><div class="dot" style="background:#27c93f"></div>
+          <div class="url">enoma.io/conways-landscaping</div>
+        </div>
+        <img class="site-card__photo" src="https://qhsivcenpnxwmvwznqie.supabase.co/storage/v1/object/public/business-images/6ec4d119-4fc0-450e-8a89-27a372986903/1774625993664-jack-conway-fb3.jpg" alt="Conway's Landscaping" loading="lazy" />
+        <div class="site-card__body">
+          <span class="site-card__tag">Hero</span>
+          <div class="site-card__h">Lawn Care in Agawam &amp; West Springfield</div>
+          <div class="site-card__p">Weekly mowing, trimming, mulching &amp; cleanups.</div>
+        </div>
+      </div>
+      <div class="site-card" style="top:60px;left:38%;animation-delay:1.4s;z-index:3;transform:scale(1.05);">
+        <div class="site-card__bar">
+          <div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#ffbd2e"></div><div class="dot" style="background:#27c93f"></div>
+          <div class="url">enoma.io/arno-plumbing-and-heating</div>
+        </div>
+        <div class="site-card__body" style="padding-top:14px;">
+          <span class="site-card__tag">What Clients Say</span>
+          <div class="site-card__h" style="font-style:italic;font-weight:500;">"Came out same day when our boiler stopped in January. Running within two hours."</div>
+          <div class="site-card__p">— Karen T., North Attleboro</div>
+        </div>
+      </div>
+      <div class="site-card" style="top:130px;left:4%;animation-delay:2.8s;z-index:1;opacity:.92;">
+        <div class="site-card__bar">
+          <div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#ffbd2e"></div><div class="dot" style="background:#27c93f"></div>
+          <div class="url">enoma.io/conways-landscaping</div>
+        </div>
+        <div class="site-card__photos" style="display:grid;grid-template-columns:1fr 1fr;gap:2px;height:56px;background:#0d1f0f;">
+          <img src="https://qhsivcenpnxwmvwznqie.supabase.co/storage/v1/object/public/business-images/6ec4d119-4fc0-450e-8a89-27a372986903/1774625994364-jack-conway-fb2.jpg" style="width:100%;height:100%;object-fit:cover;" loading="lazy" />
+          <img src="https://qhsivcenpnxwmvwznqie.supabase.co/storage/v1/object/public/business-images/6ec4d119-4fc0-450e-8a89-27a372986903/1774625994758-jack-conway-fb1.jpg" style="width:100%;height:100%;object-fit:cover;" loading="lazy" />
+        </div>
+        <div class="site-card__body">
+          <span class="site-card__tag">Recent Work</span>
+          <div class="site-card__h">Real jobs, real photos</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ THE GAP — the bottleneck, explained ============ -->
+  <section class="scene reveal">
+    <p class="eyebrow">The gap</p>
+    <h2>Search changed.<br>Most local businesses didn't.</h2>
+    <p class="lead">Homeowners don't just Google anymore. They ask AI assistants directly — "find me a plumber in Agawam who can come today" — and expect a straight answer. Both channels need the same thing from you: a real, structured page. A Facebook page won't cut it. No page cuts it even less.</p>
+    <div class="channels">
+      <div class="channel">
+        <p class="channel__label">Google sees</p>
+        <p class="channel__q">"landscaper near me, Agawam MA"</p>
+      </div>
+      <div class="channel__x">+</div>
+      <div class="channel">
+        <p class="channel__label">AI assistants see</p>
+        <p class="channel__q">"who's a good plumber near West Springfield"</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ WHAT ENOMA IS ============ -->
+  <section class="scene reveal">
+    <p class="eyebrow">What Enoma is</p>
+    <h2>Not a website.<br>Just enough to be found.</h2>
+    <p class="lead">You don't need ten pages or a $3,000 agency project — most of that goes unread anyway. You need one page built specifically to be indexed by Google and understood by AI: your services, your service area, your number, in a form both can read.</p>
+    <div class="statline">
+      <div class="statline__item"><div class="statline__num">&lt;5 min</div><div class="statline__label">to go live</div></div>
+      <div class="statline__item"><div class="statline__num">$0</div><div class="statline__label">first month</div></div>
+      <div class="statline__item"><div class="statline__num">Day one</div><div class="statline__label">indexed &amp; findable</div></div>
+    </div>
+  </section>
+
+  <!-- ============ PROOF ============ -->
+  <section class="scene reveal">
+    <p class="eyebrow">Real result</p>
+    <h2>One page. Zero ad spend.</h2>
+    <div class="proof-card">
+      <div class="proof-card__num">4</div>
+      <div class="proof-card__text">Real customer inquiries generated through a single Enoma page for a landscaping company in Agawam, MA — homeowners who searched, found them, and reached out directly. <a href="/case-studies/conways-landscaping">Read the case study →</a></div>
+    </div>
+  </section>
+
+  <!-- ============ HOW IT WORKS ============ -->
+  <section class="scene reveal">
+    <p class="eyebrow">How it works</p>
+    <h2>Three steps. Under five minutes.</h2>
+    <div class="steps2">
+      <div class="step2">
+        <div class="step2__num">01</div>
+        <div><div class="step2__title">Create your free account</div><div class="step2__desc">Your email, thirty seconds. No credit card.</div></div>
+      </div>
+      <div class="step2">
+        <div class="step2__num">02</div>
+        <div><div class="step2__title">Tell us about your business</div><div class="step2__desc">Services, location, a few notes in your own words — AI writes the rest.</div></div>
+      </div>
+      <div class="step2">
+        <div class="step2__num">03</div>
+        <div><div class="step2__title">You're live — and findable</div><div class="step2__desc">Indexed by Google, readable by AI assistants, sending leads straight to you.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FINAL CTA ============ -->
+  <section class="scene finale reveal">
+    <p class="eyebrow">Get started</p>
+    <h2>Stop losing jobs to whoever shows up first.</h2>
+    <p class="lead">First month free. No credit card. See your page live before you pay anything.</p>
+    <div class="hero__actions">
+      <a href="/get-your-website" class="btn-primary">Get found free →</a>
+      <a href="/examples" class="btn-secondary">See live examples</a>
+    </div>
+  </section>
+
+</div>
 
 <div id="footer"></div>
 <script>fetch('/partials/footer.html').then(r=>r.text()).then(html=>{document.getElementById('footer').innerHTML=html});</script>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script>
-  // Parallax tilt for the hero site-card stage
-  var hpStageOuter = document.getElementById('hpStageOuter');
-  var hpStage = document.getElementById('hpStage');
-  var hpReduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // ---- cycling search-query hook (ties the hero directly to the bottleneck) ----
+  (function(){
+    var queries = [
+      '"landscaper near me"',
+      '"best plumber in Agawam MA"',
+      '"who can fix my heater tonight"',
+      '"electrician near West Springfield"',
+      '"lawn care company near me"'
+    ];
+    var el = document.getElementById('queryText');
+    if (!el) return;
+    var i = 0;
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) return;
+    setInterval(function(){
+      i = (i + 1) % queries.length;
+      if (window.gsap) {
+        gsap.to(el, { opacity: 0, y: -6, duration: .25, onComplete: function(){
+          el.textContent = queries[i];
+          gsap.fromTo(el, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: .3 });
+        }});
+      } else {
+        el.textContent = queries[i];
+      }
+    }, 2600);
+  })();
 
-  if (hpStageOuter && hpStage && !hpReduceMotion) {
-    hpStageOuter.addEventListener('mousemove', function(e){
-      var rect = hpStageOuter.getBoundingClientRect();
+  // ---- scroll-linked cinematic reveals ----
+  (function(){
+    if (!window.gsap || !window.ScrollTrigger) return;
+    gsap.registerPlugin(ScrollTrigger);
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.querySelectorAll('.reveal').forEach(function(el){
+      if (reduced) { el.style.opacity = 1; el.style.transform = 'none'; return; }
+      gsap.to(el, {
+        opacity: 1, y: 0, duration: 1, ease: 'power2.out',
+        scrollTrigger: { trigger: el, start: 'top 80%' }
+      });
+    });
+
+    // Ambient glows drift slowly with scroll for a "moving through a space" feel.
+    if (!reduced) {
+      gsap.to('.glow--a', { y: '18vh', x: '4vw', ease: 'none', scrollTrigger: { trigger: document.body, start: 'top top', end: 'bottom bottom', scrub: 1 } });
+      gsap.to('.glow--b', { y: '-14vh', x: '-3vw', ease: 'none', scrollTrigger: { trigger: document.body, start: 'top top', end: 'bottom bottom', scrub: 1 } });
+      gsap.to('.glow--c', { y: '10vh', ease: 'none', scrollTrigger: { trigger: document.body, start: 'top top', end: 'bottom bottom', scrub: 1 } });
+    }
+  })();
+
+  // ---- hero parallax tilt on the floating site-cards ----
+  (function(){
+    var stage = document.getElementById('heroStage');
+    if (!stage || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    stage.addEventListener('mousemove', function(e){
+      var rect = stage.getBoundingClientRect();
       var x = (e.clientX - rect.left) / rect.width - 0.5;
       var y = (e.clientY - rect.top) / rect.height - 0.5;
-      hpStage.style.transform = 'rotateY(' + (x * 12) + 'deg) rotateX(' + (-y * 8) + 'deg)';
+      stage.style.transform = 'rotateY(' + (x * 8) + 'deg) rotateX(' + (-y * 5) + 'deg)';
+      stage.style.transformStyle = 'preserve-3d';
     });
-    hpStageOuter.addEventListener('mouseleave', function(){
-      hpStage.style.transform = 'rotateY(0deg) rotateX(0deg)';
-    });
-  }
+    stage.addEventListener('mouseleave', function(){ stage.style.transform = 'rotateY(0) rotateX(0)'; });
+  })();
 
-  // ---- Local visibility simulator (illustrative demo only) ----
+  // ---- lightweight ambient particle field (canvas 2D, no WebGL) ----
   (function(){
-    var form = document.getElementById('hpSimForm');
-    var results = document.getElementById('hpSimResults');
-    var scoreNum = document.getElementById('hpSimScoreNum');
-    var scoreLabel = document.getElementById('hpSimScoreLabel');
-    if (!form) return;
-
-    function hash(str){
-      var h = 0;
-      for (var i = 0; i < str.length; i++) { h = (h * 31 + str.charCodeAt(i)) >>> 0; }
-      return h;
-    }
-
-    function countUp(el, target, duration){
-      var start = 0, startTime = null;
-      function step(ts){
-        if (!startTime) startTime = ts;
-        var progress = Math.min((ts - startTime) / duration, 1);
-        el.textContent = Math.round(start + (target - start) * progress);
-        if (progress < 1) requestAnimationFrame(step);
-      }
-      requestAnimationFrame(step);
-    }
-
-    form.addEventListener('submit', function(e){
-      e.preventDefault();
-      var trade = document.getElementById('hpSimTrade').value;
-      var town = document.getElementById('hpSimTown').value || 'your town';
-      var seed = hash(trade + '|' + town);
-
-      var score = 26 + (seed % 40); // 26-65, illustrative — always room to improve
-      var breakdown = {
-        google:    Math.max(8, (seed % 35)),
-        facebook:  Math.min(92, 55 + (seed % 30)),
-        directory: Math.min(88, 40 + ((seed >> 3) % 40)),
-        capture:   Math.max(5, (seed >> 5) % 25)
-      };
-
-      scoreLabel.textContent = 'A representative visibility score for ' + trade.toLowerCase() + ' businesses in ' + town + ' without a dedicated page — not a scan of any specific business.';
-
-      results.classList.add('is-visible');
-      countUp(scoreNum, score, 900);
-
-      Object.keys(breakdown).forEach(function(key){
-        var fill = results.querySelector('.hp-sim__bar-fill[data-key="' + key + '"]');
-        var pct = results.querySelector('[data-pct="' + key + '"]');
-        var val = breakdown[key];
-        fill.style.background = val >= 60 ? '#e0685f' : (val >= 35 ? '#e0a95f' : '#3882dc');
-        requestAnimationFrame(function(){ fill.style.width = val + '%'; });
-        pct.textContent = val + '%';
+    var canvas = document.getElementById('bgcanvas');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var w, h, nodes = [];
+    function resize(){
+      w = canvas.width = window.innerWidth;
+      h = canvas.height = document.body.scrollHeight;
+      var count = Math.min(50, Math.floor((w * Math.min(h, 3000)) / 55000));
+      nodes = Array.from({length: count}, function(){
+        return {
+          x: Math.random() * w, y: Math.random() * h,
+          vx: (Math.random() - 0.5) * 0.08, vy: (Math.random() - 0.5) * 0.08
+        };
       });
-
-      results.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    });
-  })();
-
-  // ---- Dashboard mock bar chart ----
-  (function(){
-    var chart = document.getElementById('hpDashChart');
-    if (!chart) return;
-    var heights = [30,45,25,60,40,55,70,35,50,65,45,80,55,40,60,75,50,65,85,60,45,70,55,90,65,50,75,60,80,95];
-    heights.forEach(function(h, i){
-      var col = document.createElement('div');
-      col.className = 'hp-dash__chart-col';
-      col.style.height = h + '%';
-      col.style.setProperty('--i', i);
-      chart.appendChild(col);
-    });
-  })();
-
-  // ---- Trade carousel: coverflow (center slide enlarged) ----
-  (function(){
-    var viewport = document.getElementById('hpCarViewport');
-    var track = document.getElementById('hpCarTrack');
-    var prevBtn = document.getElementById('hpCarPrev');
-    var nextBtn = document.getElementById('hpCarNext');
-    var dotsWrap = document.getElementById('hpCarDots');
-    if (!track || !viewport) return;
-
-    var slots = Array.prototype.slice.call(track.children);
-    var activeIndex = 0;
-    var slotWidth = 0;
-
-    var dots = slots.map(function(slot, i){
-      var dot = document.createElement('button');
-      dot.className = 'hp-carousel__dot';
-      dot.type = 'button';
-      dot.setAttribute('aria-label', 'Go to slide ' + (i + 1));
-      dot.addEventListener('click', function(){ goTo(i); });
-      dotsWrap.appendChild(dot);
-      slot.addEventListener('click', function(){ goTo(i); });
-      return dot;
-    });
-
-    function measure(){
-      var cs = window.getComputedStyle(slots[0]);
-      slotWidth = slots[0].offsetWidth + parseFloat(cs.marginLeft) + parseFloat(cs.marginRight);
     }
-
-    function render(){
-      slots.forEach(function(slot, i){ slot.classList.toggle('is-active', i === activeIndex); });
-      dots.forEach(function(dot, i){ dot.classList.toggle('is-active', i === activeIndex); });
-      var vw = viewport.offsetWidth;
-      var center = activeIndex * slotWidth + slotWidth / 2;
-      track.style.transform = 'translateX(' + (vw / 2 - center) + 'px)';
+    function frame(){
+      ctx.clearRect(0, 0, w, h);
+      nodes.forEach(function(n){
+        if (!reduced){ n.x += n.vx; n.y += n.vy; }
+        if (n.x < 0 || n.x > w) n.vx *= -1;
+        if (n.y < 0 || n.y > h) n.vy *= -1;
+      });
+      for (var i = 0; i < nodes.length; i++){
+        for (var j = i + 1; j < nodes.length; j++){
+          var a = nodes[i], b = nodes[j];
+          var d = Math.hypot(a.x - b.x, a.y - b.y);
+          if (d < 140){
+            ctx.strokeStyle = 'rgba(90,168,240,' + (0.10 * (1 - d / 140)) + ')';
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+          }
+        }
+      }
+      nodes.forEach(function(n){
+        ctx.fillStyle = 'rgba(90,168,240,.4)';
+        ctx.beginPath(); ctx.arc(n.x, n.y, 1.3, 0, Math.PI * 2); ctx.fill();
+      });
+      if (!reduced) requestAnimationFrame(frame);
     }
-
-    function goTo(i){
-      activeIndex = (i + slots.length) % slots.length;
-      render();
-    }
-
-    if (prevBtn) prevBtn.addEventListener('click', function(){ goTo(activeIndex - 1); });
-    if (nextBtn) nextBtn.addEventListener('click', function(){ goTo(activeIndex + 1); });
-
-    var touchStartX = null;
-    viewport.addEventListener('touchstart', function(e){ touchStartX = e.touches[0].clientX; }, { passive: true });
-    viewport.addEventListener('touchend', function(e){
-      if (touchStartX === null) return;
-      var dx = e.changedTouches[0].clientX - touchStartX;
-      if (Math.abs(dx) > 40) goTo(activeIndex + (dx < 0 ? 1 : -1));
-      touchStartX = null;
-    });
-
-    window.addEventListener('resize', function(){ measure(); render(); });
-    measure();
-    goTo(1);
+    window.addEventListener('resize', resize);
+    resize(); frame();
+    if (reduced) setTimeout(function(){ ScrollTrigger && ScrollTrigger.refresh && ScrollTrigger.refresh(); resize(); }, 500);
   })();
 </script>
 
