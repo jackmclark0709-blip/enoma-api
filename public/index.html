@@ -82,27 +82,6 @@
     .hp-card-quote{ font-size:11px; font-style:italic; color:#2a4060; line-height:1.45; margin-bottom:7px; }
     .hp-card-author{ font-size:10px; font-weight:700; color:#3882dc; }
 
-    /* ---------- TRADE TICKER ---------- */
-    .hp-ticker-wrap{
-      background:#0a1628; border-top:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.08);
-      padding:16px 0; overflow:hidden; position:relative;
-    }
-    .hp-ticker-label{
-      position:absolute; left:0; top:0; bottom:0; display:flex; align-items:center;
-      padding-left:1.5rem; padding-right:2.5rem;
-      background: linear-gradient(90deg, #0a1628 60%, transparent);
-      z-index:2; font-family: monospace; font-size:11px; letter-spacing:0.1em;
-      color:#7ab3e0; text-transform:uppercase; white-space:nowrap;
-    }
-    .hp-ticker-track{
-      display:flex; gap:44px; white-space:nowrap;
-      animation: hpScroll 24s linear infinite;
-      padding-left:210px;
-    }
-    .hp-ticker-track span{ font-size:14px; color:rgba(240,246,255,0.75); font-weight:500; }
-    .hp-ticker-track span::after{ content:"•"; margin-left:44px; color:rgba(255,255,255,0.15); }
-    @keyframes hpScroll{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
-
     /* ---------- REAL RESULTS BANNER ---------- */
     .hp-results-banner{ background:#e6f1fb; border-bottom:1px solid #d4e2f4; padding:1.75rem 1.5rem; }
     .hp-results-banner__inner{
@@ -307,7 +286,7 @@
     .hp-step{ position:relative; z-index:1; }
 
     @media (prefers-reduced-motion: reduce){
-      .hp-site-card, .hp-ticker-track, .hp-prob-icon--signal .bar1, .hp-prob-icon--signal .bar2, .hp-prob-icon--signal .bar3,
+      .hp-site-card, .hp-prob-icon--signal .bar1, .hp-prob-icon--signal .bar2, .hp-prob-icon--signal .bar3,
       .hp-prob-icon--pins .pin-b, .hp-prob-icon--flatline .pulse-line, .hp-comp-card--featured, .hp-feature__icon::before,
       .hp-steps__rail-fill, .hp-dash__chart-col{ animation:none; }
     }
@@ -365,16 +344,6 @@
     .hp-step__desc{font-size:0.9rem;color:#5a7a9a;line-height:1.55;margin:0}
     .hp-steps__note{margin-top:2rem;font-size:0.88rem;color:#7ab3e0;font-style:italic;padding-left:calc(32px + 1.1rem)}
 
-    /* SOCIAL PROOF */
-    .hp-proof{background:white;padding:5rem 1.5rem;border-top:1px solid #d4e2f4}
-    .hp-proof__inner{max-width:860px;margin-inline:auto;text-align:center}
-    .hp-proof__label{font-size:0.7rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#3882dc;margin-bottom:0.6rem}
-    .hp-proof__h2{font-family:'DM Sans',sans-serif;font-size:clamp(1.5rem,3vw,1.9rem);font-weight:800;color:#0a1628;letter-spacing:-0.02em;margin-bottom:2rem}
-    .hp-proof__cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
-    .hp-proof-card{background:#f7faff;border:1px solid #d4e2f4;border-radius:14px;padding:1.5rem;text-align:left}
-    .hp-proof-card__stat{font-family:'DM Sans',sans-serif;font-size:1.8rem;font-weight:800;color:#3882dc;letter-spacing:-0.03em;line-height:1;margin-bottom:0.25rem}
-    .hp-proof-card__stat-label{font-size:0.82rem;color:#5a7a9a;line-height:1.4}
-
     /* FINAL CTA */
     .hp-cta{background:linear-gradient(160deg,#0a1628,#162540);padding:6rem 1.5rem;text-align:center;position:relative;overflow:hidden}
     .hp-cta::before{content:'';position:absolute;bottom:-60px;left:50%;transform:translateX(-50%);width:600px;height:300px;background:radial-gradient(ellipse,rgba(56,130,220,0.2) 0%,transparent 70%);pointer-events:none}
@@ -387,7 +356,7 @@
     /* RESPONSIVE */
     @media(max-width:768px){
       .hp-hero__inner{grid-template-columns:1fr}
-      .hp-problem__cards,.hp-compare__cards,.hp-features__grid,.hp-proof__cards{grid-template-columns:1fr}
+      .hp-problem__cards,.hp-compare__cards,.hp-features__grid{grid-template-columns:1fr}
       .hp-stage-outer{ height:400px; margin-top:2rem; }
       .hp-sim__form{grid-template-columns:1fr}
       .hp-sim__submit{width:100%}
@@ -490,17 +459,6 @@
     </div>
   </div>
 </section>
-
-<!-- TRADE TICKER -->
-<div class="hp-ticker-wrap">
-  <div class="hp-ticker-label">Built for every trade</div>
-  <div class="hp-ticker-track">
-    <span>Landscaping</span><span>Plumbing</span><span>Heating</span><span>HVAC</span>
-    <span>Roofing</span><span>Electrical</span><span>Painting</span><span>Snow Removal</span>
-    <span>Landscaping</span><span>Plumbing</span><span>Heating</span><span>HVAC</span>
-    <span>Roofing</span><span>Electrical</span><span>Painting</span><span>Snow Removal</span>
-  </div>
-</div>
 
 <!-- REAL RESULTS BANNER -->
 <section class="hp-results-banner">
@@ -931,28 +889,6 @@
       </div>
     </div>
     <p class="hp-steps__note">First month free. No obligation. See your page live before you pay anything.</p>
-  </div>
-</section>
-
-<!-- PROOF -->
-<section class="hp-proof">
-  <div class="hp-proof__inner">
-    <p class="hp-proof__label">Real results</p>
-    <h2 class="hp-proof__h2">Real leads. Real businesses. No ad spend.</h2>
-    <div class="hp-proof__cards">
-      <div class="hp-proof-card">
-        <div class="hp-proof-card__stat">4</div>
-        <div class="hp-proof-card__stat-label">Customer inquiries generated through a single Enoma page for a landscaping company in Agawam, MA</div>
-      </div>
-      <div class="hp-proof-card">
-        <div class="hp-proof-card__stat">&lt;5 min</div>
-        <div class="hp-proof-card__stat-label">Average time from signup to a live, Google-indexed page — no design skills or technical knowledge needed</div>
-      </div>
-      <div class="hp-proof-card">
-        <div class="hp-proof-card__stat">$0</div>
-        <div class="hp-proof-card__stat-label">Cost to get started — your first month is completely free, and you only pay once you've seen your page live</div>
-      </div>
-    </div>
   </div>
 </section>
 
