@@ -72,7 +72,7 @@ async function handleProspectPull(req, res) {
       trade,
       business_name: p.name || "Unknown",
       phone: p.phone || null,
-      address: p.full_address || null,
+      address: p.address || p.full_address || null,
       city: p.city || null,
       state: p.state || p.us_state || null,
       website: p.site || null,
