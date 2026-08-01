@@ -97,8 +97,219 @@ async function handleProspectPull(req, res) {
   });
 }
 
+const ENOMA_ADMIN_EMAIL = "jack@enoma.io";
+
+// ==================== Voice agent tools ====================
+// Each tool is a real Supabase/GA query — the model never invents numbers,
+// it calls one of these and we hand back real data.
+
+async function toolGetRevenueStatus() {
+  const { data: subs, error } = await supabase
+    .from("subscriptions")
+    .select("provider, status, is_trial, trial_expires_at, plan_code, businesses(name, is_internal)");
+  if (error) throw error;
+
+  const rows = (subs || []).filter(s => !s.businesses?.is_internal);
+  const now = new Date();
+  const paying = rows.filter(s => s.provider === "stripe" && s.status === "active");
+  const comped = rows.filter(s => s.provider === "comped");
+  const activeTrials = rows.filter(s => s.is_trial && s.trial_expires_at && new Date(s.trial_expires_at) > now);
+  const stalledTrials = rows.filter(s =>
+    s.is_trial && s.trial_expires_at && new Date(s.trial_expires_at) <= now && s.status !== "active"
+  );
+  const PRICE = 19.99;
+
+  return {
+    mrr: Math.round(paying.length * PRICE * 100) / 100,
+    paying_count: paying.length,
+    paying_businesses: paying.map(s => s.businesses?.name),
+    comped_count: comped.length,
+    comped_businesses: comped.map(s => s.businesses?.name),
+    active_trial_count: activeTrials.length,
+    stalled_trial_count: stalledTrials.length,
+    stalled_trial_businesses: stalledTrials.map(s => s.businesses?.name),
+    potential_mrr_if_stalled_convert: Math.round(stalledTrials.length * PRICE * 100) / 100
+  };
+}
+
+async function toolGetMarketingTraffic() {
+  const property = `properties/${process.env.GA_PROPERTY_ID}`;
+  const [daily] = await client.runReport({
+    property,
+    dateRanges: [{ startDate: "7daysAgo", endDate: "today" }],
+    metrics: [{ name: "activeUsers" }, { name: "screenPageViews" }, { name: "sessions" }],
+    dimensions: [{ name: "date" }],
+    orderBys: [{ dimension: { dimensionName: "date" } }]
+  });
+  const [channels] = await client.runReport({
+    property,
+    dateRanges: [{ startDate: "30daysAgo", endDate: "today" }],
+    metrics: [{ name: "sessions" }, { name: "activeUsers" }],
+    dimensions: [{ name: "sessionDefaultChannelGroup" }],
+    orderBys: [{ metric: { metricName: "sessions" }, desc: true }]
+  });
+  return {
+    last_7_days: (daily.rows || []).map(r => ({
+      date: r.dimensionValues[0].value,
+      activeUsers: r.metricValues[0].value,
+      pageViews: r.metricValues[1].value,
+      sessions: r.metricValues[2].value
+    })),
+    channels_last_30_days: (channels.rows || []).map(r => ({
+      channel: r.dimensionValues[0].value,
+      sessions: r.metricValues[0].value,
+      activeUsers: r.metricValues[1].value
+    }))
+  };
+}
+
+async function toolGetCrmProspects(args) {
+  let q = supabase.from("prospects").select("business_name, trade, city, state, phone, status, created_at");
+  if (args?.status) q = q.eq("status", args.status);
+  if (args?.trade) q = q.eq("trade", args.trade);
+  const { data, error } = await q.order("created_at", { ascending: false });
+  if (error) throw error;
+  return { count: data.length, prospects: data };
+}
+
+async function toolGetBusinessPagesStatus() {
+  const { data, error } = await supabase
+    .from("small_business_profiles")
+    .select("business_name, username, is_public, businesses(is_published, is_internal, subscriptions(status, provider, is_trial, trial_expires_at))");
+  if (error) throw error;
+  return {
+    pages: (data || [])
+      .filter(p => !p.businesses?.is_internal)
+      .map(p => ({
+        business_name: p.business_name,
+        url: p.username ? `enoma.io/${p.username}` : null,
+        is_public: p.is_public,
+        is_published: p.businesses?.is_published,
+        subscription_status: p.businesses?.subscriptions?.status,
+        provider: p.businesses?.subscriptions?.provider
+      }))
+  };
+}
+
+async function toolUpdateProspectStatus(args) {
+  const { error } = await supabase
+    .from("prospects")
+    .update({ status: args.status, updated_at: new Date().toISOString() })
+    .ilike("business_name", args.business_name);
+  if (error) throw error;
+  return { success: true, business_name: args.business_name, new_status: args.status };
+}
+
+const VOICE_TOOLS = [
+  { type: "function", function: { name: "get_revenue_status", description: "Real MRR, paying vs. comped accounts, active and stalled trials.", parameters: { type: "object", properties: {} } } },
+  { type: "function", function: { name: "get_marketing_traffic", description: "Website traffic: sessions/users/pageviews for the last 7 days, and acquisition channels for the last 30 days.", parameters: { type: "object", properties: {} } } },
+  { type: "function", function: { name: "get_crm_prospects", description: "Prospecting/CRM data pulled via Outscraper.", parameters: { type: "object", properties: {
+    status: { type: "string", enum: ["new", "dedup_match", "reviewed", "skipped"], description: "Filter by status" },
+    trade: { type: "string", description: "Filter by trade, e.g. landscaping" }
+  } } } },
+  { type: "function", function: { name: "get_business_pages_status", description: "All live Enoma business pages and their publish/subscription status.", parameters: { type: "object", properties: {} } } },
+  { type: "function", function: { name: "update_prospect_status", description: "Mark a CRM prospect as reviewed or skipped. The only write action available.", parameters: { type: "object", properties: {
+    business_name: { type: "string", description: "Exact or partial business name to match" },
+    status: { type: "string", enum: ["reviewed", "skipped", "new"] }
+  }, required: ["business_name", "status"] } } }
+];
+
+const TOOL_IMPL = {
+  get_revenue_status: toolGetRevenueStatus,
+  get_marketing_traffic: toolGetMarketingTraffic,
+  get_crm_prospects: toolGetCrmProspects,
+  get_business_pages_status: toolGetBusinessPagesStatus,
+  update_prospect_status: toolUpdateProspectStatus
+};
+
+const SYSTEM_PROMPT = `You are Enoma's internal voice assistant, speaking directly to Jack, the founder. Enoma builds AI-generated business websites for local service businesses (landscaping, plumbing, HVAC, etc.) — free 30-day trial, then $19.99/mo. Its ideal customer is a business that doesn't have a website yet.
+
+You have tools for revenue, marketing traffic, CRM/prospecting data, and business page status — always call a tool rather than guessing at any number. You can also discuss outbound/inbound marketing strategy and the BD pipeline by reasoning over what the tools return.
+
+This response will be read aloud via text-to-speech, so answer conversationally in 2-4 sentences — no markdown, no bullet lists, no headers. Round numbers naturally when speaking them.`;
+
+async function callOpenAI(messages) {
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${process.env.OPENAI_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ model: "gpt-4o", temperature: 0.4, messages, tools: VOICE_TOOLS })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message || "OpenAI request failed");
+  return data.choices[0].message;
+}
+
+async function callElevenLabs(text) {
+  const voiceId = process.env.ELEVENLABS_VOICE_ID;
+  const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+    method: "POST",
+    headers: {
+      "xi-api-key": process.env.ELEVENLABS_API_KEY || "",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ text, model_id: "eleven_turbo_v2_5" })
+  });
+  if (!r.ok) {
+    const errText = await r.text();
+    throw new Error(`ElevenLabs failed: ${r.status} ${errText}`);
+  }
+  const buf = Buffer.from(await r.arrayBuffer());
+  return `data:audio/mpeg;base64,${buf.toString("base64")}`;
+}
+
+async function handleVoiceQuery(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+
+  const token = (req.headers.authorization || "").replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+  if (authError || !user || user.email !== ENOMA_ADMIN_EMAIL) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const question = (req.body?.question || "").toString().trim();
+  if (!question) return res.status(400).json({ error: "question required" });
+
+  const messages = [
+    { role: "system", content: SYSTEM_PROMPT },
+    { role: "user", content: question }
+  ];
+
+  let finalMessage;
+  for (let i = 0; i < 5; i++) {
+    finalMessage = await callOpenAI(messages);
+    if (!finalMessage.tool_calls || finalMessage.tool_calls.length === 0) break;
+
+    messages.push(finalMessage);
+    for (const call of finalMessage.tool_calls) {
+      const impl = TOOL_IMPL[call.function.name];
+      let result;
+      try {
+        const args = call.function.arguments ? JSON.parse(call.function.arguments) : {};
+        result = impl ? await impl(args) : { error: "Unknown tool" };
+      } catch (err) {
+        result = { error: err.message };
+      }
+      messages.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify(result) });
+    }
+  }
+
+  const answer = finalMessage.content || "I wasn't able to put that together — try asking again.";
+  const audio = await callElevenLabs(answer);
+  return res.status(200).json({ success: true, answer, audio });
+}
+
 export default async function handler(req, res) {
   res.setHeader("Content-Type", "application/json");
+
+  if (req.query.action === "voice-query") {
+    try {
+      return await handleVoiceQuery(req, res);
+    } catch (err) {
+      console.error("Voice query failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
 
   const secret = req.headers["x-admin-secret"];
   if (secret !== process.env.ADMIN_SECRET) {
