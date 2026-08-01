@@ -37,7 +37,10 @@ async function handleProspectPull(req, res) {
     region: "US",
     language: "en"
   });
-  params.append("filters", "only_without_website");
+  const filtersParam = req.query.filters !== undefined ? req.query.filters.toString() : "only_without_website";
+  if (filtersParam && filtersParam !== "none") {
+    filtersParam.split(",").forEach(f => params.append("filters", f));
+  }
 
   const outscraperRes = await fetch(
     `https://api.outscraper.cloud/google-maps-search?${params.toString()}`,
