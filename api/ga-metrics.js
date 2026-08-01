@@ -53,10 +53,6 @@ async function handleProspectPull(req, res) {
     return res.status(outscraperRes.status).json({ success: false, error: payload });
   }
 
-  if (req.query.debug) {
-    return res.status(200).json({ debug: true, requestUrl: `google-maps-search?${params.toString()}`, payload });
-  }
-
   const places = (payload.data || []).flat().filter(Boolean);
 
   const [{ data: existingContacts }, { data: existingBusinesses }] = await Promise.all([
