@@ -20,6 +20,20 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
+  // Temporary: confirms OUTSCRAPER_API_KEY is valid via Outscraper's free balance check.
+  // Remove once the real prospecting integration lands.
+  if (req.query.check === "outscraper") {
+    try {
+      const r = await fetch("https://api.outscraper.cloud/profile/balance", {
+        headers: { "X-API-KEY": process.env.OUTSCRAPER_API_KEY || "" }
+      });
+      const data = await r.json();
+      return res.status(r.status).json({ success: r.ok, status: r.status, data });
+    } catch (err) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
   try {
     const property = `properties/${process.env.GA_PROPERTY_ID}`;
 
