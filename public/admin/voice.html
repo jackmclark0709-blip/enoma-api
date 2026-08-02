@@ -87,9 +87,7 @@
 
   <div class="transcript" id="transcript"></div>
 
-  <div class="hint">Works best in Chrome &middot; audio via ElevenLabs &middot; nothing sends automatically except reading data back to you</div>
-
-  <audio id="player" style="display:none"></audio>
+  <div class="hint">Works best in Chrome &middot; spoken via your browser's built-in voice &middot; nothing sends automatically except reading data back to you</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -104,7 +102,6 @@
     micBtn: document.getElementById('micBtn'),
     status: document.getElementById('status'),
     transcript: document.getElementById('transcript'),
-    player: document.getElementById('player'),
   };
 
   let accessToken = null;
@@ -195,39 +192,34 @@
       }
       addBubble(data.answer, 'agent');
       setStatus('Speaking…', 'speaking');
-      playAudio(data.audio);
+      speak(data.answer);
     } catch (err) {
       setStatus('Network error — try again.', 'error');
     }
   }
 
-  function playAudio(dataUri){
-    els.player.src = dataUri;
-    connectAnalyser();
-    els.player.play();
-    orbState = 'speaking';
-    els.player.onended = () => {
+  // ---------- speech synthesis (browser-native, free) ----------
+  function speak(text){
+    if (!('speechSynthesis' in window)) {
+      setStatus('Speech synthesis isn\'t supported in this browser.', 'error');
+      return;
+    }
+    window.speechSynthesis.cancel(); // don't stack if a prior answer is still talking
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 1.02;
+    utter.onstart = () => { orbState = 'speaking'; };
+    utter.onend = () => {
       orbState = 'idle';
       setStatus('Click the mic to ask another question.', '');
     };
+    utter.onerror = () => { orbState = 'idle'; };
+    window.speechSynthesis.speak(utter);
   }
 
-  // ---------- audio-reactive orb (Canvas 2D + Web Audio analyser) ----------
+  // ---------- orb visual (Canvas 2D, synthetic motion — no raw audio access ----------
+  // for browser-native speech synthesis, so "speaking" is a lively pulse
+  // pattern rather than true amplitude-reactivity) ----------
   let orbState = 'idle'; // idle | listening | speaking
-  let audioCtx, analyser, freqData, sourceNode;
-
-  function connectAnalyser(){
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      sourceNode = audioCtx.createMediaElementSource(els.player);
-      analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 128;
-      freqData = new Uint8Array(analyser.frequencyBinCount);
-      sourceNode.connect(analyser);
-      analyser.connect(audioCtx.destination);
-    }
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-  }
 
   function setupOrb(){
     const canvas = document.getElementById('orb');
@@ -247,10 +239,9 @@
       ctx.clearRect(0, 0, W, H);
 
       let amp = 0.15;
-      if (orbState === 'speaking' && analyser) {
-        analyser.getByteFrequencyData(freqData);
-        const avg = freqData.reduce((a, b) => a + b, 0) / freqData.length;
-        amp = 0.15 + (avg / 255) * 1.1;
+      if (orbState === 'speaking') {
+        // synthetic "talking" chatter — quicker, more irregular than the listening breathing pattern
+        amp = 0.4 + Math.sin(t / 90) * 0.25 + Math.sin(t / 37) * 0.12;
       } else if (orbState === 'listening') {
         amp = 0.35 + Math.sin(t / 200) * 0.15;
       } else {

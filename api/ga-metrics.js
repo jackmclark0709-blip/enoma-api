@@ -239,24 +239,6 @@ async function callOpenAI(messages) {
   return data.choices[0].message;
 }
 
-async function callElevenLabs(text) {
-  const voiceId = process.env.ELEVENLABS_VOICE_ID;
-  const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-    method: "POST",
-    headers: {
-      "xi-api-key": process.env.ELEVENLABS_API_KEY || "",
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ text, model_id: "eleven_turbo_v2_5" })
-  });
-  if (!r.ok) {
-    const errText = await r.text();
-    throw new Error(`ElevenLabs failed: ${r.status} ${errText}`);
-  }
-  const buf = Buffer.from(await r.arrayBuffer());
-  return `data:audio/mpeg;base64,${buf.toString("base64")}`;
-}
-
 async function handleVoiceQuery(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
@@ -295,8 +277,7 @@ async function handleVoiceQuery(req, res) {
   }
 
   const answer = finalMessage.content || "I wasn't able to put that together — try asking again.";
-  const audio = await callElevenLabs(answer);
-  return res.status(200).json({ success: true, answer, audio });
+  return res.status(200).json({ success: true, answer });
 }
 
 export default async function handler(req, res) {
