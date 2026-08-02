@@ -481,6 +481,16 @@ export default async function handler(req, res) {
     }
   }
 
+  if (req.query.action === "search-console") {
+    try {
+      const data = await fetchSearchConsoleData();
+      return res.status(200).json({ success: true, data });
+    } catch (err) {
+      console.error("Search Console pull failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
   try {
     const property = `properties/${process.env.GA_PROPERTY_ID}`;
 
