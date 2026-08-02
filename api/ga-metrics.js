@@ -4,6 +4,7 @@
 // the x-admin-secret header to match ADMIN_SECRET.
 
 import { BetaAnalyticsDataClient } from "@google-analytics/data";
+import { JWT } from "google-auth-library";
 import { createClient } from "@supabase/supabase-js";
 
 const client = new BetaAnalyticsDataClient({
@@ -12,6 +13,65 @@ const client = new BetaAnalyticsDataClient({
     private_key: (process.env.GA_PRIVATE_KEY || "").replace(/\\n/g, "\n")
   }
 });
+
+// Search Console reuses the same service account as GA4 — it just needs to be
+// added as a user on the property in Search Console's own UI (done 2026-08-01).
+const searchConsoleAuth = new JWT({
+  email: process.env.GA_CLIENT_EMAIL,
+  key: (process.env.GA_PRIVATE_KEY || "").replace(/\\n/g, "\n"),
+  scopes: ["https://www.googleapis.com/auth/webmasters.readonly"]
+});
+
+let cachedSiteUrl = null;
+async function getSearchConsoleSiteUrl(token) {
+  if (cachedSiteUrl) return cachedSiteUrl;
+  const res = await fetch("https://searchconsole.googleapis.com/webmasters/v3/sites", {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message || "Search Console sites.list failed");
+  const site = (data.siteEntry || []).find(s => s.siteUrl.includes("enoma.io")) || (data.siteEntry || [])[0];
+  if (!site) throw new Error("No Search Console property found for this service account");
+  cachedSiteUrl = site.siteUrl;
+  return cachedSiteUrl;
+}
+
+async function fetchSearchConsoleData() {
+  const { token } = await searchConsoleAuth.getAccessToken();
+  const siteUrl = await getSearchConsoleSiteUrl(token);
+
+  const end = new Date();
+  const start = new Date(end);
+  start.setDate(start.getDate() - 28);
+  const fmt = d => d.toISOString().slice(0, 10);
+
+  async function query(body) {
+    const res = await fetch(`https://searchconsole.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ startDate: fmt(start), endDate: fmt(end), ...body })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error?.message || "Search Console query failed");
+    return data.rows || [];
+  }
+
+  const [totals] = await query({});
+  const topQueries = await query({ dimensions: ["query"], rowLimit: 10 });
+
+  return {
+    last_28_days: totals
+      ? { clicks: totals.clicks, impressions: totals.impressions, ctr: totals.ctr, avg_position: totals.position }
+      : { clicks: 0, impressions: 0, ctr: 0, avg_position: null },
+    top_queries: topQueries.map(r => ({
+      query: r.keys[0],
+      clicks: r.clicks,
+      impressions: r.impressions,
+      ctr: r.ctr,
+      avg_position: r.position
+    }))
+  };
+}
 
 export const config = { maxDuration: 60 };
 
@@ -148,6 +208,13 @@ async function toolGetMarketingTraffic() {
     dimensions: [{ name: "sessionDefaultChannelGroup" }],
     orderBys: [{ metric: { metricName: "sessions" }, desc: true }]
   });
+  let searchConsole;
+  try {
+    searchConsole = await fetchSearchConsoleData();
+  } catch (err) {
+    searchConsole = { error: `Search Console unavailable: ${err.message}` };
+  }
+
   return {
     last_7_days: (daily.rows || []).map(r => ({
       date: r.dimensionValues[0].value,
@@ -159,7 +226,8 @@ async function toolGetMarketingTraffic() {
       channel: r.dimensionValues[0].value,
       sessions: r.metricValues[0].value,
       activeUsers: r.metricValues[1].value
-    }))
+    })),
+    search_console: searchConsole
   };
 }
 
@@ -292,7 +360,7 @@ async function toolUpdateProspectStatus(args) {
 
 const VOICE_TOOLS = [
   { type: "function", function: { name: "get_revenue_status", description: "Real MRR, paying vs. comped accounts, active and stalled trials.", parameters: { type: "object", properties: {} } } },
-  { type: "function", function: { name: "get_marketing_traffic", description: "Website traffic: sessions/users/pageviews for the last 7 days, and acquisition channels for the last 30 days.", parameters: { type: "object", properties: {} } } },
+  { type: "function", function: { name: "get_marketing_traffic", description: "Website traffic: GA4 sessions/users/pageviews for the last 7 days, acquisition channels for the last 30 days, plus Search Console clicks/impressions/CTR/position and top search queries for the last 28 days.", parameters: { type: "object", properties: {} } } },
   { type: "function", function: { name: "get_crm_prospects", description: "Prospecting/CRM data pulled via Outscraper. Each result includes has_draft so you know which prospects already have outreach copy.", parameters: { type: "object", properties: {
     status: { type: "string", enum: ["new", "dedup_match", "reviewed", "skipped", "drafted", "approved"], description: "Filter by status" },
     trade: { type: "string", description: "Filter by trade, e.g. landscaping" }
