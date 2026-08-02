@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Enoma Voice — Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex,nofollow" />
+<style>
+  :root{
+    --void:#060911; --panel:#0d1420; --panel-raised:#121b2c;
+    --hairline: rgba(130,180,255,.14); --hairline-strong: rgba(130,180,255,.26);
+    --core:#4fd8ff; --core-dim: rgba(79,216,255,.35);
+    --mkt:#c98af5; --rev:#34e0a1; --warn:#ffb84a; --crit:#ff5c72;
+    --text-1:#eaf3ff; --text-2:#9db2d4; --text-3:#5d7396;
+    --mono: ui-monospace,"Cascadia Code","SFMono-Regular","Consolas","Liberation Mono",monospace;
+    --sans: -apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--void);}
+  body{
+    font-family:var(--sans); color:var(--text-1); -webkit-font-smoothing:antialiased;
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -10%, rgba(79,216,255,.09), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 10%, rgba(201,138,245,.06), transparent 55%),
+      var(--void);
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:24px;
+  }
+  a{color:var(--core)}
+
+  #unauth{ text-align:center; }
+  #unauth h2{ color:var(--crit); font-family:var(--mono); font-size:1rem; letter-spacing:.02em; }
+  #unauth p{ color:var(--text-2); }
+
+  #app{ display:none; width:100%; max-width:640px; flex-direction:column; align-items:center; gap:28px; }
+
+  .eyebrow{ font-family:var(--mono); font-size:.7rem; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--text-3); text-align:center; }
+  .eyebrow b{ color:var(--core); }
+
+  .orb-wrap{ position:relative; width:280px; height:280px; }
+  canvas#orb{ width:100%; height:100%; }
+
+  .mic-btn{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:76px; height:76px; border-radius:50%; cursor:pointer;
+    background:radial-gradient(circle at 35% 30%, rgba(79,216,255,.35), rgba(79,216,255,.06));
+    border:1.5px solid var(--hairline-strong); color:var(--text-1);
+    display:flex; align-items:center; justify-content:center; font-size:1.6rem;
+    transition:.15s ease; box-shadow:0 0 0 0 rgba(79,216,255,.4);
+  }
+  .mic-btn:hover{ border-color:var(--core); }
+  .mic-btn.listening{ background:radial-gradient(circle at 35% 30%, rgba(255,92,114,.4), rgba(255,92,114,.08));
+    border-color:var(--crit); animation:mic-pulse 1.4s ease-in-out infinite; }
+  @keyframes mic-pulse{ 0%,100%{box-shadow:0 0 0 0 rgba(255,92,114,.35);} 50%{box-shadow:0 0 0 14px rgba(255,92,114,0);} }
+
+  .status{ font-family:var(--mono); font-size:.74rem; color:var(--text-3); text-align:center; min-height:1.2em; }
+  .status.speaking{ color:var(--core); }
+  .status.listening{ color:var(--crit); }
+  .status.error{ color:var(--crit); }
+
+  .transcript{ width:100%; }
+  .bubble{ background:var(--panel); border:1px solid var(--hairline); border-radius:14px; padding:14px 18px;
+    font-size:.92rem; line-height:1.55; color:var(--text-1); margin-bottom:10px; }
+  .bubble.you{ color:var(--text-2); font-family:var(--mono); font-size:.82rem; background:transparent;
+    border:1px dashed var(--hairline); }
+
+  .hint{ font-size:.72rem; color:var(--text-3); text-align:center; font-family:var(--mono); }
+</style>
+</head>
+<body>
+
+<div id="unauth" style="display:none;">
+  <h2>Unauthorized</h2>
+  <p><a href="/login">Sign in</a> as the Enoma admin account to use this page.</p>
+</div>
+
+<div id="app">
+  <div class="eyebrow">ENOMA <b>VOICE</b> &middot; internal, admin-only</div>
+
+  <div class="orb-wrap">
+    <canvas id="orb" width="280" height="280"></canvas>
+    <button class="mic-btn" id="micBtn" title="Click, ask, click again to send" aria-label="Talk">&#127908;</button>
+  </div>
+
+  <div class="status" id="status">Click the mic and ask about revenue, traffic, CRM, or business pages.</div>
+
+  <div class="transcript" id="transcript"></div>
+
+  <div class="hint">Works best in Chrome &middot; spoken via your browser's built-in voice &middot; nothing sends automatically except reading data back to you</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://qhsivcenpnxwmvwznqie.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const els = {
+    unauth: document.getElementById('unauth'),
+    app: document.getElementById('app'),
+    micBtn: document.getElementById('micBtn'),
+    status: document.getElementById('status'),
+    transcript: document.getElementById('transcript'),
+  };
+
+  let accessToken = null;
+
+  async function init(){
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session || session.user.email !== 'jack@enoma.io') {
+      els.unauth.style.display = 'block';
+      return;
+    }
+    accessToken = session.access_token;
+    els.app.style.display = 'flex';
+    setupOrb();
+    setupMic();
+  }
+
+  // ---------- speech recognition (browser-native, free) ----------
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognizer = null;
+  let listening = false;
+
+  function setupMic(){
+    if (!SpeechRecognition) {
+      els.status.textContent = 'Speech recognition isn\'t supported in this browser — try Chrome.';
+      els.status.classList.add('error');
+      els.micBtn.disabled = true;
+      return;
+    }
+    recognizer = new SpeechRecognition();
+    recognizer.continuous = false;
+    recognizer.interimResults = false;
+    recognizer.lang = 'en-US';
+
+    recognizer.onresult = (e) => {
+      const text = e.results[0][0].transcript;
+      addBubble(text, 'you');
+      askAgent(text);
+    };
+    recognizer.onerror = (e) => {
+      setStatus('Didn\'t catch that — click the mic and try again.', 'error');
+      stopListening();
+    };
+    recognizer.onend = () => stopListening();
+
+    els.micBtn.addEventListener('click', () => {
+      if (listening) { recognizer.stop(); return; }
+      startListening();
+    });
+  }
+
+  function startListening(){
+    listening = true;
+    els.micBtn.classList.add('listening');
+    setStatus('Listening…', 'listening');
+    orbState = 'listening';
+    try { recognizer.start(); } catch (e) {}
+  }
+  function stopListening(){
+    listening = false;
+    els.micBtn.classList.remove('listening');
+    if (orbState === 'listening') orbState = 'idle';
+  }
+
+  function setStatus(text, cls){
+    els.status.textContent = text;
+    els.status.className = 'status' + (cls ? ' ' + cls : '');
+  }
+  function addBubble(text, who){
+    const div = document.createElement('div');
+    div.className = 'bubble' + (who === 'you' ? ' you' : '');
+    div.textContent = (who === 'you' ? 'You: ' : '') + text;
+    els.transcript.insertBefore(div, els.transcript.firstChild);
+  }
+
+  // ---------- talk to the agent ----------
+  async function askAgent(question){
+    setStatus('Thinking…', 'speaking');
+    try {
+      const res = await fetch('/api/ga-metrics?action=voice-query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken },
+        body: JSON.stringify({ question })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setStatus(data.error || 'Something went wrong.', 'error');
+        return;
+      }
+      addBubble(data.answer, 'agent');
+      setStatus('Speaking…', 'speaking');
+      speak(data.answer);
+    } catch (err) {
+      setStatus('Network error — try again.', 'error');
+    }
+  }
+
+  // ---------- speech synthesis (browser-native, free) ----------
+  function speak(text){
+    if (!('speechSynthesis' in window)) {
+      setStatus('Speech synthesis isn\'t supported in this browser.', 'error');
+      return;
+    }
+    window.speechSynthesis.cancel(); // don't stack if a prior answer is still talking
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 1.02;
+    utter.onstart = () => { orbState = 'speaking'; };
+    utter.onend = () => {
+      orbState = 'idle';
+      setStatus('Click the mic to ask another question.', '');
+    };
+    utter.onerror = () => { orbState = 'idle'; };
+    window.speechSynthesis.speak(utter);
+  }
+
+  // ---------- orb visual (Canvas 2D, synthetic motion — no raw audio access ----------
+  // for browser-native speech synthesis, so "speaking" is a lively pulse
+  // pattern rather than true amplitude-reactivity) ----------
+  let orbState = 'idle'; // idle | listening | speaking
+
+  function setupOrb(){
+    const canvas = document.getElementById('orb');
+    const ctx = canvas.getContext('2d');
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const W = canvas.width, H = canvas.height, cx = W / 2, cy = H / 2;
+
+    const N = 90;
+    const particles = Array.from({ length: N }, (_, i) => {
+      const angle = (i / N) * Math.PI * 2;
+      return { angle, baseR: 60 + Math.random() * 20, speed: 0.15 + Math.random() * 0.25, phase: Math.random() * Math.PI * 2 };
+    });
+
+    const colorFor = () => orbState === 'speaking' ? '79,216,255' : orbState === 'listening' ? '255,92,114' : '90,168,240';
+
+    function frame(t){
+      ctx.clearRect(0, 0, W, H);
+
+      let amp = 0.15;
+      if (orbState === 'speaking') {
+        // synthetic "talking" chatter — quicker, more irregular than the listening breathing pattern
+        amp = 0.4 + Math.sin(t / 90) * 0.25 + Math.sin(t / 37) * 0.12;
+      } else if (orbState === 'listening') {
+        amp = 0.35 + Math.sin(t / 200) * 0.15;
+      } else {
+        amp = 0.18 + Math.sin(t / 900) * 0.05;
+      }
+
+      const col = colorFor();
+
+      // core glow
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 70 + amp * 40);
+      grad.addColorStop(0, `rgba(${col},${0.5 + amp * 0.3})`);
+      grad.addColorStop(1, `rgba(${col},0)`);
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(cx, cy, 90 + amp * 40, 0, Math.PI * 2); ctx.fill();
+
+      particles.forEach((p, i) => {
+        if (!reduced) p.angle += p.speed * 0.01;
+        const wob = Math.sin(t / 400 + p.phase) * 6;
+        const r = p.baseR + amp * 55 + wob;
+        const x = cx + Math.cos(p.angle) * r;
+        const y = cy + Math.sin(p.angle) * r * 0.92;
+        ctx.fillStyle = `rgba(${col},${0.55 + (i % 3) * 0.12})`;
+        ctx.beginPath(); ctx.arc(x, y, 1.6 + amp * 1.4, 0, Math.PI * 2); ctx.fill();
+      });
+
+      // connective threads between nearby particles for a network feel
+      ctx.strokeStyle = `rgba(${col},0.10)`;
+      ctx.lineWidth = 1;
+      for (let i = 0; i < particles.length; i += 6) {
+        const a = particles[i], b = particles[(i + 6) % particles.length];
+        const ra = a.baseR + amp * 55, rb = b.baseR + amp * 55;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(a.angle) * ra, cy + Math.sin(a.angle) * ra * 0.92);
+        ctx.lineTo(cx + Math.cos(b.angle) * rb, cy + Math.sin(b.angle) * rb * 0.92);
+        ctx.stroke();
+      }
+
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  init();
+</script>
+</body>
+</html>
