@@ -164,12 +164,102 @@ async function toolGetMarketingTraffic() {
 }
 
 async function toolGetCrmProspects(args) {
-  let q = supabase.from("prospects").select("business_name, trade, city, state, phone, status, created_at");
+  let q = supabase.from("prospects").select("business_name, trade, city, state, phone, status, draft_subject, created_at");
   if (args?.status) q = q.eq("status", args.status);
   if (args?.trade) q = q.eq("trade", args.trade);
   const { data, error } = await q.order("created_at", { ascending: false });
   if (error) throw error;
-  return { count: data.length, prospects: data };
+  return {
+    count: data.length,
+    prospects: data.map(p => ({ ...p, has_draft: !!p.draft_subject, draft_subject: undefined }))
+  };
+}
+
+async function findProspect(businessName) {
+  const { data, error } = await supabase
+    .from("prospects")
+    .select("id, business_name, trade, city, state, phone, status, draft_subject, draft_body")
+    .ilike("business_name", `%${businessName}%`)
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// Drafting is a separate, non-tool-calling OpenAI completion — same raw-fetch
+// pattern already used for page copy in generate-business.js.
+async function generateDraftCopy(prospect, instructions) {
+  const prompt = `Write a short, professional cold outreach email from Enoma (AI-generated business websites for local service businesses, $19.99/mo after a free 30-day trial) to a local business owner who doesn't have a website yet.
+
+Business: ${prospect.business_name}
+Trade: ${prospect.trade || "local service business"}
+Location: ${[prospect.city, prospect.state].filter(Boolean).join(", ") || "unknown"}
+${prospect.draft_body ? `\nExisting draft to revise:\nSubject: ${prospect.draft_subject}\n${prospect.draft_body}\n\nRevision instructions: ${instructions || "improve it generally"}` : ""}
+${!prospect.draft_body && instructions ? `\nSpecific instructions: ${instructions}` : ""}
+
+Keep it short (under 120 words), warm but not pushy, no false urgency, no fake personalization details you don't actually have. Sign off as "Jack, Enoma". Return ONLY valid JSON: {"subject": "...", "body": "..."}`;
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${process.env.OPENAI_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "gpt-4o",
+      temperature: 0.6,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: "You are a JSON API. You ONLY return valid JSON." },
+        { role: "user", content: prompt }
+      ]
+    })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message || "OpenAI draft request failed");
+  return JSON.parse(data.choices[0].message.content);
+}
+
+async function toolDraftOutreachEmail(args) {
+  const prospect = await findProspect(args.business_name);
+  if (!prospect) return { error: `No prospect found matching "${args.business_name}"` };
+
+  const draft = await generateDraftCopy(prospect, args.instructions);
+
+  const { error } = await supabase
+    .from("prospects")
+    .update({ draft_subject: draft.subject, draft_body: draft.body, status: "drafted", updated_at: new Date().toISOString() })
+    .eq("id", prospect.id);
+  if (error) throw error;
+
+  return { business_name: prospect.business_name, subject: draft.subject, body: draft.body, status: "drafted" };
+}
+
+async function toolGetOutreachDraft(args) {
+  const prospect = await findProspect(args.business_name);
+  if (!prospect) return { error: `No prospect found matching "${args.business_name}"` };
+  if (!prospect.draft_body) return { business_name: prospect.business_name, has_draft: false };
+  return {
+    business_name: prospect.business_name,
+    subject: prospect.draft_subject,
+    body: prospect.draft_body,
+    status: prospect.status
+  };
+}
+
+async function toolApproveOutreachEmail(args) {
+  const prospect = await findProspect(args.business_name);
+  if (!prospect) return { error: `No prospect found matching "${args.business_name}"` };
+  if (!prospect.draft_body) return { error: `${prospect.business_name} has no draft yet — draft one first.` };
+
+  const { error } = await supabase
+    .from("prospects")
+    .update({ status: "approved", updated_at: new Date().toISOString() })
+    .eq("id", prospect.id);
+  if (error) throw error;
+
+  return {
+    business_name: prospect.business_name,
+    status: "approved",
+    note: "Marked ready to send. Actual sending isn't automated yet — Jack sends it himself for now."
+  };
 }
 
 async function toolGetBusinessPagesStatus() {
@@ -203,15 +293,25 @@ async function toolUpdateProspectStatus(args) {
 const VOICE_TOOLS = [
   { type: "function", function: { name: "get_revenue_status", description: "Real MRR, paying vs. comped accounts, active and stalled trials.", parameters: { type: "object", properties: {} } } },
   { type: "function", function: { name: "get_marketing_traffic", description: "Website traffic: sessions/users/pageviews for the last 7 days, and acquisition channels for the last 30 days.", parameters: { type: "object", properties: {} } } },
-  { type: "function", function: { name: "get_crm_prospects", description: "Prospecting/CRM data pulled via Outscraper.", parameters: { type: "object", properties: {
-    status: { type: "string", enum: ["new", "dedup_match", "reviewed", "skipped"], description: "Filter by status" },
+  { type: "function", function: { name: "get_crm_prospects", description: "Prospecting/CRM data pulled via Outscraper. Each result includes has_draft so you know which prospects already have outreach copy.", parameters: { type: "object", properties: {
+    status: { type: "string", enum: ["new", "dedup_match", "reviewed", "skipped", "drafted", "approved"], description: "Filter by status" },
     trade: { type: "string", description: "Filter by trade, e.g. landscaping" }
   } } } },
   { type: "function", function: { name: "get_business_pages_status", description: "All live Enoma business pages and their publish/subscription status.", parameters: { type: "object", properties: {} } } },
-  { type: "function", function: { name: "update_prospect_status", description: "Mark a CRM prospect as reviewed or skipped. The only write action available.", parameters: { type: "object", properties: {
+  { type: "function", function: { name: "update_prospect_status", description: "Mark a CRM prospect as reviewed or skipped.", parameters: { type: "object", properties: {
     business_name: { type: "string", description: "Exact or partial business name to match" },
     status: { type: "string", enum: ["reviewed", "skipped", "new"] }
-  }, required: ["business_name", "status"] } } }
+  }, required: ["business_name", "status"] } } },
+  { type: "function", function: { name: "draft_outreach_email", description: "Generate (or revise, if one already exists) a cold outreach email draft for a specific prospect. Always returns the actual subject/body so it can be read aloud.", parameters: { type: "object", properties: {
+    business_name: { type: "string", description: "Exact or partial business name to match" },
+    instructions: { type: "string", description: "Optional feedback for revising an existing draft, e.g. 'make it shorter' or 'mention their reviews'" }
+  }, required: ["business_name"] } } },
+  { type: "function", function: { name: "get_outreach_draft", description: "Read back the current draft subject/body for a prospect without regenerating it.", parameters: { type: "object", properties: {
+    business_name: { type: "string" }
+  }, required: ["business_name"] } } },
+  { type: "function", function: { name: "approve_outreach_email", description: "Mark a prospect's draft as approved/ready to send. Does NOT actually send anything — sending is not automated yet.", parameters: { type: "object", properties: {
+    business_name: { type: "string" }
+  }, required: ["business_name"] } } }
 ];
 
 const TOOL_IMPL = {
@@ -219,14 +319,19 @@ const TOOL_IMPL = {
   get_marketing_traffic: toolGetMarketingTraffic,
   get_crm_prospects: toolGetCrmProspects,
   get_business_pages_status: toolGetBusinessPagesStatus,
-  update_prospect_status: toolUpdateProspectStatus
+  update_prospect_status: toolUpdateProspectStatus,
+  draft_outreach_email: toolDraftOutreachEmail,
+  get_outreach_draft: toolGetOutreachDraft,
+  approve_outreach_email: toolApproveOutreachEmail
 };
 
 const SYSTEM_PROMPT = `You are Enoma's internal voice assistant, speaking directly to Jack, the founder. Enoma builds AI-generated business websites for local service businesses (landscaping, plumbing, HVAC, etc.) — free 30-day trial, then $19.99/mo. Its ideal customer is a business that doesn't have a website yet.
 
-You have tools for revenue, marketing traffic, CRM/prospecting data, and business page status — always call a tool rather than guessing at any number. You can also discuss outbound/inbound marketing strategy and the BD pipeline by reasoning over what the tools return.
+You have tools for revenue, marketing traffic, CRM/prospecting data, business page status, and outreach drafting — always call a tool rather than guessing at any number or inventing message copy. You can also discuss outbound/inbound marketing strategy and the BD pipeline by reasoning over what the tools return.
 
-Outreach email drafting and sending are NOT built yet — the prospects data has no draft copy in it. If asked to pull up, read, or send outreach messages, say plainly that drafting isn't built yet rather than inventing message copy. More generally: if a question asks about a capability or data with no matching tool result, say it doesn't exist or isn't built yet — never fabricate an answer that sounds plausible.
+Outreach workflow: draft_outreach_email generates or revises a draft and returns the real subject/body — read it back to Jack conversationally (don't just say "I drafted it", actually speak the content). He can ask for changes, which you make by calling draft_outreach_email again with instructions describing the change. When he says something like "approve it" or "send it", call approve_outreach_email — but tell him clearly that this only marks it ready; actually sending emails is not automated yet, so he still has to send it himself.
+
+More generally: if a question asks about a capability or data with no matching tool result, say it doesn't exist or isn't built yet — never fabricate an answer that sounds plausible.
 
 This response will be read aloud via text-to-speech, so answer conversationally in 2-4 sentences — no markdown, no bullet lists, no headers. Round numbers naturally when speaking them.`;
 
