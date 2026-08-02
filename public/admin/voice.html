@@ -80,7 +80,7 @@
 
   <div class="orb-wrap">
     <canvas id="orb" width="280" height="280"></canvas>
-    <button class="mic-btn" id="micBtn" title="Click, ask, click again to send" aria-label="Talk">&#127908;</button>
+    <button class="mic-btn" id="micBtn" title="Click, ask, click again to send" aria-label="Talk"></button>
   </div>
 
   <div class="status" id="status">Click the mic and ask about revenue, traffic, CRM, or business pages.</div>
@@ -227,13 +227,26 @@
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const W = canvas.width, H = canvas.height, cx = W / 2, cy = H / 2;
 
-    const N = 90;
-    const particles = Array.from({ length: N }, (_, i) => {
-      const angle = (i / N) * Math.PI * 2;
-      return { angle, baseR: 60 + Math.random() * 20, speed: 0.15 + Math.random() * 0.25, phase: Math.random() * Math.PI * 2 };
+    // Even distribution of points over a sphere surface (Fibonacci sphere) —
+    // gives a clean 3D globe of dots rather than a flat ring.
+    const N = 260;
+    const GOLDEN = Math.PI * (3 - Math.sqrt(5));
+    const points = Array.from({ length: N }, (_, i) => {
+      const y = 1 - (i / (N - 1)) * 2;
+      const radiusAtY = Math.sqrt(Math.max(0, 1 - y * y));
+      const theta = GOLDEN * i;
+      return {
+        x0: Math.cos(theta) * radiusAtY,
+        y0: y,
+        z0: Math.sin(theta) * radiusAtY,
+        phase: Math.random() * Math.PI * 2,
+        bounceSpeed: 0.6 + Math.random() * 0.8
+      };
     });
 
     const colorFor = () => orbState === 'speaking' ? '79,216,255' : orbState === 'listening' ? '255,92,114' : '90,168,240';
+
+    let rotY = 0, rotX = 0.3;
 
     function frame(t){
       ctx.clearRect(0, 0, W, H);
@@ -241,43 +254,56 @@
       let amp = 0.15;
       if (orbState === 'speaking') {
         // synthetic "talking" chatter — quicker, more irregular than the listening breathing pattern
-        amp = 0.4 + Math.sin(t / 90) * 0.25 + Math.sin(t / 37) * 0.12;
+        amp = 0.5 + Math.sin(t / 90) * 0.3 + Math.sin(t / 37) * 0.15;
       } else if (orbState === 'listening') {
-        amp = 0.35 + Math.sin(t / 200) * 0.15;
+        amp = 0.4 + Math.sin(t / 200) * 0.18;
       } else {
         amp = 0.18 + Math.sin(t / 900) * 0.05;
       }
 
       const col = colorFor();
+      const baseR = 68;
+      const R = baseR * (1 + amp); // sphere expands with voice activity
 
       // core glow
-      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 70 + amp * 40);
-      grad.addColorStop(0, `rgba(${col},${0.5 + amp * 0.3})`);
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, R + 30);
+      grad.addColorStop(0, `rgba(${col},${0.35 + amp * 0.25})`);
       grad.addColorStop(1, `rgba(${col},0)`);
       ctx.fillStyle = grad;
-      ctx.beginPath(); ctx.arc(cx, cy, 90 + amp * 40, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx, cy, R + 30, 0, Math.PI * 2); ctx.fill();
 
-      particles.forEach((p, i) => {
-        if (!reduced) p.angle += p.speed * 0.01;
-        const wob = Math.sin(t / 400 + p.phase) * 6;
-        const r = p.baseR + amp * 55 + wob;
-        const x = cx + Math.cos(p.angle) * r;
-        const y = cy + Math.sin(p.angle) * r * 0.92;
-        ctx.fillStyle = `rgba(${col},${0.55 + (i % 3) * 0.12})`;
-        ctx.beginPath(); ctx.arc(x, y, 1.6 + amp * 1.4, 0, Math.PI * 2); ctx.fill();
-      });
+      if (!reduced) { rotY += 0.006; rotX += 0.0015; }
+      const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+      const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
 
-      // connective threads between nearby particles for a network feel
-      ctx.strokeStyle = `rgba(${col},0.10)`;
-      ctx.lineWidth = 1;
-      for (let i = 0; i < particles.length; i += 6) {
-        const a = particles[i], b = particles[(i + 6) % particles.length];
-        const ra = a.baseR + amp * 55, rb = b.baseR + amp * 55;
+      const projected = points.map(p => {
+        // rotate around Y axis, then around X axis
+        const x1 = p.x0 * cosY - p.z0 * sinY;
+        const z1 = p.x0 * sinY + p.z0 * cosY;
+        const y1 = p.y0 * cosX - z1 * sinX;
+        const z2 = p.y0 * sinX + z1 * cosX;
+
+        // per-point bounce: gentle radial jitter so the sphere feels alive, not static
+        const bounce = 1 + Math.sin(t / 260 * p.bounceSpeed + p.phase) * 0.05;
+
+        const focal = 340;
+        const scale = (focal / (focal - z2 * R)) * bounce;
+
+        return {
+          x: cx + x1 * R * scale,
+          y: cy + y1 * R * scale,
+          z: z2,
+          scale
+        };
+      }).sort((a, b) => a.z - b.z); // paint back-to-front
+
+      projected.forEach(p => {
+        const depth = (p.z + 1) / 2; // 0 (far) .. 1 (near)
+        ctx.fillStyle = `rgba(${col},${0.25 + depth * 0.55})`;
         ctx.beginPath();
-        ctx.moveTo(cx + Math.cos(a.angle) * ra, cy + Math.sin(a.angle) * ra * 0.92);
-        ctx.lineTo(cx + Math.cos(b.angle) * rb, cy + Math.sin(b.angle) * rb * 0.92);
-        ctx.stroke();
-      }
+        ctx.arc(p.x, p.y, 1.1 + depth * 2.1 * p.scale, 0, Math.PI * 2);
+        ctx.fill();
+      });
 
       requestAnimationFrame(frame);
     }
