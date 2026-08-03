@@ -87,6 +87,12 @@ const normalizePhone = (p) => (p || "").replace(/\D/g, "").slice(-10);
 // stores new ones in `prospects` for the Marketing agent to draft outreach to.
 // Filtered to only_without_website — Enoma's actual ICP is businesses that
 // don't have a site yet, not just any business in the trade.
+//
+// Email is requested via enrichment (company_websites_finder discovers a site
+// Google's own listing doesn't show, leads_n_contacts then scrapes an email
+// from it) but is NOT required — most correctly-targeted no-website prospects
+// genuinely have no scrapable email anywhere, and dropping them would gut this
+// vertical's list. Treat `email` as a nice-to-have channel signal, not a filter.
 async function handleProspectPull(req, res) {
   const trade = (req.query.trade || "landscaping").toString();
   const location = (req.query.location || "Attleboro, MA").toString();
@@ -102,6 +108,12 @@ async function handleProspectPull(req, res) {
   const filtersParam = req.query.filters !== undefined ? req.query.filters.toString() : "only_without_website";
   if (filtersParam && filtersParam !== "none") {
     filtersParam.split(",").forEach(f => params.append("filters", f));
+  }
+  const enrichmentParam = req.query.enrichment !== undefined
+    ? req.query.enrichment.toString()
+    : "company_websites_finder,leads_n_contacts";
+  if (enrichmentParam && enrichmentParam !== "none") {
+    enrichmentParam.split(",").forEach(e => params.append("enrichment", e));
   }
 
   const outscraperRes = await fetch(
@@ -125,6 +137,26 @@ async function handleProspectPull(req, res) {
       .filter(Boolean)
   );
 
+  // Outscraper's docs don't publish an exact response shape for the
+  // leads_n_contacts/company_websites_finder enrichments, so this checks the
+  // plausible field-name variants rather than asserting one. Confirm against
+  // `raw` on the first real enriched pull and simplify once the real shape
+  // is known.
+  const firstEmail = p => {
+    if (p.email_1) return p.email_1;
+    if (Array.isArray(p.emails) && p.emails.length) return p.emails[0];
+    if (typeof p.email === "string" && p.email) return p.email;
+    if (p.contacts?.emails?.length) return p.contacts.emails[0];
+    return null;
+  };
+  const foundWebsite = p => {
+    // `site` is the business's own listed website; company_websites_finder
+    // may add a distinct discovered-site field when Maps shows none.
+    if (!p.site && p.found_website) return p.found_website;
+    if (!p.site && p.company_website) return p.company_website;
+    return null;
+  };
+
   const rows = places.map(p => {
     const phone = normalizePhone(p.phone);
     return {
@@ -136,6 +168,8 @@ async function handleProspectPull(req, res) {
       city: p.city || null,
       state: p.state || p.us_state || null,
       website: p.site || null,
+      email: firstEmail(p),
+      found_website: foundWebsite(p),
       google_place_id: p.place_id || null,
       status: phone && existingPhones.has(phone) ? "dedup_match" : "new",
       raw: p
@@ -153,7 +187,8 @@ async function handleProspectPull(req, res) {
     success: true,
     pulled: places.length,
     new: rows.filter(r => r.status === "new").length,
-    dedup_matches: rows.filter(r => r.status === "dedup_match").length
+    dedup_matches: rows.filter(r => r.status === "dedup_match").length,
+    with_email: rows.filter(r => r.email).length
   });
 }
 
@@ -232,7 +267,7 @@ async function toolGetMarketingTraffic() {
 }
 
 async function toolGetCrmProspects(args) {
-  let q = supabase.from("prospects").select("business_name, trade, city, state, phone, status, draft_subject, created_at");
+  let q = supabase.from("prospects").select("business_name, trade, city, state, phone, email, status, draft_subject, created_at");
   if (args?.status) q = q.eq("status", args.status);
   if (args?.trade) q = q.eq("trade", args.trade);
   const { data, error } = await q.order("created_at", { ascending: false });
