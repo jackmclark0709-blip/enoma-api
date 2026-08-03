@@ -284,7 +284,7 @@ async function toolGetCrmProspects(args) {
 async function findProspect(businessName) {
   const { data, error } = await supabase
     .from("prospects")
-    .select("id, business_name, trade, city, state, phone, status, draft_subject, draft_body")
+    .select("id, business_name, trade, city, state, phone, email, preview_url, status, draft_subject, draft_body")
     .ilike("business_name", `%${businessName}%`)
     .limit(1)
     .maybeSingle();
@@ -295,11 +295,18 @@ async function findProspect(businessName) {
 // Drafting is a separate, non-tool-calling OpenAI completion — same raw-fetch
 // pattern already used for page copy in generate-business.js.
 async function generateDraftCopy(prospect, instructions) {
+  // When a preview page already exists (small_business_profiles.is_claimed=false,
+  // linked via prospects.preview_url), that's the strongest honest hook we have —
+  // a real, working thing built from their own public info, not a generic pitch.
+  const previewLine = prospect.preview_url
+    ? `\nA real, unclaimed preview page already exists for this business at ${prospect.preview_url} — built from their public Google Business listing (name, location, and real rating/reviews where available; nothing invented). Reference it directly and invite them to look, keep it, or ask for changes. This is true and verifiable — lean on it instead of generic claims.`
+    : "";
+
   const prompt = `Write a short, professional cold outreach email from Enoma (AI-generated business websites for local service businesses, $19.99/mo after a free 30-day trial) to a local business owner who doesn't have a website yet.
 
 Business: ${prospect.business_name}
 Trade: ${prospect.trade || "local service business"}
-Location: ${[prospect.city, prospect.state].filter(Boolean).join(", ") || "unknown"}
+Location: ${[prospect.city, prospect.state].filter(Boolean).join(", ") || "unknown"}${previewLine}
 ${prospect.draft_body ? `\nExisting draft to revise:\nSubject: ${prospect.draft_subject}\n${prospect.draft_body}\n\nRevision instructions: ${instructions || "improve it generally"}` : ""}
 ${!prospect.draft_body && instructions ? `\nSpecific instructions: ${instructions}` : ""}
 
@@ -366,6 +373,59 @@ async function toolApproveOutreachEmail(args) {
     status: "approved",
     note: "Marked ready to send. Actual sending isn't automated yet — Jack sends it himself for now."
   };
+}
+
+// Batch-drafts outreach emails for every prospect that actually has an email
+// on file. Most prospects won't (see handleProspectPull) — this only ever
+// touches the subset where email is not null, and never re-drafts a prospect
+// that's already drafted/approved unless force=true.
+async function handleDraftAll(req, res) {
+  const force = req.query.force === "true";
+  let q = supabase
+    .from("prospects")
+    .select("id, business_name, trade, city, state, phone, email, preview_url, status, draft_subject, draft_body")
+    .not("email", "is", null);
+  if (!force) q = q.not("status", "in", "(drafted,approved,sent)");
+
+  const { data: prospects, error } = await q;
+  if (error) throw error;
+
+  const results = [];
+  for (const prospect of prospects || []) {
+    try {
+      const draft = await generateDraftCopy(prospect, null);
+      const { error: updateErr } = await supabase
+        .from("prospects")
+        .update({ draft_subject: draft.subject, draft_body: draft.body, status: "drafted", updated_at: new Date().toISOString() })
+        .eq("id", prospect.id);
+      if (updateErr) throw updateErr;
+      results.push({ business_name: prospect.business_name, email: prospect.email, subject: draft.subject, drafted: true });
+    } catch (err) {
+      results.push({ business_name: prospect.business_name, email: prospect.email, drafted: false, error: err.message });
+    }
+  }
+
+  return res.status(200).json({
+    success: true,
+    eligible: (prospects || []).length,
+    drafted: results.filter(r => r.drafted).length,
+    failed: results.filter(r => !r.drafted).length,
+    results
+  });
+}
+
+// Read-only review surface: every prospect with a draft, for a human to read
+// before approving. Sending is never triggered from here.
+async function handleListDrafts(req, res) {
+  const statusFilter = req.query.status ? req.query.status.toString().split(",") : ["drafted", "approved"];
+  const { data, error } = await supabase
+    .from("prospects")
+    .select("id, business_name, phone, email, preview_url, status, draft_subject, draft_body, updated_at")
+    .in("status", statusFilter)
+    .order("updated_at", { ascending: false });
+  if (error) throw error;
+
+  return res.status(200).json({ success: true, count: (data || []).length, drafts: data || [] });
 }
 
 async function toolGetBusinessPagesStatus() {
@@ -515,6 +575,24 @@ export default async function handler(req, res) {
       return await handleProspectPull(req, res);
     } catch (err) {
       console.error("Prospect pull failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.query.action === "draft_all") {
+    try {
+      return await handleDraftAll(req, res);
+    } catch (err) {
+      console.error("Batch draft failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.query.action === "list_drafts") {
+    try {
+      return await handleListDrafts(req, res);
+    } catch (err) {
+      console.error("List drafts failed:", err);
       return res.status(500).json({ success: false, error: err.message });
     }
   }
