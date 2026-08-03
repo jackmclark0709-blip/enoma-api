@@ -83,6 +83,32 @@
     .signal__svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;}
     .signal__caption{margin-top:1.5rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text-3);letter-spacing:.03em;}
 
+    /* ---------- persistent thread: small pin follows the story from the gap through what-enoma-is ---------- */
+    .thread-wrap{position:relative;}
+    .thread-wrap::before{
+      content:'';position:absolute;top:0;bottom:0;left:calc(50% - 439px);width:1px;
+      background:repeating-linear-gradient(to bottom, var(--panel-border) 0 6px, transparent 6px 16px);
+      opacity:.5;
+    }
+    .thread-pin{position:sticky;top:3rem;height:0;margin-left:calc(50% - 458px);pointer-events:none;}
+    .thread-pin svg{display:block;width:38px;height:48px;overflow:visible;}
+    .thread-pin__ring{fill:none;stroke:var(--sky-light);stroke-width:1;animation:threadRing 3s ease-out infinite;}
+    .thread-pin__shape{fill:var(--sky);stroke:rgba(255,255,255,.15);stroke-width:.5;animation:threadPulse 3s ease-in-out infinite;transform-origin:19px 19px;}
+    .thread-pin__letter{font-family:'Fraunces',Georgia,serif;font-size:11px;fill:var(--text-1);text-anchor:middle;}
+    @keyframes threadRing{0%{r:12;opacity:.5;}100%{r:32;opacity:0;}}
+    @keyframes threadPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.08);}}
+    @media(max-width:1300px){ .thread-wrap::before,.thread-pin{display:none;} }
+    @media (prefers-reduced-motion: reduce){ .thread-pin__ring,.thread-pin__shape{animation:none;} }
+
+    /* ---------- faq ---------- */
+    .faq-list{max-width:640px;margin:2.5rem auto 0;text-align:left;display:flex;flex-direction:column;gap:1px;background:var(--panel-border);border-radius:16px;overflow:hidden;border:1px solid var(--panel-border);}
+    .faq-item{background:var(--void);padding:1.35rem 1.5rem;}
+    .faq-item summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:1rem;font-weight:600;font-size:.98rem;color:var(--text-1);}
+    .faq-item summary::-webkit-details-marker{display:none;}
+    .faq-item summary::after{content:'+';font-family:'IBM Plex Mono',monospace;font-size:1.2rem;color:var(--sky-light);flex-shrink:0;transition:transform .2s ease;}
+    .faq-item[open] summary::after{transform:rotate(45deg);}
+    .faq-item p{margin-top:.75rem;font-size:.9rem;color:var(--text-2);line-height:1.6;}
+
     /* ---------- BOTTLENECK / channel split ---------- */
     .channels{display:grid;grid-template-columns:1fr auto 1fr;gap:1.5rem;align-items:center;margin-top:3rem;max-width:640px;margin-inline:auto;}
     .channel{background:var(--panel);border:1px solid var(--panel-border);border-radius:16px;padding:1.5rem 1.25rem;text-align:left;}
@@ -104,7 +130,7 @@
     }
     .proof-card__num{font-family:'Fraunces',serif;font-optical-sizing:auto;font-weight:700;font-size:2.6rem;color:var(--sky-light);line-height:1;flex-shrink:0;}
     .proof-card__text{font-size:.92rem;color:var(--text-2);line-height:1.5;max-width:340px;}
-    .proof-card__text a{color:var(--sky-light);font-weight:600;}
+    .proof-card__cta{margin-top:2rem;}
     @media(max-width:560px){.proof-card{flex-direction:column;text-align:center;}}
 
     /* ---------- how it works ---------- */
@@ -183,6 +209,14 @@
     }
   </style>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Enoma","applicationCategory":"BusinessApplication","description":"Enoma is a lead gen platform for local service businesses — landscapers, plumbers, HVAC, contractors. A dedicated Google-indexed page that sends customer inquiries directly to you. Live in minutes, first month free.","operatingSystem":"Web","url":"https://enoma.io","offers":{"@type":"Offer","price":"19.99","priceCurrency":"USD"},"audience":{"@type":"Audience","audienceType":"Local Service Businesses"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+    {"@type":"Question","name":"I already have a Google Business Profile. Isn't that enough?","acceptedAnswer":{"@type":"Answer","text":"A Business Profile gets you on the map, but it wasn't built to be read by AI assistants, and you don't control what shows up next to it — including competitors' ads. Your Enoma page is yours alone, built for both Google and AI search."}},
+    {"@type":"Question","name":"I already have a website. Why do I need this too?","acceptedAnswer":{"@type":"Answer","text":"If your current site is already sending you calls every week, you're ahead of most local businesses — you probably don't need Enoma. If it isn't, the problem usually isn't the site itself; it's that it was never built specifically to be found. Enoma is that missing piece."}},
+    {"@type":"Question","name":"How is this different from Yelp or Angi?","acceptedAnswer":{"@type":"Answer","text":"Directory listings put competitors right next to you and often resell your leads. Your Enoma page is indexed as your own site — no competitor ads, no shared leads, just customers who searched and found you."}},
+    {"@type":"Question","name":"Do I have to write the page myself?","acceptedAnswer":{"@type":"Answer","text":"No. Tell us about your business — services, area, a few notes in your own words — and AI writes the page copy. You can edit anything afterward from your dashboard."}},
+    {"@type":"Question","name":"How do AI assistants like ChatGPT actually find my business?","acceptedAnswer":{"@type":"Answer","text":"The same way Google does: by reading clear, structured content about who you are and what you do. Enoma pages are built in that format from day one, so both Google's crawlers and AI assistants can find and recommend you."}},
+    {"@type":"Question","name":"Will the AI-written copy actually sound like my business?","acceptedAnswer":{"@type":"Answer","text":"It's built from what you tell us — your services, your area, your own notes — not a generic template. And it's never locked in: log into your dashboard anytime to edit anything."}}
+  ]}</script>
 </head>
 <body>
 
@@ -205,13 +239,13 @@
       <span class="query-bar__text" id="queryText">"landscaper near me"</span><span class="query-bar__cursor"></span>
     </div>
 
-    <p class="hero__sub">Google saw that search. So did ChatGPT. Enoma makes sure your business is the answer — not whoever happened to show up first.</p>
+    <p class="hero__sub">However someone finds a business like yours — a Google search, a question to ChatGPT, a scroll through Instagram, a call from a neighbor — Enoma makes sure it's you they find.</p>
 
     <div class="hero__actions">
       <a href="/get-your-website" class="btn-primary">Get found free →</a>
       <a href="/examples" class="btn-secondary">See live examples</a>
     </div>
-    <p class="hero__proof">No credit card &nbsp;·&nbsp; First month free &nbsp;·&nbsp; Live in minutes</p>
+    <p class="hero__proof">No credit card &nbsp;·&nbsp; First month free &nbsp;·&nbsp; Live in minutes &nbsp;·&nbsp; Cancel anytime</p>
 
     <div class="signal" id="heroSignal">
       <svg class="signal__svg" viewBox="0 0 680 650" role="img" aria-label="Diagram showing customer searches arriving from keyword search, conversational AI, social media, phone calls, referrals, and voice search, all converging on your business.">
@@ -321,11 +355,20 @@
     <p class="signal__caption">Six channels. One answer, if you're built to be found.</p>
   </section>
 
+  <div class="thread-wrap">
+  <div class="thread-pin" aria-hidden="true">
+    <svg viewBox="0 0 38 48" overflow="visible">
+      <circle class="thread-pin__ring" cx="19" cy="19" r="12"/>
+      <path class="thread-pin__shape" d="M19,8 C13.5,8 9,12.4 9,17.8 C9,25 19,36 19,36 C19,36 29,25 29,17.8 C29,12.4 24.5,8 19,8 Z"/>
+      <text class="thread-pin__letter" x="19" y="21.5">e</text>
+    </svg>
+  </div>
+
   <!-- ============ THE GAP — the bottleneck, explained ============ -->
   <section class="scene reveal">
     <p class="eyebrow">The gap</p>
     <h2>Search changed.<br>Most local businesses didn't.</h2>
-    <p class="lead">Homeowners don't just Google anymore. They ask AI assistants directly — "find me a plumber in Agawam who can come today" — and expect a straight answer. Both channels need the same thing from you: a real, structured page. A Facebook page won't cut it. No page cuts it even less.</p>
+    <p class="lead">Most local businesses already have something — a Facebook page, a Google listing, maybe an old website nobody's touched in years. None of it is built to be read by AI. Homeowners now ask AI assistants directly — "find me a plumber in Agawam who can come today" — and expect a straight answer. Both channels need the same thing from you: a real, structured page.</p>
     <div class="channels">
       <div class="channel">
         <p class="channel__label">Google sees</p>
@@ -401,14 +444,15 @@
   <section class="scene reveal">
     <p class="eyebrow">What Enoma is</p>
     <h2>Not a website.<br>Just enough to be found.</h2>
-    <p class="lead">You don't need ten pages or a $3,000 agency project — most of that goes unread anyway. You need one page built specifically to be indexed by Google and understood by AI: your services, your service area, your number, in a form both can read.</p>
+    <p class="lead">You don't need ten pages nobody reads. You need one, built specifically to be indexed by Google and understood by AI — your services, your service area, your number, written from what you tell us, not a generic template.</p>
     <div class="statline">
       <div class="statline__item"><div class="statline__num">&lt;5 min</div><div class="statline__label">to go live</div></div>
       <div class="statline__item"><div class="statline__num">$0</div><div class="statline__label">first month</div></div>
       <div class="statline__item"><div class="statline__num">Day one</div><div class="statline__label">indexed &amp; findable</div></div>
     </div>
-    <p class="lead" style="margin-top:1.5rem;font-size:.9rem;">A web agency runs $3,000+ upfront. Yelp shows your competitors right next to you. Enoma is free the first month, then $19.99/mo — and it's just yours.</p>
+    <p class="lead" style="margin-top:1.5rem;font-size:.9rem;">A web agency runs $3,000+ upfront. Yelp puts competitors right next to you, and the same lead often goes to several businesses at once. Enoma is free the first month, then $19.99/mo — no competitor ads, no shared leads, just yours.</p>
   </section>
+  </div>
 
   <!-- ============ WHAT YOU GET — product preview ============ -->
   <section class="scene reveal">
@@ -439,7 +483,10 @@
     <h2>One page. Zero ad spend.</h2>
     <div class="proof-card">
       <div class="proof-card__num">4</div>
-      <div class="proof-card__text">Real customer inquiries generated through a single Enoma page for a landscaping company in Agawam, MA — homeowners who searched, found them, and reached out directly. <a href="/case-studies/conways-landscaping">Read the case study →</a></div>
+      <div class="proof-card__text">Real customer inquiries generated through a single Enoma page for a landscaping company in Agawam, MA — homeowners who searched, found them, and reached out directly.</div>
+    </div>
+    <div class="proof-card__cta">
+      <a href="/case-studies/conways-landscaping" class="btn-secondary">Read the case study →</a>
     </div>
   </section>
 
@@ -454,7 +501,7 @@
       </div>
       <div class="step2">
         <div class="step2__num">02</div>
-        <div><div class="step2__title">Tell us about your business</div><div class="step2__desc">Services, location, a few notes in your own words — AI writes the rest.</div></div>
+        <div><div class="step2__title">Tell us about your business</div><div class="step2__desc">Services, location, a few notes in your own words — AI writes the first draft. Edit anything, anytime.</div></div>
       </div>
       <div class="step2">
         <div class="step2__num">03</div>
@@ -463,11 +510,43 @@
     </div>
   </section>
 
+  <!-- ============ FAQ — objection handling right before the ask ============ -->
+  <section class="scene reveal">
+    <p class="eyebrow">Common questions</p>
+    <h2>Fair questions before you sign up.</h2>
+    <div class="faq-list">
+      <details class="faq-item">
+        <summary>I already have a Google Business Profile. Isn't that enough?</summary>
+        <p>A Business Profile gets you on the map, but it wasn't built to be read by AI assistants, and you don't control what shows up next to it — including competitors' ads. Your Enoma page is yours alone, built for both Google and AI search.</p>
+      </details>
+      <details class="faq-item">
+        <summary>I already have a website. Why do I need this too?</summary>
+        <p>If your current site is already sending you calls every week, you're ahead of most local businesses — you probably don't need Enoma. If it isn't, the problem usually isn't the site itself; it's that it was never built specifically to be found. Enoma is that missing piece.</p>
+      </details>
+      <details class="faq-item">
+        <summary>How is this different from Yelp or Angi?</summary>
+        <p>Directory listings put competitors right next to you and often resell your leads. Your Enoma page is indexed as your own site — no competitor ads, no shared leads, just customers who searched and found you.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Do I have to write the page myself?</summary>
+        <p>No. Tell us about your business — services, area, a few notes in your own words — and AI writes the page copy. You can edit anything afterward from your dashboard.</p>
+      </details>
+      <details class="faq-item">
+        <summary>How do AI assistants like ChatGPT actually find my business?</summary>
+        <p>The same way Google does: by reading clear, structured content about who you are and what you do. Enoma pages are built in that format from day one, so both Google's crawlers and AI assistants can find and recommend you.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Will the AI-written copy actually sound like my business?</summary>
+        <p>It's built from what you tell us — your services, your area, your own notes — not a generic template. And it's never locked in: log into your dashboard anytime to edit anything.</p>
+      </details>
+    </div>
+  </section>
+
   <!-- ============ FINAL CTA ============ -->
   <section class="scene finale reveal">
     <p class="eyebrow">Get started</p>
     <h2>Stop losing jobs to whoever shows up first.</h2>
-    <p class="lead">First month free. No credit card. See your page live before you pay anything.</p>
+    <p class="lead">First month free. No credit card, no contract. See your page live before you pay anything.</p>
     <div class="hero__actions">
       <a href="/get-your-website" class="btn-primary">Get found free →</a>
       <a href="/examples" class="btn-secondary">See live examples</a>
