@@ -112,8 +112,11 @@ async function handleProspectPull(req, res) {
   const enrichmentParam = req.query.enrichment !== undefined
     ? req.query.enrichment.toString()
     : "company_websites_finder,leads_n_contacts";
+  // Confirmed empirically: unlike `filters`, Outscraper's `enrichment` must be
+  // sent as ONE comma-separated value — appending it as repeated params (like
+  // filters does) silently returns zero results.
   if (enrichmentParam && enrichmentParam !== "none") {
-    enrichmentParam.split(",").forEach(e => params.append("enrichment", e));
+    params.append("enrichment", enrichmentParam);
   }
 
   const outscraperRes = await fetch(
