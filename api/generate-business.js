@@ -543,6 +543,23 @@ export default async function handler(req, res) {
       servicesJSON = JSON.stringify(existingProfile.services);
     }
 
+    // The AI's output schema has no price field (prices shouldn't be left to an LLM
+    // to invent or "helpfully" adjust) — preserve whatever the owner actually typed
+    // by name, falling back to position, and merge it back in after regeneration.
+    const submittedServices = (() => {
+      try {
+        const parsed = JSON.parse(servicesJSON);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    })();
+    const submittedPriceByName = new Map();
+    submittedServices.forEach(s => {
+      const nm = String(s?.service_name || s?.name || "").trim().toLowerCase();
+      if (nm) submittedPriceByName.set(nm, String(s?.price || "").trim());
+    });
+
     /* ---------- AI COPY ---------- */
     let generated = null;
     let primaryCTA = null;
@@ -671,10 +688,16 @@ primary_cta: If phone is provided, set type to "call" and value to the phone num
 
       generated.services = generated.services
         .filter(s => s && (s.service_name || s.name))
-        .map(s => ({
-          service_name: String(s.service_name || s.name || "").trim(),
-          service_description: String(s.service_description || s.description || "").trim()
-        }))
+        .map((s, i) => {
+          const name = String(s.service_name || s.name || "").trim();
+          const byName = submittedPriceByName.get(name.toLowerCase());
+          const byPosition = submittedServices[i] ? String(submittedServices[i]?.price || "").trim() : "";
+          return {
+            service_name: name,
+            service_description: String(s.service_description || s.description || "").trim(),
+            price: byName || byPosition || ""
+          };
+        })
         .filter(s => s.service_name);
 
       generated.faqs = generated.faqs
