@@ -100,14 +100,15 @@
     @media(max-width:1300px){ .thread-wrap::before,.thread-pin{display:none;} }
     @media (prefers-reduced-motion: reduce){ .thread-pin__ring,.thread-pin__shape{animation:none;} }
 
-    /* ---------- faq ---------- */
-    .faq-list{max-width:640px;margin:2.5rem auto 0;text-align:left;display:flex;flex-direction:column;gap:1px;background:var(--panel-border);border-radius:16px;overflow:hidden;border:1px solid var(--panel-border);}
-    .faq-item{background:var(--void);padding:1.35rem 1.5rem;}
-    .faq-item summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:1rem;font-weight:600;font-size:.98rem;color:var(--text-1);}
-    .faq-item summary::-webkit-details-marker{display:none;}
-    .faq-item summary::after{content:'+';font-family:'IBM Plex Mono',monospace;font-size:1.2rem;color:var(--sky-light);flex-shrink:0;transition:transform .2s ease;}
-    .faq-item[open] summary::after{transform:rotate(45deg);}
-    .faq-item p{margin-top:.75rem;font-size:.9rem;color:var(--text-2);line-height:1.6;}
+    /* ---------- faq (namespaced faq-accordion/faq-row — enoma.css already owns .faq-list/.faq-item for a light-theme component) ---------- */
+    .faq-accordion{max-width:640px;margin:2.5rem auto 0;text-align:left;display:flex;flex-direction:column;gap:1px;background:var(--panel-border);border-radius:16px;overflow:hidden;border:1px solid var(--panel-border);}
+    .faq-row{background:var(--void);padding:1.35rem 1.5rem;transition:background .18s ease;}
+    .faq-row:hover{background:rgba(255,255,255,.045);}
+    .faq-row summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:1rem;font-weight:600;font-size:.98rem;color:var(--text-1);}
+    .faq-row summary::-webkit-details-marker{display:none;}
+    .faq-chevron{width:14px;height:14px;flex-shrink:0;stroke:var(--sky-light);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s ease;}
+    .faq-row[open] .faq-chevron{transform:rotate(90deg);}
+    .faq-row p{margin-top:.75rem;font-size:.9rem;color:var(--text-2);line-height:1.6;}
 
     /* ---------- BOTTLENECK / channel split ---------- */
     .channels{display:grid;grid-template-columns:1fr auto 1fr;gap:1.5rem;align-items:center;margin-top:3rem;max-width:640px;margin-inline:auto;}
@@ -514,29 +515,29 @@
   <section class="scene reveal">
     <p class="eyebrow">Common questions</p>
     <h2>Fair questions before you sign up.</h2>
-    <div class="faq-list">
-      <details class="faq-item">
-        <summary>I already have a Google Business Profile. Isn't that enough?</summary>
+    <div class="faq-accordion">
+      <details class="faq-row">
+        <summary>I already have a Google Business Profile. Isn't that enough?<svg class="faq-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg></summary>
         <p>A Business Profile gets you on the map, but it wasn't built to be read by AI assistants, and you don't control what shows up next to it — including competitors' ads. Your Enoma page is yours alone, built for both Google and AI search.</p>
       </details>
-      <details class="faq-item">
-        <summary>I already have a website. Why do I need this too?</summary>
+      <details class="faq-row">
+        <summary>I already have a website. Why do I need this too?<svg class="faq-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg></summary>
         <p>If your current site is already sending you calls every week, you're ahead of most local businesses — you probably don't need Enoma. If it isn't, the problem usually isn't the site itself; it's that it was never built specifically to be found. Enoma is that missing piece.</p>
       </details>
-      <details class="faq-item">
-        <summary>How is this different from Yelp or Angi?</summary>
+      <details class="faq-row">
+        <summary>How is this different from Yelp or Angi?<svg class="faq-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg></summary>
         <p>Directory listings put competitors right next to you and often resell your leads. Your Enoma page is indexed as your own site — no competitor ads, no shared leads, just customers who searched and found you.</p>
       </details>
-      <details class="faq-item">
-        <summary>Do I have to write the page myself?</summary>
+      <details class="faq-row">
+        <summary>Do I have to write the page myself?<svg class="faq-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg></summary>
         <p>No. Tell us about your business — services, area, a few notes in your own words — and AI writes the page copy. You can edit anything afterward from your dashboard.</p>
       </details>
-      <details class="faq-item">
-        <summary>How do AI assistants like ChatGPT actually find my business?</summary>
+      <details class="faq-row">
+        <summary>How do AI assistants like ChatGPT actually find my business?<svg class="faq-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg></summary>
         <p>The same way Google does: by reading clear, structured content about who you are and what you do. Enoma pages are built in that format from day one, so both Google's crawlers and AI assistants can find and recommend you.</p>
       </details>
-      <details class="faq-item">
-        <summary>Will the AI-written copy actually sound like my business?</summary>
+      <details class="faq-row">
+        <summary>Will the AI-written copy actually sound like my business?<svg class="faq-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg></summary>
         <p>It's built from what you tell us — your services, your area, your own notes — not a generic template. And it's never locked in: log into your dashboard anytime to edit anything.</p>
       </details>
     </div>
