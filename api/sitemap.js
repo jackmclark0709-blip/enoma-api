@@ -45,11 +45,14 @@ const STATIC_PAGES = [
 
 export default async function handler(req, res) {
   try {
-    // Fetch all public business profile pages
+    // Fetch all public, claimed business profile pages.
+    // Unclaimed preview pages (is_claimed === false) are real, visitable pages
+    // but shouldn't be indexed/listed until the business actually claims them.
     const { data: profiles, error } = await supabase
       .from("small_business_profiles")
       .select("username, updated_at")
       .eq("is_public", true)
+      .eq("is_claimed", true)
       .not("username", "is", null)
       .order("updated_at", { ascending: false });
 

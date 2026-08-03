@@ -343,7 +343,9 @@ export default async function handler(req, res) {
       ? (typeof profile.attachments[0] === "string" ? profile.attachments[0] : profile.attachments[0]?.url)
       : null;
     const ogImage = firstPhoto || profile.logo_url || `${baseUrl}/api/p?og=1&slug=${encodeURIComponent(slug)}`;
-    const robots = profile.is_public ? "index,follow" : "noindex,nofollow";
+    // Unclaimed preview pages render normally (visitable, shareable link) but
+    // stay out of search results until the business actually claims the page.
+    const robots = (profile.is_public && profile.is_claimed !== false) ? "index,follow" : "noindex,nofollow";
 
     function collectSameAs(p) {
       const urls = new Set();
