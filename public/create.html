@@ -654,11 +654,22 @@ if (!editBusinessId) {
     document.getElementById("google_place").value = prefillName;
   }
   if (prefillCity && !form.querySelector('[name="city"]').value) {
-    form.querySelector('[name="city"]').value = prefillCity;
+    // The landing-page capture field asks for "e.g. Agawam, MA" as one string,
+    // so this can arrive as "City, ST" rather than a bare city name. Split it
+    // before using it anywhere else, or the state abbreviation ends up as its
+    // own bogus town once service_area gets comma-split downstream.
+    const cityStateMatch = prefillCity.match(/^(.+?),\s*([A-Za-z]{2})$/);
+    const cleanCity = cityStateMatch ? cityStateMatch[1].trim() : prefillCity.trim();
+    const cleanState = cityStateMatch ? cityStateMatch[2].toUpperCase() : "";
+
+    form.querySelector('[name="city"]').value = cleanCity;
+    if (cleanState && !form.querySelector('[name="state"]').value) {
+      form.querySelector('[name="state"]').value = cleanState;
+    }
     // Also seed the visible service-area field as a starting point —
     // person can edit/expand it, but shouldn't have to type their own
     // town again from scratch.
-    if (!form.service_area.value) form.service_area.value = prefillCity;
+    if (!form.service_area.value) form.service_area.value = cleanCity;
   }
 }
 
