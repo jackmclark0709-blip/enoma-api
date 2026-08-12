@@ -34,14 +34,6 @@ const STATIC_PAGES = [
   { url: "https://enoma.io/for/facebook-vs-website-local-business", lastmod: TODAY, changefreq: "monthly", priority: "0.9" },
   { url: "https://enoma.io/for/website-for-local-service-business", lastmod: TODAY, changefreq: "monthly", priority: "0.9" },
 
-  // State pages (Tier 2)
-  { url: "https://enoma.io/for/landscaping-websites-texas", lastmod: TODAY, changefreq: "monthly", priority: "0.88" },
-  { url: "https://enoma.io/for/landscaping-websites-florida", lastmod: TODAY, changefreq: "monthly", priority: "0.88" },
-  { url: "https://enoma.io/for/landscaping-websites-california", lastmod: TODAY, changefreq: "monthly", priority: "0.88" },
-  { url: "https://enoma.io/for/landscaping-websites-new-york", lastmod: TODAY, changefreq: "monthly", priority: "0.88" },
-  { url: "https://enoma.io/for/plumber-websites-texas", lastmod: TODAY, changefreq: "monthly", priority: "0.88" },
-  { url: "https://enoma.io/for/hvac-websites-florida", lastmod: TODAY, changefreq: "monthly", priority: "0.88" },
-
   // Original MA/local pages
   { url: "https://enoma.io/for/landscaping-websites-massachusetts", lastmod: TODAY, changefreq: "monthly", priority: "0.85" },
   { url: "https://enoma.io/for/plumber-websites-massachusetts", lastmod: TODAY, changefreq: "monthly", priority: "0.85" },
