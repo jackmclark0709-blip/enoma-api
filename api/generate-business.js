@@ -690,16 +690,28 @@ primary_cta: If phone is provided, set type to "call" and value to the phone num
       if (!aiRes.ok) {
         const text = await aiRes.text();
         console.error("❌ OpenAI error:", text);
-        return res.status(500).json({ error: "AI request failed" });
+        return res.status(500).json({
+          error: "AI request failed",
+          message: "We couldn't generate your page copy just now. Nothing was lost — please try again in a moment."
+        });
       }
 
       const ai = await aiRes.json();
       const rawAI = ai?.choices?.[0]?.message?.content;
-      if (!rawAI) return res.status(500).json({ error: "AI generation failed" });
+      if (!rawAI) {
+        return res.status(500).json({
+          error: "AI generation failed",
+          message: "We couldn't generate your page copy just now. Nothing was lost — please try again in a moment."
+        });
+      }
 
       generated = safeJSON(extractJSON(rawAI), null);
       if (!generated || typeof generated !== "object") {
-        return res.status(500).json({ error: "AI generation failed", details: "Invalid JSON" });
+        return res.status(500).json({
+          error: "AI generation failed",
+          details: "Invalid JSON",
+          message: "We couldn't generate your page copy just now. Nothing was lost — please try again in a moment."
+        });
       }
 
       if (!Array.isArray(generated.services)) generated.services = [];
@@ -751,11 +763,24 @@ primary_cta: If phone is provided, set type to "call" and value to the phone num
     const manualPrimaryCtaType = hasField(fields, "primary_cta_type") ? first(fields.primary_cta_type) : existingProfile?.primary_cta_type;
     const manualPrimaryCtaValue = hasField(fields, "primary_cta_value") ? first(fields.primary_cta_value) : existingProfile?.primary_cta_value;
 
-    const finalPrimaryCtaLabel = shouldRegenerate ? (primaryCTA?.label || manualPrimaryCtaLabel || "Contact Us") : (manualPrimaryCtaLabel || "Contact Us");
-    const finalPrimaryCtaType = shouldRegenerate ? normalizeCtaType(primaryCTA?.type || manualPrimaryCtaType || "call") : normalizeCtaType(manualPrimaryCtaType || "call");
-    const finalPrimaryCtaValue = shouldRegenerate
+    let finalPrimaryCtaLabel = shouldRegenerate ? (primaryCTA?.label || manualPrimaryCtaLabel || "Contact Us") : (manualPrimaryCtaLabel || "Contact Us");
+    let finalPrimaryCtaType = shouldRegenerate ? normalizeCtaType(primaryCTA?.type || manualPrimaryCtaType || "call") : normalizeCtaType(manualPrimaryCtaType || "call");
+    let finalPrimaryCtaValue = shouldRegenerate
       ? (primaryCTA?.value || manualPrimaryCtaValue || first(fields.phone) || first(fields.website) || "")
       : (manualPrimaryCtaValue || first(fields.phone) || first(fields.website) || "");
+
+    // A business with neither phone nor website would otherwise end up with
+    // type="call" and an empty value — profile.html correctly hides a CTA
+    // it can't build a working link for, so the page would end up with no
+    // primary call-to-action at all. Email is always present (required at
+    // the top of this handler), so fall back to it rather than showing
+    // nothing: every published page should have at least one working way
+    // for a customer to reach the business.
+    if (!finalPrimaryCtaValue) {
+      finalPrimaryCtaType = "email";
+      finalPrimaryCtaValue = email;
+      finalPrimaryCtaLabel = finalPrimaryCtaLabel === "Contact Us" ? "Email Us" : finalPrimaryCtaLabel;
+    }
 
     /* ---------- ATTACHMENTS ---------- */
     const attachmentsRemove = safeJSON(first(fields.attachments_remove), []);
@@ -843,7 +868,13 @@ primary_cta: If phone is provided, set type to "call" and value to the phone num
     });
 
   } catch (err) {
+    // Log the real exception server-side only — err.message can be a raw
+    // Postgres/Supabase/storage error and shouldn't reach a non-technical
+    // business owner's screen.
     console.error("🔥 generate-business error:", err);
-    return res.status(500).json({ error: "Server error", message: err.message });
+    return res.status(500).json({
+      error: "Server error",
+      message: "We couldn't finish creating your site. Your information is safe — please try again, or email jack@enoma.io if it keeps happening."
+    });
   }
 }
