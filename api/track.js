@@ -27,6 +27,7 @@ const FUNNEL_EVENTS = new Set([
   "choose_path_viewed",
   "choose_path_selected",
   "create_page_viewed",
+  "create_step_viewed",
   "create_form_submitted",
   "create_generation_succeeded",
   "create_generation_failed"

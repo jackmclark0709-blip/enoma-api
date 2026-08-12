@@ -250,6 +250,90 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
 #createBtn:disabled, #updateBtn:disabled, .form-sticky-header__btn:disabled {
   opacity: 0.6; cursor: not-allowed; transform: none !important;
 }
+
+/* ── Wizard (create mode only — edit mode shows the classic single page) ── */
+.wizard-progress {
+  max-width: 780px; margin: 0 auto; padding: 0 1.5rem;
+  display: none;
+}
+.wizard-progress.active { display: block; }
+.wizard-progress__label {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 0.8rem; font-weight: 600; color: #5a7a9a; margin: 1.25rem 0 0.5rem;
+}
+.wizard-progress__label strong { color: #0a1628; }
+.wizard-progress__track {
+  height: 6px; border-radius: 999px; background: #e6f1fb; overflow: hidden;
+}
+.wizard-progress__fill {
+  height: 100%; border-radius: 999px; background: #3882dc;
+  transition: width 0.3s ease;
+}
+.wizard-step-label {
+  font-family: 'DM Sans', sans-serif; font-size: 1.15rem; font-weight: 800;
+  color: #0a1628; margin: 1.5rem auto 0; max-width: 780px; padding: 0 1.5rem 0.25rem;
+  display: none;
+}
+.wizard-step-label.active { display: block; }
+
+/* Hide non-active steps and edit-only fields while the wizard is running.
+   Sections with no data-step (testimonials, advanced copy overrides) aren't
+   part of any onboarding step — they're edit-later fields, same as the
+   dashboard's own "quick wins" checklist already treats them. */
+body.wizard-mode .form-section[data-step] { display: none; }
+body.wizard-mode .form-section[data-step].wizard-step-visible { display: block; }
+body.wizard-mode .form-section:not([data-step]):not(.wizard-review) { display: none; }
+body.wizard-mode .edit-only-field { display: none !important; }
+body.wizard-mode #createBtn { display: none; }
+body.wizard-mode.wizard-step-4 #createBtn { display: flex; }
+/* The sticky header's own button would submit immediately, bypassing step
+   validation — the in-flow Next/Build controls are the only way forward
+   while the wizard is active. */
+body.wizard-mode .form-sticky-header__btn { display: none; }
+
+.wizard-controls {
+  margin-top: 1.75rem;
+  display: none; align-items: center; justify-content: space-between; gap: 1rem;
+}
+body.wizard-mode .wizard-controls { display: flex; }
+body.wizard-mode.wizard-step-4 .wizard-controls { display: none; }
+.wizard-back {
+  background: none; border: none; color: #5a7a9a; font-weight: 600; font-size: 0.9rem;
+  cursor: pointer; padding: 0.6rem 0.5rem; visibility: hidden;
+}
+body.wizard-mode.wizard-step-2 .wizard-back,
+body.wizard-mode.wizard-step-3 .wizard-back,
+body.wizard-mode.wizard-step-4 .wizard-back { visibility: visible; }
+.wizard-next {
+  background: #0a1628; color: #fff; border: none; border-radius: 999px;
+  font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 0.95rem;
+  padding: 0.85rem 1.75rem; cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.wizard-next:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(10,22,40,0.2); }
+.wizard-next-error {
+  color: #d94040; font-size: 0.82rem; font-weight: 600; margin-top: 0.5rem; display: none;
+}
+.wizard-next-error.visible { display: block; }
+.skip-hint {
+  font-size: 0.8rem; color: #7ab3e0; margin: 0.4rem 0 0; line-height: 1.5;
+}
+
+/* Review card (step 4) */
+.wizard-review { display: none; }
+body.wizard-mode.wizard-step-4 .wizard-review { display: block; }
+.review-card {
+  background: #f7faff; border: 1.5px solid #d4e2f4; border-radius: 14px;
+  padding: 1.25rem 1.4rem; margin-bottom: 0.5rem;
+}
+.review-card__row {
+  display: flex; justify-content: space-between; gap: 1rem;
+  padding: 0.5rem 0; font-size: 0.9rem;
+  border-top: 1px solid #e6f1fb;
+}
+.review-card__row:first-child { border-top: none; padding-top: 0; }
+.review-card__label { color: #5a7a9a; }
+.review-card__value { color: #0a1628; font-weight: 600; text-align: right; }
 </style>
 </head>
 <body>
@@ -273,23 +357,9 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
       <p class="create-hero__eyebrow">Free trial · No credit card</p>
       <h1>Your business website,<br>ready in minutes.</h1>
       <p class="create-hero__sub">
-        Fill out the form below — the more detail you add, the better your website will be.
+        A few quick steps — the more detail you add, the better your website will be.
         Our AI turns your notes into professional copy, a full services list, and an SEO-ready page.
       </p>
-      <div class="create-hero__steps">
-        <div class="how-step">
-          <span class="how-step__num">1</span>
-          <span><strong>Fill in your business details</strong> — name, location, services, and a description in your own words.</span>
-        </div>
-        <div class="how-step">
-          <span class="how-step__num">2</span>
-          <span><strong>Hit "Build my website"</strong> — AI generates your full page copy in under 30 seconds.</span>
-        </div>
-        <div class="how-step">
-          <span class="how-step__num">3</span>
-          <span><strong>Review and go live</strong> — your page is indexed by Google from day one. Edit anytime.</span>
-        </div>
-      </div>
     </div>
     <div class="create-hero__help">
       <strong>Want us to do it for you?</strong>
@@ -299,13 +369,22 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
   </div>
 </div>
 
+<!-- WIZARD PROGRESS (create mode only) -->
+<div class="wizard-progress" id="wizardProgress">
+  <div class="wizard-progress__label">
+    <span>Step <strong id="wizardStepNum">1</strong> of 4</span>
+    <span id="wizardStepName">Let's find your business</span>
+  </div>
+  <div class="wizard-progress__track"><div class="wizard-progress__fill" id="wizardProgressFill" style="width:25%"></div></div>
+</div>
+
 <!-- FORM -->
 <form id="form" action="javascript:void(0);" novalidate enctype="multipart/form-data">
 <input type="hidden" name="type" value="business" />
 <input type="hidden" name="business_id" id="business_id" />
 
 <!-- ── SECTION 1: Business basics ── -->
-<div class="form-section">
+<div class="form-section" data-step="1">
   <div class="form-section__header">
     <div class="form-section__icon">
       <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -318,6 +397,7 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
 
   <label>Business Name <span class="label-hint">required</span></label>
   <input name="business_name" placeholder="e.g. Conway's Landscaping" required />
+  <p class="wizard-next-error" id="businessNameError">Enter your business name to continue.</p>
 
   <label>Find on Google <span class="label-hint">optional — autofills address, phone & category</span></label>
   <input id="google_place" placeholder="Start typing your business name to search Google…" />
@@ -327,28 +407,28 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
   <input type="hidden" name="state" />
   <input type="hidden" name="primary_category" />
 
-  <div class="field-row">
+  <label>Industry / Trade</label>
+  <select name="industry_display" id="industrySelect">
+    <option value="">Select your trade…</option>
+    <option value="landscaping">Landscaping / Lawn Care</option>
+    <option value="plumbing">Plumbing</option>
+    <option value="heating">Heating &amp; Cooling (HVAC)</option>
+    <option value="electrical">Electrical</option>
+    <option value="roofing">Roofing</option>
+    <option value="painting">Painting</option>
+    <option value="contractor">General Contractor</option>
+    <option value="cleaning">Cleaning</option>
+    <option value="moving">Moving</option>
+    <option value="retail">Retail / Gifts</option>
+    <option value="other">Other</option>
+  </select>
+
+  <div class="field-row edit-only-field">
     <div>
       <label>Owner Name</label>
       <input name="owner_name" placeholder="e.g. Jack Conway" />
     </div>
-    <div>
-      <label>Industry / Trade</label>
-      <select name="industry_display" id="industrySelect">
-        <option value="">Select your trade…</option>
-        <option value="landscaping">Landscaping / Lawn Care</option>
-        <option value="plumbing">Plumbing</option>
-        <option value="heating">Heating &amp; Cooling (HVAC)</option>
-        <option value="electrical">Electrical</option>
-        <option value="roofing">Roofing</option>
-        <option value="painting">Painting</option>
-        <option value="contractor">General Contractor</option>
-        <option value="cleaning">Cleaning</option>
-        <option value="moving">Moving</option>
-        <option value="retail">Retail / Gifts</option>
-        <option value="other">Other</option>
-      </select>
-    </div>
+    <div></div>
   </div>
 
   <div class="field-row">
@@ -378,7 +458,7 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
 </div>
 
 <!-- ── SECTION 2: Logo & Photos ── -->
-<div class="form-section">
+<div class="form-section" data-step="3">
   <div class="form-section__header">
     <div class="form-section__icon">
       <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
@@ -411,47 +491,68 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
   </div>
 </div>
 
+<!-- ── SECTION 5: Services (shown first within step 2 — this is the one
+     required part of the step) ── -->
+<div class="form-section" data-step="2">
+  <div class="form-section__header">
+    <div class="form-section__icon">
+      <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+    </div>
+    <div>
+      <p class="form-section__title">Services <span class="label-hint">at least one, required</span></p>
+      <p class="form-section__desc">Add your key services — name, description, and optional price</p>
+    </div>
+  </div>
+  <div id="services"></div>
+  <button type="button" class="add-btn" onclick="addService()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Add a service
+  </button>
+  <p class="wizard-next-error" id="servicesError">Add at least one service to continue.</p>
+</div>
+
 <!-- ── SECTION 3: About your business ── -->
-<div class="form-section">
+<div class="form-section" data-step="2">
   <div class="form-section__header">
     <div class="form-section__icon">
       <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
     </div>
     <div>
-      <p class="form-section__title">About your business</p>
+      <p class="form-section__title">About your business <span class="label-hint">optional</span></p>
       <p class="form-section__desc">The AI turns your rough notes into polished copy — don't worry about wording</p>
     </div>
   </div>
 
-  <label>Describe your business <span class="label-hint">the more detail, the better your page</span></label>
+  <label>Describe your business</label>
   <textarea name="about" rows="5" placeholder="Tell us about your business in your own words. How long have you been operating? What makes you different? Who do you typically work for? Rough notes are completely fine — e.g. &quot;family owned since 2019, mostly residential, owner on every job, fair prices&quot;"></textarea>
+  <p class="skip-hint">Optional — the more you tell us, the better your page. Leave it blank and we'll write something general for now.</p>
 
-  <div class="field-row">
-    <div>
-      <label>Tone / style</label>
-      <select name="tone">
-        <option value="professional">Professional</option>
-        <option value="friendly">Friendly &amp; approachable</option>
-        <option value="bold">Bold &amp; confident</option>
-        <option value="luxury">Premium / luxury</option>
-        <option value="simple">Simple &amp; plain</option>
-      </select>
-    </div>
+  <label>Tone / style</label>
+  <select name="tone">
+    <option value="professional">Professional</option>
+    <option value="friendly">Friendly &amp; approachable</option>
+    <option value="bold">Bold &amp; confident</option>
+    <option value="luxury">Premium / luxury</option>
+    <option value="simple">Simple &amp; plain</option>
+  </select>
+
+  <div class="field-row edit-only-field">
     <div>
       <label>Trust badges <span class="label-hint">one per line</span></label>
       <textarea name="trust_badges" rows="3" placeholder="Licensed &amp; Insured&#10;Free Estimates&#10;5-Star Rated&#10;Family Owned"></textarea>
     </div>
+    <div></div>
   </div>
 </div>
 
 <!-- ── SECTION 4: Status ── -->
-<div class="form-section">
+<div class="form-section" data-step="2">
   <div class="form-section__header">
     <div class="form-section__icon">
       <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
     </div>
     <div>
-      <p class="form-section__title">Current status</p>
+      <p class="form-section__title">Current status <span class="label-hint">optional</span></p>
       <p class="form-section__desc">Shown as badges on your website</p>
     </div>
   </div>
@@ -480,25 +581,9 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
   </div>
 </div>
 
-<!-- ── SECTION 5: Services ── -->
-<div class="form-section">
-  <div class="form-section__header">
-    <div class="form-section__icon">
-      <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-    </div>
-    <div>
-      <p class="form-section__title">Services</p>
-      <p class="form-section__desc">Add your key services — name, description, and optional price</p>
-    </div>
-  </div>
-  <div id="services"></div>
-  <button type="button" class="add-btn" onclick="addService()">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    Add a service
-  </button>
-</div>
-
-<!-- ── SECTION 6: Testimonials ── -->
+<!-- ── SECTION 6: Testimonials (edit-later — no data-step, hidden during
+     onboarding; the dashboard's own "quick wins" checklist already points
+     back here) ── -->
 <div class="form-section">
   <div class="form-section__header">
     <div class="form-section__icon">
@@ -559,6 +644,26 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
     <label>Services Intro</label>
     <textarea name="services_intro" rows="2" placeholder="Short intro above your services list"></textarea>
   </div>
+</div>
+
+<!-- ── Step 4: Review (wizard/create mode only) ── -->
+<div class="form-section wizard-review">
+  <div class="form-section__header">
+    <div class="form-section__icon">
+      <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    </div>
+    <div>
+      <p class="form-section__title">Ready to build</p>
+      <p class="form-section__desc">Here's what we've got — you can go back and change anything first</p>
+    </div>
+  </div>
+  <div class="review-card" id="reviewCard"></div>
+</div>
+
+<!-- Wizard nav (create mode only) -->
+<div class="wizard-controls">
+  <button type="button" class="wizard-back" id="wizardBack">← Back</button>
+  <button type="button" class="wizard-next" id="wizardNext">Continue →</button>
 </div>
 
 <!-- Submit -->
@@ -648,6 +753,60 @@ const params = new URLSearchParams(window.location.search);
 const editBusinessId = params.get("business_id");
 if (!editBusinessId && session?.user?.email && !form.email.value) form.email.value = session.user.email;
 
+// ── Draft auto-save (create mode only) ──
+// A closed tab or a dropped call shouldn't mean starting over. Saves plain
+// field values (not files — those can't be serialized) plus which step the
+// person was on, so returning to /create resumes instead of restarting.
+const DRAFT_KEY = "enoma_create_draft_v1";
+const DRAFT_FIELD_NAMES = ["business_name","google_place_id","city","state","primary_category","industry_display","phone","address","service_area","website","about","tone","accepting_clients","offers_emergency","is_open_now"];
+function saveDraft(step) {
+  if (editBusinessId) return;
+  try {
+    const data = {};
+    DRAFT_FIELD_NAMES.forEach(name => {
+      const el = form.elements[name];
+      if (!el) return;
+      data[name] = el.type === "checkbox" ? el.checked : el.value;
+    });
+    data.services = [...servicesEl.querySelectorAll(".block")].map(b => ({
+      service_name: b.querySelector(".service-name")?.value || "",
+      service_description: b.querySelector(".service-description")?.value || "",
+      price: b.querySelector(".service-price")?.value || ""
+    }));
+    data.step = step;
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
+  } catch (e) {}
+}
+function restoreDraft() {
+  if (editBusinessId) return 1;
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return 1;
+    const data = JSON.parse(raw);
+    DRAFT_FIELD_NAMES.forEach(name => {
+      const el = form.elements[name];
+      if (!el || data[name] === undefined) return;
+      if (el.type === "checkbox") el.checked = !!data[name];
+      else el.value = data[name];
+    });
+    if (industrySelect && data.primary_category) industrySelect.value = data.primary_category;
+    if (Array.isArray(data.services) && data.services.length) {
+      data.services.forEach(s => {
+        addService();
+        const last = servicesEl.lastElementChild;
+        last.querySelector(".service-name").value = s.service_name || "";
+        last.querySelector(".service-description").value = s.service_description || "";
+        last.querySelector(".service-price").value = s.price || "";
+      });
+    }
+    return Math.min(4, Math.max(1, Number(data.step) || 1));
+  } catch (e) { return 1; }
+}
+function clearDraft() {
+  try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+}
+const restoredStep = restoreDraft();
+
 // ── Prefill from landing-page capture (business name / city) ──
 // Two sources, in priority order:
 //  1. URL query params — covers same-tab flows (already logged in, no
@@ -693,6 +852,84 @@ if (editBusinessId) {
 }
 const regenCheckbox = document.getElementById("regenerate_ai");
 if (regenCheckbox) regenCheckbox.checked = !editBusinessId;
+
+// ── Wizard (create mode only) ──
+const WIZARD_STEP_NAMES = { 1: "Let's find your business", 2: "What do you do?", 3: "Make it look like you", 4: "Ready to build" };
+let currentWizardStep = 1;
+
+function updateStep3NextLabel() {
+  if (currentWizardStep !== 3) return;
+  const hasLogo = !!(logoInput?.files?.length || logoUrlInput?.value.trim());
+  const hasPhotos = !!(document.querySelector('input[name="images"]')?.files?.length);
+  document.getElementById("wizardNext").textContent = (hasLogo || hasPhotos) ? "Continue →" : "Skip — I'll add photos later →";
+}
+
+function populateReviewCard() {
+  const tradeLabel = industrySelect?.selectedOptions?.[0]?.textContent || "";
+  const city = form.querySelector('[name="city"]').value.trim();
+  const serviceCount = [...servicesEl.querySelectorAll(".service-name")].filter(i => i.value.trim()).length;
+  const photoCount = document.querySelector('input[name="images"]')?.files?.length || 0;
+  const hasLogo = !!(logoInput?.files?.length || logoUrlInput?.value.trim());
+  const photosSummary = [hasLogo ? "logo" : null, photoCount ? `${photoCount} photo${photoCount === 1 ? "" : "s"}` : null].filter(Boolean).join(", ") || "None yet — you can add these anytime";
+  const rows = [
+    ["Business", form.business_name.value.trim() || "—"],
+    ["Trade", form.industry_display.value ? tradeLabel : "Not set"],
+    ["Location", city || form.address.value.trim() || "Not set"],
+    ["Services", serviceCount === 1 ? "1 service" : `${serviceCount} services`],
+    ["About", form.about.value.trim() ? "Added" : "AI will write a general one for now"],
+    ["Photos", photosSummary]
+  ];
+  document.getElementById("reviewCard").innerHTML = rows.map(([label, value]) =>
+    `<div class="review-card__row"><span class="review-card__label">${label}</span><span class="review-card__value">${value}</span></div>`
+  ).join("");
+}
+
+function validateStep1(showError) {
+  const hasName = !!form.business_name.value.trim();
+  if (showError || hasName) document.getElementById("businessNameError").classList.toggle("visible", !hasName);
+  return hasName;
+}
+
+function validateStep2(showError) {
+  const hasService = [...servicesEl.querySelectorAll(".service-name")].some(i => i.value.trim());
+  if (showError || hasService) document.getElementById("servicesError").classList.toggle("visible", !hasService);
+  return hasService;
+}
+
+function goToStep(n) {
+  currentWizardStep = Math.min(4, Math.max(1, n));
+  document.body.classList.remove("wizard-step-1", "wizard-step-2", "wizard-step-3", "wizard-step-4");
+  document.body.classList.add(`wizard-step-${currentWizardStep}`);
+  document.querySelectorAll(".form-section[data-step]").forEach(el => {
+    el.classList.toggle("wizard-step-visible", Number(el.dataset.step) === currentWizardStep);
+  });
+  document.getElementById("wizardStepNum").textContent = currentWizardStep;
+  document.getElementById("wizardStepName").textContent = WIZARD_STEP_NAMES[currentWizardStep];
+  document.getElementById("wizardProgressFill").style.width = (currentWizardStep / 4 * 100) + "%";
+  document.getElementById("wizardNext").textContent = "Continue →";
+  if (currentWizardStep === 3) updateStep3NextLabel();
+  if (currentWizardStep === 4) populateReviewCard();
+  document.getElementById("wizardProgress").scrollIntoView({ behavior: "smooth", block: "start" });
+  saveDraft(currentWizardStep);
+  if (window.enomaTrack) enomaTrack("create_step_viewed", { step: currentWizardStep });
+}
+
+if (!editBusinessId) {
+  document.body.classList.add("wizard-mode");
+  document.getElementById("wizardProgress").classList.add("active");
+  document.getElementById("wizardNext").addEventListener("click", () => {
+    if (currentWizardStep === 1 && !validateStep1(true)) return;
+    if (currentWizardStep === 2 && !validateStep2(true)) return;
+    goToStep(currentWizardStep + 1);
+  });
+  document.getElementById("wizardBack").addEventListener("click", () => goToStep(currentWizardStep - 1));
+  form.business_name.addEventListener("input", () => { if (currentWizardStep === 1) validateStep1(false); });
+  servicesEl.addEventListener("input", () => { if (currentWizardStep === 2) validateStep2(false); });
+  logoInput?.addEventListener("change", updateStep3NextLabel);
+  logoUrlInput?.addEventListener("input", updateStep3NextLabel);
+  document.querySelector('input[name="images"]')?.addEventListener("change", updateStep3NextLabel);
+  goToStep(restoredStep);
+}
 
 // Sticky submit wires to main form submit
 document.getElementById("stickySubmitBtn").addEventListener("click", () => {
@@ -844,7 +1081,7 @@ form.addEventListener("submit", async (e) => {
       showStatus(json.message || json.error || "We couldn't save your changes. Please try again.", true);
       return;
     }
-    if (!isEdit && window.enomaTrack) enomaTrack('create_generation_succeeded', {}, json.business_id);
+    if (!isEdit) { clearDraft(); if (window.enomaTrack) enomaTrack('create_generation_succeeded', {}, json.business_id); }
     showStatus(isEdit ? "Saved! Taking you to your page…" : "Your page is ready! Taking you there now…");
     window.location.href = json.url;
   } catch (err) {
