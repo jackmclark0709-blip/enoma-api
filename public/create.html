@@ -237,9 +237,19 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
   text-align: center; margin: 1rem auto; max-width: 780px;
   font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 10px;
   background: rgba(42,157,111,0.08); color: #2a9d6f;
-  display: none;
+  display: none; align-items: center; justify-content: center; gap: 0.6rem;
 }
 #status.error { background: rgba(217,64,64,0.08); color: #d94040; }
+#status.visible { display: flex; }
+.status-spinner {
+  width: 15px; height: 15px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid rgba(42,157,111,0.25); border-top-color: #2a9d6f;
+  animation: status-spin 0.8s linear infinite;
+}
+@keyframes status-spin { to { transform: rotate(360deg); } }
+#createBtn:disabled, #updateBtn:disabled, .form-sticky-header__btn:disabled {
+  opacity: 0.6; cursor: not-allowed; transform: none !important;
+}
 </style>
 </head>
 <body>
@@ -496,7 +506,7 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
     </div>
     <div>
       <p class="form-section__title">Testimonials <span class="label-hint" style="font-size:0.8rem;font-weight:400;">optional</span></p>
-      <p class="form-section__desc">A real client quote is one of the most effective trust signals</p>
+      <p class="form-section__desc">If you searched your business on Google above and have reviews there, we'll pull a few in automatically — only add your own here if you'd rather choose them yourself</p>
     </div>
   </div>
   <div id="testimonials"></div>
@@ -506,8 +516,10 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
   </button>
 </div>
 
-<!-- ── SECTION 7: AI options ── -->
-<div class="form-section">
+<!-- ── SECTION 7: AI options (edit mode only — on first creation the AI always
+     writes the copy, so showing this toggle here is just a confusing extra
+     decision at exactly the moment it doesn't do anything) ── -->
+<div class="form-section" id="aiOptionsSection">
   <div class="form-section__header">
     <div class="form-section__icon">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
@@ -558,6 +570,8 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
 </form>
 
 <div id="status"></div>
+
+<script src="/scripts/funnel-track.js"></script>
 
 <!-- SCRIPTS (identical logic, no changes) -->
 <script type="module">
@@ -660,6 +674,7 @@ if (!editBusinessId) {
     // town again from scratch.
     if (!form.service_area.value) form.service_area.value = prefillCity;
   }
+  if (window.enomaTrack) enomaTrack('create_page_viewed');
 }
 
 if (editBusinessId) {
@@ -670,6 +685,11 @@ if (editBusinessId) {
   document.getElementById("pageSubtitle").textContent = "Update your page — changes go live immediately";
   document.getElementById("stickySubmitBtn").textContent = "Save changes →";
   document.getElementById("createHero").style.display = "none"; // hide onboarding on edit
+} else {
+  // First-time creation always regenerates with AI (there's nothing to
+  // preserve yet), so the "write with AI" toggle has no effect here —
+  // hide it rather than asking the user to make a decision that doesn't do anything.
+  document.getElementById("aiOptionsSection").style.display = "none";
 }
 const regenCheckbox = document.getElementById("regenerate_ai");
 if (regenCheckbox) regenCheckbox.checked = !editBusinessId;
@@ -741,11 +761,45 @@ updateBtn?.addEventListener("click", () => {
   form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
 });
 
-function showStatus(msg, isError = false) {
+function showStatus(msg, isError = false, spinner = false) {
   const el = document.getElementById("status");
-  el.textContent = msg; el.style.display = "block";
-  el.className = isError ? "error" : "";
+  el.innerHTML = (spinner ? '<span class="status-spinner"></span>' : '') + `<span>${msg}</span>`;
+  el.className = "visible" + (isError ? " error" : "");
   el.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+const allSubmitButtons = () => [createBtn, updateBtn, document.getElementById("stickySubmitBtn")].filter(Boolean);
+function setSubmitting(isSubmitting) {
+  allSubmitButtons().forEach(btn => { btn.disabled = isSubmitting; });
+}
+
+// The AI generation step alone takes ~20-30s on first creation — a single
+// static line sitting there that long can read as frozen. Cycle through a
+// few honest, sequential status lines instead so the wait feels like
+// something is actively happening, not unnecessary decoration.
+let progressTimer = null;
+function startProgressMessages(isEdit) {
+  clearInterval(progressTimer);
+  const steps = isEdit
+    ? ["Saving your changes…"]
+    : [
+        "Got your info — starting on your page…",
+        "Writing your page copy…",
+        "Putting your page together…",
+        "Almost done…"
+      ];
+  let i = 0;
+  showStatus(steps[0], false, true);
+  if (steps.length > 1) {
+    progressTimer = setInterval(() => {
+      i = Math.min(i + 1, steps.length - 1);
+      showStatus(steps[i], false, true);
+    }, 6000);
+  }
+}
+function stopProgressMessages() {
+  clearInterval(progressTimer);
+  progressTimer = null;
 }
 
 form.addEventListener("submit", async (e) => {
@@ -758,13 +812,15 @@ form.addEventListener("submit", async (e) => {
     bizNameInput.value = bizNameInput.value.replace(/\s*[-–—,\.]+\s*$/, '').trim();
   }
 
-  showStatus(isEdit ? "Saving changes…" : "Building your website — this takes about 20 seconds…");
+  setSubmitting(true);
+  startProgressMessages(isEdit);
+  if (!isEdit && window.enomaTrack) enomaTrack('create_form_submitted');
   const fd = new FormData(form);
   fd.set("is_open_now", form.is_open_now.checked ? "true" : "false");
   fd.set("accepting_clients", form.accepting_clients.checked ? "true" : "false");
   fd.set("offers_emergency", form.offers_emergency.checked ? "true" : "false");
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session) { alert("You must be logged in"); return; }
+  if (!session) { alert("You must be logged in"); stopProgressMessages(); setSubmitting(false); return; }
   const servicesData = [...servicesEl.querySelectorAll(".block")].map(b => ({ service_name: b.querySelector(".service-name")?.value.trim(), service_description: b.querySelector(".service-description")?.value.trim(), price: b.querySelector(".service-price")?.value.trim() })).filter(s => s.service_name);
   const testimonialsData = [...testimonialsEl.querySelectorAll(".block")].map(b => ({ quote: b.querySelector(".testimonial-quote")?.value.trim(), author: b.querySelector(".testimonial-author")?.value.trim() })).filter(t => t.quote);
   fd.set("services", JSON.stringify(servicesData)); fd.set("testimonials", JSON.stringify(testimonialsData));
@@ -774,10 +830,29 @@ form.addEventListener("submit", async (e) => {
   fd.set("attachments_remove", JSON.stringify(removeUrls));
   try {
     const res = await fetch("/api/generate-business", { method: "POST", headers: { Authorization: `Bearer ${session.access_token}` }, body: fd });
-    let json; try { json = await res.json(); } catch { showStatus("Server error. Please try again.", true); return; }
-    if (!res.ok) { showStatus(json.error || "Save failed", true); return; }
+    let json;
+    try { json = await res.json(); }
+    catch {
+      stopProgressMessages(); setSubmitting(false);
+      if (!isEdit && window.enomaTrack) enomaTrack('create_generation_failed', { reason: 'bad_response' });
+      showStatus("Something went wrong on our end. Your information is safe — please try again.", true);
+      return;
+    }
+    if (!res.ok) {
+      stopProgressMessages(); setSubmitting(false);
+      if (!isEdit && window.enomaTrack) enomaTrack('create_generation_failed', { reason: json.error || 'unknown' });
+      showStatus(json.message || json.error || "We couldn't save your changes. Please try again.", true);
+      return;
+    }
+    if (!isEdit && window.enomaTrack) enomaTrack('create_generation_succeeded', {}, json.business_id);
+    showStatus(isEdit ? "Saved! Taking you to your page…" : "Your page is ready! Taking you there now…");
     window.location.href = json.url;
-  } catch (err) { console.error(err); showStatus("Failed to save. Please try again.", true); }
+  } catch (err) {
+    console.error(err);
+    stopProgressMessages(); setSubmitting(false);
+    if (!isEdit && window.enomaTrack) enomaTrack('create_generation_failed', { reason: 'network_error' });
+    showStatus("Couldn't reach the server — check your connection and try again. Your information is safe.", true);
+  }
 });
 
 } // end if (window.__ENOMA_AUTH_OK)
@@ -797,8 +872,16 @@ autocomplete.addListener("place_changed", () => {
   if (place.website) document.querySelector('[name="website"]').value = place.website;
   try {
     const comps = place.address_components || [];
-    document.querySelector('[name="city"]').value = comps.find(c => c.types.includes("locality"))?.long_name || comps.find(c => c.types.includes("postal_town"))?.long_name || "";
+    const cityName = comps.find(c => c.types.includes("locality"))?.long_name || comps.find(c => c.types.includes("postal_town"))?.long_name || "";
+    document.querySelector('[name="city"]').value = cityName;
     document.querySelector('[name="state"]').value = comps.find(c => c.types.includes("administrative_area_level_1"))?.short_name || "";
+    // The business's own city is already known here — don't make the owner
+    // retype it into Service Area too. Only seed it (never overwrite a value
+    // they've already typed or edited).
+    const serviceAreaInput = document.querySelector('[name="service_area"]');
+    if (cityName && serviceAreaInput && !serviceAreaInput.value.trim()) {
+      serviceAreaInput.value = cityName;
+    }
   } catch {}
   try {
     const typeMap = { plumber:"plumbing", electrician:"electrical", locksmith:"contractor", roofing_contractor:"roofing", hvac_contractor:"heating", general_contractor:"contractor", moving_company:"moving", cleaning_service:"cleaning", landscaping:"landscaping", florist:"retail" };

@@ -1,6 +1,6 @@
 // api/send-contact.js
-// Handles contact form submissions from business profile pages.
-// Also handles get_started intake form submissions (source=get_started).
+// Handles contact form submissions from business profile pages, plus the
+// early-funnel lead-capture sources (started_form, choose_path_concierge).
 // Does TWO things: stores in DB + sends email to business owner.
 
 import { createClient } from '@supabase/supabase-js';
@@ -18,99 +18,11 @@ export default async function handler(req, res) {
 
   const {
     name, email, phone, message, subject, business_id, to, slug, source,
-    // get_started specific fields
-    businessName, trade, town, facebookUrl, notes
+    trade, town
   } = req.body;
 
   if (!name || !email || !message) {
     return res.status(400).json({ error: 'name, email, and message are required' });
-  }
-
-  /* ─────────────────────────────────────────────
-     GET STARTED INTAKE FORM
-     source === 'get_started'
-     Just notify Jack — no business profile lookup needed
-  ───────────────────────────────────────────── */
-  if (source === 'get_started') {
-    // Store in contact_submissions for record
-    await supabase.from('contact_submissions').insert({
-      business_id: null,
-      slug: null,
-      name,
-      email,
-      phone: phone || null,
-      subject: subject || `New page request: ${name}`,
-      message,
-      source: 'get_started',
-      is_read: false,
-    }).catch(err => console.error('DB insert error:', err.message));
-
-    // Send rich notification to Jack
-    try {
-      await resend.emails.send({
-        from: 'Enoma <notifications@enoma.io>',
-        to: 'jack@enoma.io',
-        replyTo: email,
-        subject: `🌿 New page request: ${name}`,
-        html: `
-          <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a;">
-            <div style="background:#0f172a;padding:24px 28px;border-radius:12px 12px 0 0;">
-              <p style="margin:0;font-size:12px;font-weight:700;color:rgba(220,238,255,0.6);letter-spacing:0.1em;text-transform:uppercase;">New Page Request</p>
-              <p style="margin:6px 0 0;font-size:22px;font-weight:800;color:#fff;">${name}</p>
-            </div>
-            <div style="background:#fff;border:1px solid #e4edf5;border-top:none;border-radius:0 0 12px 12px;padding:24px 28px;">
-              <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
-                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;width:100px;vertical-align:top;">Business</td><td style="padding:7px 0;font-size:14px;font-weight:700;color:#0f172a;">${name}</td></tr>
-                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;vertical-align:top;">Trade</td><td style="padding:7px 0;font-size:14px;color:#0f172a;">${trade || '—'}</td></tr>
-                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;vertical-align:top;">Town</td><td style="padding:7px 0;font-size:14px;color:#0f172a;">${town || '—'}</td></tr>
-                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;vertical-align:top;">Email</td><td style="padding:7px 0;font-size:14px;color:#0f172a;"><a href="mailto:${email}" style="color:#3882dc;">${email}</a></td></tr>
-                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;vertical-align:top;">Phone</td><td style="padding:7px 0;font-size:14px;color:#0f172a;">${phone || '—'}</td></tr>
-                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;vertical-align:top;">Facebook</td><td style="padding:7px 0;font-size:14px;color:#0f172a;">${facebookUrl ? `<a href="${facebookUrl}" style="color:#3882dc;">${facebookUrl}</a>` : '—'}</td></tr>
-                ${notes ? `<tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;vertical-align:top;">Notes</td><td style="padding:7px 0;font-size:14px;color:#0f172a;">${notes}</td></tr>` : ''}
-              </table>
-              <a href="mailto:${email}?subject=Your Enoma page is ready!" style="display:inline-block;background:#16a34a;color:#fff;padding:11px 22px;border-radius:999px;font-weight:700;font-size:13px;text-decoration:none;margin-right:10px;">Reply to ${name.split(' ')[0]} →</a>
-              <p style="margin:20px 0 0;font-size:12px;color:#9ca3af;">Submitted via enoma.io/get-started</p>
-            </div>
-          </div>
-        `,
-      });
-    } catch (err) {
-      console.error('get_started email error:', err.message);
-    }
-
-    // Send confirmation to the submitter
-    try {
-      await resend.emails.send({
-        from: 'Jack at Enoma <jack@enoma.io>',
-        to: email,
-        subject: `We got your request — page coming within 24 hours`,
-        html: `
-          <div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#1a1a1a;">
-            <div style="background:#0f172a;padding:24px 28px;border-radius:12px 12px 0 0;">
-              <p style="margin:0;font-size:22px;font-weight:800;color:#fff;">🌿 enoma</p>
-            </div>
-            <div style="background:#fff;border:1px solid #e4edf5;border-top:none;border-radius:0 0 12px 12px;padding:28px;">
-              <p style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 12px;">Hey, we got your request!</p>
-              <p style="font-size:14px;color:#374151;line-height:1.65;margin:0 0 16px;">
-                We're building a free lead page for <strong>${name}</strong>. You'll get an email from me with the link within 1 business day.
-              </p>
-              <p style="font-size:14px;color:#374151;line-height:1.65;margin:0 0 20px;">
-                The page will have your services, your area, and a contact form so customers can reach you directly. It stays live free for 30 days — then it's $19.99/month to keep it running.
-              </p>
-              <p style="font-size:14px;color:#374151;margin:0;">
-                Any questions? Just reply to this email.<br><br>
-                — Jack<br>
-                <a href="https://enoma.io" style="color:#3882dc;">enoma.io</a>
-              </p>
-            </div>
-          </div>
-        `,
-      });
-    } catch (err) {
-      console.error('get_started confirmation email error:', err.message);
-    }
-
-    return res.status(200).json({ ok: true });
   }
 
   /* ─────────────────────────────────────────────

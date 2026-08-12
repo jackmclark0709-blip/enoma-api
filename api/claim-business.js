@@ -84,6 +84,12 @@ export default async function handler(req, res) {
       .eq("business_id", profile.business_id);
     if (updateErr) throw updateErr;
 
+    await supabaseAdmin.from("funnel_events").insert({
+      event: "business_claimed",
+      business_id: profile.business_id,
+      metadata: { slug: profile.username }
+    }).then(({ error }) => { if (error) console.warn("funnel_events insert failed:", error.message); });
+
     if (process.env.RESEND_API_KEY) {
       try {
         await resend.emails.send({

@@ -182,12 +182,15 @@
 
 <div id="footer"></div>
 <script>fetch('/partials/footer.html').then(r=>r.text()).then(html=>{document.getElementById('footer').innerHTML=html});</script>
+<script src="/scripts/funnel-track.js"></script>
 
 <script>
   const params = new URLSearchParams(window.location.search);
   const name  = params.get('name')  || '';
   const city  = params.get('city')  || '';
   const email = params.get('email') || '';
+
+  if (window.enomaTrack) enomaTrack('choose_path_viewed', { ref: params.get('ref') || null });
 
   if (name) {
     document.getElementById('bizNameSpan').textContent = name + '\u2019s';
@@ -197,6 +200,9 @@
   const selfServeBtn = document.getElementById('selfServeBtn');
   const signupParams = new URLSearchParams({ name, city, email });
   selfServeBtn.href = `/signup?${signupParams.toString()}`;
+  selfServeBtn.addEventListener('click', () => {
+    if (window.enomaTrack) enomaTrack('choose_path_selected', { path: 'self_serve' });
+  });
 
   // Concierge → expand inline form
   const conciergeToggleBtn = document.getElementById('conciergeToggleBtn');
@@ -206,6 +212,7 @@
     conciergeForm.classList.add('open');
     conciergeCard.classList.add('selected');
     conciergeToggleBtn.style.display = 'none';
+    if (window.enomaTrack) enomaTrack('choose_path_selected', { path: 'concierge' });
   });
 
   document.getElementById('conciergeSubmitBtn').addEventListener('click', async () => {
