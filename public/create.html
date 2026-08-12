@@ -571,6 +571,8 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
 
 <div id="status"></div>
 
+<script src="/scripts/funnel-track.js"></script>
+
 <!-- SCRIPTS (identical logic, no changes) -->
 <script type="module">
   import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
@@ -672,6 +674,7 @@ if (!editBusinessId) {
     // town again from scratch.
     if (!form.service_area.value) form.service_area.value = prefillCity;
   }
+  if (window.enomaTrack) enomaTrack('create_page_viewed');
 }
 
 if (editBusinessId) {
@@ -811,6 +814,7 @@ form.addEventListener("submit", async (e) => {
 
   setSubmitting(true);
   startProgressMessages(isEdit);
+  if (!isEdit && window.enomaTrack) enomaTrack('create_form_submitted');
   const fd = new FormData(form);
   fd.set("is_open_now", form.is_open_now.checked ? "true" : "false");
   fd.set("accepting_clients", form.accepting_clients.checked ? "true" : "false");
@@ -830,19 +834,23 @@ form.addEventListener("submit", async (e) => {
     try { json = await res.json(); }
     catch {
       stopProgressMessages(); setSubmitting(false);
+      if (!isEdit && window.enomaTrack) enomaTrack('create_generation_failed', { reason: 'bad_response' });
       showStatus("Something went wrong on our end. Your information is safe — please try again.", true);
       return;
     }
     if (!res.ok) {
       stopProgressMessages(); setSubmitting(false);
+      if (!isEdit && window.enomaTrack) enomaTrack('create_generation_failed', { reason: json.error || 'unknown' });
       showStatus(json.message || json.error || "We couldn't save your changes. Please try again.", true);
       return;
     }
+    if (!isEdit && window.enomaTrack) enomaTrack('create_generation_succeeded', {}, json.business_id);
     showStatus(isEdit ? "Saved! Taking you to your page…" : "Your page is ready! Taking you there now…");
     window.location.href = json.url;
   } catch (err) {
     console.error(err);
     stopProgressMessages(); setSubmitting(false);
+    if (!isEdit && window.enomaTrack) enomaTrack('create_generation_failed', { reason: 'network_error' });
     showStatus("Couldn't reach the server — check your connection and try again. Your information is safe.", true);
   }
 });

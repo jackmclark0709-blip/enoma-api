@@ -19,15 +19,28 @@ function getClientIP(req) {
   return req.socket?.remoteAddress || null;
 }
 
+// Onboarding-funnel events recognized when no `slug` is sent (there's no
+// published page yet at these steps) — see funnel_events table. Allowlisted
+// so this endpoint can't become an arbitrary free-text event sink.
+const FUNNEL_EVENTS = new Set([
+  "get_your_website_submitted",
+  "choose_path_viewed",
+  "choose_path_selected",
+  "create_page_viewed",
+  "create_form_submitted",
+  "create_generation_succeeded",
+  "create_generation_failed"
+]);
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "POST only" });
   }
 
-  const { slug, event, metadata } = req.body;
+  const { slug, event, metadata, anon_id, business_id } = req.body;
 
-  if (!slug || !event) {
-    return res.status(400).json({ error: "Missing slug or event" });
+  if (!event) {
+    return res.status(400).json({ error: "Missing event" });
   }
 
   const ip = getClientIP(req);
@@ -38,15 +51,28 @@ export default async function handler(req, res) {
   }
 
   try {
-    await supabase.from("page_events").insert({
-      slug,
-      event,
-      metadata: metadata || {},
-      referrer: req.headers.referer || null,
-      user_agent: req.headers["user-agent"] || null,
-      ip,
-      is_internal: false
-    });
+    if (slug) {
+      await supabase.from("page_events").insert({
+        slug,
+        event,
+        metadata: metadata || {},
+        referrer: req.headers.referer || null,
+        user_agent: req.headers["user-agent"] || null,
+        ip,
+        is_internal: false
+      });
+    } else if (FUNNEL_EVENTS.has(event)) {
+      await supabase.from("funnel_events").insert({
+        event,
+        anon_id: anon_id || null,
+        business_id: business_id || null,
+        metadata: metadata || {},
+        referrer: req.headers.referer || null,
+        user_agent: req.headers["user-agent"] || null
+      });
+    } else {
+      return res.status(400).json({ error: "Missing slug or unrecognized event" });
+    }
 
     res.json({ success: true });
   } catch (err) {
