@@ -18,7 +18,6 @@
     { "source": "/create", "destination": "/create.html" },
     { "source": "/upgrade", "destination": "/upgrade/index.html" },
     { "source": "/get-your-website", "destination": "/get-your-website.html" },
-    { "source": "/get-started", "destination": "/get-started.html" },
     { "source": "/widget", "destination": "/widget.html" },
 { "source": "/choose-path", "destination": "/choose-path.html" },
     { "source": "/claim", "destination": "/claim.html" },
@@ -76,10 +75,10 @@
     { "source": "/for/plumber-websites-texas.html", "destination": "/for/plumber-websites-texas", "permanent": true },
     { "source": "/for/hvac-websites-florida.html", "destination": "/for/hvac-websites-florida", "permanent": true },
     { "source": "/get-your-website.html", "destination": "/get-your-website", "permanent": true },
-    { "source": "/get-started.html", "destination": "/get-started", "permanent": true },
     { "source": "/widget.html", "destination": "/widget", "permanent": true },
     { "source": "/case-studies/conways-landscaping.html", "destination": "/case-studies/conways-landscaping", "permanent": true },
-    { "source": "/get-started", "destination": "/choose-path?ref=get-started", "permanent": true },
+    { "source": "/get-started.html", "destination": "/get-your-website?ref=get-started", "permanent": true },
+    { "source": "/get-started", "destination": "/get-your-website?ref=get-started", "permanent": true },
     { "source": "/claim.html", "destination": "/claim", "permanent": true }
   ],
   "functions": {

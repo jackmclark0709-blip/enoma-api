@@ -453,6 +453,7 @@ body.persona-retail .section::before { background: #9a3a8a; }
 .testimonial-avatar { display: none; }
 .testimonial strong { font-size: 0.85rem; font-weight: 700; color: #0a1628; display: block; }
 .stars { color: #f59e0b; font-size: 0.72rem; letter-spacing: 1px; margin-bottom: 0.5rem; }
+.testimonial-source { font-size: 0.72rem; font-weight: 500; color: #6b7684; margin-left: 0.35rem; }
 .page-content #testimonialList { justify-content: flex-start; }
 
 /* ── Areas Served ── */
@@ -1083,6 +1084,8 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 <script>
 /* ── Utilities ── */
 const getEl = id => document.getElementById(id);
+const escapeHtml = s => String(s == null ? '' : s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const safeParse = v => {
   try {
     if (Array.isArray(v) || (v && typeof v === 'object')) return v;
@@ -1554,14 +1557,17 @@ async function loadProfile() {
     // Build cards
     testimonialList.innerHTML = testimonials.map((t, i) => {
       const initial = (t.author || '?')[0].toUpperCase();
+      const starCount = Math.min(5, Math.max(1, Math.round(Number(t.rating) || 5)));
+      const stars = '★'.repeat(starCount) + '☆'.repeat(5 - starCount);
+      const sourceLabel = t.source === 'google' ? '<span class="testimonial-source">— via Google</span>' : '';
       return `<div class="testimonial${i === 0 ? ' active' : ''}" data-idx="${i}">
         <div class="testimonial-accent"></div>
         <span class="quote-mark">&#8220;</span>
-        <div class="stars">★★★★★</div>
-        <p>${t.quote}</p>
+        <div class="stars">${stars}</div>
+        <p>${escapeHtml(t.quote)}</p>
         <div class="testimonial-author">
-          <div class="testimonial-avatar">${initial}</div>
-          <strong>${t.author}</strong>
+          <div class="testimonial-avatar">${escapeHtml(initial)}</div>
+          <strong>${escapeHtml(t.author)}</strong>${sourceLabel}
         </div>
       </div>`;
     }).join('');

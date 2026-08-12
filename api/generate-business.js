@@ -11,6 +11,9 @@ import { createClient } from "@supabase/supabase-js";
 import formidable from "formidable";
 import { Resend } from "resend";
 import fs from "fs";
+import {
+  first, safeJSON, mergeUserServicePrices, normalizeServiceAreas
+} from "./_lib/service-utils.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -37,12 +40,8 @@ async function logNotificationFailure(source, recipient, error, context) {
   }
 }
 
-const first = v => (Array.isArray(v) ? v[0] : v || "");
 const hasField = (fields, key) =>
   fields && Object.prototype.hasOwnProperty.call(fields, key);
-const safeJSON = (v, fallback = []) => {
-  try { return v ? JSON.parse(v) : fallback; } catch { return fallback; }
-};
 const slugify = text =>
   String(text).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 const normalizeSeoBusinessName = name => {
@@ -54,8 +53,6 @@ const safeFilename = (name = "image") =>
 const isImageMimetype = (mt = "") => /^image\/(png|jpe?g|webp|gif)$/i.test(mt);
 const isLogoMimetype = (mt = "") => /^image\/(png|jpe?g)$/i.test(mt);
 const BUCKET = "business-images";
-const parseCSV = v =>
-  first(v) ? first(v).split(",").map(s => s.trim()).filter(Boolean) : [];
 const toBool = v => {
   const s = String(first(v)).toLowerCase().trim();
   return s === "true" || s === "on" || s === "1" || s === "yes";
@@ -79,6 +76,47 @@ const contentTypeForExt = (ext = "") => {
 };
 
 const ADMIN_USER_ID = "b2f87fe4-4d1e-4038-8754-5ab64969e975";
+
+// Enoma already fetches a business's Google rating/reviews for the published
+// page (api/google-place.js) but never used that data during onboarding,
+// leaving owners to hand-type testimonials even when real reviews already
+// exist. This pulls up to 3 real 4-5★ reviews at generation time — only when
+// the owner hasn't provided/kept any testimonials of their own, so it never
+// overwrites a real person's hand-picked quotes — and tags each one
+// `source: "google"` so the page can attribute it honestly instead of
+// presenting it as a generic testimonial. Never fabricates: any failure
+// (missing key, no reviews, API error) just falls back to an empty list.
+async function fetchGoogleReviewTestimonials(placeId) {
+  if (!placeId || !process.env.GOOGLE_SERVER_PLACES_KEY) return [];
+  try {
+    const r = await fetch(
+      `https://places.googleapis.com/v1/places/${placeId}?fields=reviews`,
+      {
+        headers: {
+          "X-Goog-Api-Key": process.env.GOOGLE_SERVER_PLACES_KEY,
+          "X-Goog-FieldMask": "reviews"
+        }
+      }
+    );
+    if (!r.ok) return [];
+    const data = await r.json();
+    const reviews = Array.isArray(data.reviews) ? data.reviews : [];
+
+    return reviews
+      .filter(rv => Number(rv.rating) >= 4 && (rv.text?.text || rv.originalText?.text))
+      .slice(0, 3)
+      .map(rv => ({
+        quote: String(rv.text?.text || rv.originalText?.text || "").trim(),
+        author: rv.authorAttribution?.displayName || "Google review",
+        rating: Number(rv.rating) || 5,
+        source: "google"
+      }))
+      .filter(t => t.quote);
+  } catch (e) {
+    console.warn("⚠️ Google reviews fetch failed, falling back to no auto-testimonials:", e?.message);
+    return [];
+  }
+}
 
 async function generateUniqueSlug(base, supabase) {
   let slug = base;
@@ -703,7 +741,10 @@ primary_cta: If phone is provided, set type to "call" and value to the phone num
     const finalWhyChooseUs = shouldRegenerate ? (generated?.why_choose_us || manualWhyChooseUs || "") : (manualWhyChooseUs || "");
     const finalServicesIntro = shouldRegenerate ? (generated?.services_intro || manualServicesIntro || "") : (manualServicesIntro || "");
     const finalTrustBadges = shouldRegenerate ? (generated?.trust_badges ?? []) : (manualTrustBadges ?? []);
-    const finalServices = shouldRegenerate ? (generated?.services ?? []) : (manualServices ?? []);
+    const finalServices = mergeUserServicePrices(
+      shouldRegenerate ? (generated?.services ?? []) : (manualServices ?? []),
+      rawServices
+    );
     const finalFaqs = shouldRegenerate ? (generated?.faqs ?? []) : (existingProfile?.faqs ?? []);
 
     const manualPrimaryCtaLabel = hasField(fields, "primary_cta_label") ? first(fields.primary_cta_label) : existingProfile?.primary_cta_label;
@@ -726,11 +767,30 @@ primary_cta: If phone is provided, set type to "call" and value to the phone num
     let finalAttachments = [...keptExistingAttachments, ...newAttachments];
     if (finalAttachments.length > 24) finalAttachments = finalAttachments.slice(-24);
 
+    /* ---------- TESTIMONIALS (owner-entered, else preserved, else real Google reviews) ---------- */
+    const finalGooglePlaceId = first(fields.google_place_id) || existingProfile?.google_place_id || null;
+    const submittedTestimonials = hasField(fields, "testimonials") ? safeJSON(first(fields.testimonials), []) : null;
+    const hasOwnerTestimonials =
+      (Array.isArray(submittedTestimonials) && submittedTestimonials.length > 0) ||
+      (!submittedTestimonials && Array.isArray(existingProfile?.testimonials) && existingProfile.testimonials.length > 0);
+
+    let finalTestimonials;
+    if (submittedTestimonials) {
+      finalTestimonials = submittedTestimonials;
+    } else if (Array.isArray(existingProfile?.testimonials) && existingProfile.testimonials.length) {
+      finalTestimonials = existingProfile.testimonials;
+    } else {
+      finalTestimonials = [];
+    }
+    if (!hasOwnerTestimonials && finalGooglePlaceId) {
+      finalTestimonials = await fetchGoogleReviewTestimonials(finalGooglePlaceId);
+    }
+
     /* ---------- PROFILE UPSERT ---------- */
     const profilePayload = {
       business_id, auth_id, username: slug, business_name, seo_business_name, owner_name,
       email, phone: first(fields.phone), address: first(fields.address), website: first(fields.website),
-      google_place_id: first(fields.google_place_id) || existingProfile?.google_place_id || null,
+      google_place_id: finalGooglePlaceId,
       primary_category: first(fields.primary_category) || existingProfile?.primary_category || null,
       city: first(fields.city) || existingProfile?.city || null,
       state: first(fields.state) || existingProfile?.state || null,
@@ -740,8 +800,8 @@ primary_cta: If phone is provided, set type to "call" and value to the phone num
       seo_title: finalSeoTitle, seo_description: finalSeoDescription,
       services: finalServices, faqs: finalFaqs, trust_badges: finalTrustBadges,
       primary_cta_label: finalPrimaryCtaLabel, primary_cta_type: finalPrimaryCtaType, primary_cta_value: finalPrimaryCtaValue,
-      service_area: parseCSV(fields.service_area),
-      testimonials: hasField(fields, "testimonials") ? safeJSON(first(fields.testimonials), []) : (existingProfile?.testimonials ?? []),
+      service_area: normalizeServiceAreas(fields.service_area),
+      testimonials: finalTestimonials,
       attachments: finalAttachments,
       is_open_now: toBool(fields.is_open_now),
       accepting_clients: toBool(fields.accepting_clients),
