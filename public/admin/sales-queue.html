@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Sales Queue — Enoma Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex,nofollow" />
+<style>
+  :root{
+    --void:#060911; --panel:#0d1420; --panel-raised:#121b2c;
+    --hairline: rgba(130,180,255,.14); --hairline-strong: rgba(130,180,255,.26);
+    --core:#4fd8ff; --core-dim: rgba(79,216,255,.35);
+    --mkt:#c98af5; --rev:#34e0a1; --warn:#ffb84a; --crit:#ff5c72;
+    --text-1:#eaf3ff; --text-2:#9db2d4; --text-3:#5d7396;
+    --mono: ui-monospace,"Cascadia Code","SFMono-Regular","Consolas","Liberation Mono",monospace;
+    --sans: -apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--void);}
+  body{
+    font-family:var(--sans); color:var(--text-1); -webkit-font-smoothing:antialiased;
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -10%, rgba(79,216,255,.09), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 10%, rgba(201,138,245,.06), transparent 55%),
+      var(--void);
+    min-height:100vh; padding:28px 20px 80px;
+  }
+  a{color:var(--core)}
+
+  .wrap{ max-width:1180px; margin:0 auto; }
+
+  #unauth{ text-align:center; margin-top:20vh; }
+  #unauth h2{ color:var(--crit); font-family:var(--mono); font-size:1rem; letter-spacing:.02em; }
+  #unauth p{ color:var(--text-2); }
+
+  #app{ display:none; }
+
+  .top{ display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:16px; margin-bottom:22px; }
+  .eyebrow{ font-family:var(--mono); font-size:.7rem; letter-spacing:.14em; text-transform:uppercase; color:var(--text-3); }
+  .eyebrow b{ color:var(--core); }
+  h1{ font-size:1.6rem; margin:.25rem 0 0; letter-spacing:-.02em; }
+  .subhead{ color:var(--text-2); font-size:.85rem; margin:.35rem 0 0; }
+  .nav-links{ display:flex; gap:14px; font-family:var(--mono); font-size:.76rem; }
+  .nav-links a{ color:var(--text-2); text-decoration:none; }
+  .nav-links a:hover{ color:var(--core); }
+  .refresh-btn{
+    font-family:var(--mono); font-size:.74rem; color:var(--text-2);
+    background:var(--panel); border:1px solid var(--hairline); border-radius:999px;
+    padding:6px 14px; cursor:pointer;
+  }
+  .refresh-btn:hover{ border-color:var(--core-dim); color:var(--core); }
+
+  /* ── summary tiles ── */
+  .tiles{ display:grid; grid-template-columns:repeat(auto-fit,minmax(128px,1fr)); gap:10px; margin-bottom:22px; }
+  .tile{ background:var(--panel); border:1px solid var(--hairline); border-radius:14px; padding:14px 16px; }
+  .tile .n{ font-family:var(--mono); font-size:1.5rem; font-weight:600; }
+  .tile .l{ font-size:.72rem; color:var(--text-3); text-transform:uppercase; letter-spacing:.06em; margin-top:2px; }
+  .tile.hot .n{ color:var(--crit); }
+  .tile.warm .n{ color:var(--warn); }
+  .tile.rev .n{ color:var(--rev); }
+  .tile.core .n{ color:var(--core); }
+
+  /* ── filters ── */
+  .filters{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .chip{
+    font-family:var(--mono); font-size:.74rem; color:var(--text-2);
+    background:var(--panel); border:1px solid var(--hairline); border-radius:999px;
+    padding:6px 13px; cursor:pointer; user-select:none; white-space:nowrap;
+  }
+  .chip:hover{ border-color:var(--hairline-strong); }
+  .chip.active{ background:rgba(79,216,255,.12); border-color:var(--core-dim); color:var(--core); }
+
+  /* ── queue ── */
+  .empty{ color:var(--text-3); font-family:var(--mono); font-size:.85rem; text-align:center; padding:48px 0; }
+  .row{
+    display:flex; gap:16px; align-items:flex-start; background:var(--panel);
+    border:1px solid var(--hairline); border-radius:14px; padding:16px 18px; margin-bottom:10px;
+  }
+  .row:hover{ border-color:var(--hairline-strong); }
+  .tier-badge{
+    flex-shrink:0; width:52px; text-align:center; font-family:var(--mono); font-size:.68rem;
+    font-weight:700; text-transform:uppercase; letter-spacing:.04em; border-radius:8px; padding:5px 0;
+  }
+  .tier-badge.hot{ background:rgba(255,92,114,.14); color:var(--crit); }
+  .tier-badge.warm{ background:rgba(255,184,74,.14); color:var(--warn); }
+  .tier-badge.cold{ background:rgba(93,115,150,.16); color:var(--text-3); }
+
+  .row-main{ flex:1; min-width:0; }
+  .row-top{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .row-name{ font-weight:700; font-size:1rem; }
+  .row-type{ font-family:var(--mono); font-size:.68rem; color:var(--text-3); text-transform:uppercase; letter-spacing:.05em; }
+  .row-detail{ color:var(--text-2); font-size:.84rem; margin-top:3px; }
+  .row-meta{ display:flex; gap:14px; flex-wrap:wrap; margin-top:8px; font-family:var(--mono); font-size:.74rem; color:var(--text-3); }
+  .row-meta a{ color:var(--text-2); }
+  .row-meta a:hover{ color:var(--core); }
+  .row-action{ color:var(--core); font-size:.8rem; margin-top:8px; font-weight:600; }
+
+  .row-controls{ flex-shrink:0; display:flex; flex-direction:column; gap:6px; align-items:flex-end; }
+  .score{ font-family:var(--mono); font-size:.72rem; color:var(--text-3); }
+  .btn-row{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+  .mini-btn{
+    font-family:var(--mono); font-size:.68rem; color:var(--text-2);
+    background:var(--panel-raised); border:1px solid var(--hairline); border-radius:7px;
+    padding:4px 9px; cursor:pointer; white-space:nowrap;
+  }
+  .mini-btn:hover{ border-color:var(--core-dim); color:var(--core); }
+  .mini-btn:disabled{ opacity:.4; cursor:default; }
+
+  /* ── funnel health ── */
+  .funnel{ margin-top:32px; background:var(--panel); border:1px solid var(--hairline); border-radius:14px; padding:18px 20px; }
+  .funnel h2{ font-size:.85rem; font-family:var(--mono); text-transform:uppercase; letter-spacing:.06em; color:var(--text-3); margin:0 0 4px; }
+  .funnel .note{ color:var(--text-3); font-size:.76rem; margin:0 0 14px; }
+  .funnel-steps{ display:flex; gap:10px; flex-wrap:wrap; }
+  .fstep{ background:var(--panel-raised); border:1px solid var(--hairline); border-radius:10px; padding:9px 13px; min-width:120px; }
+  .fstep .n{ font-family:var(--mono); font-weight:700; color:var(--mkt); }
+  .fstep .l{ font-size:.68rem; color:var(--text-3); margin-top:2px; }
+
+  .status-line{ font-family:var(--mono); font-size:.74rem; color:var(--text-3); text-align:center; padding:24px 0; }
+  .status-line.error{ color:var(--crit); }
+</style>
+</head>
+<body>
+
+<div id="unauth" style="display:none;">
+  <h2>Unauthorized</h2>
+  <p><a href="/login">Sign in</a> as the Enoma admin account to view the sales queue.</p>
+</div>
+
+<div class="wrap" id="app">
+  <div class="top">
+    <div>
+      <div class="eyebrow">ENOMA <b>SALES QUEUE</b> &middot; internal, admin-only</div>
+      <h1>Who should I talk to?</h1>
+      <p class="subhead">Raw Enoma leads and outbound prospects, scored and sorted by intent. Updated on load.</p>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:10px;">
+      <div class="nav-links">
+        <a href="/admin/admin-list.html">Business Profiles</a>
+        <a href="/admin/voice.html">Voice Agent</a>
+      </div>
+      <button class="refresh-btn" id="refreshBtn">↻ Refresh</button>
+    </div>
+  </div>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="filters" id="filters"></div>
+
+  <div id="queueWrap">
+    <div class="status-line" id="statusLine">Loading…</div>
+  </div>
+
+  <div class="funnel">
+    <h2>Self-serve funnel — last 30 days</h2>
+    <p class="note">Aggregate only. Steps before a business page exists carry no name/email/phone to act on, so they're shown here as counts, not as individual leads.</p>
+    <div class="funnel-steps" id="funnelSteps"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://qhsivcenpnxwmvwznqie.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const els = {
+    unauth: document.getElementById('unauth'),
+    app: document.getElementById('app'),
+    tiles: document.getElementById('tiles'),
+    filters: document.getElementById('filters'),
+    queueWrap: document.getElementById('queueWrap'),
+    funnelSteps: document.getElementById('funnelSteps'),
+    refreshBtn: document.getElementById('refreshBtn'),
+  };
+
+  let accessToken = null;
+  let latest = null;       // last server response
+  let activeFilter = 'all';
+
+  const FUNNEL_LABELS = {
+    get_your_website_submitted: 'Started form',
+    choose_path_viewed: 'Viewed path choice',
+    choose_path_selected: 'Picked a path',
+    create_page_viewed: 'Opened builder',
+    create_step_viewed: 'In wizard',
+    create_form_submitted: 'Submitted wizard',
+    create_generation_succeeded: 'Page generated',
+    create_generation_failed: 'Generation failed',
+  };
+
+  const FILTERS = [
+    { key: 'all', label: 'All' },
+    { key: 'hot', label: '🔥 High intent' },
+    { key: 'uncontacted', label: 'Uncontacted' },
+    { key: 'new_today', label: 'New today' },
+    { key: 'new_week', label: 'New this week' },
+    { key: 'raw_lead', label: 'Raw leads' },
+    { key: 'prospect', label: 'Prospects' },
+  ];
+
+  async function init() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session || session.user.email !== 'jack@enoma.io') {
+      els.unauth.style.display = 'block';
+      return;
+    }
+    accessToken = session.access_token;
+    els.app.style.display = 'block';
+    renderFilters();
+    els.refreshBtn.addEventListener('click', load);
+    load();
+  }
+
+  function timeAgo(iso) {
+    if (!iso) return '—';
+    const ms = Date.now() - new Date(iso).getTime();
+    const mins = Math.round(ms / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + 'm ago';
+    const hrs = Math.round(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    const days = Math.round(hrs / 24);
+    return days + 'd ago';
+  }
+
+  async function load() {
+    els.queueWrap.innerHTML = '<div class="status-line" id="statusLine">Loading…</div>';
+    try {
+      const res = await fetch('/api/ga-metrics?action=sales_queue', {
+        headers: { 'Authorization': 'Bearer ' + accessToken }
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to load');
+      latest = data;
+      renderTiles(data.summary);
+      renderFunnel(data.funnel_health);
+      renderQueue();
+    } catch (err) {
+      els.queueWrap.innerHTML = `<div class="status-line error">${err.message}</div>`;
+    }
+  }
+
+  function renderTiles(s) {
+    els.tiles.innerHTML = `
+      <div class="tile hot"><div class="n">${s.hot}</div><div class="l">High intent</div></div>
+      <div class="tile warm"><div class="n">${s.warm}</div><div class="l">Warm</div></div>
+      <div class="tile core"><div class="n">${s.new_today}</div><div class="l">New today</div></div>
+      <div class="tile core"><div class="n">${s.new_this_week}</div><div class="l">New this week</div></div>
+      <div class="tile"><div class="n">${s.raw_leads_uncontacted}</div><div class="l">Uncontacted leads</div></div>
+      <div class="tile rev"><div class="n">${s.prospects_ready_to_send}</div><div class="l">Ready to send</div></div>
+      <div class="tile rev"><div class="n">${s.prospects_awaiting_reply}</div><div class="l">Awaiting reply</div></div>
+    `;
+  }
+
+  function renderFunnel(steps) {
+    els.funnelSteps.innerHTML = (steps || []).map(s => `
+      <div class="fstep">
+        <div class="n">${s.count_last_30_days}</div>
+        <div class="l">${FUNNEL_LABELS[s.event] || s.event}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderFilters() {
+    els.filters.innerHTML = FILTERS.map(f =>
+      `<div class="chip${f.key === activeFilter ? ' active' : ''}" data-key="${f.key}">${f.label}</div>`
+    ).join('');
+    els.filters.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        activeFilter = chip.dataset.key;
+        renderFilters();
+        renderQueue();
+      });
+    });
+  }
+
+  function matchesFilter(row) {
+    const now = Date.now();
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    const weekStart = now - 7 * 24 * 60 * 60 * 1000;
+    switch (activeFilter) {
+      case 'hot': return row.tier === 'hot';
+      case 'uncontacted': return row.lead_type === 'raw_lead' && row.status === 'new';
+      case 'new_today': return new Date(row.last_activity_at) >= todayStart;
+      case 'new_week': return new Date(row.last_activity_at).getTime() >= weekStart;
+      case 'raw_lead': return row.lead_type === 'raw_lead';
+      case 'prospect': return row.lead_type === 'prospect';
+      default: return true;
+    }
+  }
+
+  function renderQueue() {
+    if (!latest) return;
+    const rows = latest.queue.filter(matchesFilter);
+    if (!rows.length) {
+      els.queueWrap.innerHTML = '<div class="empty">Nothing in this view.</div>';
+      return;
+    }
+    els.queueWrap.innerHTML = rows.map(rowHtml).join('');
+    els.queueWrap.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', () => runAction(btn.dataset.leadType, btn.dataset.id, btn.dataset.action));
+    });
+  }
+
+  function rowHtml(r) {
+    const title = r.lead_type === 'raw_lead' ? (r.name || 'Unnamed lead') : (r.business_name || 'Unnamed business');
+    const contact = [
+      r.email ? `<a href="mailto:${r.email}">${r.email}</a>` : null,
+      r.phone ? `<a href="tel:${r.phone}">${r.phone}</a>` : null,
+      r.preview_url ? `<a href="${r.preview_url}" target="_blank">preview page →</a>` : null,
+    ].filter(Boolean).join(' &middot; ');
+
+    let controls = '';
+    if (r.lead_type === 'raw_lead') {
+      controls = r.status === 'replied'
+        ? `<span class="mini-btn" style="opacity:.6;">Replied</span>`
+        : `<button class="mini-btn" data-lead-type="raw_lead" data-id="${r.id}" data-action="mark_replied">Mark replied</button>
+           <button class="mini-btn" data-lead-type="raw_lead" data-id="${r.id}" data-action="${r.status === 'read' ? 'mark_unread' : 'mark_read'}">${r.status === 'read' ? 'Mark unread' : 'Mark read'}</button>`;
+    } else {
+      const next = { new: 'reviewed', reviewed: 'drafted', drafted: 'approved' }[r.status];
+      controls = `
+        ${next ? `<button class="mini-btn" data-lead-type="prospect" data-id="${r.id}" data-action="${next}">Mark ${next}</button>` : ''}
+        <button class="mini-btn" data-lead-type="prospect" data-id="${r.id}" data-action="skipped">Skip</button>
+      `;
+    }
+
+    return `
+      <div class="row">
+        <div class="tier-badge ${r.tier}">${r.tier}</div>
+        <div class="row-main">
+          <div class="row-top">
+            <span class="row-name">${title}</span>
+            <span class="row-type">${r.lead_type === 'raw_lead' ? 'enoma lead' : 'prospect'} · ${r.source || '—'}</span>
+          </div>
+          ${r.detail ? `<div class="row-detail">${r.detail}</div>` : ''}
+          <div class="row-meta">
+            ${contact || '<span>no contact info on file</span>'}
+            <span>${timeAgo(r.last_activity_at)}</span>
+            <span>status: ${r.status}</span>
+          </div>
+          <div class="row-action">→ ${r.suggested_action}</div>
+        </div>
+        <div class="row-controls">
+          <div class="score">score ${r.score}</div>
+          <div class="btn-row">${controls}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  async function runAction(leadType, id, action) {
+    try {
+      const res = await fetch('/api/ga-metrics?action=update_lead_status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken },
+        body: JSON.stringify({ lead_type: leadType, id, action })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Update failed');
+      load();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>
