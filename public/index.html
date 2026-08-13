@@ -78,11 +78,6 @@
     .hero__actions{display:flex;gap:.85rem;flex-wrap:wrap;justify-content:center;margin-top:2.25rem;}
     .hero__proof{margin-top:1.1rem;font-size:.78rem;color:var(--text-3);letter-spacing:.03em;}
 
-    /* ---------- signal graphic: six discovery channels converging on a found result ---------- */
-    .signal{position:relative;width:100%;max-width:520px;aspect-ratio:680/650;margin:3.5rem auto 0;}
-    .signal__svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;}
-    .signal__caption{margin-top:1.5rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text-3);letter-spacing:.03em;}
-
     /* ---------- persistent thread: small pin follows the story from the gap through what-enoma-is ---------- */
     .thread-wrap{position:relative;}
     .thread-wrap::before{
@@ -110,14 +105,6 @@
     .faq-row[open] .faq-chevron{transform:rotate(90deg);}
     .faq-row p{margin-top:.75rem;font-size:.9rem;color:var(--text-2);line-height:1.6;}
 
-    /* ---------- BOTTLENECK / channel split ---------- */
-    .channels{display:grid;grid-template-columns:1fr auto 1fr;gap:1.5rem;align-items:center;margin-top:3rem;max-width:640px;margin-inline:auto;}
-    .channel{background:var(--panel);border:1px solid var(--panel-border);border-radius:16px;padding:1.5rem 1.25rem;text-align:left;}
-    .channel__label{font-family:'IBM Plex Mono',monospace;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sky-light);margin-bottom:.6rem;}
-    .channel__q{font-size:.92rem;color:var(--text-1);line-height:1.5;font-style:italic;}
-    .channel__x{font-family:'IBM Plex Mono',monospace;font-size:1.4rem;color:var(--text-3);}
-    @media(max-width:600px){.channels{grid-template-columns:1fr;}.channel__x{display:none;}}
-
     /* ---------- what enoma is: inline stat row ---------- */
     .statline{display:flex;gap:2.5rem;justify-content:center;flex-wrap:wrap;margin-top:2.75rem;}
     .statline__item{text-align:center;}
@@ -140,36 +127,6 @@
     .step2__num{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:1.6rem;color:var(--text-3);flex-shrink:0;width:2.2rem;}
     .step2__title{font-weight:700;font-size:1.05rem;color:var(--text-1);margin-bottom:.3rem;}
     .step2__desc{font-size:.9rem;color:var(--text-2);line-height:1.55;}
-
-    /* ---------- interactive: visibility check ---------- */
-    .sim-panel{
-      margin-top:2.5rem;text-align:left;background:var(--panel);border:1px solid var(--panel-border);
-      border-radius:20px;padding:1.75rem;backdrop-filter:blur(6px);
-    }
-    .sim-form{display:grid;grid-template-columns:1fr 1fr auto;gap:.75rem;align-items:end;}
-    .sim-field{display:flex;flex-direction:column;gap:.35rem;}
-    .sim-field label{font-family:'IBM Plex Mono',monospace;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);}
-    .sim-field select,.sim-field input{
-      padding:.7rem .85rem;border-radius:10px;border:1px solid var(--panel-border);background:rgba(255,255,255,.06);
-      color:var(--text-1);font-family:inherit;font-size:.9rem;
-    }
-    .sim-field select:focus,.sim-field input:focus{outline:2px solid var(--sky-light);outline-offset:1px;}
-    .sim-field option{background:#0a1628;}
-    .sim-results{display:none;margin-top:1.75rem;padding-top:1.75rem;border-top:1px dashed var(--panel-border);}
-    .sim-results.is-visible{display:block;animation:simIn .5s ease;}
-    @keyframes simIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-    .sim-score{display:flex;align-items:baseline;gap:.4rem;}
-    .sim-score__num{font-family:'Fraunces',serif;font-weight:700;font-size:2.6rem;color:var(--text-1);}
-    .sim-score__max{font-size:1rem;color:var(--text-3);}
-    .sim-score__label{font-size:.85rem;color:var(--text-2);margin-top:.4rem;line-height:1.5;max-width:460px;}
-    .sim-bars{display:flex;flex-direction:column;gap:.75rem;margin-top:1.25rem;}
-    .sim-bar-row{display:grid;grid-template-columns:150px 1fr 36px;align-items:center;gap:.75rem;}
-    .sim-bar-label{font-size:.8rem;color:var(--text-2);}
-    .sim-bar-track{height:7px;background:rgba(255,255,255,.07);border-radius:999px;overflow:hidden;}
-    .sim-bar-fill{height:100%;width:0;border-radius:999px;transition:width 1s cubic-bezier(.2,.8,.2,1);}
-    .sim-bar-pct{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--text-2);text-align:right;}
-    .sim-disclaimer{font-size:.74rem;color:var(--text-3);margin-top:1.1rem;line-height:1.5;}
-    @media(max-width:600px){.sim-form{grid-template-columns:1fr;}}
 
     /* ---------- interactive: product preview ---------- */
     .preview-panel{
@@ -247,113 +204,6 @@
       <a href="/examples" class="btn-secondary">See live examples</a>
     </div>
     <p class="hero__proof">No credit card &nbsp;·&nbsp; First month free &nbsp;·&nbsp; Live in minutes &nbsp;·&nbsp; Cancel anytime</p>
-
-    <div class="signal" id="heroSignal">
-      <svg class="signal__svg" viewBox="0 0 680 650" role="img" aria-label="Diagram showing customer searches arriving from keyword search, conversational AI, social media, phone calls, referrals, and voice search, all converging on your business.">
-        <style>
-          .dg-spoke{stroke:var(--sky-light);stroke-width:1.5;stroke-dasharray:2 7;stroke-linecap:round;opacity:.5;fill:none;animation:dg-flow 1.3s linear infinite;}
-          .dg-ring{fill:none;stroke:var(--sky-light);stroke-width:1;animation:dg-ring 3s ease-out infinite;}
-          .dg-dot{fill:var(--sky-light);}
-          .dg-icon-bg{fill:var(--panel);stroke:rgba(90,168,240,.35);stroke-width:1;}
-          .dg-icon{stroke:var(--sky-light);stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round;}
-          .dg-label{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;fill:var(--text-3);text-anchor:middle;}
-          .dg-pin{fill:var(--sky);stroke:rgba(255,255,255,.15);stroke-width:0.5;animation:dg-pulse 3s ease-in-out infinite;transform-origin:340px 320px;}
-          .dg-pin-letter{font-family:'Fraunces',Georgia,serif;font-size:15px;fill:var(--text-1);text-anchor:middle;}
-          @keyframes dg-flow{to{stroke-dashoffset:-24;}}
-          @keyframes dg-ring{0%{r:44;opacity:.5;}100%{r:130;opacity:0;}}
-          @keyframes dg-pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.05);}}
-          @media (prefers-reduced-motion: reduce){
-            .dg-spoke,.dg-ring,.dg-pin{animation:none !important;}
-            .dg-dot{display:none;}
-          }
-        </style>
-
-        <circle class="dg-ring" cx="340" cy="320" r="44" style="animation-delay:0s"/>
-        <circle class="dg-ring" cx="340" cy="320" r="44" style="animation-delay:1s"/>
-        <circle class="dg-ring" cx="340" cy="320" r="44" style="animation-delay:2s"/>
-
-        <defs>
-          <marker id="dg-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-            <path d="M2 1L8 5L2 9" fill="none" style="stroke:var(--sky-light)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </marker>
-        </defs>
-
-        <path class="dg-spoke" marker-end="url(#dg-arrow)" d="M340,88 L340,270"/>
-        <path class="dg-spoke" marker-end="url(#dg-arrow)" d="M540.85,202.16 L383.1,294.7"/>
-        <path class="dg-spoke" marker-end="url(#dg-arrow)" d="M511.85,420.83 L383.13,345.31"/>
-        <path class="dg-spoke" marker-end="url(#dg-arrow)" d="M340,522 L340,370"/>
-        <path class="dg-spoke" marker-end="url(#dg-arrow)" d="M168.15,420.83 L296.87,345.31"/>
-        <path class="dg-spoke" marker-end="url(#dg-arrow)" d="M139.15,202.16 L296.9,294.7"/>
-
-        <circle class="dg-dot" r="3"><animateMotion dur="1.7s" repeatCount="indefinite" path="M340,88 L340,270"/></circle>
-        <circle class="dg-dot" r="3"><animateMotion dur="1.9s" repeatCount="indefinite" path="M540.85,202.16 L383.1,294.7"/></circle>
-        <circle class="dg-dot" r="3"><animateMotion dur="1.6s" repeatCount="indefinite" path="M511.85,420.83 L383.13,345.31"/></circle>
-        <circle class="dg-dot" r="3"><animateMotion dur="2s" repeatCount="indefinite" path="M340,522 L340,370"/></circle>
-        <circle class="dg-dot" r="3"><animateMotion dur="1.8s" repeatCount="indefinite" path="M168.15,420.83 L296.87,345.31"/></circle>
-        <circle class="dg-dot" r="3"><animateMotion dur="1.75s" repeatCount="indefinite" path="M139.15,202.16 L296.9,294.7"/></circle>
-
-        <!-- Keyword search (top) -->
-        <circle class="dg-icon-bg" cx="340" cy="60" r="28"/>
-        <g class="dg-icon" transform="translate(328,48)">
-          <circle cx="9" cy="9" r="6.5"/>
-          <line x1="14" y1="14" x2="20" y2="20"/>
-        </g>
-        <text class="dg-label" x="340" y="18">Keyword search</text>
-
-        <!-- Conversational AI (upper right) -->
-        <circle class="dg-icon-bg" cx="565" cy="188" r="28"/>
-        <g class="dg-icon" transform="translate(553,176)">
-          <rect x="1" y="2" width="22" height="13" rx="4"/>
-          <path d="M7,15 L7,20 L12,15 Z"/>
-        </g>
-        <text class="dg-label" x="565" y="146">Conversational AI</text>
-
-        <!-- Social media (lower right) -->
-        <circle class="dg-icon-bg" cx="536" cy="435" r="28"/>
-        <g class="dg-icon" transform="translate(524,423)">
-          <circle cx="5" cy="12" r="3"/>
-          <circle cx="19" cy="5" r="3"/>
-          <circle cx="19" cy="19" r="3"/>
-          <line x1="7.6" y1="10.5" x2="16.4" y2="6.5"/>
-          <line x1="7.6" y1="13.5" x2="16.4" y2="17.5"/>
-        </g>
-        <text class="dg-label" x="536" y="464">Social media</text>
-
-        <!-- Phone calls (bottom) -->
-        <circle class="dg-icon-bg" cx="340" cy="550" r="28"/>
-        <g class="dg-icon" transform="translate(328,538)">
-          <path d="M4,2 L8,2 L10,7 L7.5,9 A11,11 0 0 0 13,14.5 L15,12 L20,14 L20,18 A2,2 0 0 1 18,20 C9,20 2,13 2,4 A2,2 0 0 1 4,2 Z"/>
-        </g>
-        <text class="dg-label" x="340" y="579">Phone calls</text>
-
-        <!-- Referrals (lower left) -->
-        <circle class="dg-icon-bg" cx="144" cy="435" r="28"/>
-        <g class="dg-icon" transform="translate(132,423)">
-          <circle cx="8" cy="7" r="3"/>
-          <path d="M2,20 A6,5 0 0 1 14,20"/>
-          <circle cx="17" cy="9" r="2.3"/>
-          <path d="M14,20.5 A4.2,3.6 0 0 1 21.5,20.2"/>
-        </g>
-        <text class="dg-label" x="144" y="464">Referrals</text>
-
-        <!-- Voice search (upper left) -->
-        <circle class="dg-icon-bg" cx="115" cy="188" r="28"/>
-        <g class="dg-icon" transform="translate(103,176)">
-          <rect x="8" y="1" width="6" height="11" rx="3"/>
-          <path d="M5,10 A6,6 0 0 0 17,10"/>
-          <line x1="11" y1="16" x2="11" y2="20"/>
-          <line x1="7" y1="20" x2="15" y2="20"/>
-        </g>
-        <text class="dg-label" x="115" y="146">Voice search</text>
-
-        <!-- Center pin -->
-        <g>
-          <path class="dg-pin" d="M340,296 C334.2,296 329.5,300.8 329.5,306.5 C329.5,314 340,323.5 340,323.5 C340,323.5 350.5,314 350.5,306.5 C350.5,300.8 345.8,296 340,296 Z"/>
-          <text class="dg-pin-letter" x="340" y="307.3">e</text>
-        </g>
-      </svg>
-    </div>
-    <p class="signal__caption">Six channels. One answer, if you're built to be found.</p>
   </section>
 
   <div class="thread-wrap">
@@ -368,77 +218,8 @@
   <!-- ============ THE GAP — the bottleneck, explained ============ -->
   <section class="scene reveal">
     <p class="eyebrow">The gap</p>
-    <h2>Search changed.<br>Most local businesses didn't.</h2>
-    <p class="lead">Most local businesses already have something — a Facebook page, a Google listing, maybe an old website nobody's touched in years. None of it is built to be read by AI. Homeowners now ask AI assistants directly — "find me a plumber in Agawam who can come today" — and expect a straight answer. Both channels need the same thing from you: a real, structured page.</p>
-    <div class="channels">
-      <div class="channel">
-        <p class="channel__label">Google sees</p>
-        <p class="channel__q">"landscaper near me, Agawam MA"</p>
-      </div>
-      <div class="channel__x">+</div>
-      <div class="channel">
-        <p class="channel__label">AI assistants see</p>
-        <p class="channel__q">"who's a good plumber near West Springfield"</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ SEE IT — interactive visibility check ============ -->
-  <section class="scene reveal">
-    <p class="eyebrow">See it yourself</p>
-    <h2>How findable is a business like yours?</h2>
-    <p class="lead">Pick your trade and town — see the visibility gap we typically find before a business has a dedicated page.</p>
-
-    <div class="sim-panel">
-      <form class="sim-form" id="simForm">
-        <div class="sim-field">
-          <label for="simTrade">Trade</label>
-          <select id="simTrade">
-            <option>Landscaping</option>
-            <option>HVAC</option>
-            <option>Plumbing</option>
-            <option>Junk Removal</option>
-            <option>Painting</option>
-            <option>Masonry</option>
-            <option>Cleaning</option>
-            <option>Roofing</option>
-          </select>
-        </div>
-        <div class="sim-field">
-          <label for="simTown">Town</label>
-          <input type="text" id="simTown" placeholder="e.g. Agawam, MA" />
-        </div>
-        <button type="submit" class="btn-primary">Check visibility →</button>
-      </form>
-
-      <div class="sim-results" id="simResults">
-        <div class="sim-score"><span class="sim-score__num" id="simScoreNum">0</span><span class="sim-score__max">/100</span></div>
-        <p class="sim-score__label" id="simScoreLabel"></p>
-        <div class="sim-bars" id="simBars">
-          <div class="sim-bar-row">
-            <span class="sim-bar-label">Google search presence</span>
-            <div class="sim-bar-track"><div class="sim-bar-fill" data-key="google"></div></div>
-            <span class="sim-bar-pct" data-pct="google">0%</span>
-          </div>
-          <div class="sim-bar-row">
-            <span class="sim-bar-label">AI-assistant visibility</span>
-            <div class="sim-bar-track"><div class="sim-bar-fill" data-key="ai"></div></div>
-            <span class="sim-bar-pct" data-pct="ai">0%</span>
-          </div>
-          <div class="sim-bar-row">
-            <span class="sim-bar-label">Facebook-only risk</span>
-            <div class="sim-bar-track"><div class="sim-bar-fill" data-key="facebook"></div></div>
-            <span class="sim-bar-pct" data-pct="facebook">0%</span>
-          </div>
-          <div class="sim-bar-row">
-            <span class="sim-bar-label">Lead capture readiness</span>
-            <div class="sim-bar-track"><div class="sim-bar-fill" data-key="capture"></div></div>
-            <span class="sim-bar-pct" data-pct="capture">0%</span>
-          </div>
-        </div>
-        <p class="sim-disclaimer">Illustrative example based on common patterns for this trade — not a live scan of any specific business.</p>
-      </div>
-    </div>
+    <h2>They're searching.<br>They're just not finding you.</h2>
+    <p class="lead">A homeowner needing a plumber doesn't flip through anything anymore — they Google it, or just ask ChatGPT. If your business doesn't show up with a real answer either way, you don't lose that job to a better company down the street. You lose it to whoever showed up in the search.</p>
   </section>
 
   <!-- ============ WHAT ENOMA IS ============ -->
@@ -451,9 +232,32 @@
       <div class="statline__item"><div class="statline__num">$0</div><div class="statline__label">first month</div></div>
       <div class="statline__item"><div class="statline__num">Day one</div><div class="statline__label">indexed &amp; findable</div></div>
     </div>
-    <p class="lead" style="margin-top:1.5rem;font-size:.9rem;">A web agency runs $3,000+ upfront. Yelp puts competitors right next to you, and the same lead often goes to several businesses at once. Enoma is free the first month, then $19.99/mo — no competitor ads, no shared leads, just yours.</p>
   </section>
   </div>
+
+  <!-- ============ HOW IT WORKS ============ -->
+  <section class="scene reveal">
+    <p class="eyebrow">How it works</p>
+    <h2>Three steps. Under five minutes.</h2>
+    <div class="steps2">
+      <div class="step2">
+        <div class="step2__num">01</div>
+        <div><div class="step2__title">Create your free account</div><div class="step2__desc">Your email, thirty seconds. No credit card.</div></div>
+      </div>
+      <div class="step2">
+        <div class="step2__num">02</div>
+        <div><div class="step2__title">Tell us about your business</div><div class="step2__desc">Services, location, a few notes in your own words — AI writes the first draft. Edit anything, anytime.</div></div>
+      </div>
+      <div class="step2">
+        <div class="step2__num">03</div>
+        <div><div class="step2__title">You're live — and findable</div><div class="step2__desc">Indexed by Google, readable by AI assistants, sending leads straight to you.</div></div>
+      </div>
+    </div>
+    <div class="hero__actions" style="margin-top:2.25rem;">
+      <a href="/get-your-website" class="btn-primary">Get found free →</a>
+      <a href="/examples" class="btn-secondary">See live examples</a>
+    </div>
+  </section>
 
   <!-- ============ WHAT YOU GET — product preview ============ -->
   <section class="scene reveal">
@@ -488,26 +292,6 @@
     </div>
     <div class="proof-card__cta">
       <a href="/case-studies/conways-landscaping" class="btn-secondary">Read the case study →</a>
-    </div>
-  </section>
-
-  <!-- ============ HOW IT WORKS ============ -->
-  <section class="scene reveal">
-    <p class="eyebrow">How it works</p>
-    <h2>Three steps. Under five minutes.</h2>
-    <div class="steps2">
-      <div class="step2">
-        <div class="step2__num">01</div>
-        <div><div class="step2__title">Create your free account</div><div class="step2__desc">Your email, thirty seconds. No credit card.</div></div>
-      </div>
-      <div class="step2">
-        <div class="step2__num">02</div>
-        <div><div class="step2__title">Tell us about your business</div><div class="step2__desc">Services, location, a few notes in your own words — AI writes the first draft. Edit anything, anytime.</div></div>
-      </div>
-      <div class="step2">
-        <div class="step2__num">03</div>
-        <div><div class="step2__title">You're live — and findable</div><div class="step2__desc">Indexed by Google, readable by AI assistants, sending leads straight to you.</div></div>
-      </div>
     </div>
   </section>
 
@@ -566,9 +350,9 @@
   (function(){
     var queries = [
       '"landscaper near me"',
-      '"best plumber in Agawam MA"',
+      '"best plumber in Boston"',
       '"who can fix my heater tonight"',
-      '"electrician near West Springfield"',
+      '"electrician near Cambridge MA"',
       '"lawn care company near me"'
     ];
     var el = document.getElementById('queryText');
@@ -587,60 +371,6 @@
         el.textContent = queries[i];
       }
     }, 2600);
-  })();
-
-  // ---- interactive visibility check (illustrative, not a live scan) ----
-  (function(){
-    var form = document.getElementById('simForm');
-    var results = document.getElementById('simResults');
-    var scoreNum = document.getElementById('simScoreNum');
-    var scoreLabel = document.getElementById('simScoreLabel');
-    if (!form) return;
-
-    function hash(str){
-      var h = 0;
-      for (var i = 0; i < str.length; i++) { h = (h * 31 + str.charCodeAt(i)) >>> 0; }
-      return h;
-    }
-    function countUp(el, target, duration){
-      var start = 0, startTime = null;
-      function step(ts){
-        if (!startTime) startTime = ts;
-        var progress = Math.min((ts - startTime) / duration, 1);
-        el.textContent = Math.round(start + (target - start) * progress);
-        if (progress < 1) requestAnimationFrame(step);
-      }
-      requestAnimationFrame(step);
-    }
-
-    form.addEventListener('submit', function(e){
-      e.preventDefault();
-      var trade = document.getElementById('simTrade').value;
-      var town = document.getElementById('simTown').value || 'your town';
-      var seed = hash(trade + '|' + town);
-
-      var score = 24 + (seed % 38);
-      var breakdown = {
-        google:   Math.max(8, (seed % 32)),
-        ai:       Math.max(4, (seed >> 2) % 22),
-        facebook: Math.min(92, 55 + (seed % 30)),
-        capture:  Math.max(5, (seed >> 5) % 25)
-      };
-
-      scoreLabel.textContent = 'A representative visibility score for ' + trade.toLowerCase() + ' businesses in ' + town + ' without a dedicated page — not a scan of any specific business.';
-
-      results.classList.add('is-visible');
-      countUp(scoreNum, score, 900);
-
-      Object.keys(breakdown).forEach(function(key){
-        var fill = results.querySelector('.sim-bar-fill[data-key="' + key + '"]');
-        var pct = results.querySelector('[data-pct="' + key + '"]');
-        var val = breakdown[key];
-        fill.style.background = val >= 60 ? '#e0685f' : (val >= 35 ? '#e0a95f' : 'var(--sky-light)');
-        requestAnimationFrame(function(){ fill.style.width = val + '%'; });
-        pct.textContent = val + '%';
-      });
-    });
   })();
 
   // ---- product-preview mock bar chart ----

@@ -38,12 +38,12 @@ export const mergeUserServicePrices = (finalServices, rawUserServicesJSON) => {
 };
 
 // Marketing/landing-page prefills invite "City, ST" as a single value (e.g. the
-// get-your-website.html city field placeholder is literally "Agawam, MA"), which
+// get-your-website.html city field placeholder is literally "Boston, MA"), which
 // naive comma-splitting turns into a fake extra service-area town ("MA"). This
 // strips a trailing state name/abbreviation from each comma-split chunk and
 // drops any chunk that IS just a bare state, for all 50 states + DC — not only
-// Massachusetts — while leaving genuine multi-town lists ("Springfield, Agawam,
-// West Springfield") untouched, and dedupes case-insensitively.
+// Massachusetts — while leaving genuine multi-town lists ("Boston, Cambridge,
+// Somerville") untouched, and dedupes case-insensitively.
 export const US_STATE_ABBR = ["al", "ak", "az", "ar", "ca", "co", "ct", "de", "fl", "ga", "hi", "id", "il", "in", "ia", "ks", "ky", "la", "me", "md", "ma", "mi", "mn", "ms", "mo", "mt", "ne", "nv", "nh", "nj", "nm", "ny", "nc", "nd", "oh", "ok", "or", "pa", "ri", "sc", "sd", "tn", "tx", "ut", "vt", "va", "wa", "wv", "wi", "wy", "dc"];
 export const US_STATE_NAMES = ["alabama", "alaska", "arizona", "arkansas", "california", "colorado", "connecticut", "delaware", "florida", "georgia", "hawaii", "idaho", "illinois", "indiana", "iowa", "kansas", "kentucky", "louisiana", "maine", "maryland", "massachusetts", "michigan", "minnesota", "mississippi", "missouri", "montana", "nebraska", "nevada", "new hampshire", "new jersey", "new mexico", "new york", "north carolina", "north dakota", "ohio", "oklahoma", "oregon", "pennsylvania", "rhode island", "south carolina", "south dakota", "tennessee", "texas", "utah", "vermont", "virginia", "washington", "west virginia", "wisconsin", "wyoming", "district of columbia"];
 const US_STATE_TOKENS = new Set([...US_STATE_ABBR, ...US_STATE_NAMES]);

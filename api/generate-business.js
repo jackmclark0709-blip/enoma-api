@@ -607,7 +607,7 @@ JSON SCHEMA:
 
 BUSINESS INPUT:
 Business name: ${business_name}
-Trade/category: ${first(fields.primary_category) || "general service"}
+Trade/category: ${["", "other"].includes(first(fields.primary_category)) ? "general local service business (no specific trade given)" : first(fields.primary_category)}
 Tone preference: ${tone}
 Owner notes: ${about_input}
 Services (JSON): ${servicesJSON}
@@ -625,10 +625,19 @@ Operational flags:
 - Accepting clients: ${toBool(fields.accepting_clients)}
 - Emergency services: ${toBool(fields.offers_emergency)}
 
+HONESTY RULE (applies to every field below): only state facts that were actually
+given in BUSINESS INPUT above — years in business, specific towns, certifications,
+staff size, founding story, etc. If a detail wasn't provided, do not invent a
+specific number, year, town, or claim to fill the gap. Write shorter and more
+general instead. Under-claiming is fine; fabricating a fact a real customer or
+competitor could catch as false is not.
+
 COPY INSTRUCTIONS:
 
 hero_headline:
-- Include the city/town name and trade category for local SEO
+- Include the city/town name and trade category for local SEO, but ONLY if a
+  city/town was actually provided in BUSINESS INPUT — if none was given, build
+  the headline from the business name and trade instead of inventing a location
 - Be direct and specific — what makes this business worth calling?
 - AVOID: "trusted," "reliable," "professional," "your go-to," "quality service"
 - GOOD examples: "Plumbing & Heating in Attleboro — Call Brian Today", "North Attleborough Lawn Care Since 2000", "Electricians in Foxboro — Same-Day Service Available"
