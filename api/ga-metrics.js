@@ -141,11 +141,18 @@ async function handleProspectPull(req, res) {
       .filter(Boolean)
   );
 
-  // Outscraper's docs don't publish an exact response shape for the
-  // leads_n_contacts/company_websites_finder enrichments, so this checks the
-  // plausible field-name variants rather than asserting one. Confirm against
-  // `raw` on the first real enriched pull and simplify once the real shape
-  // is known.
+  // Confirmed against a real raw pull (2026-08-13): Outscraper's Google Maps
+  // field is `website`, not `site` — the previous `p.site` reads always
+  // returned undefined, so `prospects.website`/`found_website` were NULL for
+  // every prospect ever pulled. Invisible under only_without_website (Outscraper
+  // filters server-side, so an empty website looked like the expected result)
+  // — only surfaced by pulling unfiltered results and inspecting the raw shape.
+  // The enrichment (leads_n_contacts/company_websites_finder) response shape
+  // is still unconfirmed — that same raw pull returned no email-shaped field
+  // at all across 50 real listings including businesses with real websites,
+  // suggesting the enrichment isn't actually running synchronously. Don't
+  // assume firstEmail()'s field-name guesses are correct until that's
+  // separately investigated.
   const firstEmail = p => {
     if (p.email_1) return p.email_1;
     if (Array.isArray(p.emails) && p.emails.length) return p.emails[0];
@@ -154,10 +161,10 @@ async function handleProspectPull(req, res) {
     return null;
   };
   const foundWebsite = p => {
-    // `site` is the business's own listed website; company_websites_finder
+    // `website` is the business's own listed site; company_websites_finder
     // may add a distinct discovered-site field when Maps shows none.
-    if (!p.site && p.found_website) return p.found_website;
-    if (!p.site && p.company_website) return p.company_website;
+    if (!p.website && p.found_website) return p.found_website;
+    if (!p.website && p.company_website) return p.company_website;
     return null;
   };
 
@@ -171,7 +178,7 @@ async function handleProspectPull(req, res) {
       address: p.address || p.full_address || null,
       city: p.city || null,
       state: p.state || p.us_state || null,
-      website: p.site || null,
+      website: p.website || null,
       email: firstEmail(p),
       found_website: foundWebsite(p),
       google_place_id: p.place_id || null,
