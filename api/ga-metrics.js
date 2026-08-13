@@ -6,6 +6,7 @@
 import { BetaAnalyticsDataClient } from "@google-analytics/data";
 import { JWT } from "google-auth-library";
 import { createClient } from "@supabase/supabase-js";
+import { scoreRawLead, scoreProspect } from "./_lib/lead-scoring.js";
 
 const client = new BetaAnalyticsDataClient({
   credentials: {
@@ -196,6 +197,18 @@ async function handleProspectPull(req, res) {
 }
 
 const ENOMA_ADMIN_EMAIL = "jack@enoma.io";
+
+// Shared by every browser-facing (JWT bearer) admin action — voice-query,
+// sales_queue, update_lead_status. Distinct from the x-admin-secret gate
+// further below, which is for server-to-server/cron-style calls that never
+// run in a browser (the secret can't safely be embedded client-side).
+async function requireAdmin(req) {
+  const token = (req.headers.authorization || "").replace("Bearer ", "");
+  if (!token) return null;
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  if (error || !user || user.email !== ENOMA_ADMIN_EMAIL) return null;
+  return user;
+}
 
 // ==================== Voice agent tools ====================
 // Each tool is a real Supabase/GA query — the model never invents numbers,
@@ -515,12 +528,8 @@ async function callOpenAI(messages) {
 async function handleVoiceQuery(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
-  const token = (req.headers.authorization || "").replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-  if (authError || !user || user.email !== ENOMA_ADMIN_EMAIL) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+  const user = await requireAdmin(req);
+  if (!user) return res.status(401).json({ error: "Unauthorized" });
 
   const question = (req.body?.question || "").toString().trim();
   if (!question) return res.status(400).json({ error: "question required" });
@@ -553,6 +562,199 @@ async function handleVoiceQuery(req, res) {
   return res.status(200).json({ success: true, answer });
 }
 
+// ==================== Sales queue ====================
+// Merges the two lead populations that actually carry contact info (raw
+// Enoma-side leads and outbound prospects) into one scored, prioritized list
+// for the internal admin dashboard. Deliberately does NOT try to turn
+// anonymous pre-signup funnel_events into individual "leads" — those rows
+// carry no name/email/phone until after generation succeeds (see
+// public/scripts/funnel-track.js), so there's no honest way to attribute
+// them to a contactable person. They're surfaced instead as an aggregate
+// funnel-health panel below.
+
+const FUNNEL_STEP_ORDER = [
+  "get_your_website_submitted",
+  "choose_path_viewed",
+  "choose_path_selected",
+  "create_page_viewed",
+  "create_step_viewed",
+  "create_form_submitted",
+  "create_generation_succeeded",
+  "create_generation_failed"
+];
+
+// A prospect can have multiple outreach_messages (one per channel). Picks
+// the single strongest response signal across all of them and the most
+// recent activity timestamp, so a reply on any channel surfaces the prospect.
+function bestOutreachSignal(messages) {
+  const RESPONSE_RANK = { claimed: 4, replied: 3, no_response: 1, bounced: 0, opted_out: 0 };
+  let best = null;
+  let lastActivityAt = null;
+  let anySent = false;
+  for (const m of messages || []) {
+    const ts = m.response_at || m.sent_at || m.updated_at;
+    if (ts && (!lastActivityAt || new Date(ts) > new Date(lastActivityAt))) lastActivityAt = ts;
+    if (m.status === "sent") anySent = true;
+    const rank = RESPONSE_RANK[m.response_status] ?? -1;
+    if (!best || rank > (RESPONSE_RANK[best.response_status] ?? -1)) best = m;
+  }
+  return {
+    outreachStatus: anySent ? "sent" : (best?.status || null),
+    responseStatus: best?.response_status || null,
+    lastActivityAt
+  };
+}
+
+async function handleSalesQueue(req, res) {
+  const user = await requireAdmin(req);
+  if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+  const [{ data: rawLeads, error: leadsErr }, { data: prospects, error: prospectsErr }, { data: funnelRows, error: funnelErr }] =
+    await Promise.all([
+      supabase
+        .from("contact_submissions")
+        .select("id, name, email, phone, subject, message, source, is_read, replied_at, created_at")
+        .is("business_id", null)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("prospects")
+        .select("id, business_name, trade, city, state, phone, email, status, preview_url, updated_at, created_at, outreach_messages(channel, status, response_status, sent_at, response_at, updated_at)")
+        .order("updated_at", { ascending: false }),
+      supabase
+        .from("funnel_events")
+        .select("event, created_at")
+        .gte("created_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+    ]);
+  if (leadsErr) throw leadsErr;
+  if (prospectsErr) throw prospectsErr;
+  if (funnelErr) throw funnelErr;
+
+  const leadRows = (rawLeads || []).map(l => {
+    const scored = scoreRawLead(l);
+    return {
+      lead_type: "raw_lead",
+      id: l.id,
+      name: l.name,
+      business_name: null,
+      email: l.email,
+      phone: l.phone,
+      source: l.source,
+      status: l.replied_at ? "replied" : (l.is_read ? "read" : "new"),
+      score: scored.score,
+      tier: scored.tier,
+      days_since_activity: scored.days_since_activity,
+      last_activity_at: l.created_at,
+      detail: l.subject || (l.message || "").slice(0, 140) || null,
+      preview_url: null,
+      suggested_action: l.replied_at ? "Follow up if no response yet" : "Reply to this lead"
+    };
+  });
+
+  const prospectRows = (prospects || []).flatMap(p => {
+    const sig = bestOutreachSignal(p.outreach_messages);
+    const lastActivityAt = sig.lastActivityAt || p.updated_at || p.created_at;
+    const scored = scoreProspect({
+      prospectStatus: p.status,
+      outreachStatus: sig.outreachStatus,
+      responseStatus: sig.responseStatus,
+      lastActivityAt
+    });
+    if (!scored) return [];
+    const suggested_action =
+      sig.responseStatus === "claimed" ? "Claimed! Check they're set up" :
+      sig.responseStatus === "replied" ? "They replied — respond now" :
+      p.status === "approved" ? "Ready to send" :
+      p.status === "drafted" ? "Review draft" :
+      p.status === "reviewed" ? "Draft outreach" :
+      "Review this prospect";
+    return [{
+      lead_type: "prospect",
+      id: p.id,
+      name: null,
+      business_name: p.business_name,
+      email: p.email,
+      phone: p.phone,
+      source: `outscraper${p.trade ? `:${p.trade}` : ""}`,
+      status: sig.responseStatus || p.status,
+      score: scored.score,
+      tier: scored.tier,
+      days_since_activity: scored.days_since_activity,
+      last_activity_at: lastActivityAt,
+      detail: [p.city, p.state].filter(Boolean).join(", ") || null,
+      preview_url: p.preview_url || null,
+      suggested_action
+    }];
+  });
+
+  const queue = [...leadRows, ...prospectRows].sort((a, b) =>
+    b.score - a.score || new Date(b.last_activity_at) - new Date(a.last_activity_at)
+  );
+
+  const stepCounts = Object.fromEntries(FUNNEL_STEP_ORDER.map(e => [e, 0]));
+  (funnelRows || []).forEach(r => { if (stepCounts[r.event] !== undefined) stepCounts[r.event]++; });
+  const funnel_health = FUNNEL_STEP_ORDER.map(event => ({ event, count_last_30_days: stepCounts[event] }));
+
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const summary = {
+    total_active: queue.length,
+    hot: queue.filter(q => q.tier === "hot").length,
+    warm: queue.filter(q => q.tier === "warm").length,
+    new_today: queue.filter(q => new Date(q.last_activity_at) >= todayStart).length,
+    new_this_week: queue.filter(q => new Date(q.last_activity_at) >= weekStart).length,
+    raw_leads_uncontacted: leadRows.filter(l => l.status === "new").length,
+    prospects_ready_to_send: prospectRows.filter(p => p.status === "approved").length,
+    prospects_awaiting_reply: prospectRows.filter(p => p.status === "sent").length
+  };
+
+  return res.status(200).json({
+    success: true,
+    generated_at: new Date().toISOString(),
+    summary,
+    queue,
+    funnel_health
+  });
+}
+
+// Lightweight write path so the dashboard can mark things done without
+// switching to the voice agent. Same JWT admin gate as sales_queue.
+async function handleUpdateLeadStatus(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+  const user = await requireAdmin(req);
+  if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+  const { lead_type, id, action: statusAction } = req.body || {};
+  if (!lead_type || !id || !statusAction) {
+    return res.status(400).json({ error: "lead_type, id, and action are required" });
+  }
+
+  if (lead_type === "raw_lead") {
+    const patch =
+      statusAction === "mark_replied" ? { replied_at: new Date().toISOString(), is_read: true } :
+      statusAction === "mark_read" ? { is_read: true } :
+      statusAction === "mark_unread" ? { is_read: false, replied_at: null } :
+      null;
+    if (!patch) return res.status(400).json({ error: `Unknown action for raw_lead: ${statusAction}` });
+    const { error } = await supabase.from("contact_submissions").update(patch).eq("id", id);
+    if (error) throw error;
+    return res.status(200).json({ success: true });
+  }
+
+  if (lead_type === "prospect") {
+    const allowed = ["new", "reviewed", "skipped", "drafted", "approved"];
+    if (!allowed.includes(statusAction)) {
+      return res.status(400).json({ error: `Unknown status for prospect: ${statusAction}` });
+    }
+    const { error } = await supabase.from("prospects")
+      .update({ status: statusAction, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) throw error;
+    return res.status(200).json({ success: true });
+  }
+
+  return res.status(400).json({ error: `Unknown lead_type: ${lead_type}` });
+}
+
 export default async function handler(req, res) {
   res.setHeader("Content-Type", "application/json");
 
@@ -561,6 +763,24 @@ export default async function handler(req, res) {
       return await handleVoiceQuery(req, res);
     } catch (err) {
       console.error("Voice query failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.query.action === "sales_queue") {
+    try {
+      return await handleSalesQueue(req, res);
+    } catch (err) {
+      console.error("Sales queue failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.query.action === "update_lead_status") {
+    try {
+      return await handleUpdateLeadStatus(req, res);
+    } catch (err) {
+      console.error("Update lead status failed:", err);
       return res.status(500).json({ success: false, error: err.message });
     }
   }
