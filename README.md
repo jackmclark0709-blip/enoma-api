@@ -68,6 +68,24 @@ Real data behind the call — web-presence rate by trade (unfiltered Outscraper 
 
 **Fixed this session**: `handleProspectPull` was reading `p.site` for a business's website, but Outscraper's actual field is `p.website` — confirmed against a real raw API pull. `prospects.website`/`found_website` had been `NULL` for every prospect ever pulled until this was fixed; invisible under the default `only_without_website` filter since Outscraper does that filtering server-side.
 
+## Open items / backlog (2026-08-13)
+
+Not yet started, none of this exists in the codebase — confirmed via a repo-wide grep for UTM/attribution fields before writing this.
+
+**Visitor attribution tracking** — the underlying question was "can we know who's visiting via organic search vs. direct vs. an AI assistant, and follow up on their interest." Current state: `page_events`/`funnel_events` capture the referring domain, but only per-request, not persisted — so if someone lands via Google then clicks around for five minutes, every later event's "referrer" is just enoma.io itself, not Google. No UTM params, no landing page, no first-touch source captured anywhere.
+
+Real distinction worth keeping straight: an *anonymous* visitor can't be identified before they submit a form — that's not a tooling gap, it's how privacy-respecting tracking works. (B2B "visitor deanonymization" tools like Clearbit Reveal / RB2B exist and do reverse-IP-lookup tricks, but they're built for corporate-network traffic and would perform poorly against Enoma's actual visitors — small-business owners on home wifi/mobile.) The real, buildable value is at the moment someone *does* submit a form — that's when attribution can actually attach to a real lead:
+
+1. Client-side: capture `document.referrer` + parsed UTM params + landing page once per `anon_id`, persist alongside it in `localStorage` (extends `public/scripts/funnel-track.js`).
+2. Server-side: attach that first-touch bundle to the `contact_submissions` row when a real lead-capture happens (`send-contact.js`) — needs new columns (`first_touch_source`, `utm_campaign`, `landing_page`).
+3. Surface it in the Sales Queue — a natural column/filter addition to the existing raw-lead rows, not a new page.
+
+**AI-referral traffic specifically**: referrer behavior varies by AI product — some pass `chatgpt.com`/`perplexity.ai`/`claude.ai` cleanly, others strip it. GA4 (already connected) has started bucketing some of this natively — check what's actually showing up there before building custom detection. If needed, a cheap addition is matching the referrer against a known-AI-domain list rather than relying on GA4's generic "referral" bucket.
+
+**Conversion chatbot** — raised again 2026-08-13. Explicitly out of scope for the sales-queue work this session — see the "Sales strategy" section above; the original scoping decision was distribution tooling only, no new product surface (chat widget, SEO pages, referral loops all deliberately skipped). Not decided whether to revisit; flagged, not started.
+
+**"Claude Dispatch"** — mentioned 2026-08-13, unclear what specific feature/product this refers to. Needs clarification before any work starts — don't guess and build the wrong thing.
+
 ## Security note (2026-08-12)
 
 `outreach_messages` and `suppression_list` (the permanent do-not-contact list) had Row Level Security disabled — publicly readable *and writable* via the anon key already embedded in the admin pages' page source. Fixed by enabling RLS with no public policies added, matching the existing `prospects`/`funnel_events` pattern (service-role-only access — nothing legitimate touches these tables from a browser). Run Supabase's `get_advisors(type: "security")` after any new table or migration to catch this class of issue early.
