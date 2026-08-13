@@ -44,6 +44,30 @@ Both are JWT-gated (Supabase session bearer token, `jack@enoma.io` only) and wer
 - `action=sales_queue` (GET) — returns the scored queue, summary tiles, and funnel-health counts.
 - `action=update_lead_status` (POST) — mark a raw lead replied/read, or advance a prospect's status (reviewed → drafted → approved, or skipped).
 
+## Sales strategy & prospecting status (2026-08-13)
+
+**Target segments**: **plumbing** is the primary scale bet, **landscaping** stays as a warm/proof lane, **junk removal** was evaluated and ruled out.
+
+Real data behind the call — web-presence rate by trade (unfiltered Outscraper pulls, Attleboro MA, ~35–50 businesses sampled per trade — one town, directionally useful, not a large-scale study):
+
+| Trade | No website | Real website |
+|---|---|---|
+| Landscaping | 24% | 72% |
+| Junk removal | 11% | 86% |
+| Plumbing | 12% | 88% |
+| HVAC | 16% | 84% |
+| Electrical | 24% | 76% |
+
+- **Landscaping** has the widest "no website" pool of anything tested and is the only vertical with a real paying customer/case study (Conway's Landscaping) — left running exactly as-is (phone-based outreach, existing Outscraper pipeline, no new tooling needed).
+- **Plumbing** was picked as the new scale bet despite a *lower* "no website" rate than landscaping, because it's a state-licensed trade — meaning contact sourcing is structurally solvable via public licensing registries, which landscaping and junk removal have no equivalent of. Also: national search volume for plumbing sits in the hundreds of thousands/month (third-party published estimates, not independently verified against a paid keyword tool), demand is comparatively steady year-round (unlike HVAC's extreme seasonality), and a $19.99/mo ask is trivial against typical job value. `p.js`'s schema.org mapping (`Plumber`) and the AI copy-generation prompt (trust badges, `offers_emergency`) already support this trade correctly — zero engineering cost to add.
+- **Junk removal** was ruled out: same structural sourcing gap as landscaping (no licensing-registry equivalent), but a *more* saturated, already web-savvy market (86% real websites, many with hundreds of Google reviews) — a harder "you're invisible online" pitch than any other trade tested.
+
+**Known gap, not yet fixed**: Outscraper's `leads_n_contacts`/`company_websites_finder` enrichment does not appear to actually return email data — confirmed empirically across 250+ real raw listings spanning 5 trades (including businesses with real websites, where an email should almost always be findable), zero email-shaped fields returned anywhere. Every prospect in the pipeline today is phone-only as a result. Don't trust `firstEmail()`'s guessed field names in `handleProspectPull` (`api/ga-metrics.js`) as working until this is separately investigated — likely needs `async=true` + polling rather than the current synchronous call, but that's unconfirmed.
+
+**MA plumbing license bulk data — investigated, not viable today**: Massachusetts's plumbing/gas-fitting license system (`licensing.reg.state.ma.us` / ePlace Portal) is a one-license-at-a-time verification lookup, not a browsable or bulk-downloadable registry. A "Professional Licensing API" exists but requires vendor/municipality-level API access, not self-serve signup. This is a real potential lever (worth a formal public-records request someday), just not something to re-attempt the same way expecting a different result.
+
+**Fixed this session**: `handleProspectPull` was reading `p.site` for a business's website, but Outscraper's actual field is `p.website` — confirmed against a real raw API pull. `prospects.website`/`found_website` had been `NULL` for every prospect ever pulled until this was fixed; invisible under the default `only_without_website` filter since Outscraper does that filtering server-side.
+
 ## Security note (2026-08-12)
 
 `outreach_messages` and `suppression_list` (the permanent do-not-contact list) had Row Level Security disabled — publicly readable *and writable* via the anon key already embedded in the admin pages' page source. Fixed by enabling RLS with no public policies added, matching the existing `prospects`/`funnel_events` pattern (service-role-only access — nothing legitimate touches these tables from a browser). Run Supabase's `get_advisors(type: "security")` after any new table or migration to catch this class of issue early.
