@@ -541,7 +541,7 @@ Location: ${[prospect.city, prospect.state].filter(Boolean).join(", ") || "unkno
 ${prospect.draft_body ? `\nExisting draft to revise:\nSubject: ${prospect.draft_subject}\n${prospect.draft_body}\n\nRevision instructions: ${instructions || "improve it generally"}` : ""}
 ${!prospect.draft_body && instructions ? `\nSpecific instructions: ${instructions}` : ""}
 
-Keep it short (under 120 words), warm but not pushy, no false urgency. Only state things you were actually given above (the one gap picked, location, trade, the preview page or case study link) — do not compliment the look/design/quality of their site or invent any other detail you don't actually have. Write a subject line specific to this business or the gap mentioned — never the generic phrase "Enhance Your Online Presence" or close variants of it. Sign off as "Jack, Enoma". Return ONLY valid JSON: {"subject": "...", "body": "..."}`;
+Keep it short (under 120 words), warm but not pushy, no false urgency. Only state things you were actually given above (the one gap picked, location, trade, the preview page or case study link) — do not compliment the look/design/quality of their site or invent any other detail you don't actually have. Write a subject line specific to this business or the gap mentioned — never the generic phrase "Enhance Your Online Presence" or close variants of it. This is a plain-text email, not markdown — write any link (like the case study) as a bare URL such as https://example.com, never as [link text](url) markdown syntax. Sign off as "Jack, Enoma". Return ONLY valid JSON: {"subject": "...", "body": "..."}`;
 
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
