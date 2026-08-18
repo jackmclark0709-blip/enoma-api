@@ -509,18 +509,31 @@ async function generateDraftCopy(prospect, instructions) {
     ? `\nA real, unclaimed preview page already exists for this business at ${prospect.preview_url} — built from their public Google Business listing (name, location, and real rating/reviews where available; nothing invented). Reference it directly and invite them to look, keep it, or ask for changes. This is true and verifiable — lean on it instead of generic claims.`
     : "";
 
+  // The one real, published proof point Enoma has (see enoma-strategy-audit
+  // notes) — an actual paying customer, not a fabricated case study. Fine to
+  // reference as "look at this yourself," not fine to invent numbers beyond
+  // what that page actually shows.
+  const CASE_STUDY_URL = "https://enoma.io/case-studies/conways-landscaping";
+
   // A prospect with real site_gaps (from action=crawl_websites) already has a
   // website — pitching "you don't have one yet" would be false and obvious to
-  // them. Pitch fixing the specific, real gaps found instead.
+  // them. Lead with the actual outcome (getting found, more calls) instead of
+  // "AI-generated website," which is the mechanism, not the pitch — matches
+  // the homepage's own "Get Found Online. Get More Calls." positioning
+  // rather than the off-brand website-builder framing used elsewhere.
   const hasWeakSite = !!(prospect.website && Array.isArray(prospect.site_gaps) && prospect.site_gaps.length);
   const openingLine = hasWeakSite
-    ? `a local business owner who already has a website (${prospect.website}) but whose site has some real, specific gaps`
+    ? "a local business owner who already has a website but isn't showing up when nearby customers search for a business like theirs"
     : "a local business owner who doesn't have a website yet";
   const gapsLine = hasWeakSite
-    ? `\nGaps actually found on their current site: ${prospect.site_gaps.join("; ")}. Reference 1-2 of these specifically and honestly — don't claim they have no website, pitch fixing/replacing what's actually missing.`
+    ? `\nThis business already has a website (${prospect.website}) — do NOT pitch "we'll build you a website," they already have one. Lead with the actual outcome: getting found when someone nearby searches for a ${prospect.trade || "local service"} business, and turning that into more calls. Mention once, plainly, that Enoma builds a new, fast, search-optimized page aimed at that.
+
+From these real gaps found on their current site, pick exactly ONE — the most compelling — as a supporting example of why it isn't pulling its weight. Do not list more than one, do not turn this into a checklist: ${prospect.site_gaps.join("; ")}
+
+Include this real case study link once, as something they can check themselves — an actual paying Enoma customer, not a hypothetical: ${CASE_STUDY_URL}. Don't invent any number or result beyond what that page shows.`
     : "";
 
-  const prompt = `Write a short, professional cold outreach email from Enoma (AI-generated business websites for local service businesses, $19.99/mo after a free 30-day trial) to ${openingLine}.
+  const prompt = `Write a short, professional cold outreach email from Enoma — a service that gets local service businesses (landscaping, plumbing, HVAC, etc.) found on Google and turns that into more calls, $19.99/mo after a free 30-day trial — to ${openingLine}.
 
 Business: ${prospect.business_name}
 Trade: ${prospect.trade || "local service business"}
@@ -528,7 +541,7 @@ Location: ${[prospect.city, prospect.state].filter(Boolean).join(", ") || "unkno
 ${prospect.draft_body ? `\nExisting draft to revise:\nSubject: ${prospect.draft_subject}\n${prospect.draft_body}\n\nRevision instructions: ${instructions || "improve it generally"}` : ""}
 ${!prospect.draft_body && instructions ? `\nSpecific instructions: ${instructions}` : ""}
 
-Keep it short (under 120 words), warm but not pushy, no false urgency. Only state things you were actually given above (the gaps listed, location, trade, the preview page) — do not compliment the look/design/quality of their site or invent any other detail you don't actually have. Sign off as "Jack, Enoma". Return ONLY valid JSON: {"subject": "...", "body": "..."}`;
+Keep it short (under 120 words), warm but not pushy, no false urgency. Only state things you were actually given above (the one gap picked, location, trade, the preview page or case study link) — do not compliment the look/design/quality of their site or invent any other detail you don't actually have. Write a subject line specific to this business or the gap mentioned — never the generic phrase "Enhance Your Online Presence" or close variants of it. Sign off as "Jack, Enoma". Return ONLY valid JSON: {"subject": "...", "body": "..."}`;
 
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
