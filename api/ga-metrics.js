@@ -609,14 +609,21 @@ async function toolApproveOutreachEmail(args) {
 // Batch-drafts outreach emails for every prospect that actually has an email
 // on file. Most prospects won't (see handleProspectPull) — this only ever
 // touches the subset where email is not null, and never re-drafts a prospect
-// that's already drafted/approved unless force=true.
+// that's already drafted/approved unless force=true. Capped and ordered by
+// oldest-updated-first so repeated calls make forward progress rather than
+// re-processing the same subset every time (each regeneration bumps
+// updated_at, which naturally rotates it to the back of the queue) — same
+// reason handleCrawlWebsites is batched, this file has a 60s maxDuration and
+// force=true with no limit at all previously blew straight through it.
 async function handleDraftAll(req, res) {
   const force = req.query.force === "true";
+  const limit = Math.min(parseInt(req.query.limit, 10) || 8, 15);
   let q = supabase
     .from("prospects")
     .select("id, business_name, trade, city, state, phone, email, website, site_gaps, preview_url, status, draft_subject, draft_body")
     .not("email", "is", null);
   if (!force) q = q.not("status", "in", "(drafted,approved,sent)");
+  q = q.order("updated_at", { ascending: true }).limit(limit);
 
   const { data: prospects, error } = await q;
   if (error) throw error;
@@ -638,7 +645,7 @@ async function handleDraftAll(req, res) {
 
   return res.status(200).json({
     success: true,
-    eligible: (prospects || []).length,
+    attempted: (prospects || []).length,
     drafted: results.filter(r => r.drafted).length,
     failed: results.filter(r => !r.drafted).length,
     results
