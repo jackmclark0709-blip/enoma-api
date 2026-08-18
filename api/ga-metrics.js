@@ -621,7 +621,11 @@ async function handleDraftAll(req, res) {
   let q = supabase
     .from("prospects")
     .select("id, business_name, trade, city, state, phone, email, website, site_gaps, preview_url, status, draft_subject, draft_body")
-    .not("email", "is", null);
+    .not("email", "is", null)
+    // reviewed means the crawler already decided this one is a good_site
+    // with nothing honest to pitch — that verdict holds regardless of
+    // force, it isn't a "haven't gotten to it yet" state like the others.
+    .neq("status", "reviewed");
   if (!force) q = q.not("status", "in", "(drafted,approved,sent)");
   q = q.order("updated_at", { ascending: true }).limit(limit);
 
