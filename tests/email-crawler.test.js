@@ -34,6 +34,21 @@ test("dedupes the same address found via mailto and bare text", () => {
   assert.deepEqual(extractEmails(html), ["info@site.com"]);
 });
 
+test("ignores emails inside <style> blocks (e.g. font license comments)", () => {
+  const html = `<style>/* Copyright Micah Rich micah@micahrich.com, Reserved Font Name */ body{color:red}</style><p>Welcome to our landscaping site.</p>`;
+  assert.deepEqual(extractEmails(html), []);
+});
+
+test("ignores emails inside <script> blocks", () => {
+  const html = `<script>var config = {supportEmail: "widget@thirdpartytracker.io"};</script><p>Call us for a quote.</p>`;
+  assert.deepEqual(extractEmails(html), []);
+});
+
+test("still finds a real mailto: link even when the page also has script/style noise", () => {
+  const html = `<script>var x = "noise@tracker.io";</script><a href="mailto:owner@realbusiness.com">Email us</a>`;
+  assert.deepEqual(extractEmails(html), ["owner@realbusiness.com"]);
+});
+
 test("drops known junk/platform domains", () => {
   const html = `<a href="mailto:test@example.com">x</a><p>widget@sentry-next.wixpress.com</p>`;
   assert.deepEqual(extractEmails(html), []);

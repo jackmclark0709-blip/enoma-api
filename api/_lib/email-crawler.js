@@ -23,7 +23,16 @@ export function extractEmails(html) {
     try { found.add(decodeURIComponent(m[1]).toLowerCase()); }
     catch { found.add(m[1].toLowerCase()); }
   }
-  (html.match(EMAIL_REGEX) || []).forEach(e => found.add(e.toLowerCase()));
+  // Bare-text email matching must skip <script>/<style> content — font
+  // license comments (@font-face attributions), JSON-LD, and analytics
+  // snippets routinely contain unrelated third-party emails that have
+  // nothing to do with the business (e.g. a font designer's email baked
+  // into a copyright comment). mailto: links above are unaffected since
+  // they live in href attributes, not inside those blocks.
+  const visibleHtml = html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ");
+  (visibleHtml.match(EMAIL_REGEX) || []).forEach(e => found.add(e.toLowerCase()));
 
   return [...found].filter(e => {
     const domain = (e.split("@")[1] || "").toLowerCase();
