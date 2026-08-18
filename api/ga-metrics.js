@@ -219,15 +219,20 @@ async function handleProspectPull(req, res) {
 const CONTACT_FALLBACK_PATH = "/contact";
 const CRAWL_FETCH_HEADERS = { "User-Agent": "Mozilla/5.0 (compatible; EnomaBot/1.0; +https://enoma.io)" };
 
+// `ok: false` means the page was never actually read (blocked, timed out,
+// errored) — distinct from `ok: true, html: "..."` where we genuinely read
+// the page and it just has no email. Conflating these previously mislabeled
+// bot-blocked sites (e.g. a 403) as "no_email_found", which reads as "we
+// checked, there's nothing" when we never actually saw the content.
 async function fetchPageText(url, timeoutMs) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(url, { signal: controller.signal, headers: CRAWL_FETCH_HEADERS });
-    if (!res.ok) return null;
-    return await res.text();
+    if (!res.ok) return { ok: false, html: null };
+    return { ok: true, html: await res.text() };
   } catch {
-    return null;
+    return { ok: false, html: null };
   } finally {
     clearTimeout(timeout);
   }
@@ -236,30 +241,34 @@ async function fetchPageText(url, timeoutMs) {
 // Tries the homepage first, then one contact-page fallback if the homepage
 // has no extractable email. Returns the HTML actually used for gap
 // assessment even when no email was found, so a real "has a site but no
-// findable email" prospect can still get a site-quality read.
+// findable email" prospect can still get a site-quality read. `fetched`
+// tells the caller whether any page was actually read successfully, so it
+// can tell a genuine "no email on this site" apart from "site blocked us."
 async function findEmailForWebsite(website) {
   let base;
   try {
     base = new URL(website.match(/^https?:\/\//) ? website : `https://${website}`);
   } catch {
-    return { emails: [], html: null, domain: null };
+    return { emails: [], html: null, domain: null, fetched: false };
   }
   const domain = base.hostname.replace(/^www\./, "");
 
-  const homepageHtml = await fetchPageText(base.toString(), 6000);
-  let emails = extractEmails(homepageHtml);
-  let html = homepageHtml;
+  const homepage = await fetchPageText(base.toString(), 6000);
+  let emails = extractEmails(homepage.html);
+  let html = homepage.html;
+  let fetched = homepage.ok;
 
   if (!emails.length) {
-    const contactHtml = await fetchPageText(`${base.origin}${CONTACT_FALLBACK_PATH}`, 5000);
-    const contactEmails = extractEmails(contactHtml);
+    const contact = await fetchPageText(`${base.origin}${CONTACT_FALLBACK_PATH}`, 5000);
+    fetched = fetched || contact.ok;
+    const contactEmails = extractEmails(contact.html);
     if (contactEmails.length) {
       emails = contactEmails;
-      html = contactHtml;
+      html = contact.html;
     }
   }
 
-  return { emails, html, domain };
+  return { emails, html, domain, fetched };
 }
 
 // Only called once a real email has been found — no point spending an OpenAI
@@ -316,14 +325,17 @@ async function handleCrawlWebsites(req, res) {
   const results = [];
   for (const prospect of prospects || []) {
     try {
-      const { emails, html, domain } = await findEmailForWebsite(prospect.website);
+      const { emails, html, domain, fetched } = await findEmailForWebsite(prospect.website);
       const email = pickBestEmail(emails, domain);
 
       if (!email) {
+        // Only report "no_email_found" if we actually read a page — a
+        // blocked/errored fetch means we never really checked.
+        const status = fetched ? "no_email_found" : "fetch_failed";
         await supabase.from("prospects")
-          .update({ email_crawl_status: "no_email_found", updated_at: new Date().toISOString() })
+          .update({ email_crawl_status: status, updated_at: new Date().toISOString() })
           .eq("id", prospect.id);
-        results.push({ business_name: prospect.business_name, website: prospect.website, email_crawl_status: "no_email_found" });
+        results.push({ business_name: prospect.business_name, website: prospect.website, email_crawl_status: status });
         continue;
       }
 
