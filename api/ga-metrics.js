@@ -7,6 +7,7 @@ import { BetaAnalyticsDataClient } from "@google-analytics/data";
 import { JWT } from "google-auth-library";
 import { createClient } from "@supabase/supabase-js";
 import { scoreRawLead, scoreProspect } from "./_lib/lead-scoring.js";
+import { extractEmails, pickBestEmail, htmlToText } from "./_lib/email-crawler.js";
 
 const client = new BetaAnalyticsDataClient({
   credentials: {
@@ -203,6 +204,175 @@ async function handleProspectPull(req, res) {
   });
 }
 
+// ==================== Website email crawler ====================
+// Fills in the other half of prospecting: the ~50 prospects that DO have a
+// website on file (found via handleProspectPull without the
+// only_without_website filter, or discovered via company_websites_finder)
+// never had that site actually visited. This crawls each one's homepage
+// (falling back to /contact) looking for a real contact email, and — only
+// when an email is actually found — has OpenAI read the same page text to
+// flag specific, honest gaps to personalize outreach around. Deliberately
+// conservative on timeouts/paths/limit so a single request stays well under
+// this file's 60s maxDuration; call it repeatedly with a small `limit` to
+// work through the backlog rather than raising limit to cover it in one go.
+
+const CONTACT_FALLBACK_PATH = "/contact";
+const CRAWL_FETCH_HEADERS = { "User-Agent": "Mozilla/5.0 (compatible; EnomaBot/1.0; +https://enoma.io)" };
+
+async function fetchPageText(url, timeoutMs) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { signal: controller.signal, headers: CRAWL_FETCH_HEADERS });
+    if (!res.ok) return null;
+    return await res.text();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+// Tries the homepage first, then one contact-page fallback if the homepage
+// has no extractable email. Returns the HTML actually used for gap
+// assessment even when no email was found, so a real "has a site but no
+// findable email" prospect can still get a site-quality read.
+async function findEmailForWebsite(website) {
+  let base;
+  try {
+    base = new URL(website.match(/^https?:\/\//) ? website : `https://${website}`);
+  } catch {
+    return { emails: [], html: null, domain: null };
+  }
+  const domain = base.hostname.replace(/^www\./, "");
+
+  const homepageHtml = await fetchPageText(base.toString(), 6000);
+  let emails = extractEmails(homepageHtml);
+  let html = homepageHtml;
+
+  if (!emails.length) {
+    const contactHtml = await fetchPageText(`${base.origin}${CONTACT_FALLBACK_PATH}`, 5000);
+    const contactEmails = extractEmails(contactHtml);
+    if (contactEmails.length) {
+      emails = contactEmails;
+      html = contactHtml;
+    }
+  }
+
+  return { emails, html, domain };
+}
+
+// Only called once a real email has been found — no point spending an OpenAI
+// call assessing a site whose owner we still can't reach.
+async function assessSiteGaps(prospect, pageText) {
+  const prompt = `You're evaluating a local ${prospect.trade || "service"} business's existing website to find genuine, specific gaps a potential customer or the owner would care about (e.g. no online booking/quote request, no reviews/testimonials shown, missing service area or hours, no clear calls to action, stale-looking content). Do NOT invent anything not evidenced by the text below.
+
+Business: ${prospect.business_name}
+Website text (truncated, HTML stripped):
+"""
+${pageText || "(page could not be fetched)"}
+"""
+
+Return ONLY valid JSON: {"tier": "weak_site" | "good_site", "gaps": ["short specific gap", ...]}. Use "good_site" only if the site already covers the basics well and there's genuinely nothing substantive to pitch — in that case gaps must be an empty array. Otherwise use "weak_site" with at most 3 gaps, each under 15 words.`;
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${process.env.OPENAI_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "gpt-4o",
+      temperature: 0.3,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: "You are a JSON API. You ONLY return valid JSON." },
+        { role: "user", content: prompt }
+      ]
+    })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message || "OpenAI gap-assessment request failed");
+  const parsed = JSON.parse(data.choices[0].message.content);
+  const tier = parsed.tier === "good_site" ? "good_site" : "weak_site";
+  return { tier, gaps: tier === "weak_site" && Array.isArray(parsed.gaps) ? parsed.gaps.slice(0, 3) : [] };
+}
+
+// Crawls prospects that have a website but haven't been email-crawled yet.
+// For each: find an email (checking suppression_list before ever saving one),
+// then — only if an email was found and not suppressed — assess the site for
+// gaps and draft a gap-aware outreach email via generateDraftCopy. A
+// good_site match still gets marked reviewed so it's not offered a
+// "replace your website" pitch that doesn't apply.
+async function handleCrawlWebsites(req, res) {
+  const limit = Math.min(parseInt(req.query.limit, 10) || 6, 15);
+
+  const { data: prospects, error } = await supabase
+    .from("prospects")
+    .select("id, business_name, trade, city, state, website, preview_url")
+    .not("website", "is", null)
+    .is("email", null)
+    .is("email_crawl_status", null)
+    .limit(limit);
+  if (error) throw error;
+
+  const results = [];
+  for (const prospect of prospects || []) {
+    try {
+      const { emails, html, domain } = await findEmailForWebsite(prospect.website);
+      const email = pickBestEmail(emails, domain);
+
+      if (!email) {
+        await supabase.from("prospects")
+          .update({ email_crawl_status: "no_email_found", updated_at: new Date().toISOString() })
+          .eq("id", prospect.id);
+        results.push({ business_name: prospect.business_name, website: prospect.website, email_crawl_status: "no_email_found" });
+        continue;
+      }
+
+      const { data: suppressed } = await supabase
+        .from("suppression_list").select("id").eq("email", email).maybeSingle();
+      if (suppressed) {
+        await supabase.from("prospects")
+          .update({ email_crawl_status: "suppressed", updated_at: new Date().toISOString() })
+          .eq("id", prospect.id);
+        results.push({ business_name: prospect.business_name, website: prospect.website, email_crawl_status: "suppressed" });
+        continue;
+      }
+
+      const { tier, gaps } = await assessSiteGaps(prospect, htmlToText(html));
+
+      if (tier === "good_site") {
+        await supabase.from("prospects")
+          .update({ email, email_crawl_status: "found", site_tier: tier, site_gaps: gaps, status: "reviewed", updated_at: new Date().toISOString() })
+          .eq("id", prospect.id);
+        results.push({ business_name: prospect.business_name, email, site_tier: tier, drafted: false });
+        continue;
+      }
+
+      const draft = await generateDraftCopy({ ...prospect, email, website: prospect.website, site_gaps: gaps }, null);
+      await supabase.from("prospects")
+        .update({
+          email, email_crawl_status: "found", site_tier: tier, site_gaps: gaps,
+          draft_subject: draft.subject, draft_body: draft.body, status: "drafted",
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", prospect.id);
+      results.push({ business_name: prospect.business_name, email, site_tier: tier, gaps, drafted: true, subject: draft.subject });
+    } catch (err) {
+      await supabase.from("prospects")
+        .update({ email_crawl_status: "fetch_failed", updated_at: new Date().toISOString() })
+        .eq("id", prospect.id);
+      results.push({ business_name: prospect.business_name, website: prospect.website, email_crawl_status: "fetch_failed", error: err.message });
+    }
+  }
+
+  return res.status(200).json({
+    success: true,
+    attempted: (prospects || []).length,
+    emails_found: results.filter(r => r.email).length,
+    drafted: results.filter(r => r.drafted).length,
+    results
+  });
+}
+
 const ENOMA_ADMIN_EMAIL = "jack@enoma.io";
 
 // Shared by every browser-facing (JWT bearer) admin action — voice-query,
@@ -304,7 +474,7 @@ async function toolGetCrmProspects(args) {
 async function findProspect(businessName) {
   const { data, error } = await supabase
     .from("prospects")
-    .select("id, business_name, trade, city, state, phone, email, preview_url, status, draft_subject, draft_body")
+    .select("id, business_name, trade, city, state, phone, email, website, site_gaps, preview_url, status, draft_subject, draft_body")
     .ilike("business_name", `%${businessName}%`)
     .limit(1)
     .maybeSingle();
@@ -322,11 +492,22 @@ async function generateDraftCopy(prospect, instructions) {
     ? `\nA real, unclaimed preview page already exists for this business at ${prospect.preview_url} — built from their public Google Business listing (name, location, and real rating/reviews where available; nothing invented). Reference it directly and invite them to look, keep it, or ask for changes. This is true and verifiable — lean on it instead of generic claims.`
     : "";
 
-  const prompt = `Write a short, professional cold outreach email from Enoma (AI-generated business websites for local service businesses, $19.99/mo after a free 30-day trial) to a local business owner who doesn't have a website yet.
+  // A prospect with real site_gaps (from action=crawl_websites) already has a
+  // website — pitching "you don't have one yet" would be false and obvious to
+  // them. Pitch fixing the specific, real gaps found instead.
+  const hasWeakSite = !!(prospect.website && Array.isArray(prospect.site_gaps) && prospect.site_gaps.length);
+  const openingLine = hasWeakSite
+    ? `a local business owner who already has a website (${prospect.website}) but whose site has some real, specific gaps`
+    : "a local business owner who doesn't have a website yet";
+  const gapsLine = hasWeakSite
+    ? `\nGaps actually found on their current site: ${prospect.site_gaps.join("; ")}. Reference 1-2 of these specifically and honestly — don't claim they have no website, pitch fixing/replacing what's actually missing.`
+    : "";
+
+  const prompt = `Write a short, professional cold outreach email from Enoma (AI-generated business websites for local service businesses, $19.99/mo after a free 30-day trial) to ${openingLine}.
 
 Business: ${prospect.business_name}
 Trade: ${prospect.trade || "local service business"}
-Location: ${[prospect.city, prospect.state].filter(Boolean).join(", ") || "unknown"}${previewLine}
+Location: ${[prospect.city, prospect.state].filter(Boolean).join(", ") || "unknown"}${gapsLine}${previewLine}
 ${prospect.draft_body ? `\nExisting draft to revise:\nSubject: ${prospect.draft_subject}\n${prospect.draft_body}\n\nRevision instructions: ${instructions || "improve it generally"}` : ""}
 ${!prospect.draft_body && instructions ? `\nSpecific instructions: ${instructions}` : ""}
 
@@ -403,7 +584,7 @@ async function handleDraftAll(req, res) {
   const force = req.query.force === "true";
   let q = supabase
     .from("prospects")
-    .select("id, business_name, trade, city, state, phone, email, preview_url, status, draft_subject, draft_body")
+    .select("id, business_name, trade, city, state, phone, email, website, site_gaps, preview_url, status, draft_subject, draft_body")
     .not("email", "is", null);
   if (!force) q = q.not("status", "in", "(drafted,approved,sent)");
 
@@ -820,6 +1001,15 @@ export default async function handler(req, res) {
       return await handleListDrafts(req, res);
     } catch (err) {
       console.error("List drafts failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.query.action === "crawl_websites") {
+    try {
+      return await handleCrawlWebsites(req, res);
+    } catch (err) {
+      console.error("Website crawl failed:", err);
       return res.status(500).json({ success: false, error: err.message });
     }
   }

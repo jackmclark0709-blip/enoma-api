@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node tests/service-utils.test.js && node tests/lead-scoring.test.js"
+    "test": "node tests/service-utils.test.js && node tests/lead-scoring.test.js && node tests/email-crawler.test.js"
   },
   "keywords": [],
   "author": "",
