@@ -274,7 +274,7 @@ async function findEmailForWebsite(website) {
 // Only called once a real email has been found — no point spending an OpenAI
 // call assessing a site whose owner we still can't reach.
 async function assessSiteGaps(prospect, pageText) {
-  const prompt = `You're evaluating a local ${prospect.trade || "service"} business's existing website to find genuine, specific gaps a potential customer or the owner would care about (e.g. no online booking/quote request, no reviews/testimonials shown, missing service area or hours, no clear calls to action, stale-looking content). Do NOT invent anything not evidenced by the text below.
+  const prompt = `Read this local ${prospect.trade || "service"} business's actual website text below and find genuine gaps — things a real customer would notice missing when reading THIS text, not a generic checklist of things small-business sites often lack.
 
 Business: ${prospect.business_name}
 Website text (truncated, HTML stripped):
@@ -282,7 +282,12 @@ Website text (truncated, HTML stripped):
 ${pageText || "(page could not be fetched)"}
 """
 
-Return ONLY valid JSON: {"tier": "weak_site" | "good_site", "gaps": ["short specific gap", ...]}. Use "good_site" only if the site already covers the basics well and there's genuinely nothing substantive to pitch — in that case gaps must be an empty array. Otherwise use "weak_site" with at most 3 gaps, each under 15 words.`;
+Rules:
+- Every gap must be something you can point to as specifically absent from the text above — not a default assumption. If the text is too short/generic to judge something confidently, leave it out rather than guessing.
+- Do not reuse the same handful of generic complaints (booking forms, reviews, calls-to-action) unless the text you read genuinely lacks them — treat those as neither more nor less likely than any other real gap you notice.
+- If two gaps you're about to list would apply to almost any small business site regardless of what this one actually says, drop the weaker one.
+
+Return ONLY valid JSON: {"tier": "weak_site" | "good_site", "gaps": ["short specific gap", ...]}. Use "good_site" only if the site already covers the basics well and there's genuinely nothing substantive to pitch — in that case gaps must be an empty array. Otherwise use "weak_site" with 1-3 gaps, each under 15 words.`;
 
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -523,7 +528,7 @@ Location: ${[prospect.city, prospect.state].filter(Boolean).join(", ") || "unkno
 ${prospect.draft_body ? `\nExisting draft to revise:\nSubject: ${prospect.draft_subject}\n${prospect.draft_body}\n\nRevision instructions: ${instructions || "improve it generally"}` : ""}
 ${!prospect.draft_body && instructions ? `\nSpecific instructions: ${instructions}` : ""}
 
-Keep it short (under 120 words), warm but not pushy, no false urgency, no fake personalization details you don't actually have. Sign off as "Jack, Enoma". Return ONLY valid JSON: {"subject": "...", "body": "..."}`;
+Keep it short (under 120 words), warm but not pushy, no false urgency. Only state things you were actually given above (the gaps listed, location, trade, the preview page) — do not compliment the look/design/quality of their site or invent any other detail you don't actually have. Sign off as "Jack, Enoma". Return ONLY valid JSON: {"subject": "...", "body": "..."}`;
 
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
