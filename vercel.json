@@ -87,5 +87,11 @@
       "memory": 1024,
       "maxDuration": 30
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/ga-metrics?action=daily_pipeline&trade=landscaping&limit=25",
+      "schedule": "0 10 * * *"
+    }
+  ]
 }
