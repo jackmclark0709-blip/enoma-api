@@ -765,7 +765,10 @@ async function handleDraftAll(req, res) {
 // platform silently killing the request mid-batch. 45s leaves real margin
 // under the 60s maxDuration set for this file specifically (vercel.json) —
 // pull() itself isn't deadline-guarded (one fast Outscraper call, not a
-// per-item loop) so the full budget is available for crawl+draft.
+// per-item loop) so the full budget is available for crawl+draft. (Note:
+// Vercel's `functions` config in vercel.json rejects a literal-path pattern
+// overlapping a wildcard pattern that already matches the same file — the
+// 60s maxDuration here applies to all of api/*.js, not just this file.)
 const DAILY_PIPELINE_BUDGET_MS = 45000;
 
 async function handleDailyPipeline(req, res) {
