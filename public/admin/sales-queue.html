@@ -95,6 +95,19 @@
   .row-meta a:hover{ color:var(--core); }
   .row-action{ color:var(--core); font-size:.8rem; margin-top:8px; font-weight:600; }
 
+  .draft-toggle{
+    color:var(--core); font-family:var(--mono); font-size:.78rem; margin-top:10px;
+    cursor:pointer; user-select:none; display:inline-block;
+  }
+  .draft-toggle:hover{ text-decoration:underline; }
+  .draft-box{
+    margin-top:8px; background:var(--panel-raised); border:1px solid var(--hairline);
+    border-radius:10px; padding:12px 14px;
+  }
+  .draft-subject{ font-weight:700; font-size:.86rem; margin-bottom:8px; }
+  .draft-body{ white-space:pre-wrap; color:var(--text-2); font-size:.82rem; line-height:1.55; }
+  .draft-copy-btn{ margin-top:10px; }
+
   .row-controls{ flex-shrink:0; display:flex; flex-direction:column; gap:6px; align-items:flex-end; }
   .score{ font-family:var(--mono); font-size:.72rem; color:var(--text-3); }
   .btn-row{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
@@ -300,6 +313,52 @@
     els.queueWrap.querySelectorAll('[data-action]').forEach(btn => {
       btn.addEventListener('click', () => runAction(btn.dataset.leadType, btn.dataset.id, btn.dataset.action));
     });
+    els.queueWrap.querySelectorAll('[data-toggle-draft]').forEach(toggle => {
+      toggle.addEventListener('click', () => toggleDraft(toggle, rows));
+    });
+  }
+
+  // Populates the draft box via textContent (never innerHTML) — draft_subject/
+  // draft_body are AI-generated from scraped third-party website text, so this
+  // deliberately never gets treated as trusted markup.
+  function toggleDraft(toggleEl, rows) {
+    const id = toggleEl.dataset.toggleDraft;
+    const box = els.queueWrap.querySelector(`[data-draft-box="${CSS.escape(id)}"]`);
+    if (!box) return;
+    const isOpen = box.style.display !== 'none';
+    if (isOpen) {
+      box.style.display = 'none';
+      toggleEl.textContent = '▸ View draft';
+      return;
+    }
+    if (!box.dataset.populated) {
+      const row = rows.find(r => String(r.id) === id);
+      if (!row) return;
+      box.innerHTML = '';
+      const subjectEl = document.createElement('div');
+      subjectEl.className = 'draft-subject';
+      subjectEl.textContent = row.draft_subject || '(no subject)';
+      const bodyEl = document.createElement('div');
+      bodyEl.className = 'draft-body';
+      bodyEl.textContent = row.draft_body || '';
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'mini-btn draft-copy-btn';
+      copyBtn.textContent = 'Copy for email';
+      copyBtn.addEventListener('click', async () => {
+        const text = `Subject: ${row.draft_subject || ''}\n\n${row.draft_body || ''}`;
+        try {
+          await navigator.clipboard.writeText(text);
+          copyBtn.textContent = 'Copied!';
+        } catch {
+          copyBtn.textContent = 'Copy failed — select manually';
+        }
+        setTimeout(() => { copyBtn.textContent = 'Copy for email'; }, 1500);
+      });
+      box.append(subjectEl, bodyEl, copyBtn);
+      box.dataset.populated = '1';
+    }
+    box.style.display = 'block';
+    toggleEl.textContent = '▾ Hide draft';
   }
 
   function rowHtml(r) {
@@ -339,6 +398,10 @@
             <span>status: ${r.status}</span>
           </div>
           <div class="row-action">→ ${r.suggested_action}</div>
+          ${r.draft_body ? `
+            <div class="draft-toggle" data-toggle-draft="${r.id}">▸ View draft</div>
+            <div class="draft-box" data-draft-box="${r.id}" style="display:none;"></div>
+          ` : ''}
         </div>
         <div class="row-controls">
           <div class="score">score ${r.score}</div>

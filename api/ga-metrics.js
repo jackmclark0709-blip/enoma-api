@@ -981,7 +981,7 @@ async function handleSalesQueue(req, res) {
         .order("created_at", { ascending: false }),
       supabase
         .from("prospects")
-        .select("id, business_name, trade, city, state, phone, email, status, preview_url, updated_at, created_at, outreach_messages(channel, status, response_status, sent_at, response_at, updated_at)")
+        .select("id, business_name, trade, city, state, phone, email, status, preview_url, draft_subject, draft_body, updated_at, created_at, outreach_messages(channel, status, response_status, sent_at, response_at, updated_at)")
         .order("updated_at", { ascending: false }),
       supabase
         .from("funnel_events")
@@ -1045,6 +1045,8 @@ async function handleSalesQueue(req, res) {
       last_activity_at: lastActivityAt,
       detail: [p.city, p.state].filter(Boolean).join(", ") || null,
       preview_url: p.preview_url || null,
+      draft_subject: p.draft_subject || null,
+      draft_body: p.draft_body || null,
       suggested_action
     }];
   });
