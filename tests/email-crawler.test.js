@@ -2,7 +2,7 @@
 // Run with: node tests/email-crawler.test.js (also wired into `npm test`)
 
 import assert from "node:assert/strict";
-import { extractEmails, pickBestEmail, htmlToText } from "../api/_lib/email-crawler.js";
+import { extractEmails, pickBestEmail, htmlToText, isPrivateOrReservedIp } from "../api/_lib/email-crawler.js";
 
 let passed = 0;
 function test(name, fn) {
@@ -99,6 +99,53 @@ test("collapses whitespace and truncates to maxLen", () => {
 
 test("returns empty string for no HTML", () => {
   assert.equal(htmlToText(null), "");
+});
+
+console.log("isPrivateOrReservedIp");
+
+test("blocks loopback", () => {
+  assert.equal(isPrivateOrReservedIp("127.0.0.1"), true);
+});
+
+test("blocks the AWS/GCP-style cloud metadata address", () => {
+  assert.equal(isPrivateOrReservedIp("169.254.169.254"), true);
+});
+
+test("blocks RFC1918 private ranges", () => {
+  assert.equal(isPrivateOrReservedIp("10.0.0.5"), true);
+  assert.equal(isPrivateOrReservedIp("172.16.0.5"), true);
+  assert.equal(isPrivateOrReservedIp("192.168.1.1"), true);
+});
+
+test("does not block adjacent public-looking ranges", () => {
+  assert.equal(isPrivateOrReservedIp("172.15.0.5"), false);
+  assert.equal(isPrivateOrReservedIp("172.32.0.5"), false);
+});
+
+test("blocks CGNAT (100.64.0.0/10)", () => {
+  assert.equal(isPrivateOrReservedIp("100.64.0.1"), true);
+  assert.equal(isPrivateOrReservedIp("100.100.0.1"), true);
+});
+
+test("allows a real public IP", () => {
+  assert.equal(isPrivateOrReservedIp("8.8.8.8"), false);
+  assert.equal(isPrivateOrReservedIp("93.184.216.34"), false);
+});
+
+test("blocks IPv6 loopback and link-local/unique-local", () => {
+  assert.equal(isPrivateOrReservedIp("::1"), true);
+  assert.equal(isPrivateOrReservedIp("fe80::1"), true);
+  assert.equal(isPrivateOrReservedIp("fd00::1"), true);
+});
+
+test("resolves IPv4-mapped IPv6 addresses before checking", () => {
+  assert.equal(isPrivateOrReservedIp("::ffff:127.0.0.1"), true);
+  assert.equal(isPrivateOrReservedIp("::ffff:8.8.8.8"), false);
+});
+
+test("treats empty/missing input as blocked", () => {
+  assert.equal(isPrivateOrReservedIp(""), true);
+  assert.equal(isPrivateOrReservedIp(null), true);
 });
 
 console.log(`\n${passed} passed`);

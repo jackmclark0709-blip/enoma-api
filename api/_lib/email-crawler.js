@@ -55,6 +55,40 @@ export function pickBestEmail(emails, websiteDomain) {
   return emails[0];
 }
 
+// Blocks the crawler from being pointed at internal infrastructure via a
+// prospect's `website` field (semi-trusted — sourced from Google Maps
+// listings, not fully attacker-controlled, but not something we validate
+// either). Covers loopback, RFC1918 private ranges, link-local (which
+// includes the 169.254.169.254 cloud-metadata address on AWS/GCP-style
+// platforms), CGNAT, and IPv6 loopback/link-local/unique-local equivalents.
+const IPV4_BLOCKED = [
+  /^0\./,
+  /^10\./,
+  /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./,
+  /^127\./,
+  /^169\.254\./,
+  /^172\.(1[6-9]|2\d|3[01])\./,
+  /^192\.0\.0\./,
+  /^192\.168\./,
+  /^198\.(1[89])\./,
+  /^22[4-9]\./,
+  /^23\d\./,
+  /^24\d\./,
+  /^25[0-5]\./
+];
+
+export function isPrivateOrReservedIp(ip) {
+  if (!ip) return true;
+  if (ip.includes(":")) {
+    const lower = ip.toLowerCase();
+    if (lower === "::1" || lower === "::") return true;
+    if (lower.startsWith("fe80:") || lower.startsWith("fc") || lower.startsWith("fd")) return true;
+    if (lower.startsWith("::ffff:")) return isPrivateOrReservedIp(lower.slice(7));
+    return false;
+  }
+  return IPV4_BLOCKED.some(re => re.test(ip));
+}
+
 export function htmlToText(html, maxLen = 6000) {
   if (!html) return "";
   return html

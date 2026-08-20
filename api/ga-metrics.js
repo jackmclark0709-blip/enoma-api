@@ -7,7 +7,8 @@ import { BetaAnalyticsDataClient } from "@google-analytics/data";
 import { JWT } from "google-auth-library";
 import { createClient } from "@supabase/supabase-js";
 import { scoreRawLead, scoreProspect } from "./_lib/lead-scoring.js";
-import { extractEmails, pickBestEmail, htmlToText } from "./_lib/email-crawler.js";
+import dns from "node:dns/promises";
+import { extractEmails, pickBestEmail, htmlToText, isPrivateOrReservedIp } from "./_lib/email-crawler.js";
 
 const client = new BetaAnalyticsDataClient({
   credentials: {
@@ -236,23 +237,57 @@ async function handleProspectPull(req, res) {
 const CONTACT_FALLBACK_PATH = "/contact";
 const CRAWL_FETCH_HEADERS = { "User-Agent": "Mozilla/5.0 (compatible; EnomaBot/1.0; +https://enoma.io)" };
 
-// `ok: false` means the page was never actually read (blocked, timed out,
-// errored) — distinct from `ok: true, html: "..."` where we genuinely read
-// the page and it just has no email. Conflating these previously mislabeled
-// bot-blocked sites (e.g. a 403) as "no_email_found", which reads as "we
-// checked, there's nothing" when we never actually saw the content.
-async function fetchPageText(url, timeoutMs) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, { signal: controller.signal, headers: CRAWL_FETCH_HEADERS });
-    if (!res.ok) return { ok: false, html: null };
-    return { ok: true, html: await res.text() };
-  } catch {
-    return { ok: false, html: null };
-  } finally {
-    clearTimeout(timeout);
+const MAX_CRAWL_REDIRECTS = 3;
+
+// `website` comes from Outscraper/Google Maps listings — not something we
+// control, so it could point at an internal address (RFC1918, loopback, the
+// cloud-metadata link-local IP) either directly or via a redirect chain.
+// Resolves the hostname and rejects anything that lands on a private/reserved
+// IP before letting fetchPageText touch it.
+async function assertPublicHost(url) {
+  const { hostname, protocol } = new URL(url);
+  if (protocol !== "http:" && protocol !== "https:") {
+    throw new Error(`Blocked non-http(s) protocol: ${protocol}`);
   }
+  const addresses = await dns.lookup(hostname, { all: true });
+  if (!addresses.length || addresses.some(a => isPrivateOrReservedIp(a.address))) {
+    throw new Error(`Blocked private/unresolvable host: ${hostname}`);
+  }
+}
+
+// `ok: false` means the page was never actually read (blocked, timed out,
+// errored, or resolved to a disallowed host) — distinct from `ok: true,
+// html: "..."` where we genuinely read the page and it just has no email.
+// Conflating these previously mislabeled bot-blocked sites (e.g. a 403) as
+// "no_email_found", which reads as "we checked, there's nothing" when we
+// never actually saw the content. Follows redirects manually (rather than
+// fetch's default auto-follow) so every hop gets the same host validation as
+// the initial URL — an internal-safe start could still redirect internal.
+async function fetchPageText(url, timeoutMs) {
+  let currentUrl = url;
+  for (let hop = 0; hop <= MAX_CRAWL_REDIRECTS; hop++) {
+    try {
+      await assertPublicHost(currentUrl);
+    } catch {
+      return { ok: false, html: null };
+    }
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(currentUrl, { signal: controller.signal, headers: CRAWL_FETCH_HEADERS, redirect: "manual" });
+      if (res.status >= 300 && res.status < 400 && res.headers.get("location")) {
+        currentUrl = new URL(res.headers.get("location"), currentUrl).toString();
+        continue;
+      }
+      if (!res.ok) return { ok: false, html: null };
+      return { ok: true, html: await res.text() };
+    } catch {
+      return { ok: false, html: null };
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+  return { ok: false, html: null };
 }
 
 // Tries the homepage first, then one contact-page fallback if the homepage
@@ -394,10 +429,15 @@ async function crawlWebsitesOnce({ limit = 6 } = {}) {
         .eq("id", prospect.id);
       results.push({ business_name: prospect.business_name, email, site_tier: tier, gaps, drafted: true, subject: draft.subject });
     } catch (err) {
-      await supabase.from("prospects")
-        .update({ email_crawl_status: "fetch_failed", updated_at: new Date().toISOString() })
-        .eq("id", prospect.id);
-      results.push({ business_name: prospect.business_name, website: prospect.website, email_crawl_status: "fetch_failed", error: err.message });
+      // Every branch above writes its terminal status and `continue`s
+      // immediately, so anything reaching here failed *after* a successful
+      // fetch — suppression lookup, OpenAI gap assessment, draft generation,
+      // or a Supabase write — never a fetch problem. The row is untouched
+      // (email/email_crawl_status still null), so deliberately don't write a
+      // terminal status here: it naturally gets retried on the next crawl
+      // batch instead of being permanently mislabeled fetch_failed and
+      // silently dropped from the pipeline over a transient OpenAI/DB error.
+      results.push({ business_name: prospect.business_name, website: prospect.website, email_crawl_status: "error_will_retry", error: err.message });
     }
   }
 
