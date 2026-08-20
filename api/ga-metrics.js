@@ -7,7 +7,8 @@ import { BetaAnalyticsDataClient } from "@google-analytics/data";
 import { JWT } from "google-auth-library";
 import { createClient } from "@supabase/supabase-js";
 import { scoreRawLead, scoreProspect } from "./_lib/lead-scoring.js";
-import { extractEmails, pickBestEmail, htmlToText } from "./_lib/email-crawler.js";
+import dns from "node:dns/promises";
+import { extractEmails, pickBestEmail, htmlToText, isPrivateOrReservedIp } from "./_lib/email-crawler.js";
 
 const client = new BetaAnalyticsDataClient({
   credentials: {
@@ -95,25 +96,24 @@ const normalizePhone = (p) => (p || "").replace(/\D/g, "").slice(-10);
 // from it) but is NOT required — most correctly-targeted no-website prospects
 // genuinely have no scrapable email anywhere, and dropping them would gut this
 // vertical's list. Treat `email` as a nice-to-have channel signal, not a filter.
-async function handleProspectPull(req, res) {
-  const trade = (req.query.trade || "landscaping").toString();
-  const location = (req.query.location || "Attleboro, MA").toString();
-  const limit = Math.min(parseInt(req.query.limit, 10) || 250, 500);
+// Core pull logic, split out from handleProspectPull so the daily cron
+// pipeline (handleDailyPipeline, below) can call it directly without going
+// through a req/res cycle.
+async function pullProspects({ trade = "landscaping", location = "Attleboro, MA", limit = 250, filters, enrichment } = {}) {
+  const cappedLimit = Math.min(limit || 250, 500);
 
   const params = new URLSearchParams({
     query: `${trade} near ${location}`,
-    limit: String(limit),
+    limit: String(cappedLimit),
     async: "false",
     region: "US",
     language: "en"
   });
-  const filtersParam = req.query.filters !== undefined ? req.query.filters.toString() : "only_without_website";
+  const filtersParam = filters !== undefined ? filters : "only_without_website";
   if (filtersParam && filtersParam !== "none") {
     filtersParam.split(",").forEach(f => params.append("filters", f));
   }
-  const enrichmentParam = req.query.enrichment !== undefined
-    ? req.query.enrichment.toString()
-    : "company_websites_finder,leads_n_contacts";
+  const enrichmentParam = enrichment !== undefined ? enrichment : "company_websites_finder,leads_n_contacts";
   // Confirmed empirically: unlike `filters`, Outscraper's `enrichment` must be
   // sent as ONE comma-separated value — appending it as repeated params (like
   // filters does) silently returns zero results.
@@ -127,7 +127,10 @@ async function handleProspectPull(req, res) {
   );
   const payload = await outscraperRes.json();
   if (!outscraperRes.ok) {
-    return res.status(outscraperRes.status).json({ success: false, error: payload });
+    const err = new Error("Outscraper request failed");
+    err.status = outscraperRes.status;
+    err.payload = payload;
+    throw err;
   }
 
   const places = (payload.data || []).flat().filter(Boolean);
@@ -195,13 +198,28 @@ async function handleProspectPull(req, res) {
     if (insertError) throw insertError;
   }
 
-  return res.status(200).json({
-    success: true,
+  return {
     pulled: places.length,
     new: rows.filter(r => r.status === "new").length,
     dedup_matches: rows.filter(r => r.status === "dedup_match").length,
     with_email: rows.filter(r => r.email).length
-  });
+  };
+}
+
+async function handleProspectPull(req, res) {
+  const trade = (req.query.trade || "landscaping").toString();
+  const location = (req.query.location || "Attleboro, MA").toString();
+  const limit = parseInt(req.query.limit, 10) || 250;
+  const filters = req.query.filters !== undefined ? req.query.filters.toString() : undefined;
+  const enrichment = req.query.enrichment !== undefined ? req.query.enrichment.toString() : undefined;
+
+  try {
+    const result = await pullProspects({ trade, location, limit, filters, enrichment });
+    return res.status(200).json({ success: true, ...result });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ success: false, error: err.payload });
+    throw err;
+  }
 }
 
 // ==================== Website email crawler ====================
@@ -219,23 +237,57 @@ async function handleProspectPull(req, res) {
 const CONTACT_FALLBACK_PATH = "/contact";
 const CRAWL_FETCH_HEADERS = { "User-Agent": "Mozilla/5.0 (compatible; EnomaBot/1.0; +https://enoma.io)" };
 
-// `ok: false` means the page was never actually read (blocked, timed out,
-// errored) — distinct from `ok: true, html: "..."` where we genuinely read
-// the page and it just has no email. Conflating these previously mislabeled
-// bot-blocked sites (e.g. a 403) as "no_email_found", which reads as "we
-// checked, there's nothing" when we never actually saw the content.
-async function fetchPageText(url, timeoutMs) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, { signal: controller.signal, headers: CRAWL_FETCH_HEADERS });
-    if (!res.ok) return { ok: false, html: null };
-    return { ok: true, html: await res.text() };
-  } catch {
-    return { ok: false, html: null };
-  } finally {
-    clearTimeout(timeout);
+const MAX_CRAWL_REDIRECTS = 3;
+
+// `website` comes from Outscraper/Google Maps listings — not something we
+// control, so it could point at an internal address (RFC1918, loopback, the
+// cloud-metadata link-local IP) either directly or via a redirect chain.
+// Resolves the hostname and rejects anything that lands on a private/reserved
+// IP before letting fetchPageText touch it.
+async function assertPublicHost(url) {
+  const { hostname, protocol } = new URL(url);
+  if (protocol !== "http:" && protocol !== "https:") {
+    throw new Error(`Blocked non-http(s) protocol: ${protocol}`);
   }
+  const addresses = await dns.lookup(hostname, { all: true });
+  if (!addresses.length || addresses.some(a => isPrivateOrReservedIp(a.address))) {
+    throw new Error(`Blocked private/unresolvable host: ${hostname}`);
+  }
+}
+
+// `ok: false` means the page was never actually read (blocked, timed out,
+// errored, or resolved to a disallowed host) — distinct from `ok: true,
+// html: "..."` where we genuinely read the page and it just has no email.
+// Conflating these previously mislabeled bot-blocked sites (e.g. a 403) as
+// "no_email_found", which reads as "we checked, there's nothing" when we
+// never actually saw the content. Follows redirects manually (rather than
+// fetch's default auto-follow) so every hop gets the same host validation as
+// the initial URL — an internal-safe start could still redirect internal.
+async function fetchPageText(url, timeoutMs) {
+  let currentUrl = url;
+  for (let hop = 0; hop <= MAX_CRAWL_REDIRECTS; hop++) {
+    try {
+      await assertPublicHost(currentUrl);
+    } catch {
+      return { ok: false, html: null };
+    }
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(currentUrl, { signal: controller.signal, headers: CRAWL_FETCH_HEADERS, redirect: "manual" });
+      if (res.status >= 300 && res.status < 400 && res.headers.get("location")) {
+        currentUrl = new URL(res.headers.get("location"), currentUrl).toString();
+        continue;
+      }
+      if (!res.ok) return { ok: false, html: null };
+      return { ok: true, html: await res.text() };
+    } catch {
+      return { ok: false, html: null };
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+  return { ok: false, html: null };
 }
 
 // Tries the homepage first, then one contact-page fallback if the homepage
@@ -315,8 +367,11 @@ Return ONLY valid JSON: {"tier": "weak_site" | "good_site", "gaps": ["short spec
 // gaps and draft a gap-aware outreach email via generateDraftCopy. A
 // good_site match still gets marked reviewed so it's not offered a
 // "replace your website" pitch that doesn't apply.
-async function handleCrawlWebsites(req, res) {
-  const limit = Math.min(parseInt(req.query.limit, 10) || 6, 15);
+// Core crawl logic for a single batch, split out from handleCrawlWebsites so
+// the daily cron pipeline (handleDailyPipeline, below) can call it directly
+// without going through a req/res cycle.
+async function crawlWebsitesOnce({ limit = 6 } = {}) {
+  const cappedLimit = Math.min(limit || 6, 15);
 
   const { data: prospects, error } = await supabase
     .from("prospects")
@@ -324,7 +379,7 @@ async function handleCrawlWebsites(req, res) {
     .not("website", "is", null)
     .is("email", null)
     .is("email_crawl_status", null)
-    .limit(limit);
+    .limit(cappedLimit);
   if (error) throw error;
 
   const results = [];
@@ -374,20 +429,30 @@ async function handleCrawlWebsites(req, res) {
         .eq("id", prospect.id);
       results.push({ business_name: prospect.business_name, email, site_tier: tier, gaps, drafted: true, subject: draft.subject });
     } catch (err) {
-      await supabase.from("prospects")
-        .update({ email_crawl_status: "fetch_failed", updated_at: new Date().toISOString() })
-        .eq("id", prospect.id);
-      results.push({ business_name: prospect.business_name, website: prospect.website, email_crawl_status: "fetch_failed", error: err.message });
+      // Every branch above writes its terminal status and `continue`s
+      // immediately, so anything reaching here failed *after* a successful
+      // fetch — suppression lookup, OpenAI gap assessment, draft generation,
+      // or a Supabase write — never a fetch problem. The row is untouched
+      // (email/email_crawl_status still null), so deliberately don't write a
+      // terminal status here: it naturally gets retried on the next crawl
+      // batch instead of being permanently mislabeled fetch_failed and
+      // silently dropped from the pipeline over a transient OpenAI/DB error.
+      results.push({ business_name: prospect.business_name, website: prospect.website, email_crawl_status: "error_will_retry", error: err.message });
     }
   }
 
-  return res.status(200).json({
-    success: true,
+  return {
     attempted: (prospects || []).length,
     emails_found: results.filter(r => r.email).length,
     drafted: results.filter(r => r.drafted).length,
     results
-  });
+  };
+}
+
+async function handleCrawlWebsites(req, res) {
+  const limit = parseInt(req.query.limit, 10) || 6;
+  const result = await crawlWebsitesOnce({ limit });
+  return res.status(200).json({ success: true, ...result });
 }
 
 const ENOMA_ADMIN_EMAIL = "jack@enoma.io";
@@ -615,9 +680,11 @@ async function toolApproveOutreachEmail(args) {
 // updated_at, which naturally rotates it to the back of the queue) — same
 // reason handleCrawlWebsites is batched, this file has a 60s maxDuration and
 // force=true with no limit at all previously blew straight through it.
-async function handleDraftAll(req, res) {
-  const force = req.query.force === "true";
-  const limit = Math.min(parseInt(req.query.limit, 10) || 8, 15);
+// Core batch-draft logic, split out from handleDraftAll so the daily cron
+// pipeline (handleDailyPipeline, below) can call it directly without going
+// through a req/res cycle.
+async function draftAllOnce({ limit = 8, force = false } = {}) {
+  const cappedLimit = Math.min(limit || 8, 15);
   let q = supabase
     .from("prospects")
     .select("id, business_name, trade, city, state, phone, email, website, site_gaps, preview_url, status, draft_subject, draft_body")
@@ -627,7 +694,7 @@ async function handleDraftAll(req, res) {
     // force, it isn't a "haven't gotten to it yet" state like the others.
     .neq("status", "reviewed");
   if (!force) q = q.not("status", "in", "(drafted,approved,sent)");
-  q = q.order("updated_at", { ascending: true }).limit(limit);
+  q = q.order("updated_at", { ascending: true }).limit(cappedLimit);
 
   const { data: prospects, error } = await q;
   if (error) throw error;
@@ -647,13 +714,42 @@ async function handleDraftAll(req, res) {
     }
   }
 
-  return res.status(200).json({
-    success: true,
+  return {
     attempted: (prospects || []).length,
     drafted: results.filter(r => r.drafted).length,
     failed: results.filter(r => !r.drafted).length,
     results
-  });
+  };
+}
+
+async function handleDraftAll(req, res) {
+  const force = req.query.force === "true";
+  const limit = parseInt(req.query.limit, 10) || 8;
+  const result = await draftAllOnce({ limit, force });
+  return res.status(200).json({ success: true, ...result });
+}
+
+// Single entry point for the scheduled 6am ET Vercel Cron run: pulls fresh
+// prospects (filters=none, since the crawler needs businesses that DO have a
+// website — the opposite of handleProspectPull's own default), crawls one
+// batch of newly-eligible websites for a contact email, then drafts outreach
+// for anything left with an email but no draft. One action rather than
+// separate chained crons, since Vercel Cron can't guarantee ordering between
+// entries. Deliberately one batch per step (not looped to exhaustion) to
+// stay well under this file's 60s maxDuration — same reasoning as
+// crawlWebsitesOnce's own conservative per-call limit. Any backlog beyond
+// one batch simply rolls into tomorrow's run, since crawlWebsitesOnce's
+// query isn't date-scoped — it always picks up whatever's still uncrawled.
+async function handleDailyPipeline(req, res) {
+  const trade = (req.query.trade || "landscaping").toString();
+  const location = req.query.location ? req.query.location.toString() : undefined;
+  const pullLimit = parseInt(req.query.limit, 10) || 25;
+
+  const pull = await pullProspects({ trade, location, limit: pullLimit, filters: "none" });
+  const crawl = await crawlWebsitesOnce({ limit: 15 });
+  const draft = await draftAllOnce({ limit: 15, force: false });
+
+  return res.status(200).json({ success: true, trade, pull, crawl, draft });
 }
 
 // Read-only review surface: every prospect with a draft, for a human to read
@@ -1014,8 +1110,14 @@ export default async function handler(req, res) {
     }
   }
 
+  // Vercel Cron authenticates by sending Authorization: Bearer $CRON_SECRET
+  // automatically once CRON_SECRET is set as a project env var — it can't
+  // send arbitrary headers like x-admin-secret, so this is accepted as an
+  // alternative to it rather than a replacement.
   const secret = req.headers["x-admin-secret"];
-  if (secret !== process.env.ADMIN_SECRET) {
+  const cronAuth = req.headers["authorization"];
+  const isValidCron = !!process.env.CRON_SECRET && cronAuth === `Bearer ${process.env.CRON_SECRET}`;
+  if (secret !== process.env.ADMIN_SECRET && !isValidCron) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
@@ -1051,6 +1153,15 @@ export default async function handler(req, res) {
       return await handleCrawlWebsites(req, res);
     } catch (err) {
       console.error("Website crawl failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.query.action === "daily_pipeline") {
+    try {
+      return await handleDailyPipeline(req, res);
+    } catch (err) {
+      console.error("Daily pipeline failed:", err);
       return res.status(500).json({ success: false, error: err.message });
     }
   }
