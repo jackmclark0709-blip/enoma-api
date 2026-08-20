@@ -370,7 +370,7 @@ Return ONLY valid JSON: {"tier": "weak_site" | "good_site", "gaps": ["short spec
 // Core crawl logic for a single batch, split out from handleCrawlWebsites so
 // the daily cron pipeline (handleDailyPipeline, below) can call it directly
 // without going through a req/res cycle.
-async function crawlWebsitesOnce({ limit = 6 } = {}) {
+async function crawlWebsitesOnce({ limit = 6, deadline } = {}) {
   const cappedLimit = Math.min(limit || 6, 15);
 
   const { data: prospects, error } = await supabase
@@ -384,6 +384,14 @@ async function crawlWebsitesOnce({ limit = 6 } = {}) {
 
   const results = [];
   for (const prospect of prospects || []) {
+    // Each prospect can cost up to ~11s worst-case (two fetch timeouts) plus
+    // OpenAI latency, so `limit` alone doesn't bound wall-clock time — a
+    // caller chaining this with other steps (handleDailyPipeline) passes a
+    // shared deadline so this stops early rather than risk the platform
+    // hard-killing the whole request mid-batch with no response at all.
+    // Prospects not yet reached are simply untouched, same as any other
+    // batch boundary — picked up on the next run.
+    if (deadline && Date.now() > deadline) break;
     try {
       const { emails, html, domain, fetched } = await findEmailForWebsite(prospect.website);
       const email = pickBestEmail(emails, domain);
@@ -442,7 +450,9 @@ async function crawlWebsitesOnce({ limit = 6 } = {}) {
   }
 
   return {
-    attempted: (prospects || []).length,
+    // results.length (not (prospects || []).length) so an early deadline
+    // exit correctly reports only what was actually processed.
+    attempted: results.length,
     emails_found: results.filter(r => r.email).length,
     drafted: results.filter(r => r.drafted).length,
     results
@@ -683,7 +693,7 @@ async function toolApproveOutreachEmail(args) {
 // Core batch-draft logic, split out from handleDraftAll so the daily cron
 // pipeline (handleDailyPipeline, below) can call it directly without going
 // through a req/res cycle.
-async function draftAllOnce({ limit = 8, force = false } = {}) {
+async function draftAllOnce({ limit = 8, force = false, deadline } = {}) {
   const cappedLimit = Math.min(limit || 8, 15);
   let q = supabase
     .from("prospects")
@@ -701,6 +711,10 @@ async function draftAllOnce({ limit = 8, force = false } = {}) {
 
   const results = [];
   for (const prospect of prospects || []) {
+    // Same shared-deadline reasoning as crawlWebsitesOnce — a caller
+    // chaining multiple steps (handleDailyPipeline) needs this to stop
+    // early rather than risk the whole request timing out with no response.
+    if (deadline && Date.now() > deadline) break;
     try {
       const draft = await generateDraftCopy(prospect, null);
       const { error: updateErr } = await supabase
@@ -715,7 +729,8 @@ async function draftAllOnce({ limit = 8, force = false } = {}) {
   }
 
   return {
-    attempted: (prospects || []).length,
+    // results.length so an early deadline exit reports only what actually ran.
+    attempted: results.length,
     drafted: results.filter(r => r.drafted).length,
     failed: results.filter(r => !r.drafted).length,
     results
@@ -740,14 +755,34 @@ async function handleDraftAll(req, res) {
 // crawlWebsitesOnce's own conservative per-call limit. Any backlog beyond
 // one batch simply rolls into tomorrow's run, since crawlWebsitesOnce's
 // query isn't date-scoped — it always picks up whatever's still uncrawled.
+// Chaining three steps in one request means their limits (15/15, each sized
+// to fit standalone under this file's own maxDuration) can add up well past
+// it — confirmed in production as a guaranteed 504 (Vercel Runtime Timeout
+// Error, no response returned at all). A single wall-clock deadline shared
+// across crawl+draft fixes this: each step's loop bails as soon as the
+// deadline passes (see crawlWebsitesOnce/draftAllOnce), so this always
+// returns a clean response describing exactly what got done, instead of the
+// platform silently killing the request mid-batch. 45s leaves real margin
+// under the 60s maxDuration set for this file specifically (vercel.json) —
+// pull() itself isn't deadline-guarded (one fast Outscraper call, not a
+// per-item loop) so the full budget is available for crawl+draft.
+const DAILY_PIPELINE_BUDGET_MS = 45000;
+
 async function handleDailyPipeline(req, res) {
   const trade = (req.query.trade || "landscaping").toString();
   const location = req.query.location ? req.query.location.toString() : undefined;
   const pullLimit = parseInt(req.query.limit, 10) || 25;
+  const deadline = Date.now() + DAILY_PIPELINE_BUDGET_MS;
 
   const pull = await pullProspects({ trade, location, limit: pullLimit, filters: "none" });
-  const crawl = await crawlWebsitesOnce({ limit: 15 });
-  const draft = await draftAllOnce({ limit: 15, force: false });
+
+  const crawl = Date.now() < deadline
+    ? await crawlWebsitesOnce({ limit: 15, deadline })
+    : { attempted: 0, emails_found: 0, drafted: 0, results: [], skipped_reason: "out of time after pull" };
+
+  const draft = Date.now() < deadline
+    ? await draftAllOnce({ limit: 15, force: false, deadline })
+    : { attempted: 0, drafted: 0, failed: 0, results: [], skipped_reason: "out of time after crawl" };
 
   return res.status(200).json({ success: true, trade, pull, crawl, draft });
 }
