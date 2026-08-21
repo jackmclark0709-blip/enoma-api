@@ -1081,6 +1081,32 @@ async function handleSalesQueue(req, res) {
   });
 }
 
+// Thin HTTP wrappers around the existing voice-tool functions above, for the
+// command center dashboard — same JWT admin gate as sales_queue, but callable
+// directly on page load instead of only through the OpenAI tool-calling loop
+// in handleVoiceQuery (which would add needless latency/cost for a dashboard
+// that just wants the raw numbers).
+async function handleRevenueStatus(req, res) {
+  const user = await requireAdmin(req);
+  if (!user) return res.status(401).json({ error: "Unauthorized" });
+  const data = await toolGetRevenueStatus();
+  return res.status(200).json({ success: true, generated_at: new Date().toISOString(), ...data });
+}
+
+async function handleMarketingTraffic(req, res) {
+  const user = await requireAdmin(req);
+  if (!user) return res.status(401).json({ error: "Unauthorized" });
+  const data = await toolGetMarketingTraffic();
+  return res.status(200).json({ success: true, generated_at: new Date().toISOString(), ...data });
+}
+
+async function handleBusinessPagesStatus(req, res) {
+  const user = await requireAdmin(req);
+  if (!user) return res.status(401).json({ error: "Unauthorized" });
+  const data = await toolGetBusinessPagesStatus();
+  return res.status(200).json({ success: true, generated_at: new Date().toISOString(), ...data });
+}
+
 // Lightweight write path so the dashboard can mark things done without
 // switching to the voice agent. Same JWT admin gate as sales_queue.
 async function handleUpdateLeadStatus(req, res) {
@@ -1146,6 +1172,33 @@ export default async function handler(req, res) {
       return await handleUpdateLeadStatus(req, res);
     } catch (err) {
       console.error("Update lead status failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.query.action === "revenue_status") {
+    try {
+      return await handleRevenueStatus(req, res);
+    } catch (err) {
+      console.error("Revenue status failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.query.action === "marketing_traffic") {
+    try {
+      return await handleMarketingTraffic(req, res);
+    } catch (err) {
+      console.error("Marketing traffic failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.query.action === "business_pages_status") {
+    try {
+      return await handleBusinessPagesStatus(req, res);
+    } catch (err) {
+      console.error("Business pages status failed:", err);
       return res.status(500).json({ success: false, error: err.message });
     }
   }
