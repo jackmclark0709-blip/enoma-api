@@ -78,23 +78,6 @@
     .hero__actions{display:flex;gap:.85rem;flex-wrap:wrap;justify-content:center;margin-top:2.25rem;}
     .hero__proof{margin-top:1.1rem;font-size:.78rem;color:var(--text-3);letter-spacing:.03em;}
 
-    /* ---------- persistent thread: small pin follows the story from the gap through what-enoma-is ---------- */
-    .thread-wrap{position:relative;}
-    .thread-wrap::before{
-      content:'';position:absolute;top:0;bottom:0;left:calc(50% - 439px);width:1px;
-      background:repeating-linear-gradient(to bottom, var(--panel-border) 0 6px, transparent 6px 16px);
-      opacity:.5;
-    }
-    .thread-pin{position:sticky;top:3rem;height:0;margin-left:calc(50% - 458px);pointer-events:none;}
-    .thread-pin svg{display:block;width:38px;height:48px;overflow:visible;}
-    .thread-pin__ring{fill:none;stroke:var(--sky-light);stroke-width:1;animation:threadRing 3s ease-out infinite;}
-    .thread-pin__shape{fill:var(--sky);stroke:rgba(255,255,255,.15);stroke-width:.5;animation:threadPulse 3s ease-in-out infinite;transform-origin:19px 19px;}
-    .thread-pin__letter{font-family:'Fraunces',Georgia,serif;font-size:11px;fill:var(--text-1);text-anchor:middle;}
-    @keyframes threadRing{0%{r:12;opacity:.5;}100%{r:32;opacity:0;}}
-    @keyframes threadPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.08);}}
-    @media(max-width:1300px){ .thread-wrap::before,.thread-pin{display:none;} }
-    @media (prefers-reduced-motion: reduce){ .thread-pin__ring,.thread-pin__shape{animation:none;} }
-
     /* ---------- faq (namespaced faq-accordion/faq-row — enoma.css already owns .faq-list/.faq-item for a light-theme component) ---------- */
     .faq-accordion{max-width:640px;margin:2.5rem auto 0;text-align:left;display:flex;flex-direction:column;gap:1px;background:var(--panel-border);border-radius:16px;overflow:hidden;border:1px solid var(--panel-border);}
     .faq-row{background:var(--void);padding:1.35rem 1.5rem;transition:background .18s ease;}
@@ -253,15 +236,6 @@
     <p class="hero__proof">No credit card &nbsp;·&nbsp; First month free &nbsp;·&nbsp; Live in minutes &nbsp;·&nbsp; Cancel anytime</p>
   </section>
 
-  <div class="thread-wrap">
-  <div class="thread-pin" aria-hidden="true">
-    <svg viewBox="0 0 38 48" overflow="visible">
-      <circle class="thread-pin__ring" cx="19" cy="19" r="12"/>
-      <path class="thread-pin__shape" d="M19,8 C13.5,8 9,12.4 9,17.8 C9,25 19,36 19,36 C19,36 29,25 29,17.8 C29,12.4 24.5,8 19,8 Z"/>
-      <text class="thread-pin__letter" x="19" y="21.5">e</text>
-    </svg>
-  </div>
-
   <!-- ============ THE GAP — the bottleneck, explained ============ -->
   <section class="scene reveal">
     <p class="eyebrow">The gap</p>
@@ -280,7 +254,6 @@
       <div class="statline__item"><div class="statline__num">Day one</div><div class="statline__label">indexed &amp; findable</div></div>
     </div>
   </section>
-  </div>
 
   <!-- ============ HOW IT WORKS ============ -->
   <section class="scene scene--wide reveal">
