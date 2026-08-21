@@ -148,6 +148,7 @@
     </div>
     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:10px;">
       <div class="nav-links">
+        <a href="/admin/command-center.html">Command Center</a>
         <a href="/admin/admin-list.html">Business Profiles</a>
         <a href="/admin/voice.html">Voice Agent</a>
       </div>
@@ -171,11 +172,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/scripts/admin-auth.js"></script>
 <script>
-  const SUPABASE_URL = 'https://qhsivcenpnxwmvwznqie.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc';
-  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
   const els = {
     unauth: document.getElementById('unauth'),
     app: document.getElementById('app'),
@@ -212,12 +210,12 @@
   ];
 
   async function init() {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session || session.user.email !== 'jack@enoma.io') {
+    const session = await EnomaAdmin.requireAdminSession();
+    if (!session) {
       els.unauth.style.display = 'block';
       return;
     }
-    accessToken = session.access_token;
+    accessToken = session.accessToken;
     els.app.style.display = 'block';
     renderFilters();
     els.refreshBtn.addEventListener('click', load);

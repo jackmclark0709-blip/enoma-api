@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Command Center — Enoma Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex,nofollow" />
+<style>
+  :root{
+    --void:#060911; --panel:#0d1420; --panel-raised:#121b2c;
+    --hairline: rgba(130,180,255,.14); --hairline-strong: rgba(130,180,255,.26);
+    --core:#4fd8ff; --core-dim: rgba(79,216,255,.35);
+    --ops:#5aa8f0; --ops-dim: rgba(90,168,240,.16);
+    --mkt:#c98af5; --mkt-dim: rgba(201,138,245,.16);
+    --rev:#34e0a1; --rev-dim: rgba(52,224,161,.16);
+    --text-1:#eaf3ff; --text-2:#9db2d4; --text-3:#5d7396;
+    --good:#34e0a1; --warn:#ffb84a; --crit:#ff5c72;
+    --mono: ui-monospace,"Cascadia Code","SFMono-Regular","Consolas","Liberation Mono",monospace;
+    --sans: -apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+    --r-sm:6px; --r-md:10px; --r-lg:14px;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{background:var(--void);}
+  body{
+    font-family:var(--sans); color:var(--text-1); -webkit-font-smoothing:antialiased;
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -10%, rgba(79,216,255,.09), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 10%, rgba(201,138,245,.06), transparent 55%),
+      var(--void);
+    min-height:100vh;
+  }
+  a{color:var(--core)}
+
+  #unauth{ text-align:center; margin-top:20vh; }
+  #unauth h2{ color:var(--crit); font-family:var(--mono); font-size:1rem; letter-spacing:.02em; }
+  #unauth p{ color:var(--text-2); }
+  #app{ display:none; }
+
+  #bgcanvas{position:fixed;inset:0;width:100%;height:100%;z-index:0;opacity:.55;pointer-events:none;}
+
+  .shell{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:22px 24px 60px;display:flex;flex-direction:column;gap:18px;}
+
+  .sysbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    padding:14px 18px;background:var(--panel);border:1px solid var(--hairline);border-radius:var(--r-lg);
+    box-shadow:0 0 0 1px rgba(0,0,0,.2), 0 12px 30px rgba(0,0,0,.35);}
+  .sysbar-left{display:flex;align-items:center;gap:12px;}
+  .core-mark{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 35% 30%, rgba(79,216,255,.35), rgba(79,216,255,.05));
+    border:1px solid var(--hairline-strong);position:relative;}
+  .core-mark::after{content:"";width:9px;height:9px;border-radius:50%;background:var(--core);
+    box-shadow:0 0 10px 2px var(--core-dim);animation:pulse 2.4s ease-in-out infinite;}
+  .wordmark{font-family:var(--sans);font-weight:800;font-size:1.05rem;letter-spacing:.01em;color:var(--text-1);}
+  .wordmark .sub{font-family:var(--mono);font-weight:500;font-size:.68rem;letter-spacing:.14em;color:var(--core);
+    text-transform:uppercase;display:block;margin-top:1px;}
+  .sysbar-right{font-family:var(--mono);font-size:.72rem;color:var(--text-3);text-align:right;line-height:1.6;}
+  .sysbar-right b{color:var(--text-2);font-weight:600;}
+  .live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--good);
+    box-shadow:0 0 6px 1px rgba(52,224,161,.6);margin-right:6px;animation:pulse 2.4s ease-in-out infinite;}
+  .nav-links{ display:flex; gap:14px; font-family:var(--mono); font-size:.72rem; margin-top:4px; justify-content:flex-end; }
+  .nav-links a{ color:var(--text-2); text-decoration:none; }
+  .nav-links a:hover{ color:var(--core); }
+
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(.72);}}
+  @media (prefers-reduced-motion: reduce){.live-dot,.core-mark::after{animation:none;}}
+
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;}
+  .tab{font-family:var(--mono);font-size:.74rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--text-3);background:var(--panel);border:1px solid var(--hairline);border-radius:999px;
+    padding:9px 16px;cursor:pointer;transition:.15s ease;display:flex;align-items:center;gap:7px;}
+  .tab:hover{color:var(--text-1);border-color:var(--hairline-strong);}
+  .tab .tdot{width:6px;height:6px;border-radius:50%;background:var(--text-3);}
+  .tab[data-tab="ops"].active{color:var(--ops);border-color:rgba(90,168,240,.45);background:var(--ops-dim);}
+  .tab[data-tab="ops"].active .tdot{background:var(--ops);box-shadow:0 0 6px 1px var(--ops-dim);}
+  .tab[data-tab="marketing"].active{color:var(--mkt);border-color:rgba(201,138,245,.45);background:var(--mkt-dim);}
+  .tab[data-tab="marketing"].active .tdot{background:var(--mkt);box-shadow:0 0 6px 1px var(--mkt-dim);}
+  .tab[data-tab="revenue"].active{color:var(--rev);border-color:rgba(52,224,161,.45);background:var(--rev-dim);}
+  .tab[data-tab="revenue"].active .tdot{background:var(--rev);box-shadow:0 0 6px 1px var(--rev-dim);}
+  .tab[data-tab="overview"].active{color:var(--core);border-color:rgba(79,216,255,.45);background:rgba(79,216,255,.1);}
+  .tab[data-tab="overview"].active .tdot{background:var(--core);box-shadow:0 0 6px 1px var(--core-dim);}
+
+  .view{display:none;flex-direction:column;gap:18px;}
+  .view.active{display:flex;}
+
+  .agent-head{display:flex;align-items:center;gap:14px;padding:16px 20px;border-radius:var(--r-lg);
+    border:1px solid var(--hairline);background:linear-gradient(135deg, var(--panel), var(--panel-raised));position:relative;overflow:hidden;}
+  .agent-head::before{content:"";position:absolute;inset:0;background:var(--glow, transparent);opacity:.5;pointer-events:none;}
+  .agent-glyph{width:46px;height:46px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-weight:700;font-size:1rem;position:relative;z-index:1;}
+  .agent-meta{position:relative;z-index:1;flex:1;min-width:0;}
+  .agent-name{font-weight:800;font-size:1.15rem;letter-spacing:-0.01em;}
+  .agent-directive{font-size:.82rem;color:var(--text-2);margin-top:2px;}
+  .agent-status{position:relative;z-index:1;text-align:right;font-family:var(--mono);font-size:.68rem;
+    color:var(--text-3);white-space:nowrap;}
+  .status-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;
+    font-family:var(--mono);font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px;}
+  .status-pill .sd{width:5px;height:5px;border-radius:50%;background:currentColor;box-shadow:0 0 5px 1px currentColor;}
+
+  h2.section-title{font-family:var(--mono);font-weight:700;font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--text-2);margin:0 0 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  h2.section-title .count{color:var(--text-3);font-weight:500;letter-spacing:0;text-transform:none;font-size:.78rem;}
+
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  .kpi{background:var(--panel);border:1px solid var(--hairline);border-radius:var(--r-md);padding:14px 16px;
+    display:flex;flex-direction:column;gap:4px;}
+  .kpi .label{font-family:var(--mono);font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);}
+  .kpi .value{font-family:var(--mono);font-weight:700;font-size:1.7rem;letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:var(--text-1);}
+  .kpi .sub{font-size:.74rem;color:var(--text-2);}
+  .kpi.accent-warn .value{color:var(--warn);}
+  .kpi.accent-good .value{color:var(--good);}
+
+  .card{background:var(--panel);border:1px solid var(--hairline);border-radius:var(--r-lg);padding:18px 20px;}
+
+  .alert-card{background:linear-gradient(180deg, rgba(255,184,74,.08), transparent 40%), var(--panel);
+    border:1px solid rgba(255,184,74,.35);border-radius:var(--r-lg);padding:16px 20px;}
+  .alert-card h2.section-title{color:var(--warn);}
+  .alert-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;
+    border-bottom:1px solid rgba(255,184,74,.16);font-size:.86rem;}
+  .alert-row:last-child{border-bottom:none;}
+  .alert-row .name{font-weight:600;}
+  .alert-row .why{color:var(--text-3);font-size:.76rem;font-family:var(--mono);}
+
+  .scrollx{overflow-x:auto;}
+  table.dt{width:100%;border-collapse:collapse;font-size:.85rem;min-width:340px;}
+  table.dt th{text-align:left;font-family:var(--mono);font-size:.64rem;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--text-3);font-weight:600;padding:0 0 8px;border-bottom:1px solid var(--hairline);}
+  table.dt td{padding:9px 0;border-bottom:1px solid rgba(130,180,255,.07);vertical-align:middle;}
+  table.dt tr:last-child td{border-bottom:none;}
+  .row-name{font-weight:600;color:var(--text-1);}
+  .pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;
+    font-family:var(--mono);font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;}
+  .pill.good{background:rgba(52,224,161,.12);color:var(--good);}
+  .pill.info{background:rgba(90,168,240,.14);color:var(--ops);}
+  .pill.warn{background:rgba(255,184,74,.14);color:var(--warn);}
+  .pill.crit{background:rgba(255,92,114,.14);color:var(--crit);}
+
+  .chart-wrap{position:relative;}
+  .chart-tip{position:absolute;pointer-events:none;background:var(--panel-raised);border:1px solid var(--hairline-strong);
+    border-radius:8px;padding:7px 10px;font-family:var(--mono);font-size:.72rem;color:var(--text-1);
+    box-shadow:0 8px 20px rgba(0,0,0,.5);opacity:0;transition:opacity .1s;white-space:nowrap;z-index:5;}
+  .chart-tip b{color:var(--mkt);}
+  .chart-tip .tt-sub{color:var(--text-3);}
+
+  .chan-row{display:grid;grid-template-columns:120px 1fr 50px;align-items:center;gap:10px;padding:7px 0;font-size:.82rem;}
+  .chan-name{color:var(--text-2);font-family:var(--mono);font-size:.74rem;}
+  .chan-num{font-family:var(--mono);text-align:right;color:var(--text-1);font-weight:600;}
+  .bar-track{height:6px;border-radius:4px;background:var(--panel-inset,#0a101a);position:relative;overflow:hidden;}
+  .bar-fill{position:absolute;left:0;top:0;bottom:0;border-radius:4px;}
+
+  .comp-bar{display:flex;height:22px;border-radius:6px;overflow:hidden;border:1px solid var(--hairline);margin-bottom:10px;}
+  .comp-seg{height:100%;}
+  .comp-legend{display:flex;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:.72rem;color:var(--text-2);}
+  .comp-legend span{display:inline-flex;align-items:center;gap:6px;}
+  .comp-legend i{width:9px;height:9px;border-radius:2px;display:inline-block;}
+
+  .neuromap-card{padding:18px 0 20px;overflow:visible;position:relative;}
+  .neuromap-head{padding:0 20px;display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+  .neuromap-wrap{position:relative;}
+  .hub-orb-canvas{position:absolute;pointer-events:none;}
+  .neuromap-svg{width:100%;height:auto;display:block;margin-top:2px;}
+  .nm-node{cursor:pointer;}
+  .nm-node circle.ring{transition:filter .15s ease, opacity .15s ease;}
+  .nm-node:hover circle.ring, .nm-node.active circle.ring{filter:brightness(1.4);}
+  .nm-node text{font-family:var(--mono);pointer-events:none;user-select:none;}
+  .nm-line{fill:none;stroke-linecap:round;}
+  .nm-line.primary{stroke-width:1.6;stroke-dasharray:5 6;opacity:.6;animation:nmflow 2.2s linear infinite;}
+  .nm-line.leaf{stroke-width:1.2;opacity:.42;}
+  .nm-pulse{animation:pulse 2.6s ease-in-out infinite;}
+  @keyframes nmflow{to{stroke-dashoffset:-22;}}
+  @media (prefers-reduced-motion: reduce){.nm-line.primary,.nm-pulse{animation:none;}}
+
+  .nm-popover{position:absolute;z-index:20;width:240px;background:var(--panel-raised);border:1px solid var(--hairline-strong);
+    border-radius:var(--r-md);padding:12px 14px;box-shadow:0 20px 50px rgba(0,0,0,.55);
+    opacity:0;transform:translateY(4px) scale(.98);transition:opacity .12s ease, transform .12s ease;
+    pointer-events:none;}
+  .nm-popover.visible{opacity:1;transform:translateY(0) scale(1);}
+  .nm-popover.pinned{pointer-events:auto;}
+  .nm-popover::before{content:"";position:absolute;width:9px;height:9px;background:inherit;border:1px solid var(--hairline-strong);
+    border-right:none;border-bottom:none;top:50%;margin-top:-5px;transform:rotate(45deg);}
+  .nm-popover.arrow-left::before{left:-5.5px;border:1px solid var(--hairline-strong);border-top:none;border-right:none;}
+  .nm-popover.arrow-right::before{right:-5.5px;border:1px solid var(--hairline-strong);border-bottom:none;border-left:none;}
+  .nm-popover .nd-close{position:absolute;top:8px;right:9px;background:none;border:none;color:var(--text-3);font-size:.85rem;
+    cursor:pointer;line-height:1;padding:2px;display:none;}
+  .nm-popover.pinned .nd-close{display:block;}
+  .nm-popover .nd-top{display:flex;align-items:flex-start;gap:10px;}
+  .nm-popover .nd-dot{width:9px;height:9px;border-radius:50%;margin-top:4px;flex-shrink:0;box-shadow:0 0 8px 2px currentColor;}
+  .nm-popover .nd-body{flex:1;min-width:0;}
+  .nm-popover .nd-eyebrow{font-family:var(--mono);font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:3px;}
+  .nm-popover .nd-title{font-weight:800;font-size:.92rem;margin-bottom:4px;}
+  .nm-popover .nd-desc{font-size:.78rem;color:var(--text-2);line-height:1.45;}
+  .nm-popover .nd-btn{margin-top:10px;width:100%;font-family:var(--mono);font-size:.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+    color:var(--core);background:rgba(79,216,255,.1);border:1px solid rgba(79,216,255,.3);border-radius:999px;padding:6px 10px;cursor:pointer;}
+  .nm-popover .nd-btn:hover{background:rgba(79,216,255,.18);}
+  .nm-hint{padding:0 20px;font-size:.72rem;color:var(--text-3);margin-top:10px;font-family:var(--mono);}
+
+  .grid-2col{display:grid;grid-template-columns:1.35fr 1fr;gap:18px;align-items:start;}
+  .side-col{display:flex;flex-direction:column;gap:18px;}
+
+  .status-line{ font-family:var(--mono); font-size:.78rem; color:var(--text-3); padding:10px 0; }
+  .status-line.error{ color:var(--crit); }
+
+  footer.note{font-family:var(--mono);font-size:.7rem;color:var(--text-3);border-top:1px solid var(--hairline);
+    padding-top:14px;line-height:1.7;}
+
+  @media (max-width:860px){
+    .grid4,.grid3{grid-template-columns:repeat(2,1fr);}
+    .grid-2col{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div id="unauth" style="display:none;">
+  <h2>Unauthorized</h2>
+  <p><a href="/login">Sign in</a> as the Enoma admin account to view the command center.</p>
+</div>
+
+<canvas id="bgcanvas"></canvas>
+
+<div id="app">
+<div class="shell">
+
+  <div class="sysbar">
+    <div class="sysbar-left">
+      <div class="core-mark"></div>
+      <div class="wordmark">ENOMA<span class="sub">Neural Command</span></div>
+    </div>
+    <div>
+      <div class="sysbar-right">
+        <span class="live-dot"></span><b>Live</b> &middot; loaded <span id="sync-time">—</span><br>
+        Real data on every load &middot; no snapshot
+      </div>
+      <div class="nav-links">
+        <a href="/admin/admin-list.html">Business Profiles</a>
+        <a href="/admin/sales-queue.html">Sales Queue</a>
+        <a href="/admin/voice.html">Voice Agent</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="overview"><span class="tdot"></span>Map</button>
+    <button class="tab" data-tab="ops"><span class="tdot"></span>Ops Agent</button>
+    <button class="tab" data-tab="marketing"><span class="tdot"></span>Marketing Agent</button>
+    <button class="tab" data-tab="revenue"><span class="tdot"></span>Revenue Agent</button>
+  </div>
+
+  <div id="loadStatus" class="status-line">Loading live data…</div>
+
+  <!-- ===================== OVERVIEW / MAP ===================== -->
+  <div class="view active" id="view-overview">
+    <div class="card neuromap-card">
+      <div class="neuromap-head">
+        <h2 class="section-title" style="margin-bottom:0;">Agent network <span class="count">hover or click a node to inspect it</span></h2>
+      </div>
+      <div class="neuromap-wrap" id="neuromap-wrap">
+        <svg id="neuromap" viewBox="0 0 1000 620" class="neuromap-svg" role="img" aria-label="Neural map of Enoma's Ops, Marketing, and Revenue agents"></svg>
+        <canvas id="hub-orb" class="hub-orb-canvas" aria-hidden="true"></canvas>
+        <div class="nm-popover" id="nm-popover"></div>
+      </div>
+      <p class="nm-hint">Ops, Marketing, and Revenue branch off the ENOMA core — click a ring node to jump straight into its dashboard.</p>
+    </div>
+
+    <div class="card" style="border-color:rgba(79,216,255,.3);background:linear-gradient(135deg, var(--panel), rgba(79,216,255,.05));">
+      <h2 class="section-title" style="color:var(--core);">Enoma Voice <span class="count" style="color:var(--text-2);">separate live surface</span></h2>
+      <p style="font-size:.85rem;color:var(--text-2);line-height:1.6;margin:0;">
+        A voice interface also exists at <a href="/admin/voice.html">enoma.io/admin/voice.html</a> — talk to it about revenue, traffic, CRM/prospects, and business pages, or to draft/revise/approve outreach. It's kept as a separate page rather than embedded here.
+      </p>
+    </div>
+  </div>
+
+  <!-- ===================== OPS ===================== -->
+  <div class="view" id="view-ops">
+    <div class="agent-head" style="--glow: radial-gradient(circle at 90% 0%, var(--ops-dim), transparent 60%)">
+      <div class="agent-glyph" style="background:rgba(90,168,240,.14);color:var(--ops);border:1px solid rgba(90,168,240,.35)">OPS</div>
+      <div class="agent-meta">
+        <div class="agent-name">Ops Agent</div>
+        <div class="agent-directive">Business page publish status and trial/subscription lifecycle.</div>
+      </div>
+      <div class="agent-status" id="ops-status-pill">
+        <span class="status-pill" style="background:rgba(90,168,240,.14);color:var(--ops)"><span class="sd"></span>Loading</span>
+      </div>
+    </div>
+
+    <div class="grid4" id="ops-kpis"></div>
+
+    <div class="alert-card" id="ops-attention-card" style="display:none;">
+      <h2 class="section-title">Needs your attention <span class="count" id="ops-attention-count"></span></h2>
+      <div id="ops-attention-list"></div>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Pages &amp; publish status <span class="count" id="ops-pages-count"></span></h2>
+      <p style="font-size:.74rem;color:var(--text-3);margin:0 0 10px;">Live per-business page view counts aren't wired to any endpoint yet, so they're deliberately not shown here rather than faked.</p>
+      <div class="scrollx">
+        <table class="dt"><thead><tr><th>Business</th><th>Publish status</th><th>Subscription</th></tr></thead>
+          <tbody id="ops-pages-body"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MARKETING ===================== -->
+  <div class="view" id="view-marketing">
+    <div class="agent-head" style="--glow: radial-gradient(circle at 90% 0%, var(--mkt-dim), transparent 60%)">
+      <div class="agent-glyph" style="background:rgba(201,138,245,.14);color:var(--mkt);border:1px solid rgba(201,138,245,.35)">MKT</div>
+      <div class="agent-meta">
+        <div class="agent-name">Marketing Agent</div>
+        <div class="agent-directive">enoma.io traffic, acquisition channels, and Search Console.</div>
+      </div>
+      <div class="agent-status" id="mkt-status-pill">
+        <span class="status-pill" style="background:rgba(52,224,161,.12);color:var(--good)"><span class="sd"></span>Loading</span><br>
+        GA4 + Search Console
+      </div>
+    </div>
+
+    <div class="grid4" id="mkt-kpis"></div>
+
+    <div class="grid-2col">
+      <div class="card">
+        <h2 class="section-title">Traffic, last 7 days <span class="count">sessions &middot; GA4 live</span></h2>
+        <div class="chart-wrap">
+          <svg id="ga-chart" viewBox="0 0 560 200" style="width:100%;height:auto;overflow:visible;"></svg>
+          <div class="chart-tip" id="chart-tip"></div>
+        </div>
+      </div>
+      <div class="side-col">
+        <div class="card">
+          <h2 class="section-title">Acquisition channels <span class="count">30 days</span></h2>
+          <div id="channel-list"></div>
+        </div>
+        <div class="card">
+          <h2 class="section-title">Search Console <span class="count">28 days</span></h2>
+          <div class="grid3" style="gap:8px;margin-bottom:10px;" id="gsc-tiles"></div>
+          <div id="gsc-queries"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Prospecting &amp; sales queue <span class="count">live detail lives in Sales Queue</span></h2>
+      <p style="font-size:.82rem;color:var(--text-2);line-height:1.6;margin:0;">
+        Outscraper prospect identification, dedupe, drafting, and lead scoring all run live — see the <a href="/admin/sales-queue.html">Sales Queue</a> (also summarized on the Revenue tab) for the working per-lead view, or ask <a href="/admin/voice.html">Enoma Voice</a> to draft/revise/approve outreach.
+      </p>
+    </div>
+  </div>
+
+  <!-- ===================== REVENUE ===================== -->
+  <div class="view" id="view-revenue">
+    <div class="agent-head" style="--glow: radial-gradient(circle at 90% 0%, var(--rev-dim), transparent 60%)">
+      <div class="agent-glyph" style="background:rgba(52,224,161,.14);color:var(--rev);border:1px solid rgba(52,224,161,.35)">REV</div>
+      <div class="agent-meta">
+        <div class="agent-name">Revenue Agent</div>
+        <div class="agent-directive">Real MRR vs. comped accounts, stalled trials, and the sales queue.</div>
+      </div>
+      <div class="agent-status" id="rev-status-pill">
+        <span class="status-pill" style="background:rgba(90,168,240,.14);color:var(--ops)"><span class="sd"></span>Loading</span>
+      </div>
+    </div>
+
+    <div class="grid4" id="rev-kpis"></div>
+
+    <div class="card" id="rev-comp-card" style="display:none;">
+      <h2 class="section-title">Subscription mix <span class="count" id="rev-comp-count"></span></h2>
+      <div class="comp-bar" id="comp-bar"></div>
+      <div class="comp-legend" id="comp-legend"></div>
+    </div>
+
+    <div class="grid-2col">
+      <div class="card">
+        <h2 class="section-title">Paying &amp; comped</h2>
+        <div id="rev-active-list"></div>
+      </div>
+      <div class="card">
+        <h2 class="section-title">Stalled trials <span class="count">follow-up candidates</span></h2>
+        <div id="rev-stalled-list"></div>
+      </div>
+    </div>
+
+    <div class="card" style="border-color:rgba(52,224,161,.3);">
+      <h2 class="section-title">Sales queue <span class="count">live &middot; <a href="/admin/sales-queue.html">open full queue →</a></span></h2>
+      <div class="grid4" id="sq-tiles" style="margin-bottom:16px;"></div>
+      <div id="sq-funnel"></div>
+    </div>
+  </div>
+
+  <footer class="note">
+    Live page — every number above is fetched on load from the same Supabase/GA4/Search Console data the rest of the admin tools use, not a snapshot. Refresh to re-pull. Replaces the earlier static Claude Artifact prototype.
+  </footer>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/scripts/admin-auth.js"></script>
+<script>
+  const els = {
+    unauth: document.getElementById('unauth'),
+    app: document.getElementById('app'),
+    loadStatus: document.getElementById('loadStatus'),
+  };
+
+  let accessToken = null;
+
+  async function init() {
+    const session = await EnomaAdmin.requireAdminSession();
+    if (!session) { els.unauth.style.display = 'block'; return; }
+    accessToken = session.accessToken;
+    els.app.style.display = 'block';
+    setupTabs();
+    setupBgCanvas();
+    load();
+  }
+
+  function setupTabs() {
+    const tabs = document.querySelectorAll('.tab');
+    const views = document.querySelectorAll('.view');
+    window.activateTab = function activateTab(name) {
+      tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+      views.forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+    };
+    tabs.forEach(t => t.addEventListener('click', () => activateTab(t.dataset.tab)));
+  }
+
+  async function fetchAction(action) {
+    const res = await fetch('/api/ga-metrics?action=' + action, {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.error || (action + ' failed'));
+    return data;
+  }
+
+  async function load() {
+    const now = new Date();
+    document.getElementById('sync-time').textContent =
+      now.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+
+    const [revenue, marketing, ops, salesQueue] = await Promise.allSettled([
+      fetchAction('revenue_status'),
+      fetchAction('marketing_traffic'),
+      fetchAction('business_pages_status'),
+      fetchAction('sales_queue'),
+    ]);
+
+    const anyOk = [revenue, marketing, ops, salesQueue].some(r => r.status === 'fulfilled');
+    els.loadStatus.style.display = 'none';
+    if (!anyOk) {
+      els.loadStatus.style.display = 'block';
+      els.loadStatus.className = 'status-line error';
+      els.loadStatus.textContent = 'Every live data source failed to load — check the network tab or try refreshing.';
+    }
+
+    renderOps(ops);
+    renderMarketing(marketing);
+    renderRevenue(revenue, salesQueue);
+    renderMap({ revenue, marketing, ops, salesQueue });
+  }
+
+  function val(result, path, fallback) {
+    if (result.status !== 'fulfilled') return fallback;
+    return path.split('.').reduce((o, k) => (o == null ? o : o[k]), result.value) ?? fallback;
+  }
+  function errText(result) {
+    return result.status === 'rejected' ? (result.reason?.message || 'failed to load') : null;
+  }
+
+  /* ==================== OPS ==================== */
+  function renderOps(ops) {
+    const pillEl = document.getElementById('ops-status-pill');
+    const err = errText(ops);
+    if (err) {
+      pillEl.innerHTML = `<span class="status-pill" style="background:rgba(255,92,114,.14);color:var(--crit)"><span class="sd"></span>Error</span>`;
+      document.getElementById('ops-kpis').innerHTML = `<div class="status-line error">Ops data failed to load: ${escapeHtml(err)}</div>`;
+      return;
+    }
+    const pages = (ops.value.pages || []).filter(Boolean);
+    const published = pages.filter(p => p.is_published).length;
+    const active = pages.filter(p => p.subscription_status === 'active').length;
+    const trialing = pages.filter(p => p.subscription_status === 'trialing').length;
+
+    pillEl.innerHTML = `<span class="status-pill" style="background:rgba(52,224,161,.12);color:var(--good)"><span class="sd"></span>Live</span>`;
+
+    document.getElementById('ops-kpis').innerHTML = `
+      <div class="kpi"><div class="label">Business pages</div><div class="value">${pages.length}</div><div class="sub">${published} published</div></div>
+      <div class="kpi accent-good"><div class="label">Active subscriptions</div><div class="value">${active}</div></div>
+      <div class="kpi"><div class="label">In trial</div><div class="value">${trialing}</div></div>
+      <div class="kpi accent-warn"><div class="label">Unpublished pages</div><div class="value">${pages.length - published}</div></div>
+    `;
+
+    document.getElementById('ops-pages-count').textContent = `${pages.length} businesses`;
+    document.getElementById('ops-pages-body').innerHTML = pages.map(p => `
+      <tr>
+        <td class="row-name">${p.url ? `<a href="https://${escapeHtml(p.url)}" target="_blank">${escapeHtml(p.business_name || p.url)}</a>` : escapeHtml(p.business_name || '—')}</td>
+        <td><span class="pill ${p.is_published ? 'good' : 'warn'}">${p.is_published ? 'Published' : 'Unpublished'}</span></td>
+        <td>${p.subscription_status ? `<span class="pill ${statusPillClass(p.subscription_status)}">${escapeHtml(p.subscription_status)}</span>` : '<span style="color:var(--text-3);">—</span>'}</td>
+      </tr>
+    `).join('') || '<tr><td colspan="3" style="color:var(--text-3);">No business pages found.</td></tr>';
+  }
+
+  function statusPillClass(status) {
+    if (status === 'active') return 'good';
+    if (status === 'trialing') return 'info';
+    if (status === 'canceled' || status === 'past_due') return 'crit';
+    return 'warn';
+  }
+
+  /* ==================== MARKETING ==================== */
+  function renderMarketing(marketing) {
+    const pillEl = document.getElementById('mkt-status-pill');
+    const err = errText(marketing);
+    if (err) {
+      pillEl.innerHTML = `<span class="status-pill" style="background:rgba(255,92,114,.14);color:var(--crit)"><span class="sd"></span>Error</span>`;
+      document.getElementById('mkt-kpis').innerHTML = `<div class="status-line error">Marketing data failed to load: ${escapeHtml(err)}</div>`;
+      return;
+    }
+    pillEl.innerHTML = `<span class="status-pill" style="background:rgba(52,224,161,.12);color:var(--good)"><span class="sd"></span>Live</span><br>GA4 + Search Console`;
+
+    const daily = marketing.value.last_7_days || [];
+    const channels = marketing.value.channels_last_30_days || [];
+    const sc = marketing.value.search_console || {};
+
+    const totalSessions7d = daily.reduce((s, d) => s + Number(d.sessions || 0), 0);
+    const totalUsers7d = daily.reduce((s, d) => s + Number(d.activeUsers || 0), 0);
+    const topChannel = [...channels].sort((a, b) => Number(b.sessions) - Number(a.sessions))[0];
+    const scTotals = sc.last_28_days || {};
+
+    document.getElementById('mkt-kpis').innerHTML = `
+      <div class="kpi"><div class="label">Sessions (7d)</div><div class="value">${totalSessions7d}</div><div class="sub">via GA4</div></div>
+      <div class="kpi"><div class="label">Active users (7d)</div><div class="value">${totalUsers7d}</div></div>
+      <div class="kpi"><div class="label">Top channel (30d)</div><div class="value" style="font-size:1.15rem;">${topChannel ? escapeHtml(topChannel.channel) : '—'}</div><div class="sub">${topChannel ? topChannel.sessions + ' sessions' : ''}</div></div>
+      <div class="kpi"><div class="label">Search clicks (28d)</div><div class="value">${scTotals.clicks ?? '—'}</div><div class="sub">${scTotals.impressions ? scTotals.impressions + ' impressions' : (sc.error ? 'unavailable' : '')}</div></div>
+    `;
+
+    renderChannelList(channels);
+    renderGaChart(daily);
+
+    document.getElementById('gsc-tiles').innerHTML = sc.error
+      ? `<div class="status-line error" style="grid-column:1/-1;">${escapeHtml(sc.error)}</div>`
+      : `
+        <div class="kpi" style="padding:10px 12px;"><div class="label">Clicks</div><div class="value" style="font-size:1.25rem;">${scTotals.clicks ?? '—'}</div></div>
+        <div class="kpi" style="padding:10px 12px;"><div class="label">Impressions</div><div class="value" style="font-size:1.25rem;">${scTotals.impressions ?? '—'}</div></div>
+        <div class="kpi" style="padding:10px 12px;"><div class="label">Avg. position</div><div class="value" style="font-size:1.25rem;">${scTotals.avg_position != null ? Number(scTotals.avg_position).toFixed(1) : '—'}</div></div>
+      `;
+    const queries = sc.top_queries || [];
+    document.getElementById('gsc-queries').innerHTML = queries.map(q => `
+      <div class="chan-row">
+        <div class="chan-name" style="font-family:inherit;font-size:.8rem;color:var(--text-1);">${escapeHtml(q.query)}</div>
+        <div class="chan-name" style="text-align:right;">pos ${Number(q.avg_position).toFixed(1)}</div>
+        <div class="chan-num">${q.clicks}/${q.impressions}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderChannelList(channels) {
+    const el = document.getElementById('channel-list');
+    if (!channels.length) { el.innerHTML = '<div class="status-line">No channel data for the last 30 days.</div>'; return; }
+    const max = Math.max(...channels.map(c => Number(c.sessions) || 0), 1);
+    el.innerHTML = channels.map(c => {
+      const pct = Math.round((Number(c.sessions) / max) * 100);
+      return `
+        <div class="chan-row">
+          <div class="chan-name">${escapeHtml(c.channel)}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:var(--mkt)"></div></div>
+          <div class="chan-num">${c.sessions}</div>
+        </div>`;
+    }).join('');
+  }
+
+  function renderGaChart(daily) {
+    const svg = document.getElementById('ga-chart');
+    const tip = document.getElementById('chart-tip');
+    svg.innerHTML = '';
+    if (!daily.length) { svg.outerHTML = '<div class="status-line">No traffic data for the last 7 days.</div>'; return; }
+    const W = 560, H = 200, padL = 28, padR = 10, padT = 14, padB = 26;
+    const plotW = W - padL - padR, plotH = H - padT - padB;
+    const maxS = Math.max(...daily.map(d => Number(d.sessions) || 0), 1);
+    const x = i => padL + (i / Math.max(daily.length - 1, 1)) * plotW;
+    const y = v => padT + plotH - (v / maxS) * plotH;
+    const ns = 'http://www.w3.org/2000/svg';
+    function el(tag, attrs) { const e = document.createElementNS(ns, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; }
+
+    for (let g = 0; g <= 3; g++) {
+      const gy = padT + (plotH / 3) * g;
+      svg.appendChild(el('line', { x1: padL, x2: W - padR, y1: gy, y2: gy, stroke: 'rgba(130,180,255,.10)', 'stroke-width': 1 }));
+    }
+    const areaPts = daily.map((d, i) => `${x(i)},${y(Number(d.sessions))}`).join(' ');
+    const areaPath = `M${padL},${padT + plotH} L${areaPts} L${W - padR},${padT + plotH} Z`;
+    const defs = el('defs', {});
+    const grad = el('linearGradient', { id: 'areaGrad', x1: '0', y1: '0', x2: '0', y2: '1' });
+    grad.appendChild(el('stop', { offset: '0%', 'stop-color': 'var(--mkt)', 'stop-opacity': '0.35' }));
+    grad.appendChild(el('stop', { offset: '100%', 'stop-color': 'var(--mkt)', 'stop-opacity': '0' }));
+    defs.appendChild(grad); svg.appendChild(defs);
+    svg.appendChild(el('path', { d: areaPath, fill: 'url(#areaGrad)' }));
+
+    const linePts = daily.map((d, i) => `${x(i)},${y(Number(d.sessions))}`).join(' ');
+    svg.appendChild(el('polyline', { points: linePts, fill: 'none', stroke: 'var(--mkt)', 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+
+    daily.forEach((d, i) => {
+      if (i % 2 === 0) {
+        const lbl = el('text', { x: x(i), y: H - 6, 'text-anchor': 'middle', 'font-family': 'var(--mono)', 'font-size': '9', fill: 'var(--text-3)' });
+        lbl.textContent = String(d.date).slice(5).replace('-', '/');
+        svg.appendChild(lbl);
+      }
+    });
+
+    const lastI = daily.length - 1;
+    svg.appendChild(el('circle', { cx: x(lastI), cy: y(Number(daily[lastI].sessions)), r: 4, fill: 'var(--mkt)' }));
+
+    const crosshair = el('line', { x1: 0, x2: 0, y1: padT, y2: padT + plotH, stroke: 'var(--mkt)', 'stroke-width': 1, 'stroke-dasharray': '3,3', opacity: 0 });
+    svg.appendChild(crosshair);
+    const hoverDot = el('circle', { r: 4, fill: 'var(--mkt)', stroke: 'var(--void)', 'stroke-width': 2, opacity: 0 });
+    svg.appendChild(hoverDot);
+
+    daily.forEach((d, i) => {
+      const segW = plotW / daily.length;
+      const hit = el('rect', { x: padL + i * segW, y: padT, width: segW, height: plotH, fill: 'transparent', style: 'cursor:crosshair' });
+      hit.addEventListener('mouseenter', () => {
+        crosshair.setAttribute('x1', x(i)); crosshair.setAttribute('x2', x(i)); crosshair.setAttribute('opacity', 1);
+        hoverDot.setAttribute('cx', x(i)); hoverDot.setAttribute('cy', y(Number(d.sessions))); hoverDot.setAttribute('opacity', 1);
+        const rect = svg.getBoundingClientRect();
+        const px = rect.width * (x(i) / W), py = rect.height * (y(Number(d.sessions)) / H);
+        tip.style.left = Math.min(px + 12, rect.width - 130) + 'px';
+        tip.style.top = Math.max(py - 46, 0) + 'px';
+        tip.innerHTML = `<b>${d.sessions} sessions</b><br><span class="tt-sub">${d.date} &middot; ${d.activeUsers} users &middot; ${d.pageViews} views</span>`;
+        tip.style.opacity = 1;
+      });
+      hit.addEventListener('mouseleave', () => { crosshair.setAttribute('opacity', 0); hoverDot.setAttribute('opacity', 0); tip.style.opacity = 0; });
+      svg.appendChild(hit);
+    });
+  }
+
+  /* ==================== REVENUE ==================== */
+  function renderRevenue(revenue, salesQueue) {
+    const pillEl = document.getElementById('rev-status-pill');
+    const err = errText(revenue);
+    if (err) {
+      pillEl.innerHTML = `<span class="status-pill" style="background:rgba(255,92,114,.14);color:var(--crit)"><span class="sd"></span>Error</span>`;
+      document.getElementById('rev-kpis').innerHTML = `<div class="status-line error">Revenue data failed to load: ${escapeHtml(err)}</div>`;
+    } else {
+      const r = revenue.value;
+      pillEl.innerHTML = `<span class="status-pill" style="background:rgba(52,224,161,.12);color:var(--good)"><span class="sd"></span>Live</span>`;
+      document.getElementById('rev-kpis').innerHTML = `
+        <div class="kpi accent-good"><div class="label">MRR</div><div class="value">$${Number(r.mrr).toFixed(2)}</div><div class="sub">${r.paying_count} paying account${r.paying_count === 1 ? '' : 's'}</div></div>
+        <div class="kpi"><div class="label">Comped accounts</div><div class="value">${r.comped_count}</div><div class="sub">$0 &mdash; goodwill / demo</div></div>
+        <div class="kpi accent-warn"><div class="label">Stalled trials</div><div class="value">${r.stalled_trial_count}</div><div class="sub">$${Number(r.potential_mrr_if_stalled_convert).toFixed(2)} potential MRR</div></div>
+        <div class="kpi"><div class="label">Trials in progress</div><div class="value">${r.active_trial_count}</div></div>
+      `;
+
+      const total = r.paying_count + r.comped_count + r.active_trial_count + r.stalled_trial_count;
+      if (total > 0) {
+        document.getElementById('rev-comp-card').style.display = 'block';
+        document.getElementById('rev-comp-count').textContent = `${total} businesses`;
+        const segs = [
+          { n: r.paying_count, color: 'var(--rev)', label: `Paying (${r.paying_count})` },
+          { n: r.comped_count, color: 'var(--ops)', label: `Comped (${r.comped_count})` },
+          { n: r.active_trial_count, color: 'var(--mkt)', label: `Trialing (${r.active_trial_count})` },
+          { n: r.stalled_trial_count, color: 'var(--warn)', label: `Trial expired (${r.stalled_trial_count})` },
+        ].filter(s => s.n > 0);
+        document.getElementById('comp-bar').innerHTML = segs.map(s => `<div class="comp-seg" style="width:${(s.n / total * 100)}%;background:${s.color}"></div>`).join('');
+        document.getElementById('comp-legend').innerHTML = segs.map(s => `<span><i style="background:${s.color}"></i>${s.label}</span>`).join('');
+      }
+
+      document.getElementById('rev-active-list').innerHTML = [
+        ...(r.paying_businesses || []).map(n => `<div class="alert-row"><div class="name">${escapeHtml(n || 'Unnamed')}</div><span class="pill good">Paying</span></div>`),
+        ...(r.comped_businesses || []).map(n => `<div class="alert-row"><div class="name">${escapeHtml(n || 'Unnamed')}</div><span class="pill info">Comped</span></div>`),
+      ].join('') || '<div class="status-line">No paying or comped accounts.</div>';
+
+      document.getElementById('rev-stalled-list').innerHTML = (r.stalled_trial_businesses || []).length
+        ? (r.stalled_trial_businesses || []).map(n => `<div class="alert-row"><div><div class="name">${escapeHtml(n || 'Unnamed')}</div><div class="why">$19.99/mo if converted</div></div></div>`).join('')
+        : '<div class="status-line">No stalled trials right now.</div>';
+    }
+
+    const sqErr = errText(salesQueue);
+    if (sqErr) {
+      document.getElementById('sq-tiles').innerHTML = `<div class="status-line error" style="grid-column:1/-1;">Sales queue failed to load: ${escapeHtml(sqErr)}</div>`;
+      return;
+    }
+    const s = salesQueue.value.summary || {};
+    document.getElementById('sq-tiles').innerHTML = `
+      <div class="kpi" style="border-color:rgba(255,92,114,.3);"><div class="label">Hot leads</div><div class="value" style="color:var(--crit);">${s.hot ?? 0}</div></div>
+      <div class="kpi" style="border-color:rgba(255,184,74,.3);"><div class="label">Warm leads</div><div class="value" style="color:var(--warn);">${s.warm ?? 0}</div></div>
+      <div class="kpi"><div class="label">New this week</div><div class="value">${s.new_this_week ?? 0}</div></div>
+      <div class="kpi accent-good"><div class="label">Ready to send</div><div class="value">${s.prospects_ready_to_send ?? 0}</div></div>
+    `;
+    const funnel = salesQueue.value.funnel_health || [];
+    document.getElementById('sq-funnel').innerHTML = funnel.length ? `
+      <h2 class="section-title" style="margin-top:4px;">Self-serve funnel <span class="count">last 30 days</span></h2>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        ${funnel.map(f => `<div class="kpi" style="min-width:110px;padding:9px 13px;"><div class="value" style="font-size:1rem;color:var(--mkt);">${f.count_last_30_days}</div><div class="sub">${escapeHtml(f.event)}</div></div>`).join('')}
+      </div>` : '';
+  }
+
+  /* ==================== MAP ==================== */
+  function renderMap({ revenue, marketing, ops, salesQueue }) {
+    const svg = document.getElementById('neuromap');
+    const wrap = document.getElementById('neuromap-wrap');
+    const pop = document.getElementById('nm-popover');
+    if (!svg || !wrap || !pop) return;
+    const ns = 'http://www.w3.org/2000/svg';
+    function el(tag, attrs, text) {
+      const e = document.createElementNS(ns, tag);
+      for (const k in attrs) e.setAttribute(k, attrs[k]);
+      if (text != null) e.textContent = text;
+      return e;
+    }
+
+    const opsErr = errText(ops), mktErr = errText(marketing), revErr = errText(revenue);
+    const opsPages = val(ops, 'pages', []) || [];
+    const stalledCount = val(revenue, 'stalled_trial_count', 0);
+    const mrr = val(revenue, 'mrr', 0);
+    const potentialMrr = val(revenue, 'potential_mrr_if_stalled_convert', 0);
+    const daily = val(marketing, 'last_7_days', []) || [];
+    const sessions7d = daily.reduce((s, d) => s + Number(d.sessions || 0), 0);
+    const channels = val(marketing, 'channels_last_30_days', []) || [];
+    const topChannel = [...channels].sort((a, b) => Number(b.sessions) - Number(a.sessions))[0];
+    const hot = val(salesQueue, 'summary.hot', 0);
+
+    const hub = { x: 500, y: 340, r: 30, label: 'ENOMA', color: 'var(--core)' };
+    const primaries = [
+      { id: 'ops', x: 240, y: 340, r: 23, label: 'OPS', color: 'var(--ops)',
+        status: opsErr ? 'crit' : (stalledCount > 0 ? 'warn' : 'good'),
+        metric: opsErr ? 'unavailable' : `${opsPages.length} pages live`,
+        desc: opsErr ? `Couldn't load: ${opsErr}` : `${stalledCount} trial${stalledCount === 1 ? '' : 's'} expired, unconverted.`, jump: 'ops' },
+      { id: 'marketing', x: 500, y: 130, r: 23, label: 'MARKETING', color: 'var(--mkt)',
+        status: mktErr ? 'crit' : 'good',
+        metric: mktErr ? 'unavailable' : `${sessions7d} sessions / 7d`,
+        desc: mktErr ? `Couldn't load: ${mktErr}` : (topChannel ? `Top channel: ${topChannel.channel} (${topChannel.sessions} sessions/30d).` : 'No channel data yet.'), jump: 'marketing' },
+      { id: 'revenue', x: 760, y: 340, r: 23, label: 'REVENUE', color: 'var(--rev)',
+        status: revErr ? 'crit' : (stalledCount > 0 ? 'warn' : 'good'),
+        metric: revErr ? 'unavailable' : `$${Number(mrr).toFixed(2)} MRR`,
+        desc: revErr ? `Couldn't load: ${revErr}` : `$${Number(potentialMrr).toFixed(2)} potential MRR stalled in expired trials. ${hot} hot lead${hot === 1 ? '' : 's'} in the sales queue.`, jump: 'revenue' },
+    ];
+    const leaves = [
+      { parent: 'ops', x: 70, y: 205, label: 'Trial lifecycle', color: 'var(--ops)', desc: `${stalledCount} trials past expiry, still unpaid.`, jump: 'ops' },
+      { parent: 'ops', x: 50, y: 375, label: 'Page publish status', color: 'var(--ops)', desc: `${opsPages.length} business pages tracked.`, jump: 'ops' },
+      { parent: 'marketing', x: 270, y: 35, label: 'Traffic & channels', color: 'var(--mkt)', desc: topChannel ? `${topChannel.channel} is the top channel — ${topChannel.sessions} sessions/30d.` : 'No channel data yet.', jump: 'marketing' },
+      { parent: 'marketing', x: 500, y: 18, label: 'Search Console', color: 'var(--mkt)', desc: 'Real query/click/impression data, 28-day window.', jump: 'marketing' },
+      { parent: 'marketing', x: 730, y: 35, label: 'Prospecting', color: 'var(--mkt)', desc: 'Outscraper identify → dedupe → draft → approve, all live. Sending stays manual, on purpose.', jump: 'marketing' },
+      { parent: 'revenue', x: 930, y: 205, label: 'Paying & comped', color: 'var(--rev)', desc: 'Real paying accounts split from goodwill/demo comps.', jump: 'revenue' },
+      { parent: 'revenue', x: 950, y: 375, label: 'Sales queue', color: 'var(--rev)', desc: `${hot} hot lead${hot === 1 ? '' : 's'} scored right now — see the full queue.`, jump: 'revenue' },
+      { parent: 'revenue', x: 865, y: 545, label: 'Stalled trials', color: 'var(--rev)', desc: `${stalledCount} expired trials — $${Number(potentialMrr).toFixed(2)}/mo in potential MRR.`, jump: 'revenue' },
+    ];
+
+    svg.appendChild(el('text', { x: 500, y: 355, 'text-anchor': 'middle', 'font-family': 'var(--sans)',
+      'font-weight': '800', 'font-size': '210', fill: 'var(--text-1)', opacity: '0.025' }, 'ENOMA'));
+
+    function primaryOf(id) { return primaries.find(p => p.id === id); }
+    const statusColor = { warn: 'var(--warn)', good: 'var(--good)', info: 'var(--ops)', crit: 'var(--crit)' };
+
+    primaries.forEach(p => {
+      const dx = p.x - hub.x, dy = p.y - hub.y;
+      const mx = (hub.x + p.x) / 2 + dy * 0.08, my = (hub.y + p.y) / 2 - dx * 0.08;
+      svg.appendChild(el('path', { d: `M${hub.x},${hub.y} Q${mx},${my} ${p.x},${p.y}`, class: 'nm-line primary', stroke: p.color }));
+    });
+    leaves.forEach(lf => {
+      const p = primaryOf(lf.parent);
+      svg.appendChild(el('line', { x1: p.x, y1: p.y, x2: lf.x, y2: lf.y, class: 'nm-line leaf', stroke: lf.color }));
+    });
+
+    let pinnedNode = null;
+    function renderPopoverContent(d) {
+      const dot = d.dotColor || d.color;
+      pop.innerHTML = `
+        <button class="nd-close" type="button" aria-label="Close">&times;</button>
+        <div class="nd-top">
+          <span class="nd-dot" style="background:${dot};color:${dot}"></span>
+          <div class="nd-body">
+            <div class="nd-eyebrow">${escapeHtml(d.eyebrow)}</div>
+            <div class="nd-title">${escapeHtml(d.label)}${d.metric ? ` <span style="color:var(--text-3);font-weight:500;font-size:.72rem;">— ${escapeHtml(d.metric)}</span>` : ''}</div>
+            <div class="nd-desc">${escapeHtml(d.desc)}</div>
+          </div>
+        </div>
+        ${d.jump ? `<button class="nd-btn" data-jump="${d.jump}">Open ${d.jump} dashboard &rarr;</button>` : ''}`;
+      const jumpBtn = pop.querySelector('.nd-btn');
+      if (jumpBtn) jumpBtn.addEventListener('click', (e) => { e.stopPropagation(); activateTab(jumpBtn.dataset.jump); });
+      const closeBtn = pop.querySelector('.nd-close');
+      if (closeBtn) closeBtn.addEventListener('click', (e) => { e.stopPropagation(); unpin(); });
+    }
+    function positionPopover(nodeCircle) {
+      const wrapRect = wrap.getBoundingClientRect();
+      const nodeRect = nodeCircle.getBoundingClientRect();
+      const cx = nodeRect.left + nodeRect.width / 2 - wrapRect.left;
+      const cy = nodeRect.top + nodeRect.height / 2 - wrapRect.top;
+      const popW = pop.offsetWidth || 240;
+      const gap = 16;
+      const spaceRight = wrapRect.width - cx;
+      const placeLeft = spaceRight < popW + gap + 20;
+      pop.classList.toggle('arrow-left', !placeLeft);
+      pop.classList.toggle('arrow-right', placeLeft);
+      let left = placeLeft ? (cx - gap - popW) : (cx + gap);
+      left = Math.max(4, Math.min(left, wrapRect.width - popW - 4));
+      pop.style.left = left + 'px';
+      const popH = pop.offsetHeight || 120;
+      let top = cy - popH / 2;
+      top = Math.max(4, Math.min(top, wrapRect.height - popH - 4));
+      pop.style.top = top + 'px';
+    }
+    function showPopover(cfg, pin) {
+      renderPopoverContent(cfg.detail);
+      pop.classList.add('visible');
+      pop.classList.toggle('pinned', !!pin);
+      positionPopover(cfg.circleEl);
+      requestAnimationFrame(() => positionPopover(cfg.circleEl));
+    }
+    function unpin() {
+      pinnedNode = null;
+      pop.classList.remove('visible', 'pinned');
+      document.querySelectorAll('.nm-node').forEach(n => n.classList.remove('active'));
+    }
+    function makeNode(cfg) {
+      const g = el('g', { class: 'nm-node', transform: `translate(${cfg.x},${cfg.y})` });
+      if (cfg.glowRing) g.appendChild(el('circle', { class: 'ring nm-pulse', r: cfg.r + 6, fill: 'none', stroke: cfg.color, 'stroke-width': 1, opacity: .35 }));
+      const ring = el('circle', { class: 'ring', r: cfg.r, fill: 'var(--panel-raised)', stroke: cfg.color, 'stroke-width': cfg.strokeW || 2 });
+      g.appendChild(ring);
+      g.appendChild(el('circle', { r: Math.max(cfg.r - 14, 3), fill: cfg.color, opacity: .85 }));
+      if (cfg.badge) g.appendChild(el('circle', { cx: cfg.r - 4, cy: -cfg.r + 4, r: 5, fill: cfg.badge }));
+      g.appendChild(el('text', { y: cfg.r + 16, 'text-anchor': 'middle', 'font-size': cfg.labelSize || 11,
+        'font-weight': 700, 'letter-spacing': '.04em', fill: 'var(--text-2)' }, cfg.label.toUpperCase()));
+      cfg.circleEl = ring;
+      g.addEventListener('mouseenter', () => { if (!pinnedNode) showPopover(cfg, false); });
+      g.addEventListener('mouseleave', () => { if (!pinnedNode) pop.classList.remove('visible'); });
+      g.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.nm-node').forEach(n => n.classList.remove('active'));
+        g.classList.add('active');
+        pinnedNode = g;
+        showPopover(cfg, true);
+      });
+      svg.appendChild(g);
+      return g;
+    }
+
+    const hubNode = makeNode({
+      x: hub.x, y: hub.y, r: hub.r, color: hub.color, strokeW: 2.5, labelSize: 12, label: hub.label, glowRing: true,
+      detail: { eyebrow: 'Command core', label: 'ENOMA', desc: 'Enoma Voice — click to inspect. The live version lives at enoma.io/admin/voice.html; this is the same particle-sphere motif, ambient only.', color: hub.color }
+    });
+    hubNode.querySelectorAll('circle').forEach(c => c.setAttribute('opacity', '0'));
+
+    primaries.forEach(p => {
+      makeNode({
+        x: p.x, y: p.y, r: p.r, color: p.color, strokeW: 2, labelSize: 11, label: p.label,
+        badge: statusColor[p.status], glowRing: p.status === 'warn' || p.status === 'crit',
+        detail: { eyebrow: p.label + ' agent', label: p.label, metric: p.metric, desc: p.desc, jump: p.jump, color: p.color, dotColor: statusColor[p.status] }
+      });
+    });
+    leaves.forEach(lf => {
+      makeNode({
+        x: lf.x, y: lf.y, r: 13, color: lf.color, strokeW: 1.6, labelSize: 9.5, label: lf.label,
+        detail: { eyebrow: primaryOf(lf.parent).label + ' agent', label: lf.label, desc: lf.desc, jump: lf.jump, color: lf.color }
+      });
+    });
+
+    document.addEventListener('click', (e) => { if (pinnedNode && !pop.contains(e.target)) unpin(); });
+    window.addEventListener('resize', () => { if (pinnedNode) positionPopover(pinnedNode.querySelector('circle.ring')); });
+
+    setupHubOrb();
+  }
+
+  function setupHubOrb() {
+    const canvas = document.getElementById('hub-orb');
+    const wrap = document.getElementById('neuromap-wrap');
+    if (!canvas || !wrap || canvas.dataset.started) return;
+    canvas.dataset.started = '1';
+    const ctx = canvas.getContext('2d');
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const N = 240;
+    const GOLDEN = Math.PI * (3 - Math.sqrt(5));
+    const points = Array.from({ length: N }, (_, i) => {
+      const y = 1 - (i / (N - 1)) * 2;
+      const radiusAtY = Math.sqrt(Math.max(0, 1 - y * y));
+      const theta = GOLDEN * i;
+      return { x0: Math.cos(theta) * radiusAtY, y0: y, z0: Math.sin(theta) * radiusAtY,
+        stretch: 0.28 + Math.random() * 1.55, phase: Math.random() * Math.PI * 2, bounceSpeed: 0.5 + Math.random() * 0.7 };
+    });
+    let W = 0, H = 0, cx = 0, cy = 0, baseR = 40;
+    function resize() {
+      const wrapRect = wrap.getBoundingClientRect();
+      const size = Math.min(wrapRect.width, wrapRect.height) * 0.4;
+      W = canvas.width = size; H = canvas.height = size;
+      canvas.style.width = size + 'px'; canvas.style.height = size + 'px';
+      canvas.style.left = (wrapRect.width * 0.5 - size / 2) + 'px';
+      canvas.style.top = (wrapRect.height * (340 / 620) - size / 2) + 'px';
+      cx = W / 2; cy = H / 2; baseR = size * 0.17;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+    let rotY = 0, rotX = 0.3;
+    function frame(t) {
+      ctx.clearRect(0, 0, W, H);
+      const amp = 0.22 + Math.sin(t / 700) * 0.08 + Math.sin(t / 1300) * 0.05;
+      const col = '79,216,255';
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, baseR * (1.6 + amp));
+      grad.addColorStop(0, `rgba(${col},${0.4 + amp * 0.3})`);
+      grad.addColorStop(1, `rgba(${col},0)`);
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(cx, cy, baseR * (1.6 + amp), 0, Math.PI * 2); ctx.fill();
+      if (!reduced) { rotY += 0.0045; rotX += 0.0011; }
+      const cosY = Math.cos(rotY), sinY = Math.sin(rotY), cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+      const projected = points.map(p => {
+        const x1 = p.x0 * cosY - p.z0 * sinY, z1 = p.x0 * sinY + p.z0 * cosY;
+        const y1 = p.y0 * cosX - z1 * sinX, z2 = p.y0 * sinX + z1 * cosX;
+        const bounce = 1 + Math.sin(t / 260 * p.bounceSpeed + p.phase) * 0.06;
+        const r = baseR * p.stretch * (1 + amp * 0.4) * bounce;
+        const focal = baseR * 8;
+        const scale = focal / (focal - z2 * r);
+        return { x: cx + x1 * r * scale, y: cy + y1 * r * scale, z: z2, scale };
+      }).sort((a, b) => a.z - b.z);
+      projected.forEach(p => {
+        const depth = (p.z + 1) / 2;
+        ctx.fillStyle = `rgba(${col},${0.2 + depth * 0.55})`;
+        ctx.beginPath(); ctx.arc(p.x, p.y, (0.9 + depth * 1.8) * p.scale, 0, Math.PI * 2); ctx.fill();
+      });
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function setupBgCanvas() {
+    const canvas = document.getElementById('bgcanvas');
+    const ctx = canvas.getContext('2d');
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let w, h, nodes = [];
+    function resize() {
+      w = canvas.width = window.innerWidth;
+      h = canvas.height = Math.max(window.innerHeight, document.body.scrollHeight);
+      const count = Math.min(46, Math.floor((w * h) / 45000));
+      nodes = Array.from({ length: count }, () => ({
+        x: Math.random() * w, y: Math.random() * h,
+        vx: (Math.random() - 0.5) * 0.12, vy: (Math.random() - 0.5) * 0.12
+      }));
+    }
+    function frame() {
+      ctx.clearRect(0, 0, w, h);
+      for (const n of nodes) {
+        if (!reduced) { n.x += n.vx; n.y += n.vy; }
+        if (n.x < 0 || n.x > w) n.vx *= -1;
+        if (n.y < 0 || n.y > h) n.vy *= -1;
+      }
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const a = nodes[i], b = nodes[j];
+          const d = Math.hypot(a.x - b.x, a.y - b.y);
+          if (d < 150) {
+            ctx.strokeStyle = 'rgba(90,168,240,' + (0.11 * (1 - d / 150)) + ')';
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+          }
+        }
+      }
+      for (const n of nodes) {
+        ctx.fillStyle = 'rgba(79,216,255,.35)';
+        ctx.beginPath(); ctx.arc(n.x, n.y, 1.4, 0, Math.PI * 2); ctx.fill();
+      }
+      if (!reduced) requestAnimationFrame(frame);
+    }
+    window.addEventListener('resize', resize);
+    resize(); frame();
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  init();
+</script>
+</body>
+</html>

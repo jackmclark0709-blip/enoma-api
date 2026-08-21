@@ -18,7 +18,7 @@
 
 <div id="auth-gate">
   <h1>All Business Profiles</h1>
-  <p style="color:#6b7280; margin-bottom:1.5rem;">Admin view — only visible to jack@enoma.io &middot; <a href="/admin/sales-queue.html">Sales Queue →</a> &middot; <a href="/admin/voice.html">Voice Agent →</a></p>
+  <p style="color:#6b7280; margin-bottom:1.5rem;">Admin view — only visible to jack@enoma.io &middot; <a href="/admin/command-center.html">Command Center →</a> &middot; <a href="/admin/sales-queue.html">Sales Queue →</a> &middot; <a href="/admin/voice.html">Voice Agent →</a></p>
 
   <table>
     <thead>
@@ -39,20 +39,15 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/scripts/admin-auth.js"></script>
 <script>
-  const SUPABASE_URL = 'https://qhsivcenpnxwmvwznqie.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc';
-
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
   async function init() {
-    const { data: { session } } = await supabase.auth.getSession();
+    const session = await EnomaAdmin.requireAdminSession();
 
     const unauthEl = document.getElementById('unauth-message');
     const gateEl = document.getElementById('auth-gate');
 
-    // Must be logged in AND be the admin email
-    if (!session || session.user.email !== 'jack@enoma.io') {
+    if (!session) {
       unauthEl.innerHTML = '<h2 style="color:#e24b4a;">Unauthorized</h2><p><a href="/login">Sign in</a></p>';
       return;
     }
@@ -61,7 +56,7 @@
     unauthEl.style.display = 'none';
     gateEl.style.display = 'block';
 
-    const { data, error } = await supabase
+    const { data, error } = await session.client
       .from('small_business_profiles')
       .select('business_id, business_name, email, username, created_at')
       .order('created_at', { ascending: false });
