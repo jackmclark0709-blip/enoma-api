@@ -56,9 +56,16 @@
   .sysbar-right b{color:var(--text-2);font-weight:600;}
   .live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--good);
     box-shadow:0 0 6px 1px rgba(52,224,161,.6);margin-right:6px;animation:pulse 2.4s ease-in-out infinite;}
-  .nav-links{ display:flex; gap:14px; font-family:var(--mono); font-size:.72rem; margin-top:4px; justify-content:flex-end; }
+  .nav-links{ display:flex; gap:14px; align-items:center; font-family:var(--mono); font-size:.72rem; margin-top:4px; justify-content:flex-end; }
   .nav-links a{ color:var(--text-2); text-decoration:none; }
   .nav-links a:hover{ color:var(--core); }
+  .refresh-btn{
+    font-family:var(--mono); font-size:.72rem; color:var(--text-2);
+    background:var(--panel-raised); border:1px solid var(--hairline); border-radius:999px;
+    padding:4px 12px; cursor:pointer;
+  }
+  .refresh-btn:hover{ border-color:var(--core-dim); color:var(--core); }
+  .refresh-btn:disabled{ opacity:.5; cursor:default; }
 
   @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(.72);}}
   @media (prefers-reduced-motion: reduce){.live-dot,.core-mark::after{animation:none;}}
@@ -153,6 +160,53 @@
   .comp-legend span{display:inline-flex;align-items:center;gap:6px;}
   .comp-legend i{width:9px;height:9px;border-radius:2px;display:inline-block;}
 
+  /* ---------- inline sales-queue list (Revenue tab) ---------- */
+  .sq-filters{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .sq-chip{
+    font-family:var(--mono); font-size:.72rem; color:var(--text-2);
+    background:var(--panel-raised); border:1px solid var(--hairline); border-radius:999px;
+    padding:5px 12px; cursor:pointer; user-select:none; white-space:nowrap;
+  }
+  .sq-chip:hover{ border-color:var(--hairline-strong); }
+  .sq-chip.active{ background:rgba(79,216,255,.12); border-color:var(--core-dim); color:var(--core); }
+  .sq-row{
+    display:flex; gap:14px; align-items:flex-start; background:var(--panel-raised);
+    border:1px solid var(--hairline); border-radius:12px; padding:14px 16px; margin-bottom:9px;
+  }
+  .sq-row:hover{ border-color:var(--hairline-strong); }
+  .sq-tier{
+    flex-shrink:0; width:48px; text-align:center; font-family:var(--mono); font-size:.64rem;
+    font-weight:700; text-transform:uppercase; letter-spacing:.04em; border-radius:7px; padding:4px 0;
+  }
+  .sq-tier.hot{ background:rgba(255,92,114,.14); color:var(--crit); }
+  .sq-tier.warm{ background:rgba(255,184,74,.14); color:var(--warn); }
+  .sq-tier.cold{ background:rgba(93,115,150,.16); color:var(--text-3); }
+  .sq-main{ flex:1; min-width:0; }
+  .sq-top{ display:flex; align-items:baseline; gap:9px; flex-wrap:wrap; }
+  .sq-name{ font-weight:700; font-size:.92rem; }
+  .sq-type{ font-family:var(--mono); font-size:.64rem; color:var(--text-3); text-transform:uppercase; letter-spacing:.05em; }
+  .sq-detail{ color:var(--text-2); font-size:.8rem; margin-top:2px; }
+  .sq-meta{ display:flex; gap:12px; flex-wrap:wrap; margin-top:6px; font-family:var(--mono); font-size:.7rem; color:var(--text-3); }
+  .sq-meta a{ color:var(--text-2); }
+  .sq-meta a:hover{ color:var(--core); }
+  .sq-action{ color:var(--core); font-size:.76rem; margin-top:6px; font-weight:600; }
+  .sq-draft-toggle{ color:var(--core); font-family:var(--mono); font-size:.74rem; margin-top:8px; cursor:pointer; user-select:none; display:inline-block; }
+  .sq-draft-toggle:hover{ text-decoration:underline; }
+  .sq-draft-box{ margin-top:6px; background:var(--panel); border:1px solid var(--hairline); border-radius:9px; padding:11px 13px; }
+  .sq-draft-subject{ font-weight:700; font-size:.82rem; margin-bottom:7px; }
+  .sq-draft-body{ white-space:pre-wrap; color:var(--text-2); font-size:.78rem; line-height:1.5; }
+  .sq-controls{ flex-shrink:0; display:flex; flex-direction:column; gap:6px; align-items:flex-end; }
+  .sq-score{ font-family:var(--mono); font-size:.68rem; color:var(--text-3); }
+  .sq-btn-row{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+  .sq-mini-btn{
+    font-family:var(--mono); font-size:.66rem; color:var(--text-2);
+    background:var(--panel); border:1px solid var(--hairline); border-radius:7px;
+    padding:4px 9px; cursor:pointer; white-space:nowrap;
+  }
+  .sq-mini-btn:hover{ border-color:var(--core-dim); color:var(--core); }
+  .sq-mini-btn:disabled{ opacity:.4; cursor:default; }
+  .sq-empty{ color:var(--text-3); font-family:var(--mono); font-size:.82rem; text-align:center; padding:28px 0; }
+
   .neuromap-card{padding:18px 0 20px;overflow:visible;position:relative;}
   .neuromap-head{padding:0 20px;display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;}
   .neuromap-wrap{position:relative;}
@@ -231,6 +285,7 @@
         Real data on every load &middot; no snapshot
       </div>
       <div class="nav-links">
+        <button class="refresh-btn" id="refreshBtn">↻ Refresh</button>
         <a href="/admin/admin-list.html">Business Profiles</a>
         <a href="/admin/sales-queue.html">Sales Queue</a>
         <a href="/admin/voice.html">Voice Agent</a>
@@ -377,9 +432,11 @@
     </div>
 
     <div class="card" style="border-color:rgba(52,224,161,.3);">
-      <h2 class="section-title">Sales queue <span class="count">live &middot; <a href="/admin/sales-queue.html">open full queue →</a></span></h2>
+      <h2 class="section-title">Sales queue <span class="count">live &middot; <a href="/admin/sales-queue.html">open full-screen →</a></span></h2>
       <div class="grid4" id="sq-tiles" style="margin-bottom:16px;"></div>
-      <div id="sq-funnel"></div>
+      <div id="sq-funnel" style="margin-bottom:18px;"></div>
+      <div class="sq-filters" id="sq-filters"></div>
+      <div id="sq-queue"></div>
     </div>
   </div>
 
@@ -396,6 +453,7 @@
     unauth: document.getElementById('unauth'),
     app: document.getElementById('app'),
     loadStatus: document.getElementById('loadStatus'),
+    refreshBtn: document.getElementById('refreshBtn'),
   };
 
   let accessToken = null;
@@ -407,6 +465,7 @@
     els.app.style.display = 'block';
     setupTabs();
     setupBgCanvas();
+    els.refreshBtn.addEventListener('click', () => load());
     load();
   }
 
@@ -430,9 +489,8 @@
   }
 
   async function load() {
-    const now = new Date();
-    document.getElementById('sync-time').textContent =
-      now.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    els.refreshBtn.disabled = true;
+    els.refreshBtn.textContent = 'Loading…';
 
     const [revenue, marketing, ops, salesQueue] = await Promise.allSettled([
       fetchAction('revenue_status'),
@@ -440,6 +498,12 @@
       fetchAction('business_pages_status'),
       fetchAction('sales_queue'),
     ]);
+
+    const now = new Date();
+    document.getElementById('sync-time').textContent =
+      now.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    els.refreshBtn.disabled = false;
+    els.refreshBtn.textContent = '↻ Refresh';
 
     const anyOk = [revenue, marketing, ops, salesQueue].some(r => r.status === 'fulfilled');
     els.loadStatus.style.display = 'none';
@@ -453,6 +517,18 @@
     renderMarketing(marketing);
     renderRevenue(revenue, salesQueue);
     renderMap({ revenue, marketing, ops, salesQueue });
+  }
+
+  // Re-pulls just the sales queue (e.g. after marking a lead replied) without
+  // re-fetching GA4/Search Console/revenue — those don't change from a queue action.
+  async function reloadSalesQueue() {
+    try {
+      const salesQueue = { status: 'fulfilled', value: await fetchAction('sales_queue') };
+      renderSqTilesAndFunnel(salesQueue);
+      renderSqQueue();
+    } catch (err) {
+      sqStatusEl().textContent = 'Failed to refresh: ' + err.message;
+    }
   }
 
   function val(result, path, fallback) {
@@ -669,9 +745,17 @@
         : '<div class="status-line">No stalled trials right now.</div>';
     }
 
+    renderSqTilesAndFunnel(salesQueue);
+    sqRows = errText(salesQueue) ? [] : (salesQueue.value.queue || []);
+    renderSqFilters();
+    renderSqQueue();
+  }
+
+  function renderSqTilesAndFunnel(salesQueue) {
     const sqErr = errText(salesQueue);
     if (sqErr) {
       document.getElementById('sq-tiles').innerHTML = `<div class="status-line error" style="grid-column:1/-1;">Sales queue failed to load: ${escapeHtml(sqErr)}</div>`;
+      document.getElementById('sq-funnel').innerHTML = '';
       return;
     }
     const s = salesQueue.value.summary || {};
@@ -687,6 +771,179 @@
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
         ${funnel.map(f => `<div class="kpi" style="min-width:110px;padding:9px 13px;"><div class="value" style="font-size:1rem;color:var(--mkt);">${f.count_last_30_days}</div><div class="sub">${escapeHtml(f.event)}</div></div>`).join('')}
       </div>` : '';
+  }
+
+  /* ---- inline queue: filters, rows, draft preview, write actions ----
+     Mirrors sales-queue.html's own logic (same endpoints, same filter set)
+     so the two stay in sync rather than drifting into two implementations. */
+  let sqRows = [];
+  let sqActiveFilter = 'all';
+  const SQ_FILTERS = [
+    { key: 'all', label: 'All' },
+    { key: 'hot', label: '🔥 High intent' },
+    { key: 'uncontacted', label: 'Uncontacted' },
+    { key: 'new_week', label: 'New this week' },
+    { key: 'raw_lead', label: 'Raw leads' },
+    { key: 'prospect', label: 'Prospects' },
+  ];
+
+  function sqStatusEl() { return document.getElementById('sq-queue'); }
+
+  function renderSqFilters() {
+    const el = document.getElementById('sq-filters');
+    el.innerHTML = SQ_FILTERS.map(f =>
+      `<div class="sq-chip${f.key === sqActiveFilter ? ' active' : ''}" data-key="${f.key}">${f.label}</div>`
+    ).join('');
+    el.querySelectorAll('.sq-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        sqActiveFilter = chip.dataset.key;
+        renderSqFilters();
+        renderSqQueue();
+      });
+    });
+  }
+
+  function matchesSqFilter(row) {
+    const weekStart = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    switch (sqActiveFilter) {
+      case 'hot': return row.tier === 'hot';
+      case 'uncontacted': return row.lead_type === 'raw_lead' && row.status === 'new';
+      case 'new_week': return new Date(row.last_activity_at).getTime() >= weekStart;
+      case 'raw_lead': return row.lead_type === 'raw_lead';
+      case 'prospect': return row.lead_type === 'prospect';
+      default: return true;
+    }
+  }
+
+  function sqTimeAgo(iso) {
+    if (!iso) return '—';
+    const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + 'm ago';
+    const hrs = Math.round(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    return Math.round(hrs / 24) + 'd ago';
+  }
+
+  function renderSqQueue() {
+    const el = sqStatusEl();
+    const rows = sqRows.filter(matchesSqFilter);
+    if (!rows.length) {
+      el.innerHTML = `<div class="sq-empty">${sqRows.length ? 'Nothing in this view.' : 'Queue is empty.'}</div>`;
+      return;
+    }
+    // Cap the inline view so the Revenue tab doesn't turn into an endless
+    // scroll — the full queue is one click away for anything beyond this.
+    const shown = rows.slice(0, 12);
+    el.innerHTML = shown.map(sqRowHtml).join('') +
+      (rows.length > shown.length ? `<div class="sq-empty">+ ${rows.length - shown.length} more — <a href="/admin/sales-queue.html">open full-screen →</a></div>` : '');
+    el.querySelectorAll('[data-sq-action]').forEach(btn => {
+      btn.addEventListener('click', () => runSqAction(btn.dataset.leadType, btn.dataset.id, btn.dataset.sqAction));
+    });
+    el.querySelectorAll('[data-sq-toggle-draft]').forEach(toggle => {
+      toggle.addEventListener('click', () => toggleSqDraft(toggle, shown));
+    });
+  }
+
+  function sqRowHtml(r) {
+    const title = r.lead_type === 'raw_lead' ? (r.name || 'Unnamed lead') : (r.business_name || 'Unnamed business');
+    const contact = [
+      r.email ? `<a href="mailto:${escapeHtml(r.email)}">${escapeHtml(r.email)}</a>` : null,
+      r.phone ? `<a href="tel:${escapeHtml(r.phone)}">${escapeHtml(r.phone)}</a>` : null,
+      r.preview_url ? `<a href="${escapeHtml(r.preview_url)}" target="_blank">preview page →</a>` : null,
+    ].filter(Boolean).join(' &middot; ');
+
+    let controls = '';
+    if (r.lead_type === 'raw_lead') {
+      controls = r.status === 'replied'
+        ? `<span class="sq-mini-btn" style="opacity:.6;">Replied</span>`
+        : `<button class="sq-mini-btn" data-lead-type="raw_lead" data-id="${r.id}" data-sq-action="mark_replied">Mark replied</button>
+           <button class="sq-mini-btn" data-lead-type="raw_lead" data-id="${r.id}" data-sq-action="${r.status === 'read' ? 'mark_unread' : 'mark_read'}">${r.status === 'read' ? 'Mark unread' : 'Mark read'}</button>`;
+    } else {
+      const next = { new: 'reviewed', reviewed: 'drafted', drafted: 'approved' }[r.status];
+      controls = `
+        ${next ? `<button class="sq-mini-btn" data-lead-type="prospect" data-id="${r.id}" data-sq-action="${next}">Mark ${next}</button>` : ''}
+        <button class="sq-mini-btn" data-lead-type="prospect" data-id="${r.id}" data-sq-action="skipped">Skip</button>
+      `;
+    }
+
+    return `
+      <div class="sq-row">
+        <div class="sq-tier ${r.tier}">${r.tier}</div>
+        <div class="sq-main">
+          <div class="sq-top">
+            <span class="sq-name">${escapeHtml(title)}</span>
+            <span class="sq-type">${r.lead_type === 'raw_lead' ? 'enoma lead' : 'prospect'} &middot; ${escapeHtml(r.source || '—')}</span>
+          </div>
+          ${r.detail ? `<div class="sq-detail">${escapeHtml(r.detail)}</div>` : ''}
+          <div class="sq-meta">
+            ${contact || '<span>no contact info on file</span>'}
+            <span>${sqTimeAgo(r.last_activity_at)}</span>
+            <span>status: ${escapeHtml(r.status)}</span>
+          </div>
+          <div class="sq-action">→ ${escapeHtml(r.suggested_action || '')}</div>
+          ${r.draft_body ? `
+            <div class="sq-draft-toggle" data-sq-toggle-draft="${r.id}">▸ View draft</div>
+            <div class="sq-draft-box" data-sq-draft-box="${r.id}" style="display:none;"></div>
+          ` : ''}
+        </div>
+        <div class="sq-controls">
+          <div class="sq-score">score ${r.score}</div>
+          <div class="sq-btn-row">${controls}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Populates the draft box via textContent (never innerHTML) — draft copy is
+  // AI-generated from scraped third-party website text, same caution as
+  // sales-queue.html's own toggleDraft.
+  function toggleSqDraft(toggleEl, rows) {
+    const id = toggleEl.dataset.sqToggleDraft;
+    const box = sqStatusEl().querySelector(`[data-sq-draft-box="${CSS.escape(id)}"]`);
+    if (!box) return;
+    const isOpen = box.style.display !== 'none';
+    if (isOpen) { box.style.display = 'none'; toggleEl.textContent = '▸ View draft'; return; }
+    if (!box.dataset.populated) {
+      const row = rows.find(r => String(r.id) === id);
+      if (!row) return;
+      box.innerHTML = '';
+      const subjectEl = document.createElement('div');
+      subjectEl.className = 'sq-draft-subject';
+      subjectEl.textContent = row.draft_subject || '(no subject)';
+      const bodyEl = document.createElement('div');
+      bodyEl.className = 'sq-draft-body';
+      bodyEl.textContent = row.draft_body || '';
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'sq-mini-btn';
+      copyBtn.style.marginTop = '10px';
+      copyBtn.textContent = 'Copy for email';
+      copyBtn.addEventListener('click', async () => {
+        const text = `Subject: ${row.draft_subject || ''}\n\n${row.draft_body || ''}`;
+        try { await navigator.clipboard.writeText(text); copyBtn.textContent = 'Copied!'; }
+        catch { copyBtn.textContent = 'Copy failed — select manually'; }
+        setTimeout(() => { copyBtn.textContent = 'Copy for email'; }, 1500);
+      });
+      box.append(subjectEl, bodyEl, copyBtn);
+      box.dataset.populated = '1';
+    }
+    box.style.display = 'block';
+    toggleEl.textContent = '▾ Hide draft';
+  }
+
+  async function runSqAction(leadType, id, action) {
+    try {
+      const res = await fetch('/api/ga-metrics?action=update_lead_status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + accessToken },
+        body: JSON.stringify({ lead_type: leadType, id, action })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Update failed');
+      reloadSalesQueue();
+    } catch (err) {
+      alert(err.message);
+    }
   }
 
   /* ==================== MAP ==================== */
