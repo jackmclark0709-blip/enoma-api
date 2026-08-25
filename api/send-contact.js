@@ -21,6 +21,84 @@ export default async function handler(req, res) {
     trade, town
   } = req.body;
 
+  /* ─────────────────────────────────────────────
+     SITE-WIDE FOOTER CTA — zero-friction, email only
+     source === 'global_cta'
+     Deliberately skips the name/message requirement
+     below (that's the whole point — lowest possible
+     barrier to entry). Lands in contact_submissions
+     with business_id null, same as the other raw-lead
+     sources, so it flows straight into the sales queue.
+  ───────────────────────────────────────────── */
+  if (source === 'global_cta') {
+    if (!email) {
+      return res.status(400).json({ error: 'email is required' });
+    }
+
+    await supabase.from('contact_submissions').insert({
+      business_id: null,
+      slug: null,
+      name: 'Website visitor',
+      email,
+      phone: null,
+      subject: 'Global CTA — wants Enoma to reach out',
+      message: 'Submitted their email via the site-wide "Want us to reach out?" footer CTA — no other details provided.',
+      source: 'global_cta',
+      is_read: false,
+    }).catch(err => console.error('DB insert error:', err.message));
+
+    try {
+      await resend.emails.send({
+        from: 'Enoma <notifications@enoma.io>',
+        to: 'jack@enoma.io',
+        replyTo: email,
+        subject: `🌱 New lead: someone wants a callback (footer CTA)`,
+        html: `
+          <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a;">
+            <div style="background:#0f172a;padding:24px 28px;border-radius:12px 12px 0 0;">
+              <p style="margin:0;font-size:12px;font-weight:700;color:rgba(220,238,255,0.6);letter-spacing:0.1em;text-transform:uppercase;">Lead — Footer CTA</p>
+              <p style="margin:6px 0 0;font-size:22px;font-weight:800;color:#fff;">${email}</p>
+            </div>
+            <div style="background:#fff;border:1px solid #e4edf5;border-top:none;border-radius:0 0 12px 12px;padding:24px 28px;">
+              <p style="margin:0 0 20px;font-size:13px;color:#6b7280;line-height:1.6;">Left only their email via the site-wide footer CTA — no name, business, or message. Worth a quick personal reach-out.</p>
+              <a href="mailto:${email}" style="display:inline-block;background:#16a34a;color:#fff;padding:11px 22px;border-radius:999px;font-weight:700;font-size:13px;text-decoration:none;">Reach out →</a>
+            </div>
+          </div>
+        `,
+      });
+    } catch (err) {
+      console.error('global_cta notify email error:', err.message);
+    }
+
+    try {
+      await resend.emails.send({
+        from: 'Jack at Enoma <jack@enoma.io>',
+        to: email,
+        subject: `Thanks — we'll be in touch`,
+        html: `
+          <div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#1a1a1a;">
+            <div style="background:#0f172a;padding:24px 28px;border-radius:12px 12px 0 0;">
+              <p style="margin:0;font-size:22px;font-weight:800;color:#fff;">🌿 enoma</p>
+            </div>
+            <div style="background:#fff;border:1px solid #e4edf5;border-top:none;border-radius:0 0 12px 12px;padding:28px;">
+              <p style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 12px;">Thanks for reaching out!</p>
+              <p style="font-size:14px;color:#374151;line-height:1.65;margin:0;">
+                We got your email — I'll personally follow up shortly to see how Enoma can help your business grow.
+                Questions in the meantime? Just reply to this email.<br><br>
+                — Jack<br>
+                <a href="https://enoma.io" style="color:#3882dc;">enoma.io</a>
+              </p>
+            </div>
+          </div>
+        `,
+      });
+    } catch (err) {
+      console.error('global_cta confirmation email error:', err.message);
+    }
+
+    return res.status(200).json({ ok: true });
+  }
+
   if (!name || !email || !message) {
     return res.status(400).json({ error: 'name, email, and message are required' });
   }
