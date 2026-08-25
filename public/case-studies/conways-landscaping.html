@@ -57,6 +57,87 @@
     .cs-browser__frame iframe { width: 100%; height: 100%; border: none; }
     .cs-browser__footnote { display: flex; justify-content: space-between; align-items: center; margin-top: 0.85rem; font-size: 0.85rem; color: #5a7a9a; flex-wrap: wrap; gap: 0.5rem; }
     .cs-browser__footnote a { color: #2d6a2d; font-weight: 600; }
+    /* ── How it was built: full signup-to-live carousel ── */
+    .cs-journey { background: #fff; padding: 4rem 1.5rem 5rem; border-top: 1px solid #d4e2f4; }
+    .cs-journey__inner { max-width: 780px; margin-inline: auto; text-align: center; }
+    .cs-journey__label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #3882dc; margin-bottom: 0.6rem; }
+    .cs-journey__h2 { font-family: 'Fraunces', serif; font-size: clamp(1.4rem, 2.5vw, 1.8rem); font-weight: 800; color: #0a1628; letter-spacing: -0.02em; margin-bottom: 0.6rem; }
+    .cs-journey__sub { font-size: 0.95rem; color: #5a7a9a; line-height: 1.6; margin-bottom: 2.5rem; }
+
+    .cj-carousel { --dark:#0a1628; --panel:#0a1628; --blue:#3882dc; --blue-light:#7ab3e0; --text:#f0f6ff; --text-dim:rgba(240,246,255,.62); --text-faint:rgba(240,246,255,.4); --card-bg:rgba(255,255,255,.05); --card-border:rgba(255,255,255,.10); position: relative; }
+    .cj-frame { background: var(--panel); border: 1px solid var(--card-border); border-radius: 16px; overflow: hidden; box-shadow: 0 30px 80px rgba(10,22,40,.28), inset 0 1px 0 rgba(255,255,255,.05); text-align: left; }
+    .cj-chrome { display: flex; align-items: center; gap: .8rem; padding: .65rem .95rem; background: #050b16; border-bottom: 1px solid var(--card-border); }
+    .cj-chrome__dots { display: flex; gap: 6px; flex-shrink: 0; }
+    .cj-chrome__dots span { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.15); }
+    .cj-chrome__dots span:nth-child(1) { background: #e0645a; } .cj-chrome__dots span:nth-child(2) { background: #e0b25a; } .cj-chrome__dots span:nth-child(3) { background: #5ac97a; }
+    .cj-chrome__url { flex: 1; display: flex; align-items: center; gap: .4rem; background: rgba(255,255,255,.05); border: 1px solid var(--card-border); border-radius: 999px; padding: .28rem .8rem; font-family: 'IBM Plex Mono', monospace; font-size: .72rem; color: var(--text-dim); }
+    .cj-chrome__url svg { width: 10px; height: 10px; stroke: var(--text-faint); fill: none; stroke-width: 2; flex-shrink: 0; }
+    .cj-chrome__time { flex-shrink: 0; font-family: 'IBM Plex Mono', monospace; font-size: .68rem; font-weight: 500; color: var(--blue-light); background: rgba(56,130,220,.14); border: 1px solid rgba(56,130,220,.3); padding: .28rem .6rem; border-radius: 999px; }
+    .cj-stage { position: relative; min-height: 460px; }
+    .cj-slide { position: absolute; inset: 0; opacity: 0; transform: translateY(8px); transition: opacity .4s ease, transform .4s ease; pointer-events: none; padding: 1.5rem 1.6rem 1.7rem; }
+    .cj-slide[data-active] { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    @media (prefers-reduced-motion: reduce) { .cj-slide { transition: opacity .15s ease; transform: none !important; } }
+
+    .cj-eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: .6rem; font-weight: 500; letter-spacing: .13em; text-transform: uppercase; color: var(--blue-light); margin: 0 0 .5rem; }
+    .cj-h { font-family: 'Fraunces', serif; font-size: 1.24rem; font-weight: 700; letter-spacing: -.02em; margin: 0 0 .45rem; color: var(--text); }
+    .cj-p { font-size: .8rem; color: var(--text-dim); line-height: 1.55; margin: 0 0 1rem; }
+    .cj-label { font-size: .64rem; font-weight: 700; color: var(--text-dim); letter-spacing: .03em; text-transform: uppercase; display: block; margin: .7rem 0 .3rem; }
+    .cj-field { width: 100%; padding: .55rem .7rem; border-radius: 8px; font-size: .78rem; border: 1.5px solid var(--card-border); background: rgba(255,255,255,.05); color: var(--text); }
+    .cj-field.filled { border-color: rgba(56,130,220,.35); }
+    .cj-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 .8rem; }
+    .cj-btn { display: inline-flex; align-items: center; gap: .4rem; background: var(--blue); color: #fff; font-weight: 700; font-size: .82rem; border: none; border-radius: 999px; padding: .65rem 1.3rem; margin-top: 1.1rem; font-family: 'Instrument Sans', sans-serif; box-shadow: 0 8px 22px rgba(56,130,220,.3); }
+    .cj-btn.full { width: 100%; justify-content: center; }
+    .cj-card { max-width: 320px; margin: .3rem auto 0; background: rgba(255,255,255,.035); border: 1px solid var(--card-border); border-radius: 13px; padding: 1.4rem 1.5rem; }
+
+    .cj-progress-label { display: flex; justify-content: space-between; font-size: .7rem; font-weight: 600; color: var(--text-dim); margin-bottom: .4rem; }
+    .cj-progress-label strong { color: var(--text); }
+    .cj-progress-track { height: 5px; border-radius: 999px; background: rgba(255,255,255,.08); overflow: hidden; margin-bottom: 1.05rem; }
+    .cj-progress-fill { height: 100%; border-radius: 999px; background: var(--blue); }
+
+    .cj-block { background: rgba(255,255,255,.035); border: 1.5px solid var(--card-border); border-radius: 10px; padding: .6rem .8rem; margin-top: .5rem; }
+    .cj-block .name { font-size: .82rem; font-weight: 700; color: var(--text); }
+    .cj-block .desc { font-size: .72rem; color: var(--text-faint); margin-top: 2px; line-height: 1.4; }
+    .cj-mini-tabs { display: flex; gap: .35rem; margin-bottom: .3rem; }
+    .cj-logo-drop { display: flex; align-items: center; gap: .8rem; padding: .75rem; border: 1.5px dashed rgba(255,255,255,.18); border-radius: 12px; margin-top: .5rem; }
+    .cj-logo-mark { width: 48px; height: 48px; border-radius: 10px; background: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .cj-photo-strip { display: flex; gap: .35rem; margin-top: .6rem; }
+    .cj-photo-chip { flex: 1; aspect-ratio: 4/3; border-radius: 8px; background: linear-gradient(135deg, rgba(56,130,220,.28), rgba(47,107,58,.32)); border: 1px solid var(--card-border); }
+
+    .cj-review-row { display: flex; justify-content: space-between; padding: .45rem 0; font-size: .8rem; border-top: 1px solid var(--card-border); }
+    .cj-review-row:first-child { border-top: none; }
+    .cj-review-row .k { color: var(--text-faint); } .cj-review-row .v { color: var(--text); font-weight: 600; }
+
+    .cj-center { text-align: center; }
+    .cj-check { width: 42px; height: 42px; background: rgba(56,130,220,.15); border: 1px solid rgba(56,130,220,.35); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto .8rem; }
+    .cj-url-pill { display: inline-flex; align-items: center; gap: .45rem; background: rgba(255,255,255,.06); border: 1.5px solid var(--card-border); border-radius: 9px; padding: .45rem .8rem; font-family: 'IBM Plex Mono', monospace; font-size: .75rem; margin: .8rem 0; }
+
+    .cj-biz-hero { border-radius: 13px; overflow: hidden; border: 1px solid var(--card-border); }
+    .cj-biz-top { background: #fff; padding: .6rem .85rem; display: flex; align-items: center; justify-content: space-between; }
+    .cj-biz-wordmark { font-family: 'Fraunces', serif; font-weight: 800; font-size: .78rem; color: #1f5c2c; line-height: 1; }
+    .cj-biz-wordmark small { display: block; font-family: 'Instrument Sans', sans-serif; font-weight: 700; font-size: .46rem; letter-spacing: .06em; color: #3a8a4a; margin-top: 1px; }
+    .cj-biz-call { background: #1f5c2c; color: #fff; font-size: .64rem; font-weight: 700; padding: .32rem .65rem; border-radius: 999px; }
+    .cj-biz-main { background: linear-gradient(160deg, #142f1a, #0c1f10); padding: 1.25rem 1rem 1.1rem; }
+    .cj-biz-main h3 { font-family: 'Fraunces', serif; color: #fff; font-size: 1.08rem; line-height: 1.2; margin: 0 0 .45rem; letter-spacing: -.01em; }
+    .cj-biz-main p { color: rgba(255,255,255,.7); font-size: .72rem; line-height: 1.5; margin: 0; max-width: 280px; }
+    .cj-biz-badges { display: flex; flex-wrap: wrap; gap: .32rem; margin-top: .65rem; }
+    .cj-biz-badge { font-size: .58rem; font-weight: 600; padding: .26rem .55rem; border-radius: 999px; background: rgba(255,255,255,.08); color: rgba(255,255,255,.85); border: 1px solid rgba(255,255,255,.12); }
+    .cj-biz-badge.live { background: rgba(94,201,122,.18); color: #8fe0a5; border-color: rgba(94,201,122,.3); }
+    .cj-biz-about { background: #eef3ee; padding: .9rem 1rem; }
+    .cj-biz-about .lbl { font-size: .58rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #3a8a4a; margin-bottom: .35rem; }
+    .cj-biz-about p { font-size: .72rem; color: #34443a; line-height: 1.55; margin: 0; }
+
+    .cj-controls { display: flex; align-items: center; justify-content: center; gap: 1.5rem; margin-top: 1.1rem; }
+    .cj-arrow { width: 34px; height: 34px; border-radius: 50%; background: #f0f6ff; border: 1px solid #d4e2f4; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #0a1628; flex-shrink: 0; transition: background .15s; }
+    .cj-arrow:hover { background: #e2edfa; }
+    .cj-arrow svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.4; }
+    .cj-dots { display: flex; gap: .45rem; }
+    .cj-dots button { width: 7px; height: 7px; border-radius: 50%; background: #cfe0f5; border: none; padding: 0; cursor: pointer; transition: background .2s, width .2s, border-radius .2s; }
+    .cj-dots button[data-active] { background: #3882dc; width: 20px; border-radius: 999px; }
+    .cj-captions { margin-top: 1rem; }
+    .cj-cap-step { font-family: 'IBM Plex Mono', monospace; font-size: .68rem; color: #3882dc; letter-spacing: .09em; text-transform: uppercase; margin: 0 0 .25rem; font-weight: 600; }
+    .cj-cap-text { font-size: .85rem; color: #5a7a9a; margin: 0; }
+    @media (max-width: 640px) { .cj-stage { min-height: 500px; } }
+
     .cs-benefits { background: #f0f6ff; padding: 4rem 1.5rem; }
     .cs-benefits__inner { max-width: 900px; margin-inline: auto; }
     .cs-benefits__label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #2d6a2d; margin-bottom: 0.6rem; }
@@ -140,6 +221,140 @@
     <div class="cs-browser__footnote">
       <span>This is the real, live page — try scrolling or clicking around.</span>
       <a href="/conways-landscaping" target="_blank" rel="noopener" data-cta="open_live_site">Open in a new tab ↗</a>
+    </div>
+  </div>
+</section>
+
+<section class="cs-journey">
+  <div class="cs-journey__inner">
+    <p class="cs-journey__label">How it was built</p>
+    <h2 class="cs-journey__h2">Every step, start to live.</h2>
+    <p class="cs-journey__sub">The same seven screens Conway's Landscaping clicked through — real product, no staged demo.</p>
+
+    <div class="cj-carousel" id="cjCarousel">
+      <div class="cj-frame">
+        <div class="cj-chrome">
+          <div class="cj-chrome__dots"><span></span><span></span><span></span></div>
+          <div class="cj-chrome__url"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/></svg><span id="cjUrl">enoma.io/signup</span></div>
+          <div class="cj-chrome__time" id="cjTime">0:00</div>
+        </div>
+        <div class="cj-stage" id="cjStage">
+
+          <div class="cj-slide" data-active data-cap-step="Start" data-cap-text="Create an account — email and password, first month free.">
+            <div class="cj-card">
+              <p class="cj-eyebrow" style="text-align:left">Free trial</p>
+              <h3 class="cj-h">Create your account</h3>
+              <p class="cj-p">Get your business website live in minutes.<br><strong style="color:var(--text)">First month free</strong> — no credit card required.</p>
+              <label class="cj-label">Email address</label>
+              <div class="cj-field">jack@conwayslandscaping.com</div>
+              <label class="cj-label">Password</label>
+              <div class="cj-field">••••••••••</div>
+              <button class="cj-btn full">Create free account →</button>
+            </div>
+          </div>
+
+          <div class="cj-slide" data-cap-step="Step 1 of 4" data-cap-text="Business basics — name, trade, and where you work.">
+            <div class="cj-progress-label"><span>Step <strong>1</strong> of 4</span><span>Let's find your business</span></div>
+            <div class="cj-progress-track"><div class="cj-progress-fill" style="width:25%"></div></div>
+            <label class="cj-label" style="margin-top:0">Business name</label>
+            <div class="cj-field filled">Conway's Landscaping</div>
+            <div class="cj-row2">
+              <div><label class="cj-label">Trade</label><div class="cj-field filled">Landscaping / Lawn Care</div></div>
+              <div><label class="cj-label">Location</label><div class="cj-field filled">Agawam, MA</div></div>
+            </div>
+            <label class="cj-label">Service area</label>
+            <div class="cj-field filled">Agawam, West Springfield, Feeding Hills</div>
+            <button class="cj-btn">Continue →</button>
+          </div>
+
+          <div class="cj-slide" data-cap-step="Step 2 of 4" data-cap-text="Services and a rough description — AI turns notes into real copy.">
+            <div class="cj-progress-label"><span>Step <strong>2</strong> of 4</span><span>What do you do?</span></div>
+            <div class="cj-progress-track"><div class="cj-progress-fill" style="width:50%"></div></div>
+            <label class="cj-label" style="margin-top:0">Services</label>
+            <div class="cj-block"><div class="name">Weekly Mowing</div><div class="desc">Routine mowing, trimming &amp; edging for residential lawns</div></div>
+            <div class="cj-block"><div class="name">Seasonal Cleanup</div><div class="desc">Spring &amp; fall cleanups, mulching, leaf removal</div></div>
+            <label class="cj-label">Describe your business</label>
+            <div class="cj-field filled" style="min-height:48px;line-height:1.5;padding-top:.55rem">family owned since 2021, mostly residential, I'm on every job myself, fair pricing</div>
+            <button class="cj-btn">Continue →</button>
+          </div>
+
+          <div class="cj-slide" data-cap-step="Step 3 of 4" data-cap-text="Logo and a few photos — optional, but they build trust fast.">
+            <div class="cj-progress-label"><span>Step <strong>3</strong> of 4</span><span>Make it look like you</span></div>
+            <div class="cj-progress-track"><div class="cj-progress-fill" style="width:75%"></div></div>
+            <label class="cj-label" style="margin-top:0">Business logo</label>
+            <div class="cj-logo-drop">
+              <div class="cj-logo-mark"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1f5c2c" stroke-width="1.6"><path d="M12 2 4 7v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V7z"/><path d="M8 12c1.5 2 2.5 3 4 3s2.5-1 4-3"/></svg></div>
+              <div>
+                <div style="font-size:.8rem;font-weight:700;color:var(--text)">conways-logo.png</div>
+                <div style="font-size:.7rem;color:var(--text-faint)">Sets your page's color theme automatically</div>
+              </div>
+            </div>
+            <label class="cj-label">Business photos</label>
+            <div class="cj-photo-strip"><div class="cj-photo-chip"></div><div class="cj-photo-chip"></div><div class="cj-photo-chip"></div><div class="cj-photo-chip"></div></div>
+            <button class="cj-btn">Continue →</button>
+          </div>
+
+          <div class="cj-slide" data-cap-step="Step 4 of 4" data-cap-text="Review, then build — nothing here is final, everything stays editable.">
+            <div class="cj-progress-label"><span>Step <strong>4</strong> of 4</span><span>Ready to build</span></div>
+            <div class="cj-progress-track"><div class="cj-progress-fill" style="width:100%"></div></div>
+            <p class="cj-p" style="margin-top:.85rem">Here's what we've got — you can go back and change anything first.</p>
+            <div class="cj-block" style="padding:.25rem .85rem">
+              <div class="cj-review-row"><span class="k">Business</span><span class="v">Conway's Landscaping</span></div>
+              <div class="cj-review-row"><span class="k">Trade</span><span class="v">Landscaping / Lawn Care</span></div>
+              <div class="cj-review-row"><span class="k">Location</span><span class="v">Agawam, MA</span></div>
+              <div class="cj-review-row"><span class="k">Services</span><span class="v">2 services</span></div>
+              <div class="cj-review-row"><span class="k">About</span><span class="v">Added</span></div>
+              <div class="cj-review-row"><span class="k">Photos</span><span class="v">Logo, 4 photos</span></div>
+            </div>
+            <button class="cj-btn full" style="margin-top:1.05rem">Build my business website →</button>
+          </div>
+
+          <div class="cj-slide" data-cap-step="Done" data-cap-text="The page is generated, hosted, and already indexable.">
+            <div class="cj-center">
+              <div class="cj-check"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7ab3e0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <p class="cj-eyebrow">Live</p>
+              <h3 class="cj-h">Your website is live 🎉</h3>
+              <p class="cj-p">Share this link anywhere your business name appears.</p>
+              <div class="cj-url-pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#7ab3e0" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/></svg>enoma.io/conways-landscaping</div>
+              <br>
+              <button class="cj-btn">View my website →</button>
+            </div>
+          </div>
+
+          <div class="cj-slide" data-cap-step="The result" data-cap-text="A real, indexed page in the business's own colors — not Enoma's.">
+            <div class="cj-biz-hero">
+              <div class="cj-biz-top">
+                <div class="cj-biz-wordmark">CONWAY'S<small>LANDSCAPING</small></div>
+                <div class="cj-biz-call">Call Us Today</div>
+              </div>
+              <div class="cj-biz-main">
+                <h3>Reliable Lawn Care in Agawam &amp; West Springfield</h3>
+                <p>Weekly mowing, trimming, mulching, and seasonal cleanups for residential properties.</p>
+                <div class="cj-biz-badges">
+                  <span class="cj-biz-badge">Agawam, MA</span>
+                  <span class="cj-biz-badge">Accepting clients</span>
+                  <span class="cj-biz-badge live">● Open now</span>
+                </div>
+              </div>
+            </div>
+            <div class="cj-biz-about">
+              <div class="lbl">About</div>
+              <p>Conway's Landscaping is a locally owned lawn care business founded by Jack Conway in 2021. Homeowners in Agawam, West Springfield, and Feeding Hills keep coming back for reliable scheduling and honest, fair pricing.</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="cj-controls">
+        <button class="cj-arrow" id="cjPrev" aria-label="Previous step"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+        <div class="cj-dots" id="cjDots"></div>
+        <button class="cj-arrow" id="cjNext" aria-label="Next step"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+      </div>
+      <div class="cj-captions">
+        <p class="cj-cap-step" id="cjCapStep"></p>
+        <p class="cj-cap-text" id="cjCapText"></p>
+      </div>
     </div>
   </div>
 </section>
@@ -264,6 +479,54 @@
         window.location.href = '/choose-path?' + params.toString();
       });
     }
+  })();
+
+  // Signup-to-live carousel — auto-plays, pauses on hover, respects reduced-motion
+  (function () {
+    var root = document.getElementById('cjCarousel');
+    if (!root) return;
+    var slides = Array.prototype.slice.call(root.querySelectorAll('.cj-slide'));
+    var urls = ['enoma.io/signup', 'enoma.io/create', 'enoma.io/create', 'enoma.io/create', 'enoma.io/create', 'enoma.io/website-live', 'enoma.io/conways-landscaping'];
+    var times = ['0:00', '0:35', '1:20', '2:15', '2:50', '3:40', '4:50'];
+    var dotsWrap = document.getElementById('cjDots');
+    var urlEl = document.getElementById('cjUrl');
+    var timeEl = document.getElementById('cjTime');
+    var capStep = document.getElementById('cjCapStep');
+    var capText = document.getElementById('cjCapText');
+    var current = 0;
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var timer = null;
+
+    slides.forEach(function (_, i) {
+      var d = document.createElement('button');
+      d.setAttribute('aria-label', 'Go to step ' + (i + 1));
+      d.addEventListener('click', function () { show(i); restart(); });
+      dotsWrap.appendChild(d);
+    });
+    var dotEls = Array.prototype.slice.call(dotsWrap.children);
+
+    function show(i) {
+      current = (i + slides.length) % slides.length;
+      slides.forEach(function (s, idx) { idx === current ? s.setAttribute('data-active', '') : s.removeAttribute('data-active'); });
+      dotEls.forEach(function (d, idx) { idx === current ? d.setAttribute('data-active', '') : d.removeAttribute('data-active'); });
+      urlEl.textContent = urls[current];
+      timeEl.textContent = times[current];
+      var active = slides[current];
+      capStep.textContent = active.getAttribute('data-cap-step');
+      capText.textContent = active.getAttribute('data-cap-text');
+    }
+    function next() { show(current + 1); }
+    function prev() { show(current - 1); }
+    function start() { if (!reduced) timer = setInterval(next, 4200); }
+    function restart() { if (timer) clearInterval(timer); start(); }
+
+    document.getElementById('cjNext').addEventListener('click', function () { next(); restart(); });
+    document.getElementById('cjPrev').addEventListener('click', function () { prev(); restart(); });
+    root.addEventListener('mouseenter', function () { if (timer) clearInterval(timer); });
+    root.addEventListener('mouseleave', start);
+
+    show(0);
+    start();
   })();
 </script>
 </body>
