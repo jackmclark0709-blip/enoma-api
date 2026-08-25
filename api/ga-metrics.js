@@ -581,14 +581,33 @@ async function generateDraftCopy(prospect, instructions) {
   // linked via prospects.preview_url), that's the strongest honest hook we have —
   // a real, working thing built from their own public info, not a generic pitch.
   const previewLine = prospect.preview_url
-    ? `\nA real, unclaimed preview page already exists for this business at ${prospect.preview_url} — built from their public Google Business listing (name, location, and real rating/reviews where available; nothing invented). Reference it directly and invite them to look, keep it, or ask for changes. This is true and verifiable — lean on it instead of generic claims.`
+    ? `\nA real, unclaimed preview page already exists for this business at ${prospect.preview_url} — built from their public Google Business listing (name, location, and real rating/reviews where available; nothing invented). You may mention it once as proof this is already real and specific to them — not as the ask itself, the CTA below is the ask. This is true and verifiable — lean on it instead of generic claims.`
     : "";
 
   // The one real, published proof point Enoma has (see enoma-strategy-audit
   // notes) — an actual paying customer, not a fabricated case study. Fine to
-  // reference as "look at this yourself," not fine to invent numbers beyond
-  // what that page actually shows.
+  // reference as supporting evidence, not fine to invent numbers beyond what
+  // that page actually shows, and — per Jack's 2026-08-25 request — no longer
+  // the email's call-to-action. The CTA is now always the direct yes/no ask
+  // below; the case study, if used at all, is a proof point mentioned before it.
   const CASE_STUDY_URL = "https://enoma.io/case-studies/conways-landscaping";
+
+  // UTM-tagged signup link so outreach clicks show up as their own GA4
+  // source/campaign instead of being invisible inside "Direct" — split by
+  // trade so landscaping (proof lane) and plumbing (scale bet) are
+  // separately attributable, matching how the two segments are already
+  // tracked/prioritized elsewhere (see enoma-sales-segment-strategy notes).
+  const campaignSlug = (prospect.trade || "general").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "general";
+  const SIGNUP_URL = `https://enoma.io/signup?utm_source=cold_email&utm_medium=email&utm_campaign=outreach_${campaignSlug}`;
+
+  // Fixed closing ask, same for every prospect regardless of weak-site/
+  // no-website branch — replaces the old pattern of ending on "check out
+  // this case study," which was a soft browse-it invitation, not a real ask.
+  // Dual-path per Jack's 2026-08-25 request: a pure "click here and start
+  // the signup wizard" CTA reads as presumptuous for a cold email, so the
+  // low-commitment "reply yes" stays primary with the tracked signup link
+  // offered as a secondary, no-pressure option in the same line.
+  const CTA_LINE = `\nEnd the email with this exact call-to-action, as its own short closing paragraph — do not paraphrase, soften, reorder, or invent a different link: "Would you like more leads for your business? Reply \\"Yes\\" and we'll set it up for you — or start it yourself here: ${SIGNUP_URL}"`;
 
   // A prospect with real site_gaps (from action=crawl_websites) already has a
   // website — pitching "you don't have one yet" would be false and obvious to
@@ -605,18 +624,18 @@ async function generateDraftCopy(prospect, instructions) {
 
 From these real gaps found on their current site, pick exactly ONE — the most compelling — as a supporting example of why it isn't pulling its weight. Do not list more than one, do not turn this into a checklist: ${prospect.site_gaps.join("; ")}
 
-Include this real case study link once, as something they can check themselves — an actual paying Enoma customer, not a hypothetical: ${CASE_STUDY_URL}. Don't invent any number or result beyond what that page shows.`
+You may mention this real case study once as supporting proof — an actual paying Enoma customer, not a hypothetical — but it is NOT the call-to-action, the CTA below is: ${CASE_STUDY_URL}. Don't invent any number or result beyond what that page shows.`
     : "";
 
   const prompt = `Write a short, professional cold outreach email from Enoma — a service that gets local service businesses (landscaping, plumbing, HVAC, etc.) found on Google and turns that into more calls, $19.99/mo after a free 30-day trial — to ${openingLine}.
 
 Business: ${prospect.business_name}
 Trade: ${prospect.trade || "local service business"}
-Location: ${[prospect.city, prospect.state].filter(Boolean).join(", ") || "unknown"}${gapsLine}${previewLine}
+Location: ${[prospect.city, prospect.state].filter(Boolean).join(", ") || "unknown"}${gapsLine}${previewLine}${CTA_LINE}
 ${prospect.draft_body ? `\nExisting draft to revise:\nSubject: ${prospect.draft_subject}\n${prospect.draft_body}\n\nRevision instructions: ${instructions || "improve it generally"}` : ""}
 ${!prospect.draft_body && instructions ? `\nSpecific instructions: ${instructions}` : ""}
 
-Keep it short (under 120 words), warm but not pushy, no false urgency. Only state things you were actually given above (the one gap picked, location, trade, the preview page or case study link) — do not compliment the look/design/quality of their site or invent any other detail you don't actually have. Write a subject line specific to this business or the gap mentioned — never the generic phrase "Enhance Your Online Presence" or close variants of it. This is a plain-text email, not markdown — write any link (like the case study) as a bare URL such as https://example.com, never as [link text](url) markdown syntax. Sign off as "Jack, Enoma". Return ONLY valid JSON: {"subject": "...", "body": "..."}`;
+Keep it short (under 130 words), warm but not pushy, no false urgency. Only state things you were actually given above (the one gap picked, location, trade, the preview page or case study link) — do not compliment the look/design/quality of their site or invent any other detail you don't actually have. Write a subject line specific to this business or the gap mentioned — never the generic phrase "Enhance Your Online Presence" or close variants of it. This is a plain-text email, not markdown — write any link (like the case study) as a bare URL such as https://example.com, never as [link text](url) markdown syntax. Sign off as "Jack, Enoma". Return ONLY valid JSON: {"subject": "...", "body": "..."}`;
 
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
