@@ -847,6 +847,65 @@ p { color: var(--text-secondary); line-height: 1.7; }
 .site-footer__links a { color: rgba(240,246,255,0.55); }
 .site-footer__links a:hover { color: rgba(240,246,255,0.85); }
 
+/* Site-wide low-friction lead capture band, top of footer */
+.site-footer__cta {
+  max-width: 1040px;
+  margin-inline: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding-bottom: 1.75rem;
+  margin-bottom: 1.75rem;
+  border-bottom: 1px solid rgba(240,246,255,0.12);
+}
+.site-footer__cta-title {
+  font-family: 'Fraunces', serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-on-dark);
+  margin-bottom: 0.25rem;
+}
+.site-footer__cta-sub {
+  font-size: 0.85rem;
+  color: rgba(240,246,255,0.6);
+  max-width: 420px;
+}
+.global-cta-form {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.global-cta-input {
+  background: rgba(255,255,255,0.06);
+  border: 1.5px solid rgba(240,246,255,0.2);
+  border-radius: var(--radius-pill);
+  padding: 0.75rem 1.25rem;
+  font-size: 0.9rem;
+  color: var(--text-on-dark);
+  min-width: 220px;
+}
+.global-cta-input::placeholder { color: rgba(240,246,255,0.4); }
+.global-cta-input:focus {
+  outline: none;
+  border-color: var(--sky);
+  background: rgba(255,255,255,0.09);
+}
+.global-cta-submit { padding: 0.75rem 1.5rem; font-size: 0.88rem; }
+.global-cta-status {
+  max-width: 1040px;
+  margin: -1rem auto 1.25rem;
+  font-size: 0.82rem;
+  color: var(--sky-light);
+  min-height: 1em;
+}
+@media (max-width: 640px) {
+  .site-footer__cta { flex-direction: column; align-items: flex-start; }
+  .global-cta-form { width: 100%; }
+  .global-cta-input { flex: 1; min-width: 0; }
+}
+
 
 /* ============================================================
    12. DASHBOARD
