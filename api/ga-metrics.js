@@ -592,10 +592,22 @@ async function generateDraftCopy(prospect, instructions) {
   // below; the case study, if used at all, is a proof point mentioned before it.
   const CASE_STUDY_URL = "https://enoma.io/case-studies/conways-landscaping";
 
+  // UTM-tagged signup link so outreach clicks show up as their own GA4
+  // source/campaign instead of being invisible inside "Direct" — split by
+  // trade so landscaping (proof lane) and plumbing (scale bet) are
+  // separately attributable, matching how the two segments are already
+  // tracked/prioritized elsewhere (see enoma-sales-segment-strategy notes).
+  const campaignSlug = (prospect.trade || "general").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "general";
+  const SIGNUP_URL = `https://enoma.io/signup?utm_source=cold_email&utm_medium=email&utm_campaign=outreach_${campaignSlug}`;
+
   // Fixed closing ask, same for every prospect regardless of weak-site/
   // no-website branch — replaces the old pattern of ending on "check out
   // this case study," which was a soft browse-it invitation, not a real ask.
-  const CTA_LINE = `\nEnd the email with this exact call-to-action, as its own short closing line/paragraph — do not paraphrase, soften, or replace it with an invitation to click a link or browse a case study: "Would you like more leads for your business? Reply \\"Yes\\" and we'll create a lead generation page for you."`;
+  // Dual-path per Jack's 2026-08-25 request: a pure "click here and start
+  // the signup wizard" CTA reads as presumptuous for a cold email, so the
+  // low-commitment "reply yes" stays primary with the tracked signup link
+  // offered as a secondary, no-pressure option in the same line.
+  const CTA_LINE = `\nEnd the email with this exact call-to-action, as its own short closing paragraph — do not paraphrase, soften, reorder, or invent a different link: "Would you like more leads for your business? Reply \\"Yes\\" and we'll set it up for you — or start it yourself here: ${SIGNUP_URL}"`;
 
   // A prospect with real site_gaps (from action=crawl_websites) already has a
   // website — pitching "you don't have one yet" would be false and obvious to
