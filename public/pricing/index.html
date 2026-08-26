@@ -46,9 +46,14 @@
     .pricing-hero h1{font-family:'Fraunces',serif;font-optical-sizing:auto;font-size:clamp(1.8rem,4vw,2.4rem);font-weight:600;color:var(--text-1);letter-spacing:-0.02em;margin:0 0 0.75rem}
     .pricing-hero p{max-width:540px;margin:0 auto 0.5rem;color:var(--text-2);font-size:1rem;line-height:1.65}
     .section-label{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;font-weight:500;letter-spacing:0.16em;text-transform:uppercase;color:var(--sky-light);margin-bottom:0.75rem;display:block;opacity:.9;}
-    .pricing-wrap{position:relative;z-index:1;max-width:460px;margin:2.5rem auto 0;padding:0 1.5rem}
-    .pricing-card{background:var(--panel);border:1px solid var(--panel-border);border-radius:20px;padding:2.5rem;box-shadow:0 20px 60px rgba(0,0,0,.35);text-align:center;position:relative;backdrop-filter:blur(6px);}
+    .pricing-wrap{position:relative;z-index:1;max-width:940px;margin:2.5rem auto 0;padding:0 1.5rem}
+    .pricing-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.75rem;align-items:start}
+    @media (max-width:760px){.pricing-grid{grid-template-columns:1fr;max-width:460px;margin-inline:auto}}
+    .pricing-card{background:var(--panel);border:1px solid var(--panel-border);border-radius:20px;padding:2.5rem;box-shadow:0 20px 60px rgba(0,0,0,.35);text-align:center;position:relative;backdrop-filter:blur(6px);display:flex;flex-direction:column;height:100%}
+    .pricing-card--growth{border-color:rgba(56,130,220,0.45);box-shadow:0 20px 60px rgba(56,130,220,0.2)}
+    .pricing-includes--flex{flex:1}
     .pricing-badge{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:var(--sky);color:white;font-size:0.75rem;font-weight:700;padding:0.3rem 1rem;border-radius:999px;letter-spacing:0.06em;text-transform:uppercase;white-space:nowrap}
+    .pricing-badge--alt{background:transparent;border:1px solid var(--sky-light);color:var(--sky-light)}
     .pricing-card h2{font-family:'Fraunces',serif;font-size:1.15rem;font-weight:700;color:var(--text-1);margin:0.5rem 0 1.5rem}
     .price-display{margin:0 0 0.4rem}
     .price-free{font-family:'Fraunces',serif;font-size:2.8rem;font-weight:800;color:var(--text-1);letter-spacing:-0.03em;display:block}
@@ -59,6 +64,8 @@
     .pricing-includes li::before{content:"✓";color:#4ade80;font-weight:700;flex-shrink:0;margin-top:1px}
     .pricing-cta-btn{display:block;width:100%;padding:0.9rem;background:var(--sky);color:white;border:none;border-radius:999px;font-weight:700;font-size:1rem;cursor:pointer;text-decoration:none;text-align:center;transition:transform 0.15s ease,box-shadow 0.15s ease,background 0.15s ease}
     .pricing-cta-btn:hover{background:var(--sky-light);transform:translateY(-1px);box-shadow:0 16px 40px rgba(56,130,220,0.35);color:white}
+    .pricing-cta-btn--ghost{background:transparent;border:1.5px solid rgba(240,246,255,0.3);color:var(--text-1)}
+    .pricing-cta-btn--ghost:hover{background:rgba(255,255,255,0.06);color:var(--text-1);box-shadow:none}
     .pricing-cta-note{margin-top:0.6rem;font-size:0.82rem;color:var(--text-3);text-align:center}
     .pricing-cta-note a{color:var(--sky-light);font-weight:600;text-decoration:none}
     .value-strip{position:relative;z-index:1;border-top:1px solid var(--panel-border);border-bottom:1px solid var(--panel-border);padding:2.5rem 1.5rem;text-align:center}
@@ -88,33 +95,62 @@
   <p>A single new customer from Google pays for <strong>an entire year of Enoma.</strong> Most local service businesses spend $1,500–3,000 on a website that doesn't generate leads. Enoma costs $19.99/month — and it's built to send customers to you.</p>
 </div>
 
-<div class="pricing-wrap" style="padding: 0 1.5rem;">
-  <div class="pricing-card">
-    <span class="pricing-badge">First month free</span>
-    <h2>Enoma Lead Gen Page</h2>
+<div class="pricing-wrap">
+  <div class="pricing-grid">
+    <div class="pricing-card">
+      <span class="pricing-badge">First month free</span>
+      <h2>Enoma Lead Gen Page</h2>
 
-    <div class="price-display">
-      <span class="price-free">Free</span>
-      <span class="price-after">for your first month, then <strong>$19.99/month</strong></span>
+      <div class="price-display">
+        <span class="price-free">Free</span>
+        <span class="price-after">for your first month, then <strong>$19.99/month</strong></span>
+      </div>
+
+      <ul class="pricing-includes pricing-includes--flex">
+        <li>Dedicated lead gen page built from your notes in minutes</li>
+        <li>SEO-optimized — structured for Google from day one</li>
+        <li>Your own URL (enoma.io/your-business-name)</li>
+        <li>Mobile-friendly on every device</li>
+        <li>Call, email, and quote buttons for customers</li>
+        <li>Hosting, security, and maintenance included</li>
+        <li>Monthly performance report to your inbox</li>
+        <li>Ongoing optimization as search trends evolve</li>
+      </ul>
+
+      <a href="/signup" class="pricing-cta-btn">
+        Start generating leads free →
+      </a>
+      <p class="pricing-cta-note">
+        No credit card required · <a href="/examples">See live examples</a>
+      </p>
     </div>
 
-    <ul class="pricing-includes">
-      <li>Dedicated lead gen page built from your notes in minutes</li>
-      <li>SEO-optimized — structured for Google from day one</li>
-      <li>Your own URL (enoma.io/your-business-name)</li>
-      <li>Mobile-friendly on every device</li>
-      <li>Call, email, and quote buttons for customers</li>
-      <li>Hosting, security, and maintenance included</li>
-      <li>Monthly performance report to your inbox</li>
-      <li>Ongoing optimization as search trends evolve</li>
-    </ul>
+    <div class="pricing-card pricing-card--growth">
+      <span class="pricing-badge pricing-badge--alt">Done-for-you growth</span>
+      <h2>Enoma Growth</h2>
 
-    <a href="/signup" class="pricing-cta-btn">
-      Start generating leads free →
-    </a>
-    <p class="pricing-cta-note">
-      No credit card required · <a href="/examples">See live examples</a>
-    </p>
+      <div class="price-display">
+        <span class="price-free">$49.99</span>
+        <span class="price-after">per month — everything in Lead Gen Page, plus real hands-on visibility work</span>
+      </div>
+
+      <ul class="pricing-includes pricing-includes--flex">
+        <li>Everything in Enoma Lead Gen Page</li>
+        <li>Google Business Profile setup &amp; optimization audit</li>
+        <li>Monthly Google Business posts (offers, services, seasonal updates)</li>
+        <li>Verified Local Pro badge on your page</li>
+        <li>Automated review-request nudges after every job</li>
+        <li>Personal onboarding call with our founder</li>
+        <li>Priority support</li>
+      </ul>
+
+      <a href="/contact" class="pricing-cta-btn pricing-cta-btn--ghost">
+        Talk to us about Growth →
+      </a>
+      <p class="pricing-cta-note">
+        Hands-on setup · No self-serve checkout yet — we'll walk you through it
+      </p>
+    </div>
   </div>
 </div>
 
