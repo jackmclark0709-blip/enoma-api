@@ -8,7 +8,13 @@ import { JWT } from "google-auth-library";
 import { createClient } from "@supabase/supabase-js";
 import { scoreRawLead, scoreProspect } from "./_lib/lead-scoring.js";
 import dns from "node:dns/promises";
+import crypto from "node:crypto";
 import { extractEmails, pickBestEmail, htmlToText, isPrivateOrReservedIp } from "./_lib/email-crawler.js";
+import { hasValidMx } from "./_lib/email-verify.js";
+import { verifyUnsubscribeToken, appendComplianceFooter } from "./_lib/outreach-footer.js";
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const client = new BetaAnalyticsDataClient({
   credentials: {
@@ -76,12 +82,41 @@ async function fetchSearchConsoleData() {
   };
 }
 
-export const config = { maxDuration: 60 };
+// bodyParser is disabled so handleResendWebhook can verify Resend's signature
+// against the exact raw bytes it was computed over — re-serializing a parsed
+// body (JSON.stringify(JSON.parse(x))) isn't guaranteed byte-identical to the
+// original. req.body is still populated manually below, from the raw bytes,
+// so every existing POST action (voice-query, update_lead_status) keeps
+// working exactly as before.
+export const config = { api: { bodyParser: false }, maxDuration: 60 };
+
+async function readRawBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on("data", chunk => chunks.push(chunk));
+    req.on("end", () => resolve(Buffer.concat(chunks)));
+    req.on("error", reject);
+  });
+}
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+async function logNotificationFailure(source, recipient, error, context) {
+  console.error(`🚨 Notification email failed [${source}]:`, error?.message || error);
+  try {
+    await supabase.from("notification_failures").insert({
+      source,
+      recipient,
+      error: error?.message || String(error),
+      context
+    });
+  } catch (e) {
+    console.error("🚨 Also failed to record notification_failures row:", e?.message);
+  }
+}
 
 const normalizePhone = (p) => (p || "").replace(/\D/g, "").slice(-10);
 
@@ -809,6 +844,161 @@ async function handleDailyPipeline(req, res) {
   return res.status(200).json({ success: true, trade, pull, crawl, draft });
 }
 
+// Sends everything currently sitting at status='drafted' — the actual
+// outbound step, triggered by its own daily cron (vercel.json) after both
+// daily_pipeline runs finish. Deliberately only ever touches 'drafted', never
+// 'approved': historically Jack used 'approved' to mean "I already sent this
+// myself" (marked *after* copy/pasting into his own email client), not
+// "reviewed and ready" — treating it as a send queue would re-send prospects
+// who already got a real email. Capped per run (`limit`, default 20) to keep
+// a fresh sending subdomain's volume ramping slowly rather than spiking.
+// Every send goes through hasValidMx first — not a live mailbox probe (that
+// gets a serverless IP flagged fast), just a cheap check that the domain has
+// a mail server at all, catching typo'd/dead domains before they ever cost a
+// send attempt. Real mailbox-level bounces are handled after the fact by the
+// Resend webhook (handleResendWebhook, below) feeding suppression_list.
+const SEND_OUTREACH_FROM = "Jack at Enoma <outreach@mail.enoma.io>";
+
+async function handleSendOutreach(req, res) {
+  const limit = Math.min(parseInt(req.query.limit, 10) || 20, 20);
+
+  const { data: prospects, error } = await supabase
+    .from("prospects")
+    .select("id, business_name, email, draft_subject, draft_body")
+    .eq("status", "drafted")
+    .not("email", "is", null)
+    .order("updated_at", { ascending: true })
+    .limit(limit);
+  if (error) throw error;
+
+  const results = [];
+  for (const prospect of prospects || []) {
+    const { data: suppressed } = await supabase
+      .from("suppression_list").select("id").eq("email", prospect.email).maybeSingle();
+    if (suppressed) {
+      await supabase.from("prospects").update({ status: "invalid_email", updated_at: new Date().toISOString() }).eq("id", prospect.id);
+      results.push({ business_name: prospect.business_name, email: prospect.email, sent: false, reason: "suppressed" });
+      continue;
+    }
+
+    if (!(await hasValidMx(prospect.email))) {
+      await supabase.from("prospects").update({ status: "invalid_email", updated_at: new Date().toISOString() }).eq("id", prospect.id);
+      results.push({ business_name: prospect.business_name, email: prospect.email, sent: false, reason: "no_mx_record" });
+      continue;
+    }
+
+    try {
+      const body = appendComplianceFooter(prospect.draft_body, prospect.email);
+      const { error: sendErr } = await resend.emails.send({
+        from: SEND_OUTREACH_FROM,
+        to: prospect.email,
+        replyTo: "jack@enoma.io",
+        subject: prospect.draft_subject,
+        text: body
+      });
+      if (sendErr) throw new Error(sendErr.message || "Resend send failed");
+
+      const sentAt = new Date().toISOString();
+      await supabase.from("prospects").update({ status: "sent", updated_at: sentAt }).eq("id", prospect.id);
+      await supabase.from("outreach_messages").insert({ prospect_id: prospect.id, channel: "email", status: "sent", sent_at: sentAt });
+      results.push({ business_name: prospect.business_name, email: prospect.email, sent: true });
+    } catch (err) {
+      await logNotificationFailure("send-outreach", prospect.email, err, { prospect_id: prospect.id, business_name: prospect.business_name });
+      results.push({ business_name: prospect.business_name, email: prospect.email, sent: false, reason: err.message });
+    }
+  }
+
+  return res.status(200).json({
+    success: true,
+    attempted: results.length,
+    sent: results.filter(r => r.sent).length,
+    skipped: results.filter(r => !r.sent).length,
+    results
+  });
+}
+
+// Public — Resend's servers call this, they can't send ADMIN_SECRET/
+// CRON_SECRET. Verifies the standard Svix-style signature Resend signs
+// webhook payloads with (id.timestamp.body, HMAC-SHA256, base64) so this
+// doesn't need the svix package as a dependency. On a hard bounce or spam
+// complaint, adds the address to suppression_list so send_outreach (above)
+// never retries it — this is the real "is this a working mailbox" signal,
+// deliberately deferred until after the fact rather than probed live.
+function verifyResendWebhookSignature(req) {
+  const secretEnv = process.env.RESEND_WEBHOOK_SECRET;
+  if (!secretEnv) return false;
+  const id = req.headers["svix-id"];
+  const timestamp = req.headers["svix-timestamp"];
+  const signatureHeader = req.headers["svix-signature"];
+  if (!id || !timestamp || !signatureHeader) return false;
+
+  const secretBytes = Buffer.from(secretEnv.split("_").pop(), "base64");
+  const signedContent = `${id}.${timestamp}.${req.rawBody}`;
+  const expected = crypto.createHmac("sha256", secretBytes).update(signedContent).digest("base64");
+
+  return signatureHeader.split(" ").some(sig => {
+    const [, value] = sig.split(",");
+    if (!value) return false;
+    try {
+      const a = Buffer.from(value);
+      const b = Buffer.from(expected);
+      return a.length === b.length && crypto.timingSafeEqual(a, b);
+    } catch {
+      return false;
+    }
+  });
+}
+
+async function handleResendWebhook(req, res) {
+  if (!verifyResendWebhookSignature(req)) {
+    return res.status(401).json({ error: "Invalid signature" });
+  }
+
+  const event = req.body;
+  const email = event?.data?.to?.[0];
+  const type = event?.type;
+
+  if (email && (type === "email.bounced" || type === "email.complained")) {
+    // suppression_list.reason and outreach_messages.response_status both have
+    // CHECK constraints limited to specific values — map Resend's raw event
+    // type strings onto them rather than storing verbatim. Note this is
+    // response_status, not status: outreach_messages.status tracks the
+    // drafted/approved/rejected/sent lifecycle of the message itself (its own
+    // CHECK constraint doesn't even allow "bounced"/"opted_out") — a bounce
+    // or complaint is what happened *after* it was sent, same field
+    // bestOutreachSignal (above) already reads for replies/claims.
+    const reason = type === "email.bounced" ? "bounced" : "opted_out";
+    await supabase.from("suppression_list").upsert({ email, reason }, { onConflict: "email" });
+    const { data: matches } = await supabase.from("prospects").select("id").eq("email", email);
+    const prospectIds = (matches || []).map(p => p.id);
+    if (prospectIds.length) {
+      await supabase.from("outreach_messages")
+        .update({ response_status: reason, response_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .eq("channel", "email")
+        .in("prospect_id", prospectIds);
+    }
+  }
+
+  return res.status(200).json({ success: true });
+}
+
+// Public, no login — a one-click unsubscribe link is a CAN-SPAM requirement,
+// not optional. Token is verified via outreach-footer.js's HMAC check so an
+// arbitrary email can't be unsubscribed by guessing a URL.
+async function handleUnsubscribe(req, res) {
+  const email = (req.query.email || "").toString();
+  const token = (req.query.token || "").toString();
+
+  if (!verifyUnsubscribeToken(email, token)) {
+    return res.status(400).send("Invalid or expired unsubscribe link.");
+  }
+
+  await supabase.from("suppression_list").upsert({ email, reason: "requested_removal" }, { onConflict: "email" });
+
+  res.setHeader("Content-Type", "text/html");
+  return res.status(200).send(`<!doctype html><html><body style="font-family:sans-serif;max-width:480px;margin:60px auto;text-align:center;"><h2>You're unsubscribed</h2><p>${email} won't receive any more emails from Enoma.</p></body></html>`);
+}
+
 // Read-only review surface: every prospect with a draft, for a human to read
 // before approving. Sending is never triggered from here.
 async function handleListDrafts(req, res) {
@@ -1168,6 +1358,32 @@ async function handleUpdateLeadStatus(req, res) {
 export default async function handler(req, res) {
   res.setHeader("Content-Type", "application/json");
 
+  const rawBodyBuf = await readRawBody(req);
+  req.rawBody = rawBodyBuf.toString("utf8");
+  if (req.rawBody) {
+    try { req.body = JSON.parse(req.rawBody); } catch { req.body = {}; }
+  } else {
+    req.body = {};
+  }
+
+  if (req.query.action === "resend_webhook") {
+    try {
+      return await handleResendWebhook(req, res);
+    } catch (err) {
+      console.error("Resend webhook failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.query.action === "unsubscribe") {
+    try {
+      return await handleUnsubscribe(req, res);
+    } catch (err) {
+      console.error("Unsubscribe failed:", err);
+      return res.status(500).send("Something went wrong processing your request.");
+    }
+  }
+
   if (req.query.action === "voice-query") {
     try {
       return await handleVoiceQuery(req, res);
@@ -1274,6 +1490,15 @@ export default async function handler(req, res) {
       return await handleDailyPipeline(req, res);
     } catch (err) {
       console.error("Daily pipeline failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.query.action === "send_outreach") {
+    try {
+      return await handleSendOutreach(req, res);
+    } catch (err) {
+      console.error("Send outreach failed:", err);
       return res.status(500).json({ success: false, error: err.message });
     }
   }
