@@ -12,6 +12,8 @@ import crypto from "node:crypto";
 import { extractEmails, pickBestEmail, htmlToText, isPrivateOrReservedIp } from "./_lib/email-crawler.js";
 import { hasValidMx } from "./_lib/email-verify.js";
 import { verifyUnsubscribeToken, appendComplianceFooter } from "./_lib/outreach-footer.js";
+import { plainTextToHtml, wrapEmailHtml } from "./_lib/email-html.js";
+import { rampCapForDate } from "./_lib/outreach-ramp.js";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -860,7 +862,8 @@ async function handleDailyPipeline(req, res) {
 const SEND_OUTREACH_FROM = "Jack at Enoma <outreach@mail.enoma.io>";
 
 async function handleSendOutreach(req, res) {
-  const limit = Math.min(parseInt(req.query.limit, 10) || 20, 20);
+  const rampCap = rampCapForDate(new Date());
+  const limit = Math.min(parseInt(req.query.limit, 10) || 20, 20, rampCap);
 
   const { data: prospects, error } = await supabase
     .from("prospects")
@@ -889,12 +892,20 @@ async function handleSendOutreach(req, res) {
 
     try {
       const body = appendComplianceFooter(prospect.draft_body, prospect.email);
+      // Sent as real HTML (with a plain-text alternative for clients that
+      // prefer it) so links render as clickable anchors instead of bare URL
+      // text — plainTextToHtml escapes the body first, so a business_name
+      // with HTML-breaking characters (scraped data, not written by us)
+      // can't inject markup, then linkifies the URLs we constructed
+      // ourselves (case study, signup, unsubscribe).
+      const html = wrapEmailHtml(plainTextToHtml(body));
       const { error: sendErr } = await resend.emails.send({
         from: SEND_OUTREACH_FROM,
         to: prospect.email,
         replyTo: "jack@enoma.io",
         subject: prospect.draft_subject,
-        text: body
+        text: body,
+        html
       });
       if (sendErr) throw new Error(sendErr.message || "Resend send failed");
 
@@ -910,6 +921,7 @@ async function handleSendOutreach(req, res) {
 
   return res.status(200).json({
     success: true,
+    ramp_cap: rampCap,
     attempted: results.length,
     sent: results.filter(r => r.sent).length,
     skipped: results.filter(r => !r.sent).length,
