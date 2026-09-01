@@ -8,6 +8,19 @@
 const URL_REGEX = /https?:\/\/[^\s<]+/g;
 const TRAILING_PUNCTUATION = /[.,;:!?)]+$/;
 
+// Descriptive anchor text for the two links whose surrounding sentence is a
+// fixed template we author ourselves (the CTA in generateDraftCopy's
+// CTA_LINE, the unsubscribe line in outreach-footer.js) — safe to rewrite
+// their wording to read naturally with a label instead of a bare URL.
+// Deliberately does NOT cover the case-study/preview-page links: those sit
+// inside AI-composed prose (see gapsLine/previewLine in generateDraftCopy),
+// so we don't control the lead-in phrasing precisely enough to guarantee a
+// substituted label reads naturally — those stay as visible URLs.
+const LINK_LABEL_RULES = [
+  { pattern: /^https:\/\/enoma\.io\/signup\?/, label: "click here" },
+  { pattern: /^https:\/\/enoma\.io\/api\/ga-metrics\?action=unsubscribe/, label: "Unsubscribe" }
+];
+
 export function escapeHtml(str = "") {
   return String(str)
     .replaceAll("&", "&amp;").replaceAll("<", "&lt;")
@@ -22,7 +35,9 @@ export function linkify(escapedText) {
   return escapedText.replace(URL_REGEX, (match) => {
     const trailing = match.match(TRAILING_PUNCTUATION)?.[0] || "";
     const url = trailing ? match.slice(0, -trailing.length) : match;
-    return `<a href="${url}" style="color:#1a73e8;">${url}</a>${trailing}`;
+    const rule = LINK_LABEL_RULES.find(r => r.pattern.test(url));
+    const label = rule ? rule.label : url;
+    return `<a href="${url}" style="color:#1a73e8;">${label}</a>${trailing}`;
   });
 }
 

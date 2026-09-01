@@ -644,7 +644,14 @@ async function generateDraftCopy(prospect, instructions) {
   // the signup wizard" CTA reads as presumptuous for a cold email, so the
   // low-commitment "reply yes" stays primary with the tracked signup link
   // offered as a secondary, no-pressure option in the same line.
-  const CTA_LINE = `\nEnd the email with this exact call-to-action, as its own short closing paragraph — do not paraphrase, soften, reorder, or invent a different link: "Would you like more leads for your business? Reply \\"Yes\\" and we'll set it up for you — or start it yourself here: ${SIGNUP_URL}"`;
+  // Phrased so the URL is the sentence's direct object ("...or [URL] to
+  // start it yourself") rather than following a "here:" lead-in — when the
+  // automated HTML send substitutes "click here" as the link's visible text
+  // (see LINK_LABEL_RULES in email-html.js), this reads naturally as "...or
+  // click here to start it yourself" instead of a redundant "here: click
+  // here". The plain-text fallback (no link substitution) still reads fine
+  // with the bare URL in that same position.
+  const CTA_LINE = `\nEnd the email with this exact call-to-action, as its own short closing paragraph — do not paraphrase, soften, reorder, or invent a different link: "Would you like more leads for your business? Reply \\"Yes\\" and we'll set it up for you — or ${SIGNUP_URL} to start it yourself."`;
 
   // A prospect with real site_gaps (from action=crawl_websites) already has a
   // website — pitching "you don't have one yet" would be false and obvious to

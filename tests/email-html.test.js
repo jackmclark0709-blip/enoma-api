@@ -47,6 +47,28 @@ test("leaves plain text with no URL untouched", () => {
   assert.equal(linkify("no links here"), "no links here");
 });
 
+test("a signup link with a query string gets descriptive anchor text instead of the raw URL", () => {
+  const url = "https://enoma.io/signup?utm_source=cold_email&amp;utm_medium=email&amp;utm_campaign=outreach_plumber";
+  const result = linkify(`start here: ${url} to get going`);
+  assert.equal(result, `start here: <a href="${url}" style="color:#1a73e8;">click here</a> to get going`);
+});
+
+test("the unsubscribe action URL gets \"Unsubscribe\" as its anchor text", () => {
+  const url = "https://enoma.io/api/ga-metrics?action=unsubscribe&amp;email=prospect%40example.com&amp;token=abc123";
+  const result = linkify(url);
+  assert.equal(result, `<a href="${url}" style="color:#1a73e8;">Unsubscribe</a>`);
+});
+
+test("a signup URL with no query string (doesn't match the label rule) still falls back to using the URL as its own text", () => {
+  const result = linkify("https://enoma.io/signup");
+  assert.equal(result, `<a href="https://enoma.io/signup" style="color:#1a73e8;">https://enoma.io/signup</a>`);
+});
+
+test("an unrelated URL (e.g. the case-study link) is unaffected and still uses itself as anchor text", () => {
+  const result = linkify("https://enoma.io/case-studies/conways-landscaping");
+  assert.equal(result, `<a href="https://enoma.io/case-studies/conways-landscaping" style="color:#1a73e8;">https://enoma.io/case-studies/conways-landscaping</a>`);
+});
+
 console.log("plainTextToHtml");
 
 test("wraps paragraphs (blank-line separated) in <p>, single newlines become <br>", () => {
