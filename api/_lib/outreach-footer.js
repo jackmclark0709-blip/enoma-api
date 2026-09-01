@@ -31,5 +31,10 @@ export function verifyUnsubscribeToken(email, token) {
 export function appendComplianceFooter(body, email) {
   const token = buildUnsubscribeToken(email);
   const unsubscribeUrl = `${UNSUBSCRIBE_BASE_URL}?action=unsubscribe&email=${encodeURIComponent(email)}&token=${token}`;
-  return `${body}\n\n---\n${MAILING_ADDRESS}\nDon't want these emails? Unsubscribe: ${unsubscribeUrl}`;
+  // No "Unsubscribe:" label before the URL — the automated HTML send
+  // substitutes "Unsubscribe" as the link's own visible text (see
+  // LINK_LABEL_RULES in email-html.js), so a label here would read as a
+  // redundant "Unsubscribe: Unsubscribe". The plain-text fallback still
+  // reads fine as "Don't want these emails? <bare url>".
+  return `${body}\n\n---\n${MAILING_ADDRESS}\nDon't want these emails? ${unsubscribeUrl}`;
 }
