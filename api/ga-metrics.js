@@ -14,6 +14,7 @@ import { hasValidMx } from "./_lib/email-verify.js";
 import { verifyUnsubscribeToken, appendComplianceFooter } from "./_lib/outreach-footer.js";
 import { plainTextToHtml, wrapEmailHtml } from "./_lib/email-html.js";
 import { rampCapForDate } from "./_lib/outreach-ramp.js";
+import { townForDate } from "./_lib/prospect-rotation.js";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -836,7 +837,11 @@ const DAILY_PIPELINE_BUDGET_MS = 45000;
 
 async function handleDailyPipeline(req, res) {
   const trade = (req.query.trade || "landscaping").toString();
-  const location = req.query.location ? req.query.location.toString() : undefined;
+  // Attleboro alone saturates fast (repeat pulls return zero new listings
+  // once the local market's been scanned) -- rotate through nearby towns by
+  // day of year so the raw "new" pool keeps refilling. An explicit
+  // ?location= still wins, for a manual one-off pull of a specific town.
+  const location = req.query.location ? req.query.location.toString() : townForDate(new Date());
   const pullLimit = parseInt(req.query.limit, 10) || 25;
   const deadline = Date.now() + DAILY_PIPELINE_BUDGET_MS;
 
