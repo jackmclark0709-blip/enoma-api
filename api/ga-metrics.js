@@ -1379,6 +1379,126 @@ async function handleUpdateLeadStatus(req, res) {
   return res.status(400).json({ error: `Unknown lead_type: ${lead_type}` });
 }
 
+// Prospects reachable only by phone (no crawled email) are invisible to the
+// email pipeline entirely -- crawlWebsitesOnce can only find an email on a
+// business's own website, so a genuinely no-website prospect (the actual
+// ICP) never gets a drafted email. This surfaces everyone with a phone
+// number who hasn't been called yet and hasn't already resolved through
+// another channel (replied/claimed/opted_out/bounced), so there's always a
+// worked-by-hand list to call through.
+const CALL_QUEUE_EXCLUDED_STATUSES = ["excluded_existing_customer", "excluded_no_contact", "excluded_wrong_category", "dedup_match"];
+const CALL_QUEUE_RESOLVED_RESPONSES = ["replied", "claimed", "opted_out", "bounced"];
+
+async function handleCallQueue(req, res) {
+  const user = await requireAdmin(req);
+  if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+  const { data: prospects, error } = await supabase
+    .from("prospects")
+    .select("id, business_name, trade, city, state, phone, email, status, draft_subject, draft_body, created_at, updated_at, outreach_messages(channel, status, response_status, sent_at, response_at, updated_at)")
+    .not("phone", "is", null)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+
+  const queue = (prospects || []).flatMap(p => {
+    if (CALL_QUEUE_EXCLUDED_STATUSES.includes(p.status)) return [];
+    const alreadyCalled = (p.outreach_messages || []).some(m => m.channel === "phone");
+    if (alreadyCalled) return [];
+    const sig = bestOutreachSignal(p.outreach_messages);
+    if (CALL_QUEUE_RESOLVED_RESPONSES.includes(sig.responseStatus)) return [];
+
+    const scored = scoreProspect({
+      prospectStatus: p.status,
+      outreachStatus: sig.outreachStatus,
+      responseStatus: sig.responseStatus,
+      lastActivityAt: sig.lastActivityAt || p.updated_at || p.created_at
+    });
+    return [{
+      id: p.id,
+      business_name: p.business_name,
+      trade: p.trade,
+      detail: [p.city, p.state].filter(Boolean).join(", ") || null,
+      phone: p.phone,
+      email: p.email,
+      phone_only: !p.email,
+      draft_subject: p.draft_subject || null,
+      draft_body: p.draft_body || null,
+      score: scored?.score ?? 0,
+      tier: scored?.tier ?? "cold",
+      created_at: p.created_at
+    }];
+  }).sort((a, b) => (b.phone_only - a.phone_only) || (b.score - a.score) || (new Date(a.created_at) - new Date(b.created_at)));
+
+  return res.status(200).json({
+    success: true,
+    generated_at: new Date().toISOString(),
+    summary: {
+      total: queue.length,
+      phone_only: queue.filter(q => q.phone_only).length
+    },
+    queue
+  });
+}
+
+const CALL_OUTCOMES = {
+  no_answer: { response_status: "no_response", label: "No answer" },
+  voicemail: { response_status: "no_response", label: "Left voicemail" },
+  interested: { response_status: "replied", label: "Spoke — interested" },
+  not_interested: { response_status: null, label: "Spoke — not interested" },
+  do_not_call: { response_status: "opted_out", label: "Asked not to be contacted" }
+};
+
+async function handleLogCall(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+  const user = await requireAdmin(req);
+  if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+  const { prospect_id, outcome, notes } = req.body || {};
+  const mapped = CALL_OUTCOMES[outcome];
+  if (!prospect_id || !mapped) {
+    return res.status(400).json({ error: `prospect_id and a valid outcome are required (${Object.keys(CALL_OUTCOMES).join(", ")})` });
+  }
+
+  const { data: prospect, error: prospectErr } = await supabase
+    .from("prospects").select("id, email, phone").eq("id", prospect_id).maybeSingle();
+  if (prospectErr) throw prospectErr;
+  if (!prospect) return res.status(404).json({ error: "Prospect not found" });
+
+  const now = new Date().toISOString();
+  const combinedNotes = mapped.label + (notes ? ` — ${notes}` : "");
+  const { error: upsertErr } = await supabase.from("outreach_messages").upsert({
+    prospect_id,
+    channel: "phone",
+    status: "sent",
+    response_status: mapped.response_status,
+    notes: combinedNotes,
+    sent_at: now,
+    response_at: mapped.response_status ? now : null,
+    updated_at: now
+  }, { onConflict: "prospect_id,channel" });
+  if (upsertErr) throw upsertErr;
+
+  if (outcome === "do_not_call") {
+    const phoneDigits = (prospect.phone || "").replace(/\D/g, "") || null;
+    const { data: existing } = await supabase
+      .from("suppression_list")
+      .select("id")
+      .or([prospect.email && `email.eq.${prospect.email}`, phoneDigits && `phone_digits.eq.${phoneDigits}`].filter(Boolean).join(","))
+      .maybeSingle();
+    if (!existing) {
+      const { error: suppressErr } = await supabase.from("suppression_list").insert({
+        email: prospect.email || null,
+        phone_digits: phoneDigits,
+        reason: "requested_removal",
+        notes: "Asked not to be contacted, by phone"
+      });
+      if (suppressErr) throw suppressErr;
+    }
+  }
+
+  return res.status(200).json({ success: true });
+}
+
 export default async function handler(req, res) {
   res.setHeader("Content-Type", "application/json");
 
@@ -1431,6 +1551,24 @@ export default async function handler(req, res) {
       return await handleUpdateLeadStatus(req, res);
     } catch (err) {
       console.error("Update lead status failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.query.action === "call_queue") {
+    try {
+      return await handleCallQueue(req, res);
+    } catch (err) {
+      console.error("Call queue failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.query.action === "log_call") {
+    try {
+      return await handleLogCall(req, res);
+    } catch (err) {
+      console.error("Log call failed:", err);
       return res.status(500).json({ success: false, error: err.message });
     }
   }
