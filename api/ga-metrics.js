@@ -745,7 +745,7 @@ async function toolApproveOutreachEmail(args) {
   return {
     business_name: prospect.business_name,
     status: "approved",
-    note: "Marked ready to send. Actual sending isn't automated yet — Jack sends it himself for now."
+    note: "Marked 'approved' — this takes it OUT of the automated pipeline. The daily send_outreach cron only sends prospects still at status='drafted', so this one won't be auto-sent; send it yourself, or leave it at 'drafted' if you want the cron to send it for you."
   };
 }
 
@@ -1089,7 +1089,7 @@ const VOICE_TOOLS = [
   { type: "function", function: { name: "get_outreach_draft", description: "Read back the current draft subject/body for a prospect without regenerating it.", parameters: { type: "object", properties: {
     business_name: { type: "string" }
   }, required: ["business_name"] } } },
-  { type: "function", function: { name: "approve_outreach_email", description: "Mark a prospect's draft as approved/ready to send. Does NOT actually send anything — sending is not automated yet.", parameters: { type: "object", properties: {
+  { type: "function", function: { name: "approve_outreach_email", description: "Mark a prospect's draft as 'approved', meaning Jack will send it himself outside the automated pipeline. The daily send_outreach cron only auto-sends prospects still at status='drafted', so approving one takes it OUT of automatic sending rather than into it.", parameters: { type: "object", properties: {
     business_name: { type: "string" }
   }, required: ["business_name"] } } }
 ];
