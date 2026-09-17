@@ -11,7 +11,12 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Resend's constructor throws synchronously if the key is missing, which
+// would crash this whole module (and every contact form on the site) at
+// import time. Guard it the same way claim-business.js / generate-business.js
+// do, so a missing key just skips email notifications instead of taking
+// down lead capture entirely.
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
@@ -35,7 +40,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'email is required' });
     }
 
-    await supabase.from('contact_submissions').insert({
+    // insert() returns a thenable, not a real Promise — it has no .catch(),
+    // so chaining one throws a TypeError on every call and crashes this
+    // handler. Await it and check the returned error instead.
+    const { error: globalCtaDbError } = await supabase.from('contact_submissions').insert({
       business_id: null,
       slug: null,
       name: 'Website visitor',
@@ -45,9 +53,11 @@ export default async function handler(req, res) {
       message: 'Submitted their email via the site-wide "Want us to reach out?" footer CTA — no other details provided.',
       source: 'global_cta',
       is_read: false,
-    }).catch(err => console.error('DB insert error:', err.message));
+    });
+    if (globalCtaDbError) console.error('DB insert error:', globalCtaDbError.message);
 
     try {
+      if (!resend) throw new Error('RESEND_API_KEY not configured');
       await resend.emails.send({
         from: 'Enoma <notifications@enoma.io>',
         to: 'jack@enoma.io',
@@ -71,6 +81,7 @@ export default async function handler(req, res) {
     }
 
     try {
+      if (!resend) throw new Error('RESEND_API_KEY not configured');
       await resend.emails.send({
         from: 'Jack at Enoma <jack@enoma.io>',
         to: email,
@@ -99,6 +110,105 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
+  /* ─────────────────────────────────────────────
+     CONCIERGE REQUEST ("Have Jack build it for me")
+     source === 'choose_path_concierge'
+     The concierge card on choose-path.html only collects
+     Trade + Phone (see the "no forms to fill out" pitch) —
+     name/email are carried over from the earlier funnel
+     step via query params, but are blank whenever someone
+     lands on choose-path directly. Handled before the
+     generic name/email/message check below, same as
+     global_cta, so this doesn't require fields the form
+     never asks for.
+  ───────────────────────────────────────────── */
+  if (source === 'choose_path_concierge') {
+    if (!phone) {
+      return res.status(400).json({ error: 'phone is required' });
+    }
+
+    const leadName = name || 'Website visitor';
+
+    const { error: conciergeDbError } = await supabase.from('contact_submissions').insert({
+      business_id: null,
+      slug: null,
+      name: leadName,
+      email: email || null,
+      phone,
+      subject: subject || `New page request: ${leadName}`,
+      message,
+      source: 'choose_path_concierge',
+      is_read: false,
+    });
+    if (conciergeDbError) console.error('DB insert error:', conciergeDbError.message);
+
+    // Notify Jack
+    try {
+      if (!resend) throw new Error('RESEND_API_KEY not configured');
+      await resend.emails.send({
+        from: 'Enoma <notifications@enoma.io>',
+        to: 'jack@enoma.io',
+        replyTo: email || undefined,
+        subject: `🌿 New page request: ${leadName}`,
+        html: `
+          <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a;">
+            <div style="background:#0f172a;padding:24px 28px;border-radius:12px 12px 0 0;">
+              <p style="margin:0;font-size:12px;font-weight:700;color:rgba(220,238,255,0.6);letter-spacing:0.1em;text-transform:uppercase;">New Page Request</p>
+              <p style="margin:6px 0 0;font-size:22px;font-weight:800;color:#fff;">${leadName}</p>
+            </div>
+            <div style="background:#fff;border:1px solid #e4edf5;border-top:none;border-radius:0 0 12px 12px;padding:24px 28px;">
+              <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
+                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;width:100px;vertical-align:top;">Business</td><td style="padding:7px 0;font-size:14px;font-weight:700;color:#0f172a;">${leadName}</td></tr>
+                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;vertical-align:top;">Trade</td><td style="padding:7px 0;font-size:14px;color:#0f172a;">${trade || '—'}</td></tr>
+                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;vertical-align:top;">Town</td><td style="padding:7px 0;font-size:14px;color:#0f172a;">${town || '—'}</td></tr>
+                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;vertical-align:top;">Email</td><td style="padding:7px 0;font-size:14px;color:#0f172a;">${email ? `<a href="mailto:${email}" style="color:#3882dc;">${email}</a>` : '—'}</td></tr>
+                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;vertical-align:top;">Phone</td><td style="padding:7px 0;font-size:14px;color:#0f172a;">${phone}</td></tr>
+              </table>
+              <a href="${email ? `mailto:${email}?subject=Your Enoma page is ready!` : `tel:${phone}`}" style="display:inline-block;background:#16a34a;color:#fff;padding:11px 22px;border-radius:999px;font-weight:700;font-size:13px;text-decoration:none;margin-right:10px;">${email ? `Reply to ${leadName.split(' ')[0]} →` : `Call ${phone} →`}</a>
+              <p style="margin:20px 0 0;font-size:12px;color:#9ca3af;">Submitted via enoma.io/get-your-website → choose-path</p>
+            </div>
+          </div>
+        `,
+      });
+    } catch (err) {
+      console.error('choose_path_concierge notify email error:', err.message);
+    }
+
+    // Confirm to the submitter (only if we have an email to send to)
+    if (resend && email) try {
+      await resend.emails.send({
+        from: 'Jack at Enoma <jack@enoma.io>',
+        to: email,
+        subject: `We got your request — page coming within 24 hours`,
+        html: `
+          <div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#1a1a1a;">
+            <div style="background:#0f172a;padding:24px 28px;border-radius:12px 12px 0 0;">
+              <p style="margin:0;font-size:22px;font-weight:800;color:#fff;">🌿 enoma</p>
+            </div>
+            <div style="background:#fff;border:1px solid #e4edf5;border-top:none;border-radius:0 0 12px 12px;padding:28px;">
+              <p style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 12px;">Hey, we got your request!</p>
+              <p style="font-size:14px;color:#374151;line-height:1.65;margin:0 0 16px;">
+                We're building a free lead page for <strong>${leadName}</strong>. You'll get an email from me with the link within 1 business day.
+              </p>
+              <p style="font-size:14px;color:#374151;line-height:1.65;margin:0 0 20px;">
+                The page will have your services, your area, and a contact form so customers can reach you directly. It stays live free for 30 days — then it's $19.99/month to keep it running.
+              </p>
+              <p style="font-size:14px;color:#374151;margin:0;">
+                Any questions? Just reply to this email.<br><br>
+                — Jack<br>
+                <a href="https://enoma.io" style="color:#3882dc;">enoma.io</a>
+              </p>
+            </div>
+          </div>
+        `,
+      });
+    } catch (err) {
+      console.error('choose_path_concierge confirmation email error:', err.message);
+    }
+
+    return res.status(200).json({ ok: true });
+  }
+
   if (!name || !email || !message) {
     return res.status(400).json({ error: 'name, email, and message are required' });
   }
@@ -112,7 +222,7 @@ export default async function handler(req, res) {
      that don't make it through the rest of the funnel.
   ───────────────────────────────────────────── */
   if (source === 'started_form') {
-    await supabase.from('contact_submissions').insert({
+    const { error: startedFormDbError } = await supabase.from('contact_submissions').insert({
       business_id: null,
       slug: null,
       name,
@@ -122,10 +232,12 @@ export default async function handler(req, res) {
       message,
       source: 'started_form',
       is_read: false,
-    }).catch(err => console.error('DB insert error:', err.message));
+    });
+    if (startedFormDbError) console.error('DB insert error:', startedFormDbError.message);
 
     // Notify Jack — early-funnel lead, hasn't chosen a build path yet
     try {
+      if (!resend) throw new Error('RESEND_API_KEY not configured');
       await resend.emails.send({
         from: 'Enoma <notifications@enoma.io>',
         to: 'jack@enoma.io',
@@ -156,6 +268,7 @@ export default async function handler(req, res) {
 
     // Confirm to the submitter — point them to the next step
     try {
+      if (!resend) throw new Error('RESEND_API_KEY not configured');
       const continueUrl = `https://enoma.io/choose-path?${new URLSearchParams({ name, city: town || '', email }).toString()}`;
       await resend.emails.send({
         from: 'Jack at Enoma <jack@enoma.io>',
@@ -183,92 +296,6 @@ export default async function handler(req, res) {
       });
     } catch (err) {
       console.error('started_form confirmation email error:', err.message);
-    }
-
-    return res.status(200).json({ ok: true });
-  }
-
-  /* ─────────────────────────────────────────────
-     CONCIERGE REQUEST ("Have Jack build it for me")
-     source === 'choose_path_concierge'
-     Same intent as the get_started branch above
-     (Jack builds the page by hand) — kept separate so
-     DB source tracking stays distinct per entry point.
-  ───────────────────────────────────────────── */
-  if (source === 'choose_path_concierge') {
-    await supabase.from('contact_submissions').insert({
-      business_id: null,
-      slug: null,
-      name,
-      email,
-      phone: phone || null,
-      subject: subject || `New page request: ${name}`,
-      message,
-      source: 'choose_path_concierge',
-      is_read: false,
-    }).catch(err => console.error('DB insert error:', err.message));
-
-    // Notify Jack
-    try {
-      await resend.emails.send({
-        from: 'Enoma <notifications@enoma.io>',
-        to: 'jack@enoma.io',
-        replyTo: email,
-        subject: `🌿 New page request: ${name}`,
-        html: `
-          <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a;">
-            <div style="background:#0f172a;padding:24px 28px;border-radius:12px 12px 0 0;">
-              <p style="margin:0;font-size:12px;font-weight:700;color:rgba(220,238,255,0.6);letter-spacing:0.1em;text-transform:uppercase;">New Page Request</p>
-              <p style="margin:6px 0 0;font-size:22px;font-weight:800;color:#fff;">${name}</p>
-            </div>
-            <div style="background:#fff;border:1px solid #e4edf5;border-top:none;border-radius:0 0 12px 12px;padding:24px 28px;">
-              <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
-                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;width:100px;vertical-align:top;">Business</td><td style="padding:7px 0;font-size:14px;font-weight:700;color:#0f172a;">${name}</td></tr>
-                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;vertical-align:top;">Trade</td><td style="padding:7px 0;font-size:14px;color:#0f172a;">${trade || '—'}</td></tr>
-                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;vertical-align:top;">Town</td><td style="padding:7px 0;font-size:14px;color:#0f172a;">${town || '—'}</td></tr>
-                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;vertical-align:top;">Email</td><td style="padding:7px 0;font-size:14px;color:#0f172a;"><a href="mailto:${email}" style="color:#3882dc;">${email}</a></td></tr>
-                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;vertical-align:top;">Phone</td><td style="padding:7px 0;font-size:14px;color:#0f172a;">${phone || '—'}</td></tr>
-              </table>
-              <a href="mailto:${email}?subject=Your Enoma page is ready!" style="display:inline-block;background:#16a34a;color:#fff;padding:11px 22px;border-radius:999px;font-weight:700;font-size:13px;text-decoration:none;margin-right:10px;">Reply to ${name.split(' ')[0]} →</a>
-              <p style="margin:20px 0 0;font-size:12px;color:#9ca3af;">Submitted via enoma.io/get-your-website → choose-path</p>
-            </div>
-          </div>
-        `,
-      });
-    } catch (err) {
-      console.error('choose_path_concierge notify email error:', err.message);
-    }
-
-    // Confirm to the submitter
-    try {
-      await resend.emails.send({
-        from: 'Jack at Enoma <jack@enoma.io>',
-        to: email,
-        subject: `We got your request — page coming within 24 hours`,
-        html: `
-          <div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#1a1a1a;">
-            <div style="background:#0f172a;padding:24px 28px;border-radius:12px 12px 0 0;">
-              <p style="margin:0;font-size:22px;font-weight:800;color:#fff;">🌿 enoma</p>
-            </div>
-            <div style="background:#fff;border:1px solid #e4edf5;border-top:none;border-radius:0 0 12px 12px;padding:28px;">
-              <p style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 12px;">Hey, we got your request!</p>
-              <p style="font-size:14px;color:#374151;line-height:1.65;margin:0 0 16px;">
-                We're building a free lead page for <strong>${name}</strong>. You'll get an email from me with the link within 1 business day.
-              </p>
-              <p style="font-size:14px;color:#374151;line-height:1.65;margin:0 0 20px;">
-                The page will have your services, your area, and a contact form so customers can reach you directly. It stays live free for 30 days — then it's $19.99/month to keep it running.
-              </p>
-              <p style="font-size:14px;color:#374151;margin:0;">
-                Any questions? Just reply to this email.<br><br>
-                — Jack<br>
-                <a href="https://enoma.io" style="color:#3882dc;">enoma.io</a>
-              </p>
-            </div>
-          </div>
-        `,
-      });
-    } catch (err) {
-      console.error('choose_path_concierge confirmation email error:', err.message);
     }
 
     return res.status(200).json({ ok: true });
@@ -321,7 +348,7 @@ export default async function handler(req, res) {
   }
 
   // ── 3. Send email to business owner ──
-  if (ownerEmail) {
+  if (ownerEmail && resend) {
     try {
       await resend.emails.send({
         from: 'Enoma <noreply@enoma.io>',
@@ -356,14 +383,16 @@ export default async function handler(req, res) {
   }
 
   // ── 4. Also notify Enoma (jack@enoma.io) for monitoring ──
-  try {
-    await resend.emails.send({
-      from: 'Enoma Platform <noreply@enoma.io>',
-      to: 'jack@enoma.io',
-      subject: `[Lead] ${name} contacted ${bName}`,
-      html: `<p><b>${name}</b> (${email}) sent a message to <b>${bName}</b> via their Enoma page.</p><p>${message}</p>`,
-    });
-  } catch {}
+  if (resend) {
+    try {
+      await resend.emails.send({
+        from: 'Enoma Platform <noreply@enoma.io>',
+        to: 'jack@enoma.io',
+        subject: `[Lead] ${name} contacted ${bName}`,
+        html: `<p><b>${name}</b> (${email}) sent a message to <b>${bName}</b> via their Enoma page.</p><p>${message}</p>`,
+      });
+    } catch {}
+  }
 
   return res.status(200).json({ ok: true });
 }
