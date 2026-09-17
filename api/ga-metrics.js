@@ -745,7 +745,7 @@ async function toolApproveOutreachEmail(args) {
   return {
     business_name: prospect.business_name,
     status: "approved",
-    note: "Marked ready to send. Actual sending isn't automated yet — Jack sends it himself for now."
+    note: "Marked 'approved' — this takes it OUT of the automated pipeline. The daily send_outreach cron only sends prospects still at status='drafted', so this one won't be auto-sent; send it yourself, or leave it at 'drafted' if you want the cron to send it for you."
   };
 }
 
@@ -1089,7 +1089,7 @@ const VOICE_TOOLS = [
   { type: "function", function: { name: "get_outreach_draft", description: "Read back the current draft subject/body for a prospect without regenerating it.", parameters: { type: "object", properties: {
     business_name: { type: "string" }
   }, required: ["business_name"] } } },
-  { type: "function", function: { name: "approve_outreach_email", description: "Mark a prospect's draft as approved/ready to send. Does NOT actually send anything — sending is not automated yet.", parameters: { type: "object", properties: {
+  { type: "function", function: { name: "approve_outreach_email", description: "Mark a prospect's draft as 'approved', meaning Jack will send it himself outside the automated pipeline. The daily send_outreach cron only auto-sends prospects still at status='drafted', so approving one takes it OUT of automatic sending rather than into it.", parameters: { type: "object", properties: {
     business_name: { type: "string" }
   }, required: ["business_name"] } } }
 ];
@@ -1109,7 +1109,7 @@ const SYSTEM_PROMPT = `You are Enoma's internal voice assistant, speaking direct
 
 You have tools for revenue, marketing traffic, CRM/prospecting data, business page status, and outreach drafting — always call a tool rather than guessing at any number or inventing message copy. You can also discuss outbound/inbound marketing strategy and the BD pipeline by reasoning over what the tools return.
 
-Outreach workflow: draft_outreach_email generates or revises a draft and returns the real subject/body — read it back to Jack conversationally (don't just say "I drafted it", actually speak the content). He can ask for changes, which you make by calling draft_outreach_email again with instructions describing the change. When he says something like "approve it" or "send it", call approve_outreach_email — but tell him clearly that this only marks it ready; actually sending emails is not automated yet, so he still has to send it himself.
+Outreach workflow: draft_outreach_email generates or revises a draft and returns the real subject/body — read it back to Jack conversationally (don't just say "I drafted it", actually speak the content). He can ask for changes, which you make by calling draft_outreach_email again with instructions describing the change. Sending itself IS automated: a daily cron sends every prospect still sitting at status='drafted', with no separate approval step. If he says something like "approve it," call approve_outreach_email — but tell him clearly that this takes it OUT of the automated send instead of into it, so he'll need to send that one himself. If he just wants a draft to go out normally, tell him it's already on track to send automatically and no action is needed.
 
 More generally: if a question asks about a capability or data with no matching tool result, say it doesn't exist or isn't built yet — never fabricate an answer that sounds plausible.
 
