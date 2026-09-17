@@ -14,7 +14,7 @@ import { hasValidMx } from "./_lib/email-verify.js";
 import { verifyUnsubscribeToken, appendComplianceFooter } from "./_lib/outreach-footer.js";
 import { plainTextToHtml, wrapEmailHtml } from "./_lib/email-html.js";
 import { rampCapForDate } from "./_lib/outreach-ramp.js";
-import { townForDate } from "./_lib/prospect-rotation.js";
+import { townForDate, tradeForDate } from "./_lib/prospect-rotation.js";
 import { Resend } from "resend";
 
 // Resend's constructor throws synchronously if the key is missing, which
@@ -133,11 +133,16 @@ const normalizePhone = (p) => (p || "").replace(/\D/g, "").slice(-10);
 // Filtered to only_without_website — Enoma's actual ICP is businesses that
 // don't have a site yet, not just any business in the trade.
 //
-// Email is requested via enrichment (company_websites_finder discovers a site
-// Google's own listing doesn't show, leads_n_contacts then scrapes an email
-// from it) but is NOT required — most correctly-targeted no-website prospects
-// genuinely have no scrapable email anywhere, and dropping them would gut this
-// vertical's list. Treat `email` as a nice-to-have channel signal, not a filter.
+// Email used to be requested via enrichment (company_websites_finder /
+// leads_n_contacts) on the theory that it'd discover a site or email Google's
+// own listing doesn't show. Checked against the actual data 2026-09-17: of
+// every prospect that has ever had an email on file, 100% got it from this
+// file's own crawlWebsitesOnce visiting `website` — zero ever came from
+// Outscraper's enrichment. Defaulted off below; still overridable via the
+// `enrichment` param if worth re-testing later. `email` stays a nice-to-have
+// channel signal, not a pull filter — most correctly-targeted no-website
+// prospects genuinely have no scrapable email anywhere, and dropping them
+// would gut this vertical's list.
 // Core pull logic, split out from handleProspectPull so the daily cron
 // pipeline (handleDailyPipeline, below) can call it directly without going
 // through a req/res cycle.
@@ -155,7 +160,7 @@ async function pullProspects({ trade = "landscaping", location = "Attleboro, MA"
   if (filtersParam && filtersParam !== "none") {
     filtersParam.split(",").forEach(f => params.append("filters", f));
   }
-  const enrichmentParam = enrichment !== undefined ? enrichment : "company_websites_finder,leads_n_contacts";
+  const enrichmentParam = enrichment !== undefined ? enrichment : "none";
   // Confirmed empirically: unlike `filters`, Outscraper's `enrichment` must be
   // sent as ONE comma-separated value — appending it as repeated params (like
   // filters does) silently returns zero results.
@@ -276,7 +281,12 @@ async function handleProspectPull(req, res) {
 // this file's 60s maxDuration; call it repeatedly with a small `limit` to
 // work through the backlog rather than raising limit to cover it in one go.
 
-const CONTACT_FALLBACK_PATH = "/contact";
+// Tried in order after the homepage, stopping as soon as one turns up an
+// email. Widened 2026-09-17 from a single "/contact" guess after checking
+// the actual data: of prospects with a website, the homepage+/contact combo
+// only ever found an email on 39% of them — worth the extra ~5s/prospect
+// worst case to try one more common path before giving up.
+const CONTACT_FALLBACK_PATHS = ["/contact", "/contact-us"];
 const CRAWL_FETCH_HEADERS = { "User-Agent": "Mozilla/5.0 (compatible; EnomaBot/1.0; +https://enoma.io)" };
 
 const MAX_CRAWL_REDIRECTS = 3;
@@ -352,8 +362,9 @@ async function findEmailForWebsite(website) {
   let html = homepage.html;
   let fetched = homepage.ok;
 
-  if (!emails.length) {
-    const contact = await fetchPageText(`${base.origin}${CONTACT_FALLBACK_PATH}`, 5000);
+  for (const path of CONTACT_FALLBACK_PATHS) {
+    if (emails.length) break;
+    const contact = await fetchPageText(`${base.origin}${path}`, 5000);
     fetched = fetched || contact.ok;
     const contactEmails = extractEmails(contact.html);
     if (contactEmails.length) {
@@ -412,6 +423,12 @@ Return ONLY valid JSON: {"tier": "weak_site" | "good_site", "gaps": ["short spec
 // Core crawl logic for a single batch, split out from handleCrawlWebsites so
 // the daily cron pipeline (handleDailyPipeline, below) can call it directly
 // without going through a req/res cycle.
+// A fetch_failed prospect (site blocked us / timed out / errored) never got
+// its content read at all, unlike no_email_found — so it's worth one retry
+// after this cooldown rather than abandoning it forever. no_email_found is
+// NOT retried: that page was actually read and genuinely had nothing.
+const FETCH_FAILED_RETRY_AFTER_MS = 3 * 24 * 60 * 60 * 1000;
+
 async function crawlWebsitesOnce({ limit = 6, deadline } = {}) {
   const cappedLimit = Math.min(limit || 6, 15);
 
@@ -420,14 +437,15 @@ async function crawlWebsitesOnce({ limit = 6, deadline } = {}) {
     .select("id, business_name, trade, city, state, website, preview_url")
     .not("website", "is", null)
     .is("email", null)
-    .is("email_crawl_status", null)
+    .or(`email_crawl_status.is.null,and(email_crawl_status.eq.fetch_failed,updated_at.lt.${new Date(Date.now() - FETCH_FAILED_RETRY_AFTER_MS).toISOString()})`)
     .limit(cappedLimit);
   if (error) throw error;
 
   const results = [];
   for (const prospect of prospects || []) {
-    // Each prospect can cost up to ~11s worst-case (two fetch timeouts) plus
-    // OpenAI latency, so `limit` alone doesn't bound wall-clock time — a
+    // Each prospect can cost up to ~16s worst-case (homepage + 2 contact-path
+    // fetch timeouts) plus OpenAI latency, so `limit` alone doesn't bound
+    // wall-clock time — a
     // caller chaining this with other steps (handleDailyPipeline) passes a
     // shared deadline so this stops early rather than risk the platform
     // hard-killing the whole request mid-batch with no response at all.
@@ -840,7 +858,16 @@ async function handleDraftAll(req, res) {
 const DAILY_PIPELINE_BUDGET_MS = 45000;
 
 async function handleDailyPipeline(req, res) {
-  const trade = (req.query.trade || "landscaping").toString();
+  // Landscaping/plumber were the only two trades ever pulled here, even
+  // though the site's own concierge form (choose-path.html) lists 8
+  // categories. Rotates through all of them by day of year (see
+  // prospect-rotation.js) at the same Outscraper cost per pull — an explicit
+  // ?trade= still wins for a manual one-off pull. ?tradeOffset lets the two
+  // same-day cron entries (vercel.json) each land on a different trade
+  // instead of both picking the day's same rotation value.
+  const trade = req.query.trade
+    ? req.query.trade.toString()
+    : tradeForDate(new Date(), parseInt(req.query.tradeOffset, 10) || 0);
   // Attleboro alone saturates fast (repeat pulls return zero new listings
   // once the local market's been scanned) -- rotate through nearby towns by
   // day of year so the raw "new" pool keeps refilling. An explicit

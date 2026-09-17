@@ -90,11 +90,11 @@
   },
   "crons": [
     {
-      "path": "/api/ga-metrics?action=daily_pipeline&trade=landscaping&limit=25",
+      "path": "/api/ga-metrics?action=daily_pipeline&tradeOffset=0&limit=25",
       "schedule": "0 10 * * *"
     },
     {
-      "path": "/api/ga-metrics?action=daily_pipeline&trade=plumber&limit=25",
+      "path": "/api/ga-metrics?action=daily_pipeline&tradeOffset=4&limit=25",
       "schedule": "20 10 * * *"
     },
     {
