@@ -17,7 +17,11 @@ import { rampCapForDate } from "./_lib/outreach-ramp.js";
 import { townForDate } from "./_lib/prospect-rotation.js";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Resend's constructor throws synchronously if the key is missing, which
+// would crash this whole module (prospecting, crawling, drafting, sending,
+// the webhook, and the sales-queue dashboard all live here) at import time.
+// Guarded the same way as api/send-contact.js.
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 const client = new BetaAnalyticsDataClient({
   credentials: {
@@ -903,6 +907,7 @@ async function handleSendOutreach(req, res) {
     }
 
     try {
+      if (!resend) throw new Error('RESEND_API_KEY not configured');
       const body = appendComplianceFooter(prospect.draft_body, prospect.email);
       // Sent as real HTML (with a plain-text alternative for clients that
       // prefer it) so links render as clickable anchors instead of bare URL
