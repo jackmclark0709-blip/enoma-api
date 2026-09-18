@@ -519,6 +519,12 @@ async function crawlWebsitesOnce({ limit = 6, deadline } = {}) {
   };
 }
 
+// Also scheduled directly by vercel.json (limit=15, its internal cap) between
+// the two daily_pipeline pull runs and send_outreach — daily_pipeline's own
+// crawl step shares a 45s budget with pull+draft and is capped at 15/run, so
+// pull (50/day) was outpacing crawl (30/day) and the backlog kept growing.
+// This standalone call has the full maxDuration to itself, adding a third
+// crawl pass/day without touching daily_pipeline's own limits.
 async function handleCrawlWebsites(req, res) {
   const limit = parseInt(req.query.limit, 10) || 6;
   const result = await crawlWebsitesOnce({ limit });
