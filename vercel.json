@@ -98,6 +98,14 @@
       "schedule": "20 10 * * *"
     },
     {
+      "path": "/api/ga-metrics?action=crawl_websites&limit=15",
+      "schedule": "40 10 * * *"
+    },
+    {
+      "path": "/api/ga-metrics?action=draft_all&limit=15",
+      "schedule": "50 10 * * *"
+    },
+    {
       "path": "/api/ga-metrics?action=send_outreach&limit=20",
       "schedule": "0 11 * * *"
     }
