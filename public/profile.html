@@ -1250,7 +1250,15 @@ async function loadProfile() {
     : '26,60,80';
   document.documentElement.style.setProperty('--brand-rgb', defaultRgb);
 
-  fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug, event: 'page_view' }) }).catch(() => {});
+  // ?m=<outreach message id> is added to preview links in cold emails, so a
+  // visit can be credited to the email that drove it (see api/track.js).
+  const viewMeta = {};
+  try {
+    const qs = new URLSearchParams(window.location.search);
+    if (qs.get('m')) viewMeta.m = qs.get('m').slice(0, 64);
+    if (qs.get('utm_source')) viewMeta.utm_source = qs.get('utm_source').slice(0, 64);
+  } catch (e) {}
+  fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug, event: 'page_view', metadata: viewMeta }) }).catch(() => {});
 
   /* ── Sticky nav ── */
   const navBrand = getEl('businessName');

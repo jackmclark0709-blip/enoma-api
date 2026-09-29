@@ -100,6 +100,22 @@
     {
       "path": "/api/ga-metrics?action=send_outreach&limit=20",
       "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/ga-metrics?action=crawl_websites&limit=15",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/ga-metrics?action=crawl_websites&limit=15",
+      "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/ga-metrics?action=crawl_websites&limit=15",
+      "schedule": "0 19 * * *"
+    },
+    {
+      "path": "/api/ga-metrics?action=crawl_websites&limit=15",
+      "schedule": "0 22 * * *"
     }
   ]
 }
