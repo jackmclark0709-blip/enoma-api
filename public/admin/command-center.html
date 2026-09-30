@@ -741,7 +741,7 @@
       ].join('') || '<div class="status-line">No paying or comped accounts.</div>';
 
       document.getElementById('rev-stalled-list').innerHTML = (r.stalled_trial_businesses || []).length
-        ? (r.stalled_trial_businesses || []).map(n => `<div class="alert-row"><div><div class="name">${escapeHtml(n || 'Unnamed')}</div><div class="why">$19.99/mo if converted</div></div></div>`).join('')
+        ? (r.stalled_trial_businesses || []).map(n => `<div class="alert-row"><div><div class="name">${escapeHtml(n || 'Unnamed')}</div><div class="why">$49/mo if converted</div></div></div>`).join('')
         : '<div class="status-line">No stalled trials right now.</div>';
     }
 

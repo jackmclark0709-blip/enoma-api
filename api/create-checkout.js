@@ -1,5 +1,6 @@
 // api/create-checkout.js
-// Creates a Stripe Checkout session for $19.99/mo subscription
+// Creates a Stripe Checkout session for the starter subscription ($49/mo).
+// The amount lives on the Stripe Price referenced by STRIPE_PRICE_ID.
 // Called from dashboard when user clicks "Subscribe"
 
 import Stripe from 'stripe';

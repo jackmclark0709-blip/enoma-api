@@ -56,7 +56,7 @@
 <div class="plan-wrap">
   <div class="plan-card">
     <p class="plan-name">Self-managed</p>
-    <p class="plan-price">$19.99<span>/mo</span></p>
+    <p class="plan-price">$49<span>/mo</span></p>
     <p class="plan-desc">Your page stays live and you manage your own content anytime through your dashboard.</p>
     <ul class="plan-features">
       <li>Business website live on enoma.io</li>
@@ -66,7 +66,7 @@
       <li>Analytics — page views and contact clicks</li>
       <li>Cancel anytime, no contracts</li>
     </ul>
-    <button class="plan-cta primary" id="selfSubBtn">Subscribe — $19.99/mo →</button>
+    <button class="plan-cta primary" id="selfSubBtn">Subscribe — $49/mo →</button>
   </div>
 
   <div class="plan-card featured">
@@ -141,8 +141,8 @@ async function init() {
       });
       const { url, error } = await res.json();
       if (url) { window.location.href = url; }
-      else { alert(error || 'Could not start checkout.'); btn.disabled = false; btn.textContent = 'Subscribe — $19.99/mo →'; }
-    } catch { btn.disabled = false; btn.textContent = 'Subscribe — $19.99/mo →'; }
+      else { alert(error || 'Could not start checkout.'); btn.disabled = false; btn.textContent = 'Subscribe — $49/mo →'; }
+    } catch { btn.disabled = false; btn.textContent = 'Subscribe — $49/mo →'; }
   });
 }
 init();

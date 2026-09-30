@@ -557,6 +557,9 @@ async function toolGetRevenueStatus() {
   const stalledTrials = rows.filter(s =>
     s.is_trial && s.trial_expires_at && new Date(s.trial_expires_at) <= now && s.status !== "active"
   );
+  // Legacy plan price. Existing subscribers are still billed on the original
+  // $19.99 Stripe price, so MRR stays computed at that rate until they migrate.
+  // New signups are quoted $49/mo (starter) — update when the old price is retired.
   const PRICE = 19.99;
 
   return {
@@ -694,7 +697,7 @@ From these real gaps found on their current site, pick exactly ONE — the most 
 You may mention this real case study once as supporting proof — an actual paying Enoma customer, not a hypothetical — but it is NOT the call-to-action, the CTA below is: ${CASE_STUDY_URL}. Don't invent any number or result beyond what that page shows.`
     : "";
 
-  const prompt = `Write a short, professional cold outreach email from Enoma — a service that gets local service businesses (landscaping, plumbing, HVAC, etc.) found on Google and turns that into more calls, $19.99/mo after a free 30-day trial — to ${openingLine}.
+  const prompt = `Write a short, professional cold outreach email from Enoma — a service that gets local service businesses (landscaping, plumbing, HVAC, etc.) found on Google and turns that into more calls, $49/mo after a free 30-day trial — to ${openingLine}.
 
 Business: ${prospect.business_name}
 Trade: ${prospect.trade || "local service business"}
@@ -1132,7 +1135,7 @@ const TOOL_IMPL = {
   approve_outreach_email: toolApproveOutreachEmail
 };
 
-const SYSTEM_PROMPT = `You are Enoma's internal voice assistant, speaking directly to Jack, the founder. Enoma builds AI-generated business websites for local service businesses (landscaping, plumbing, HVAC, etc.) — free 30-day trial, then $19.99/mo. Its ideal customer is a business that doesn't have a website yet.
+const SYSTEM_PROMPT = `You are Enoma's internal voice assistant, speaking directly to Jack, the founder. Enoma builds AI-generated business websites for local service businesses (landscaping, plumbing, HVAC, etc.) — free 30-day trial, then $49/mo. Its ideal customer is a business that doesn't have a website yet.
 
 You have tools for revenue, marketing traffic, CRM/prospecting data, business page status, and outreach drafting — always call a tool rather than guessing at any number or inventing message copy. You can also discuss outbound/inbound marketing strategy and the BD pipeline by reasoning over what the tools return.
 

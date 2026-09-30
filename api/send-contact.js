@@ -191,7 +191,7 @@ export default async function handler(req, res) {
                 We're building a free lead page for <strong>${leadName}</strong>. You'll get an email from me with the link within 1 business day.
               </p>
               <p style="font-size:14px;color:#374151;line-height:1.65;margin:0 0 20px;">
-                The page will have your services, your area, and a contact form so customers can reach you directly. It stays live free for 30 days — then it's $19.99/month to keep it running.
+                The page will have your services, your area, and a contact form so customers can reach you directly. It stays live free for 30 days — then it's $49/month to keep it running.
               </p>
               <p style="font-size:14px;color:#374151;margin:0;">
                 Any questions? Just reply to this email.<br><br>
