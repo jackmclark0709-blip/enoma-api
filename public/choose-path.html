@@ -252,6 +252,8 @@
 
       conciergeForm.classList.remove('open');
       document.getElementById('conciergeSuccess').classList.add('open');
+      // Done-for-you request = a real lead. Mirrored to GA4 as a key event.
+      if (window.enomaTrack) enomaTrack('concierge_requested', { trade: trade });
     } catch (err) {
       errorEl.textContent = 'Something went wrong — please try again or email jack@enoma.io';
       errorEl.style.display = 'block';
