@@ -52,6 +52,8 @@ export default async function handler(req, res) {
       .eq("is_public", true)
       .eq("is_claimed", true)
       .not("username", "is", null)
+      // Pages on a customer's own domain are canonical there, not on enoma.io.
+      .is("custom_domain", null)
       .order("updated_at", { ascending: false });
 
     if (error) throw error;

@@ -12,6 +12,8 @@ import crypto from "node:crypto";
 import { extractEmails, pickBestEmail, htmlToText, isPrivateOrReservedIp } from "./_lib/email-crawler.js";
 import { hasValidMx } from "./_lib/email-verify.js";
 import { siteChecks, decideSiteTier } from "./_lib/site-checks.js";
+import { previousMonth, tallyClicks, buildResultsEmail } from "./_lib/results-email.js";
+import { qualifiesForPreview, buildFactsPrompt, validateGenerated, assembleProfile, slugify, stateAbbr, PREVIEW_TRIAL_DAYS } from "./_lib/preview-generator.js";
 import { verifyUnsubscribeToken, appendComplianceFooter } from "./_lib/outreach-footer.js";
 import { plainTextToHtml, wrapEmailHtml } from "./_lib/email-html.js";
 import { rampCapForDate } from "./_lib/outreach-ramp.js";
@@ -437,7 +439,7 @@ async function crawlWebsitesOnce({ limit = 6, deadline } = {}) {
 
   const { data: prospects, error } = await supabase
     .from("prospects")
-    .select("id, business_name, trade, city, state, website, preview_url")
+    .select("id, business_name, trade, city, state, phone, address, website, preview_url, google_place_id, raw")
     .not("website", "is", null)
     .is("email", null)
     .or(`email_crawl_status.is.null,and(email_crawl_status.eq.fetch_failed,updated_at.lt.${new Date(Date.now() - FETCH_FAILED_RETRY_AFTER_MS).toISOString()})`)
@@ -497,7 +499,21 @@ async function crawlWebsitesOnce({ limit = 6, deadline } = {}) {
         continue;
       }
 
-      const draft = await generateDraftCopy({ ...prospect, email, website: prospect.website, site_gaps: gaps }, null);
+      // Build their preview page first (when they qualify) so the email can
+      // show it. A generation failure never blocks the draft.
+      let preview_url = prospect.preview_url;
+      if (!preview_url && !(deadline && Date.now() > deadline - 15000)) {
+        try {
+          const gen = await generatePreviewForProspect(prospect, { homeHtml });
+          preview_url = gen.preview_url || null;
+        } catch (e) {
+          console.warn("Preview generation failed:", prospect.business_name, e.message);
+        }
+      }
+
+      // Only the objectively verified problems go in the email itself.
+      const emailGaps = checks.pitches.length ? checks.pitches : gaps;
+      const draft = await generateDraftCopy({ ...prospect, preview_url, email, website: prospect.website, site_gaps: emailGaps }, null);
       await supabase.from("prospects")
         .update({
           email, email_crawl_status: "found", site_tier: tier, site_gaps: gaps,
@@ -533,6 +549,194 @@ async function handleCrawlWebsites(req, res) {
   const limit = parseInt(req.query.limit, 10) || 6;
   const result = await crawlWebsitesOnce({ limit });
   return res.status(200).json({ success: true, ...result });
+}
+
+
+// ── Automatic preview pages ────────────────────────────────────────────────
+// Builds an unclaimed enoma.io/<slug> page for a prospect from ONLY their own
+// website text + Google Business Profile (see _lib/preview-generator.js for
+// the facts-only rules). Used by the crawl step (weak-site prospects get a
+// page before their outreach is drafted, so the email can show it) and by
+// action=generate_preview for one-offs (e.g. phone/text outreach).
+
+async function fetchPlaceDetails(placeId) {
+  if (!placeId || !process.env.GOOGLE_SERVER_PLACES_KEY) return null;
+  const fields = "displayName,formattedAddress,nationalPhoneNumber,rating,userRatingCount,reviews,regularOpeningHours.weekdayDescriptions,types,primaryTypeDisplayName,websiteUri";
+  const r = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {
+    headers: { "X-Goog-Api-Key": process.env.GOOGLE_SERVER_PLACES_KEY, "X-Goog-FieldMask": fields }
+  });
+  if (!r.ok) return null;
+  return r.json();
+}
+
+// Homepage + up to two same-site pages that look like services / service
+// area / about, so the generator sees what they actually offer and where.
+async function gatherSiteText(website, homeHtmlHint) {
+  let base;
+  // Some Google listings store "site.com/%3Futm_source%3D..." — drop that.
+  const cleaned = String(website).replace(/%3F.*$/i, "");
+  try { base = new URL(cleaned.match(/^https?:\/\//) ? cleaned : `https://${cleaned}`); } catch { return { text: "", homeHtml: null, homeUrl: null }; }
+  base.search = ""; // strip GBP utm params baked into some listings
+  const home = homeHtmlHint ? { ok: true, html: homeHtmlHint } : await fetchPageText(base.toString(), 6000);
+  if (!home.ok || !home.html) return { text: "", homeHtml: null, homeUrl: base.toString() };
+  const links = [...home.html.matchAll(/href=["']([^"'#]+)["']/gi)].map(m => m[1])
+    .map(h => { try { return new URL(h, base); } catch { return null; } })
+    .filter(u => u && u.hostname === base.hostname && /(service|area|about|what-we-do)/i.test(u.pathname))
+    .map(u => u.origin + u.pathname);
+  const extra = [];
+  for (const u of [...new Set(links)].slice(0, 2)) {
+    const pg = await fetchPageText(u, 5000);
+    if (pg.ok && pg.html) extra.push(htmlToText(pg.html));
+  }
+  return { text: [htmlToText(home.html), ...extra].join("\n\n").slice(0, 12000), homeHtml: home.html, homeUrl: base.toString() };
+}
+
+async function uniqueSlug(base) {
+  let slug = base || "business";
+  for (let i = 1; i < 50; i++) {
+    const { data } = await supabase.from("small_business_profiles").select("id").eq("username", slug).maybeSingle();
+    if (!data) return slug;
+    slug = `${base}-${i + 1}`;
+  }
+  throw new Error("Could not find a free slug");
+}
+
+async function generatePreviewForProspect(prospect, { homeHtml, force = false } = {}) {
+  if (prospect.preview_url && !force) return { skipped: "already_has_preview", preview_url: prospect.preview_url };
+
+  const raw = prospect.raw || {};
+  const place = await fetchPlaceDetails(prospect.google_place_id);
+  const rating = Number(place?.rating ?? raw.rating) || null;
+  const reviewCount = Number(place?.userRatingCount ?? raw.reviews) || 0;
+  const phone = place?.nationalPhoneNumber || prospect.phone || raw.phone || null;
+
+  const site = prospect.website ? await gatherSiteText(prospect.website, homeHtml) : { text: "", homeHtml: null, homeUrl: null };
+  const checks = site.homeHtml ? siteChecks(site.homeHtml, site.homeUrl) : { score: 0 };
+  const gate = qualifiesForPreview({ rating, reviewCount, hasWebsite: !!prospect.website, siteCheckScore: checks.score, phone });
+  if (!gate.ok && !force) return { skipped: gate.reason };
+
+  const trade = place?.primaryTypeDisplayName?.text || prospect.trade || raw.type || "local service";
+  const hours = place?.regularOpeningHours?.weekdayDescriptions || [];
+  const address = place?.formattedAddress || prospect.address || null;
+  const prompt = buildFactsPrompt({
+    name: prospect.business_name, trade, city: prospect.city, state: stateAbbr(prospect.state), phone, address,
+    siteText: site.text, googleTypes: (place?.types || []).slice(0, 5), hours,
+  });
+  const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${process.env.OPENAI_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "gpt-4o", temperature: 0, response_format: { type: "json_object" },
+      messages: [{ role: "system", content: "You are a JSON API. You ONLY return valid JSON." }, { role: "user", content: prompt }]
+    })
+  });
+  const ai = await aiRes.json();
+  if (!aiRes.ok) throw new Error(ai?.error?.message || "OpenAI preview generation failed");
+  const copy = validateGenerated(JSON.parse(ai.choices[0].message.content), { siteText: site.text, phone, address, hours, city: prospect.city, trade });
+
+  const slug = await uniqueSlug(slugify(prospect.business_name));
+  const profile = assembleProfile({
+    slug, name: prospect.business_name, trade, city: prospect.city, state: prospect.state, phone, address,
+    placeId: prospect.google_place_id, rating, reviewCount, googleReviews: place?.reviews || [], copy,
+  });
+
+  const { data: biz, error: bizErr } = await supabase.from("businesses").insert({
+    name: prospect.business_name, slug, phone, city: prospect.city, state: profile.state, region: prospect.state, country: "US",
+    industry: trade, primary_category: profile.primary_category, is_internal: false, is_published: false,
+    google_maps_url: prospect.google_place_id ? `https://www.google.com/maps/search/?api=1&query_place_id=${prospect.google_place_id}` : null,
+    ai_generated_at: new Date().toISOString(),
+  }).select("id").single();
+  if (bizErr) throw bizErr;
+
+  // Unclaimed previews stay visitable for PREVIEW_TRIAL_DAYS (website_is_active
+  // reads this row), then show the inactive page unless claimed.
+  const { error: subErr } = await supabase.from("subscriptions").insert({
+    business_id: biz.id, provider: "stripe", plan_code: "starter", status: "trialing", is_trial: true,
+    trial_starts_at: new Date().toISOString(),
+    trial_expires_at: new Date(Date.now() + PREVIEW_TRIAL_DAYS * 86400000).toISOString(),
+  });
+  if (subErr) throw subErr;
+
+  const { error: profErr } = await supabase.from("small_business_profiles").insert({ ...profile, business_id: biz.id });
+  if (profErr) throw profErr;
+
+  const preview_url = `https://enoma.io/${slug}`;
+  await supabase.from("prospects").update({ preview_url, updated_at: new Date().toISOString() }).eq("id", prospect.id);
+  return { preview_url, slug, site_checks: checks.signals || [], rating, reviewCount };
+}
+
+
+// ── Monthly results email ─────────────────────────────────────────────────
+// On the 1st (vercel.json cron), every claimed, active customer gets last
+// month's numbers: visits, taps to call, quote requests. ?dry_run=1 returns
+// the emails without sending; ?test_to=addr sends every email to that address
+// instead of the customer (use this to proofread). Idempotent per month via
+// small_business_profiles.results_email_last_sent_at.
+async function handleResultsEmail(req, res) {
+  const dryRun = req.query.dry_run === "1";
+  const testTo = req.query.test_to ? String(req.query.test_to) : null;
+  const { start, end, label } = previousMonth(new Date());
+
+  const { data: profiles, error } = await supabase
+    .from("small_business_profiles")
+    .select("business_id, username, business_name, owner_name, email, custom_domain, results_email_opt_out, results_email_last_sent_at, is_claimed")
+    .eq("is_claimed", true)
+    .not("email", "is", null);
+  if (error) throw error;
+
+  const results = [];
+  for (const p of profiles || []) {
+    const skip = reason => results.push({ business: p.business_name, skipped: reason });
+    if (p.results_email_opt_out) { skip("opted_out"); continue; }
+    if (!p.email || /@enoma\.io$/i.test(p.email)) { skip("no_customer_email"); continue; }
+    if (!testTo && p.results_email_last_sent_at && new Date(p.results_email_last_sent_at) >= end) { skip("already_sent"); continue; }
+    const { data: active } = await supabase.rpc("website_is_active", { p_business_id: p.business_id });
+    if (active === false) { skip("inactive"); continue; }
+
+    const [{ count: views }, { data: clicks }, { count: quotes }] = await Promise.all([
+      supabase.from("page_events").select("id", { count: "exact", head: true })
+        .eq("slug", p.username).eq("event", "page_view").not("is_internal", "is", true)
+        .gte("created_at", start.toISOString()).lt("created_at", end.toISOString()),
+      supabase.from("page_events").select("metadata")
+        .eq("slug", p.username).eq("event", "contact_click").not("is_internal", "is", true)
+        .gte("created_at", start.toISOString()).lt("created_at", end.toISOString()),
+      supabase.from("contact_submissions").select("id", { count: "exact", head: true })
+        .eq("business_id", p.business_id)
+        .gte("created_at", start.toISOString()).lt("created_at", end.toISOString()),
+    ]);
+    const { calls, other } = tallyClicks(clicks);
+    const pageUrl = p.custom_domain ? `https://${p.custom_domain}/` : `https://enoma.io/${p.username}`;
+    const email = buildResultsEmail({
+      businessName: p.business_name, ownerName: (p.owner_name || "").split(" ")[0] || null, monthLabel: label,
+      views: views || 0, calls, otherClicks: other, quoteRequests: quotes || 0, pageUrl,
+    });
+    if (!email) { skip("no_visits_this_month"); continue; }
+
+    const to = testTo || p.email;
+    if (dryRun) { results.push({ business: p.business_name, to, ...email }); continue; }
+    if (!resend) throw new Error("RESEND_API_KEY not configured");
+    const text = `${email.text}\n\n—\nDon't want these monthly summaries? Reply "stop" and I'll turn them off.`;
+    const { error: sendErr } = await resend.emails.send({
+      from: "Jack at Enoma <jack@enoma.io>", to, replyTo: "jack@enoma.io",
+      subject: email.subject, text, html: wrapEmailHtml(plainTextToHtml(text)),
+    });
+    if (sendErr) { results.push({ business: p.business_name, error: sendErr.message }); continue; }
+    if (!testTo) {
+      await supabase.from("small_business_profiles").update({ results_email_last_sent_at: new Date().toISOString() }).eq("business_id", p.business_id);
+    }
+    results.push({ business: p.business_name, to, sent: true, subject: email.subject });
+  }
+  return res.status(200).json({ success: true, month: label, dry_run: dryRun, test_to: testTo, results });
+}
+
+async function handleGeneratePreview(req, res) {
+  const id = (req.query.prospect_id || req.body?.prospect_id || "").toString();
+  if (!id) return res.status(400).json({ error: "prospect_id required" });
+  const { data: prospect, error } = await supabase.from("prospects").select("*").eq("id", id).maybeSingle();
+  if (error) throw error;
+  if (!prospect) return res.status(404).json({ error: "Prospect not found" });
+  const result = await generatePreviewForProspect(prospect, { force: req.query.force === "1" });
+  return res.status(200).json({ success: true, business_name: prospect.business_name, ...result });
 }
 
 const ENOMA_ADMIN_EMAIL = "jack@enoma.io";
@@ -650,72 +854,40 @@ async function findProspect(businessName) {
 // Drafting is a separate, non-tool-calling OpenAI completion — same raw-fetch
 // pattern already used for page copy in generate-business.js.
 async function generateDraftCopy(prospect, instructions) {
-  // When a preview page already exists (small_business_profiles.is_claimed=false,
-  // linked via prospects.preview_url), that's the strongest honest hook we have —
-  // a real, working thing built from their own public info, not a generic pitch.
-  const previewLine = prospect.preview_url
-    ? `\nA real, unclaimed preview page already exists for this business at ${prospect.preview_url} — built from their public Google Business listing (name, location, and real rating/reviews where available; nothing invented). You may mention it once as proof this is already real and specific to them — not as the ask itself, the CTA below is the ask. This is true and verifiable — lean on it instead of generic claims.`
-    : "";
-
-  // The one real, published proof point Enoma has (see enoma-strategy-audit
-  // notes) — an actual paying customer, not a fabricated case study. Fine to
-  // reference as supporting evidence, not fine to invent numbers beyond what
-  // that page actually shows, and — per Jack's 2026-08-25 request — no longer
-  // the email's call-to-action. The CTA is now always the direct yes/no ask
-  // below; the case study, if used at all, is a proof point mentioned before it.
-  const CASE_STUDY_URL = "https://enoma.io/case-studies/conways-landscaping";
-
-  // UTM-tagged signup link so outreach clicks show up as their own GA4
-  // source/campaign instead of being invisible inside "Direct" — split by
-  // trade so landscaping (proof lane) and plumbing (scale bet) are
-  // separately attributable, matching how the two segments are already
-  // tracked/prioritized elsewhere (see enoma-sales-segment-strategy notes).
+  // Rules learned the hard way (Sept 2026 review of 128 sends, 0 replies):
+  // the old prompt told the model the business "isn't showing up in local
+  // search" (unverified — often false for a 100-review business) and let it
+  // describe Conway's results as "significant improvement in call volume"
+  // (not something we can show). Only verifiable statements now.
   const campaignSlug = (prospect.trade || "general").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "general";
   const SIGNUP_URL = `https://enoma.io/signup?utm_source=cold_email&utm_medium=email&utm_campaign=outreach_${campaignSlug}`;
+  const gaps = Array.isArray(prospect.site_gaps) ? prospect.site_gaps.filter(Boolean).slice(0, 3) : [];
+  const siteHost = prospect.website ? String(prospect.website).replace(/%3F.*$/i, "").replace(/^https?:\/\//, "").replace(/\/.*$/, "") : "";
 
-  // Fixed closing ask, same for every prospect regardless of weak-site/
-  // no-website branch — replaces the old pattern of ending on "check out
-  // this case study," which was a soft browse-it invitation, not a real ask.
-  // Dual-path per Jack's 2026-08-25 request: a pure "click here and start
-  // the signup wizard" CTA reads as presumptuous for a cold email, so the
-  // low-commitment "reply yes" stays primary with the tracked signup link
-  // offered as a secondary, no-pressure option in the same line.
-  // Phrased so the URL is the sentence's direct object ("...or [URL] to
-  // start it yourself") rather than following a "here:" lead-in — when the
-  // automated HTML send substitutes "click here" as the link's visible text
-  // (see LINK_LABEL_RULES in email-html.js), this reads naturally as "...or
-  // click here to start it yourself" instead of a redundant "here: click
-  // here". The plain-text fallback (no link substitution) still reads fine
-  // with the bare URL in that same position.
-  const CTA_LINE = `\nEnd the email with this exact call-to-action, as its own short closing paragraph — do not paraphrase, soften, reorder, or invent a different link: "Would you like more leads for your business? Reply \\"Yes\\" and we'll set it up for you — or ${SIGNUP_URL} to start it yourself."`;
+  let brief;
+  if (prospect.preview_url) {
+    // The strongest honest hook: a real page, already built from their own info.
+    brief = `STRUCTURE (follow it):
+1. One line: I'm Jack; I build websites for trades businesses in ${prospect.state || "New England"}.
+2. I put together a new page for ${prospect.business_name} using what's already on their ${prospect.website ? "website and " : ""}Google profile: ${prospect.preview_url}
+3. "Open it on your phone."${gaps.length && siteHost ? ` Then a short list comparing it with ${siteHost}, one line per item, using ONLY these verified problems with their current site (rephrase each as what the new page does instead): ${gaps.join("; ")}` : ""}
+4. Pricing, exactly: "The first month is free. After that it's $49/month, or $99/month if you want me to handle all the updates. No contract."
+5. Close, exactly: "If you want it, just reply \"yes\" and I'll hand it over. If not, reply \"no\" and I'll take it down."`;
+  } else {
+    brief = `STRUCTURE:
+1. One line: I'm Jack; I build websites for trades businesses in ${prospect.state || "New England"}.
+2. ${gaps.length && siteHost ? `Name ONE of these verified problems with ${siteHost} and why it costs them calls: ${gaps[0]}` : `They don't have a website, so homeowners who search for a ${prospect.trade || "local service"} business can't find a page for them.`}
+3. Enoma builds a one-page site made to turn a local search into a call. First month free, then $49/month; no contract.
+4. Close, exactly: "Want me to build yours? Reply \"yes\" and I'll set it up — or ${SIGNUP_URL} to start it yourself."`;
+  }
 
-  // A prospect with real site_gaps (from action=crawl_websites) already has a
-  // website — pitching "you don't have one yet" would be false and obvious to
-  // them. Lead with the actual outcome (getting found, more calls) instead of
-  // "AI-generated website," which is the mechanism, not the pitch — matches
-  // the homepage's own "Get Found Online. Get More Calls." positioning
-  // rather than the off-brand website-builder framing used elsewhere.
-  const hasWeakSite = !!(prospect.website && Array.isArray(prospect.site_gaps) && prospect.site_gaps.length);
-  const openingLine = hasWeakSite
-    ? "a local business owner who already has a website but isn't showing up when nearby customers search for a business like theirs"
-    : "a local business owner who doesn't have a website yet";
-  const gapsLine = hasWeakSite
-    ? `\nThis business already has a website (${prospect.website}) — do NOT pitch "we'll build you a website," they already have one. Lead with the actual outcome: getting found when someone nearby searches for a ${prospect.trade || "local service"} business, and turning that into more calls. Mention once, plainly, that Enoma builds a new, fast, search-optimized page aimed at that.
+  const prompt = `Write a short, plain cold email from Jack at Enoma to ${prospect.business_name} (${prospect.trade || "local service business"}, ${[prospect.city, prospect.state].filter(Boolean).join(", ") || "location unknown"}).
 
-From these real gaps found on their current site, pick exactly ONE — the most compelling — as a supporting example of why it isn't pulling its weight. Do not list more than one, do not turn this into a checklist: ${prospect.site_gaps.join("; ")}
-
-You may mention this real case study once as supporting proof — an actual paying Enoma customer, not a hypothetical — but it is NOT the call-to-action, the CTA below is: ${CASE_STUDY_URL}. Don't invent any number or result beyond what that page shows.`
-    : "";
-
-  const prompt = `Write a short, professional cold outreach email from Enoma — a service that gets local service businesses (landscaping, plumbing, HVAC, etc.) found on Google and turns that into more calls, $49/mo after a free 30-day trial — to ${openingLine}.
-
-Business: ${prospect.business_name}
-Trade: ${prospect.trade || "local service business"}
-Location: ${[prospect.city, prospect.state].filter(Boolean).join(", ") || "unknown"}${gapsLine}${previewLine}${CTA_LINE}
+${brief}
 ${prospect.draft_body ? `\nExisting draft to revise:\nSubject: ${prospect.draft_subject}\n${prospect.draft_body}\n\nRevision instructions: ${instructions || "improve it generally"}` : ""}
 ${!prospect.draft_body && instructions ? `\nSpecific instructions: ${instructions}` : ""}
 
-Keep it short (under 130 words), warm but not pushy, no false urgency. Only state things you were actually given above (the one gap picked, location, trade, the preview page or case study link) — do not compliment the look/design/quality of their site or invent any other detail you don't actually have. Write a subject line specific to this business or the gap mentioned — never the generic phrase "Enhance Your Online Presence" or close variants of it. This is a plain-text email, not markdown — write any link (like the case study) as a bare URL such as https://example.com, never as [link text](url) markdown syntax. Sign off as "Jack, Enoma". Return ONLY valid JSON: {"subject": "...", "body": "..."}`;
+RULES: Under 140 words. Only state facts given above. Never claim they are invisible on Google, losing customers, or ranking poorly. Never cite results or numbers for other customers. No compliments about their current site, no false urgency, no markdown (bare URLs only). Open with "Hi there,". Subject line: specific to ${prospect.business_name}${prospect.preview_url ? ` and the new page (e.g. "I built ${prospect.business_name} a new page")` : ""}. Sign off "Jack Clark\nEnoma · jack@enoma.io". Return ONLY valid JSON: {"subject": "...", "body": "..."}`;
 
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -1550,6 +1722,24 @@ export default async function handler(req, res) {
       return await handleCrawlWebsites(req, res);
     } catch (err) {
       console.error("Website crawl failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.query.action === "results_email") {
+    try {
+      return await handleResultsEmail(req, res);
+    } catch (err) {
+      console.error("Results email failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.query.action === "generate_preview") {
+    try {
+      return await handleGeneratePreview(req, res);
+    } catch (err) {
+      console.error("Preview generation failed:", err);
       return res.status(500).json({ success: false, error: err.message });
     }
   }

@@ -3,26 +3,26 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{{FINAL_TITLE}}</title>
-  <meta name="description" content="{{FINAL_DESCRIPTION}}" />
-  <meta name="robots" content="{{ROBOTS}}" />
-  <link rel="canonical" href="{{FINAL_CANONICAL_URL}}" />
+  <title>Conway&#039;s Landscaping | Business Website</title>
+  <meta name="description" content="Learn about Conway&#039;s Landscaping, services, and how to get in touch." />
+  <meta name="robots" content="index,follow" />
+  <link rel="canonical" href="http://localhost:8765/conways-landscaping" />
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="{{FINAL_TITLE}}" />
-  <meta property="og:description" content="{{FINAL_DESCRIPTION}}" />
-  <meta property="og:image" content="{{FINAL_OG_IMAGE}}" />
-  <meta property="og:url" content="{{FINAL_CANONICAL_URL}}" />
+  <meta property="og:title" content="Conway&#039;s Landscaping | Business Website" />
+  <meta property="og:description" content="Learn about Conway&#039;s Landscaping, services, and how to get in touch." />
+  <meta property="og:image" content="/assets/logos/conway-landscaping.webp" />
+  <meta property="og:url" content="http://localhost:8765/conways-landscaping" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="{{FINAL_TITLE}}" />
-  <meta name="twitter:description" content="{{FINAL_DESCRIPTION}}" />
-  <meta name="twitter:image" content="{{FINAL_OG_IMAGE}}" />
+  <meta name="twitter:title" content="Conway&#039;s Landscaping | Business Website" />
+  <meta name="twitter:description" content="Learn about Conway&#039;s Landscaping, services, and how to get in touch." />
+  <meta name="twitter:image" content="/assets/logos/conway-landscaping.webp" />
   <link rel="stylesheet" href="/styles/enoma.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
-  <link rel="preload" as="image" href="{{FINAL_OG_IMAGE}}" fetchpriority="high" />
-  <script type="application/ld+json">{{LOCAL_BUSINESS_SCHEMA}}</script>
-{{FAQ_SCHEMA_TAG}}
+  <link rel="preload" as="image" href="/assets/logos/conway-landscaping.webp" fetchpriority="high" />
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"LandscapingBusiness","@id":"http://localhost:8765/conways-landscaping","name":"Conway's Landscaping","url":"http://localhost:8765/conways-landscaping","telephone":"(413)-896-5392","address":{"@type":"PostalAddress","addressLocality":"Agawam","addressRegion":"MA","addressCountry":"US"},"areaServed":[{"@type":"AdministrativeArea","name":"West Springfield"},{"@type":"AdministrativeArea","name":"Agawam"},{"@type":"AdministrativeArea","name":"Feeding Hills"}],"sameAs":[],"priceRange":"$$","image":"/assets/logos/conway-landscaping.webp","hasOfferCatalog":{"@type":"OfferCatalog","name":"Conway's Landscaping Services","itemListElement":[{"@type":"Offer","itemOffered":{"@type":"Service","name":"Mowing","description":"Weekly or bi-weekly mowing."}},{"@type":"Offer","itemOffered":{"@type":"Service","name":"Seasonal Cleanup","description":"Spring and fall cleanups."}}]}}</script>
+
 
   <style>
 /* ─────────────────────────────────────────
@@ -886,11 +886,23 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
   body.has-mobile-call-bar { padding-bottom: 70px; }
 }
 </style>
-{{BRAND_COLOR_STYLE}}
+<style id="server-brand-colors">
+  :root {
+    --brand-primary: #5a6e2a;
+    --brand-light: #c3d38a;
+    --brand-primary-10: color-mix(in srgb, #5a6e2a 10%, white);
+    --brand-primary-30: color-mix(in srgb, #5a6e2a 28%, white);
+    --brand-rgb: 90,110,42;
+    --hero-bg: #171c10;
+    --hero-bg2: #2a3319;
+    --hero-pattern: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%221200%22%20height%3D%22600%22%20viewBox%3D%220%200%201200%20600%22%20preserveAspectRatio%3D%22xMidYMid%20slice%22%3E%3Cpath%20d%3D%22M0%2018.9%20L40%2036.8%20L80%2052.9%20L120%2063.1%20L160%2064.6%20L200%2057.1%20L240%2042.5%20L280%2024.7%20L320%208.2%20L360%20-2.5%20L400%20-4.8%20L440%202.0%20L480%2016.1%20L520%2033.8%20L560%2050.5%20L600%2061.9%20L640%2065.0%20L680%2058.9%20L720%2045.3%20L760%2027.7%20L800%2010.7%20L840%20-1.3%20L880%20-5.1%20L920%200.3%20L960%2013.4%20L1000%2030.8%20L1040%2048.0%20L1080%2060.5%20L1120%2065.1%20L1160%2060.5%20L1200%2048.0%22%20fill%3D%22none%22%20stroke%3D%22%23c3d38a%22%20stroke-opacity%3D%220.05%22%20stroke-width%3D%221.2%22%2F%3E%3Cpath%20d%3D%22M0%2083.4%20L40%2087.8%20L80%2090.3%20L120%2090.5%20L160%2088.5%20L200%2084.5%20L240%2079.1%20L280%2072.9%20L320%2066.9%20L360%2061.9%20L400%2058.5%20L440%2057.3%20L480%2058.3%20L520%2061.5%20L560%2066.5%20L600%2072.4%20L640%2078.6%20L680%2084.1%20L720%2088.3%20L760%2090.5%20L800%2090.4%20L840%2088.1%20L880%2083.8%20L920%2078.2%20L960%2072.0%20L1000%2066.1%20L1040%2061.3%20L1080%2058.2%20L1120%2057.3%20L1160%2058.7%20L1200%2062.2%22%20fill%3D%22none%22%20stroke%3D%22%23c3d38a%22%20stroke-opacity%3D%220.07%22%20stroke-width%3D%221.2%22%2F%3E%3Cpath%20d%3D%22M0%20139.9%20L40%20137.5%20L80%20133.8%20L120%20129.1%20L160%20123.6%20L200%20117.7%20L240%20111.9%20L280%20106.5%20L320%20101.8%20L360%2098.2%20L400%2095.9%20L440%2095.1%20L480%2095.8%20L520%2098.0%20L560%20101.4%20L600%20106.0%20L640%20111.4%20L680%20117.2%20L720%20123.1%20L760%20128.6%20L800%20133.4%20L840%20137.2%20L880%20139.8%20L920%20140.9%20L960%20140.4%20L1000%20138.5%20L1040%20135.3%20L1080%20130.9%20L1120%20125.6%20L1160%20119.9%20L1200%20114.0%22%20fill%3D%22none%22%20stroke%3D%22%23c3d38a%22%20stroke-opacity%3D%220.09%22%20stroke-width%3D%221.2%22%2F%3E%3Cpath%20d%3D%22M0%20149.8%20L40%20146.0%20L80%20144.4%20L120%20145.3%20L160%20148.4%20L200%20153.4%20L240%20159.6%20L280%20166.1%20L320%20172.1%20L360%20176.7%20L400%20179.2%20L440%20179.4%20L480%20177.2%20L520%20172.9%20L560%20167.1%20L600%20160.6%20L640%20154.3%20L680%20149.1%20L720%20145.6%20L760%20144.4%20L800%20145.6%20L840%20149.1%20L880%20154.3%20L920%20160.6%20L960%20167.1%20L1000%20172.9%20L1040%20177.2%20L1080%20179.4%20L1120%20179.2%20L1160%20176.7%20L1200%20172.1%22%20fill%3D%22none%22%20stroke%3D%22%23c3d38a%22%20stroke-opacity%3D%220.05%22%20stroke-width%3D%221.2%22%2F%3E%3Cpath%20d%3D%22M0%20200.1%20L40%20196.5%20L80%20194.9%20L120%20195.6%20L160%20198.4%20L200%20202.8%20L240%20207.9%20L280%20212.6%20L320%20215.9%20L360%20217.2%20L400%20216.1%20L440%20212.9%20L480%20208.3%20L520%20203.2%20L560%20198.7%20L600%20195.7%20L640%20194.8%20L680%20196.3%20L720%20199.8%20L760%20204.5%20L800%20209.6%20L840%20213.9%20L880%20216.6%20L920%20217.1%20L960%20215.3%20L1000%20211.5%20L1040%20206.6%20L1080%20201.6%20L1120%20197.5%20L1160%20195.2%20L1200%20195.1%22%20fill%3D%22none%22%20stroke%3D%22%23c3d38a%22%20stroke-opacity%3D%220.07%22%20stroke-width%3D%221.2%22%2F%3E%3Cpath%20d%3D%22M0%20250.8%20L40%20245.6%20L80%20241.0%20L120%20237.5%20L160%20235.4%20L200%20235.1%20L240%20236.6%20L280%20239.7%20L320%20244.0%20L360%20249.0%20L400%20254.2%20L440%20258.8%20L480%20262.4%20L520%20264.5%20L560%20264.9%20L600%20263.5%20L640%20260.5%20L680%20256.2%20L720%20251.2%20L760%20246.1%20L800%20241.4%20L840%20237.7%20L880%20235.5%20L920%20235.1%20L960%20236.4%20L1000%20239.4%20L1040%20243.6%20L1080%20248.6%20L1120%20253.7%20L1160%20258.4%20L1200%20262.2%22%20fill%3D%22none%22%20stroke%3D%22%23c3d38a%22%20stroke-opacity%3D%220.09%22%20stroke-width%3D%221.2%22%2F%3E%3Cpath%20d%3D%22M0%20308.4%20L40%20309.3%20L80%20306.8%20L120%20301.4%20L160%20294.4%20L200%20287.3%20L240%20281.7%20L280%20278.8%20L320%20279.3%20L360%20283.0%20L400%20289.2%20L440%20296.4%20L480%20303.1%20L520%20307.8%20L560%20309.4%20L600%20307.6%20L640%20302.8%20L680%20296.1%20L720%20288.9%20L760%20282.8%20L800%20279.2%20L840%20278.9%20L880%20281.9%20L920%20287.6%20L960%20294.8%20L1000%20301.7%20L1040%20307.0%20L1080%20309.4%20L1120%20308.3%20L1160%20304.1%20L1200%20297.7%22%20fill%3D%22none%22%20stroke%3D%22%23c3d38a%22%20stroke-opacity%3D%220.05%22%20stroke-width%3D%221.2%22%2F%3E%3Cpath%20d%3D%22M0%20325.6%20L40%20320.7%20L80%20317.1%20L120%20315.3%20L160%20315.3%20L200%20317.2%20L240%20320.8%20L280%20325.9%20L320%20331.9%20L360%20338.4%20L400%20344.9%20L440%20350.8%20L480%20355.7%20L520%20359.1%20L560%20360.8%20L600%20360.6%20L640%20358.5%20L680%20354.8%20L720%20349.7%20L760%20343.6%20L800%20337.0%20L840%20330.6%20L880%20324.7%20L920%20319.9%20L960%20316.7%20L1000%20315.2%20L1040%20315.5%20L1080%20317.7%20L1120%20321.6%20L1160%20326.8%20L1200%20333.0%22%20fill%3D%22none%22%20stroke%3D%22%23c3d38a%22%20stroke-opacity%3D%220.07%22%20stroke-width%3D%221.2%22%2F%3E%3Cpath%20d%3D%22M0%20394.0%20L40%20395.9%20L80%20396.5%20L120%20395.9%20L160%20394.0%20L200%20391.1%20L240%20387.3%20L280%20383.1%20L320%20378.8%20L360%20374.8%20L400%20371.4%20L440%20368.9%20L480%20367.6%20L520%20367.6%20L560%20368.9%20L600%20371.3%20L640%20374.7%20L680%20378.7%20L720%20383.0%20L760%20387.2%20L800%20391.0%20L840%20394.0%20L880%20395.9%20L920%20396.5%20L960%20395.9%20L1000%20394.1%20L1040%20391.2%20L1080%20387.4%20L1120%20383.2%20L1160%20378.9%20L1200%20374.8%22%20fill%3D%22none%22%20stroke%3D%22%23c3d38a%22%20stroke-opacity%3D%220.09%22%20stroke-width%3D%221.2%22%2F%3E%3Cpath%20d%3D%22M0%20394.4%20L40%20392.4%20L80%20399.1%20L120%20412.8%20L160%20430.0%20L200%20446.1%20L240%20457.0%20L280%20459.8%20L320%20453.9%20L360%20440.7%20L400%20423.7%20L440%20407.3%20L480%20395.8%20L520%20392.1%20L560%20397.2%20L600%20409.8%20L640%20426.6%20L680%20443.2%20L720%20455.4%20L760%20460.0%20L800%20455.7%20L840%20443.7%20L880%20427.1%20L920%20410.2%20L960%20397.5%20L1000%20392.1%20L1040%20395.5%20L1080%20406.9%20L1120%20423.2%20L1160%20440.2%20L1200%20453.6%22%20fill%3D%22none%22%20stroke%3D%22%23c3d38a%22%20stroke-opacity%3D%220.05%22%20stroke-width%3D%221.2%22%2F%3E%3Cpath%20d%3D%22M0%20473.2%20L40%20463.9%20L80%20455.7%20L120%20450.1%20L160%20448.1%20L200%20450.1%20L240%20455.7%20L280%20463.9%20L320%20473.2%20L360%20482.0%20L400%20488.5%20L440%20491.7%20L480%20491.0%20L520%20486.4%20L560%20478.8%20L600%20469.7%20L640%20460.6%20L680%20453.2%20L720%20448.9%20L760%20448.4%20L800%20451.8%20L840%20458.6%20L880%20467.4%20L920%20476.7%20L960%20484.8%20L1000%20490.2%20L1040%20491.9%20L1080%20489.6%20L1120%20483.8%20L1160%20475.5%20L1200%20466.1%22%20fill%3D%22none%22%20stroke%3D%22%23c3d38a%22%20stroke-opacity%3D%220.07%22%20stroke-width%3D%221.2%22%2F%3E%3Cpath%20d%3D%22M0%20493.8%20L40%20509.2%20L80%20525.7%20L120%20539.4%20L160%20546.8%20L200%20546.1%20L240%20537.5%20L280%20523.1%20L320%20506.4%20L360%20491.6%20L400%20482.4%20L440%20480.9%20L480%20487.6%20L520%20500.8%20L560%20517.3%20L600%20532.9%20L640%20543.9%20L680%20547.5%20L720%20542.8%20L760%20531.0%20L800%20515.0%20L840%20498.8%20L880%20486.3%20L920%20480.6%20L960%20483.2%20L1000%20493.4%20L1040%20508.6%20L1080%20525.2%20L1120%20539.0%20L1160%20546.7%20L1200%20546.3%22%20fill%3D%22none%22%20stroke%3D%22%23c3d38a%22%20stroke-opacity%3D%220.09%22%20stroke-width%3D%221.2%22%2F%3E%3Cpath%20d%3D%22M0%20539.6%20L40%20539.5%20L80%20540.6%20L120%20542.9%20L160%20546.3%20L200%20550.4%20L240%20555.1%20L280%20560.0%20L320%20564.7%20L360%20569.0%20L400%20572.6%20L440%20575.1%20L480%20576.4%20L520%20576.5%20L560%20575.3%20L600%20572.9%20L640%20569.4%20L680%20565.2%20L720%20560.5%20L760%20555.6%20L800%20550.9%20L840%20546.7%20L880%20543.2%20L920%20540.8%20L960%20539.5%20L1000%20539.6%20L1040%20540.9%20L1080%20543.4%20L1120%20546.9%20L1160%20551.1%20L1200%20555.9%22%20fill%3D%22none%22%20stroke%3D%22%23c3d38a%22%20stroke-opacity%3D%220.05%22%20stroke-width%3D%221.2%22%2F%3E%3Cpath%20d%3D%22M0%20615.6%20L40%20605.1%20L80%20594.3%20L120%20584.3%20L160%20576.2%20L200%20570.8%20L240%20568.8%20L280%20570.3%20L320%20575.3%20L360%20583.0%20L400%20592.9%20L440%20603.6%20L480%20614.3%20L520%20623.6%20L560%20630.6%20L600%20634.5%20L640%20635.0%20L680%20631.9%20L720%20625.7%20L760%20616.9%20L800%20606.5%20L840%20595.6%20L880%20585.5%20L920%20577.1%20L960%20571.3%20L1000%20568.9%20L1040%20569.9%20L1080%20574.5%20L1120%20581.9%20L1160%20591.5%20L1200%20602.2%22%20fill%3D%22none%22%20stroke%3D%22%23c3d38a%22%20stroke-opacity%3D%220.07%22%20stroke-width%3D%221.2%22%2F%3E%3C%2Fsvg%3E");
+    
+  }
+</style>
 </head>
 
-<body class="{{BODY_CLASS}}">
-<script>window.__PROFILE__ = {{PROFILE_JSON}};</script>
+<body class="persona-landscaping has-logo">
+<script>window.__PROFILE__ = {"city":"Agawam","state":"MA","phone":"(413)-896-5392","logo_url":"/assets/logos/conway-landscaping.webp","about":"Conway’s Landscaping is a locally owned lawn care business founded by Jack Conway in 2021.","services":[{"service_name":"Mowing","service_description":"Weekly or bi-weekly mowing.","price":""},{"service_name":"Seasonal Cleanup","service_description":"Spring and fall cleanups.","price":""}],"username":"conways-landscaping","is_public":true,"is_claimed":true,"attachments":[],"business_id":null,"hero_tagline":"Weekly mowing, trimming, mulching, and seasonal cleanups for residential properties.","service_area":["West Springfield","Agawam","Feeding Hills"],"testimonials":[{"quote":"Highly recommend. We use them for both lawn service and they updated my flower beds with stones, came out great!","author":"Shana Cunningham Florian"}],"trust_badges":["Owner-Operated","Free Estimates"],"business_name":"Conway's Landscaping","hero_headline":"Reliable Lawn Care in Agawam & West Springfield","why_choose_us":"Owner-operated — Jack Conway is on every job.\nFair, transparent pricing with free estimates.","primary_category":"landscaping","primary_cta_type":"call","primary_cta_label":"Call Us Today","primary_cta_value":"(413)-896-5392","accepting_clients":true,"show_rating":false};</script>
 
 <!-- UNCLAIMED PAGE BANNER -->
 <div class="unclaimed-banner hidden" id="unclaimedBanner">
@@ -902,7 +914,7 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
   <div class="contact-strip-inner">
     <div class="contact-brand">
       <img id="navLogo" class="nav-logo hidden" alt="" />
-      <span id="businessName" class="brand-text">{{BUSINESS_NAME}}</span>
+      <span id="businessName" class="brand-text">Conway&#039;s Landscaping</span>
     </div>
     <div class="contact-actions">
       <a id="contactCall" class="contact-pill call hidden">
@@ -924,18 +936,18 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
     <div class="hero-layout">
       <div class="hero-profile">
         <div class="profile-avatar hidden" id="heroLogo">
-          <img id="logoImage" alt="" loading="eager" decoding="async" fetchpriority="high" src="{{MONOGRAM_URI}}" />
+          <img id="logoImage" alt="" loading="eager" decoding="async" fetchpriority="high" src="" />
         </div>
         <div class="wordmark" aria-hidden="true">
-          <div class="wordmark__main">{{WORDMARK_MAIN}}</div>
-          <div class="wordmark__desc">{{WORDMARK_DESCRIPTOR}}</div>
+          <div class="wordmark__main">Conway&#039;s</div>
+          <div class="wordmark__desc">Landscaping</div>
           <div class="wordmark__rule"></div>
-          <div class="wordmark__place">{{WORDMARK_PLACE}}</div>
+          <div class="wordmark__place">Agawam, MA</div>
         </div>
       </div>
       <div class="hero-content">
-        <h1 id="heroHeadline" class="hero-headline">{{HERO_HEADLINE}}</h1>
-        <p id="tagline" class="hero-tagline">{{HERO_TAGLINE}}</p>
+        <h1 id="heroHeadline" class="hero-headline">Reliable Lawn Care in Agawam &amp; West Springfield</h1>
+        <p id="tagline" class="hero-tagline">Weekly mowing, trimming, mulching, and seasonal cleanups for residential properties.</p>
         <div class="hero-actions hidden" id="primaryAction">
           <a id="primaryCtaButton" class="primary-cta"></a>
         </div>
@@ -951,8 +963,8 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 <section class="section about-with-sidebar" id="aboutSection">
   <div class="about-main">
     <h2>About</h2>
-    <p id="about-lead" class="about-lead">{{SSR_ABOUT_LEAD}}</p>
-    <p id="about-body" class="about-body">{{SSR_ABOUT_BODY}}</p>
+    <p id="about-lead" class="about-lead">Conway’s Landscaping is a locally owned lawn care business founded by Jack Conway in 2021.</p>
+    <p id="about-body" class="about-body"></p>
   </div>
   <aside class="about-sidebar hidden" id="socialSectionWrap">
     <h3 class="social-section__heading">Follow Us</h3>
@@ -962,11 +974,11 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 </section>
 
 <!-- AREAS SERVED + MAP — elevated near top -->
-<div class="{{SSR_TOWNS_CLASS}}" id="townsWrap">
+<div class="" id="townsWrap">
   <section class="section" id="towns" style="border-bottom:1px solid #e8f0f8;">
     <h2>Areas We Serve</h2>
     <p class="towns-sub" id="townsSub">Serving residential and commercial customers across:</p>
-    <div id="townList" style="margin-bottom:1.25rem;">{{SSR_TOWNS}}</div>
+    <div id="townList" style="margin-bottom:1.25rem;"><span class="town">West Springfield</span><span class="town">Agawam</span><span class="town">Feeding Hills</span></div>
     <!-- Map — Google Place ID takes priority, falls back to address -->
     <div id="serviceMapWrap" class="service-map-wrap hidden">
       <div id="serviceMap" class="service-map"></div>
@@ -982,8 +994,18 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 <div class="band">
 <section class="section" id="servicesSection" style="border:none;">
   <h2>Our Services</h2>
-  <p id="services-intro" class="services-intro">{{SSR_SERVICES_INTRO}}</p>
-  <div id="services-grid" class="service-grid">{{SSR_SERVICES}}</div>
+  <p id="services-intro" class="services-intro"></p>
+  <div id="services-grid" class="service-grid">
+      <div class="service-card service-card--primary">
+        <h3>Mowing</h3>
+        <p>Weekly or bi-weekly mowing.</p>
+        
+      </div>
+      <div class="service-card">
+        <h3>Seasonal Cleanup</h3>
+        <p>Spring and fall cleanups.</p>
+        
+      </div></div>
   <div class="services-cta-card">
     <h3>Ready to get started?</h3>
     <div class="services-cta-actions">
@@ -1022,12 +1044,21 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 <section class="section why-with-testimonials" id="whyOuterSection">
   <div class="why-main" id="whySection">
     <h2>Why Choose Us</h2>
-    <ul class="why-list" id="why">{{SSR_WHY}}</ul>
+    <ul class="why-list" id="why"><li>Owner-operated — Jack Conway is on every job.</li><li>Fair, transparent pricing with free estimates.</li></ul>
   </div>
-  <aside class="{{SSR_TESTIMONIALS_CLASS}}" id="testimonialsWrap">
+  <aside class="why-sidebar" id="testimonialsWrap">
     <h2>What Clients Say</h2>
     <div class="testimonial-carousel" id="testimonialCarousel">
-      <div class="testimonial-carousel-track" id="testimonialList">{{SSR_TESTIMONIALS}}</div>
+      <div class="testimonial-carousel-track" id="testimonialList"><div class="testimonial active" data-idx="0">
+        <div class="testimonial-accent"></div>
+        <span class="quote-mark">&#8220;</span>
+        <div class="stars">★★★★★</div>
+        <p>Highly recommend. We use them for both lawn service and they updated my flower beds with stones, came out great!</p>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">S</div>
+          <strong>Shana Cunningham Florian</strong>
+        </div>
+      </div></div>
       <div class="carousel-nav" id="carouselNav" style="display:none;">
         <div class="carousel-dots" id="carouselDots"></div>
         <div class="carousel-arrows">
@@ -1040,10 +1071,10 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 </section>
 
 <!-- FAQs — tinted band -->
-<div class="{{SSR_FAQS_CLASS}}" id="faqsBand">
+<div class="band hidden" id="faqsBand">
 <div class="faq-wrap" id="faqs" style="border-bottom:none;">
   <h2 class="faq-heading">Frequently Asked Questions</h2>
-  <div class="faq-list" id="faqList">{{SSR_FAQS}}</div>
+  <div class="faq-list" id="faqList"></div>
 </div>
 </div>
 

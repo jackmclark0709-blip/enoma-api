@@ -9,6 +9,7 @@ import fs from "fs";
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
 import { personaFor, pickPalette, splitWordmark, heroPatternSvg, isStrongRating, stripWeakRatingClaims, tidyHeadline } from "./_lib/page-style.js";
+import { renderSections, faqSchema } from "./_lib/page-ssr.js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -315,16 +316,26 @@ export default async function handler(req, res) {
     }
   }
   try {
-    const slug = (req.query.slug || "").toString().trim();
-    if (!slug) return res.status(400).send("Missing slug");
+    // Custom domains: a paying customer's own domain (e.g. grilloplumbing.com)
+    // points at this deployment; vercel.json rewrites its "/" here. Any host
+    // that isn't enoma.io / a Vercel URL / localhost is looked up by
+    // small_business_profiles.custom_domain.
+    const host = String(req.headers["x-forwarded-host"] || req.headers.host || "")
+      .toLowerCase().split(",")[0].trim().replace(/:\d+$/, "").replace(/^www\./, "");
+    const isEnomaHost = !host || /(^|\.)enoma\.io$|\.vercel\.app$|^localhost$|^127\.0\.0\.1$/.test(host);
+    let slug = (req.query.slug || "").toString().trim();
 
-    // Fetch profile
-    const { data: profile, error } = await supabase
-      .from("small_business_profiles")
-      .select("*")
-      .eq("username", slug)
-      .eq("is_public", true)
-      .maybeSingle();
+    let profileQuery = supabase.from("small_business_profiles").select("*").eq("is_public", true);
+    if (isEnomaHost) {
+      if (!slug) return res.status(400).send("Missing slug");
+      profileQuery = profileQuery.eq("username", slug);
+    } else {
+      profileQuery = profileQuery.eq("custom_domain", host);
+    }
+    const { data: profile, error } = await profileQuery.maybeSingle();
+    // On a custom domain, only that business's own page is served.
+    if (!isEnomaHost && profile && slug && slug !== profile.username) return res.status(404).send("Not found");
+    if (profile) slug = profile.username;
 
     if (error) {
       console.error("Profile lookup error:", error);
@@ -353,7 +364,10 @@ export default async function handler(req, res) {
       }
     }
 
-    const canonical = `${baseUrl}/${encodeURIComponent(slug)}`;
+    // A connected custom domain is the canonical home; enoma.io/<slug> defers to it.
+    const canonical = profile.custom_domain
+      ? `https://${profile.custom_domain}/`
+      : `${baseUrl}/${encodeURIComponent(slug)}`;
     const businessName = profile.business_name || slug;
     const seoTitle = profile.seo_title || `${businessName} | Business Website`;
     const seoDescription = profile.seo_description || `Learn about ${businessName}, services, and how to get in touch.`;
@@ -441,6 +455,7 @@ export default async function handler(req, res) {
     const heroPhoto = isImg(firstPhoto) ? firstPhoto : null;
     const brandColorStyle = getBrandColorStyle(profile, heroPhoto);
     const persona = personaFor(profile.primary_category);
+    const faqSchemaObj = faqSchema(normalizedProfile || {}, canonical);
     const wordmark = splitWordmark(profile.business_name || slug);
     const place = [profile.city, profile.state].filter(Boolean).join(", ");
     const bodyClass = [
@@ -472,6 +487,10 @@ export default async function handler(req, res) {
       // Server-side brand colors injected into <head> — no flash on first paint
       "{{BRAND_COLOR_STYLE}}": brandColorStyle,
       "{{BODY_CLASS}}": escapeHtml(bodyClass),
+      // Content rendered into the HTML itself so AI crawlers that don't run
+      // JavaScript still see About / Services / Areas / FAQs (page-ssr.js).
+      ...renderSections(normalizedProfile || {}),
+      "{{FAQ_SCHEMA_TAG}}": faqSchemaObj ? `  <script type="application/ld+json">${safeJsonForInlineScript(faqSchemaObj)}</script>` : "",
       "{{WORDMARK_MAIN}}": escapeHtml(wordmark.main),
       "{{WORDMARK_DESCRIPTOR}}": escapeHtml(wordmark.descriptor),
       "{{WORDMARK_PLACE}}": escapeHtml(place),

@@ -89,3 +89,17 @@ Real distinction worth keeping straight: an *anonymous* visitor can't be identif
 ## Security note (2026-08-12)
 
 `outreach_messages` and `suppression_list` (the permanent do-not-contact list) had Row Level Security disabled — publicly readable *and writable* via the anon key already embedded in the admin pages' page source. Fixed by enabling RLS with no public policies added, matching the existing `prospects`/`funnel_events` pattern (service-role-only access — nothing legitimate touches these tables from a browser). Run Supabase's `get_advisors(type: "security")` after any new table or migration to catch this class of issue early.
+
+## Preview pages, custom domains, monthly results (2026-09-30)
+
+All server actions below are on `api/ga-metrics.js` (function cap) and need the `x-admin-secret` header.
+
+**Automatic preview pages** — `POST /api/ga-metrics?action=generate_preview&prospect_id=<uuid>` (`&force=1` skips the qualification gate). Builds an unclaimed `enoma.io/<slug>` page from ONLY the prospect's own website text + Google Business Profile (`api/_lib/preview-generator.js`: facts-only prompt, then validation strips numbers not in the source, rating talk, puffery, and badges/bullets with no grounding in the site text). Qualification: 4.5★+ with 5+ reviews, a phone number, and — if they have a website — 2+ failed objective site checks (`api/_lib/site-checks.js`). The daily crawl now runs this automatically for weak-site prospects before drafting, so the outreach email links their page. Previews stay visitable for 90 days (trial subscription row), `noindex` until claimed.
+
+**Outreach drafts** — `generateDraftCopy` only states verified facts: the preview link and the objective site problems. It no longer claims a prospect is invisible on Google or cites other customers' results.
+
+**AI search** — `api/p.js` now renders About / Services / Areas / Why / FAQs / Testimonials into the HTML (`api/_lib/page-ssr.js`) so crawlers that don't run JavaScript see the content, and emits `FAQPage` JSON-LD. The client script still re-renders the same sections; keep `renderSections` in sync with `loadProfile()` in `public/profile.html`.
+
+**Custom domains** — set `small_business_profiles.custom_domain` (lowercase, no scheme, no `www`, e.g. `grilloplumbing.com`), add the domain (and `www.`) to the Vercel project, and have the customer point DNS at Vercel. `middleware.js` sends that host's `/` to `api/p`, which looks the business up by `custom_domain`; the canonical URL becomes the custom domain and the page drops out of enoma.io's sitemap.
+
+**Monthly results email** — `action=results_email` runs on the 1st (cron). Every claimed, active customer with an email gets last month's visits, taps to call and quote requests. `&dry_run=1` returns the emails without sending; `&test_to=you@x.com` sends them all to you to proofread. Idempotent per month (`results_email_last_sent_at`); `results_email_opt_out` turns it off for a customer.
