@@ -8,6 +8,7 @@
 import fs from "fs";
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
+import { personaFor, pickPalette, splitWordmark, heroPatternSvg, isStrongRating, stripWeakRatingClaims, tidyHeadline } from "./_lib/page-style.js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -97,6 +98,8 @@ function normalizeProfile(p) {
       return {
         quote:  t.quote  || t.text    || t.review || "",
         author: t.author || t.name    || t.reviewer || "Customer",
+        ...(t.rating ? { rating: t.rating } : {}),
+        ...(t.source ? { source: t.source } : {}),
       };
     }).filter(t => t && t.quote);
   }
@@ -187,7 +190,7 @@ function getTradeColors(primaryCategory) {
  * Returns a data: URI string suitable for use as an img src.
  */
 function generateMonogramSvg(businessName, primaryCategory) {
-  const colors = getTradeColors(primaryCategory);
+  const colors = pickPalette(primaryCategory, businessName);
 
   // Build initials from business name
   // Priority: acronym first word (BCM, TSP) → long caps → word initials
@@ -253,21 +256,32 @@ function generateMonogramSvg(businessName, primaryCategory) {
  * from trade category when no logo is present.
  * When a logo IS present, the client-side JS will override these via extractDominantColor().
  */
-function getBrandColorStyle(primaryCategory) {
-  const c = getTradeColors(primaryCategory);
+function getBrandColorStyle(profile, heroPhoto) {
+  const persona = personaFor(profile.primary_category);
+  const c = pickPalette(profile.primary_category, profile.business_name);
+  const pattern = heroPatternSvg(persona, c, (profile.business_name || "").length * 7919);
+  // CSS url() inside a custom property: quote it and escape any quotes.
+  const cssUrl = u => `url("${String(u).replace(/"/g, '%22')}")`;
   return `<style id="server-brand-colors">
   :root {
     --brand-primary: ${c.primary};
+    --brand-light: ${c.light};
     --brand-primary-10: color-mix(in srgb, ${c.primary} 10%, white);
     --brand-primary-30: color-mix(in srgb, ${c.primary} 28%, white);
     --brand-rgb: ${c.rgb};
+    --hero-bg: ${c.bg};
+    --hero-bg2: ${c.bg2};
+    --hero-pattern: ${cssUrl(pattern)};
+    ${heroPhoto ? `--hero-photo: ${cssUrl(heroPhoto)};` : ""}
   }
 </style>`;
 }
 
 function generateOgSvg(profile) {
   const cat = (profile.primary_category || "").toLowerCase();
-  const c = TRADE_COLORS_OG[cat] || { bg: "#0a1628", accent: "#3882dc", light: "#5aa8f0", label: "Local Business" };
+  const pal = pickPalette(profile.primary_category, profile.business_name);
+  const label = (TRADE_COLORS_OG[cat] || {}).label || (profile.primary_category ? String(profile.primary_category).replace(/\b\w/g, m => m.toUpperCase()) : "Local Business");
+  const c = { bg: pal.bg, accent: pal.primary, light: pal.light, label };
   const name = (profile.business_name || "Local Business").slice(0, 36);
   const city = profile.city && profile.state ? `${profile.city}, ${profile.state}` : (profile.city || "");
   const tagline = (profile.hero_tagline || profile.seo_description || "").slice(0, 80);
@@ -318,6 +332,11 @@ export default async function handler(req, res) {
     }
 
     if (!profile) return res.status(404).send("Not found");
+    // Auto-generated preview copy sometimes advertises a thin rating
+    // ("4★ from 1 Google review") — strip that before anything renders.
+    Object.assign(profile, stripWeakRatingClaims(profile));
+    // No logo -> the wordmark shows the name, so don't repeat it in the headline.
+    if (!profile.logo_url) profile.hero_headline = tidyHeadline(profile.hero_headline, profile.business_name);
 
     const baseUrl = absoluteBaseUrl(req);
 
@@ -418,7 +437,19 @@ export default async function handler(req, res) {
     // Server-side brand color style — sets --brand-primary from trade on first paint.
     // Prevents flash of wrong color before JS loads.
     // When a logo exists, client-side extractDominantColor() overrides these vars.
-    const brandColorStyle = getBrandColorStyle(profile.primary_category);
+    const isImg = u => typeof u === "string" && /\.(png|jpe?g|webp)(\?.*)?$/i.test(u);
+    const heroPhoto = isImg(firstPhoto) ? firstPhoto : null;
+    const brandColorStyle = getBrandColorStyle(profile, heroPhoto);
+    const persona = personaFor(profile.primary_category);
+    const wordmark = splitWordmark(profile.business_name || slug);
+    const place = [profile.city, profile.state].filter(Boolean).join(", ");
+    const bodyClass = [
+      `persona-${persona}`,
+      profile.logo_url ? "has-logo" : "no-logo",
+      heroPhoto ? "has-hero-photo" : "",
+    ].filter(Boolean).join(" ");
+    // Only surface a Google rating when it actually helps (see isStrongRating).
+    if (normalizedProfile) normalizedProfile.show_rating = isStrongRating(profile.average_rating, profile.review_count);
 
     const templatePath = path.join(process.cwd(), "public", "profile.html");
     let html = fs.readFileSync(templatePath, "utf8");
@@ -440,6 +471,10 @@ export default async function handler(req, res) {
       "{{MONOGRAM_URI}}": monogramUri,
       // Server-side brand colors injected into <head> — no flash on first paint
       "{{BRAND_COLOR_STYLE}}": brandColorStyle,
+      "{{BODY_CLASS}}": escapeHtml(bodyClass),
+      "{{WORDMARK_MAIN}}": escapeHtml(wordmark.main),
+      "{{WORDMARK_DESCRIPTOR}}": escapeHtml(wordmark.descriptor),
+      "{{WORDMARK_PLACE}}": escapeHtml(place),
     };
 
     for (const [needle, value] of Object.entries(replacements)) {

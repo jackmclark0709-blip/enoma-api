@@ -11,6 +11,7 @@ import dns from "node:dns/promises";
 import crypto from "node:crypto";
 import { extractEmails, pickBestEmail, htmlToText, isPrivateOrReservedIp } from "./_lib/email-crawler.js";
 import { hasValidMx } from "./_lib/email-verify.js";
+import { siteChecks, decideSiteTier } from "./_lib/site-checks.js";
 import { verifyUnsubscribeToken, appendComplianceFooter } from "./_lib/outreach-footer.js";
 import { plainTextToHtml, wrapEmailHtml } from "./_lib/email-html.js";
 import { rampCapForDate } from "./_lib/outreach-ramp.js";
@@ -353,7 +354,7 @@ async function findEmailForWebsite(website) {
   try {
     base = new URL(website.match(/^https?:\/\//) ? website : `https://${website}`);
   } catch {
-    return { emails: [], html: null, domain: null, fetched: false };
+    return { emails: [], html: null, homeHtml: null, homeUrl: null, domain: null, fetched: false };
   }
   const domain = base.hostname.replace(/^www\./, "");
 
@@ -373,7 +374,9 @@ async function findEmailForWebsite(website) {
     }
   }
 
-  return { emails, html, domain, fetched };
+  // homeHtml/homeUrl: the homepage specifically, for objective site checks
+  // (siteChecks) — `html` may be a contact page if that's where the email was.
+  return { emails, html, homeHtml: homepage.html, homeUrl: base.toString(), domain, fetched };
 }
 
 // Only called once a real email has been found — no point spending an OpenAI
@@ -453,7 +456,7 @@ async function crawlWebsitesOnce({ limit = 6, deadline } = {}) {
     // batch boundary — picked up on the next run.
     if (deadline && Date.now() > deadline) break;
     try {
-      const { emails, html, domain, fetched } = await findEmailForWebsite(prospect.website);
+      const { emails, html, homeHtml, homeUrl, domain, fetched } = await findEmailForWebsite(prospect.website);
       const email = pickBestEmail(emails, domain);
 
       if (!email) {
@@ -477,7 +480,14 @@ async function crawlWebsitesOnce({ limit = 6, deadline } = {}) {
         continue;
       }
 
-      const { tier, gaps } = await assessSiteGaps(prospect, htmlToText(html));
+      const llm = await assessSiteGaps(prospect, htmlToText(html));
+      // Objective checks decide the tier (the LLM alone called ~98% of sites
+      // weak); concrete, verifiable problems lead the pitch, LLM gaps fill in.
+      const checks = siteChecks(homeHtml || html, homeUrl || prospect.website);
+      const tier = decideSiteTier(checks, llm.tier);
+      const gaps = tier === "weak_site"
+        ? [...checks.pitches, ...llm.gaps].slice(0, 3)
+        : [];
 
       if (tier === "good_site") {
         await supabase.from("prospects")

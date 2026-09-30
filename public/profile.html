@@ -17,6 +17,8 @@
   <meta name="twitter:description" content="{{FINAL_DESCRIPTION}}" />
   <meta name="twitter:image" content="{{FINAL_OG_IMAGE}}" />
   <link rel="stylesheet" href="/styles/enoma.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="preload" as="image" href="{{FINAL_OG_IMAGE}}" fetchpriority="high" />
   <script type="application/ld+json">{{LOCAL_BUSINESS_SCHEMA}}</script>
@@ -36,7 +38,13 @@ html body {
 
 /* ── Hero ── */
 .hero-wrapper {
-  background: linear-gradient(160deg, #0d1b2a 0%, #162436 60%, #0d1b2a 100%);
+  /* Palette + texture come from the server (api/p.js getBrandColorStyle):
+     --hero-bg/--hero-bg2 are a per-business dark palette, --hero-pattern a
+     subtle trade-specific line texture. */
+  background:
+    var(--hero-pattern, none) center / cover no-repeat,
+    radial-gradient(120% 90% at 85% 10%, rgba(var(--brand-rgb, 26,90,60), 0.35) 0%, transparent 55%),
+    linear-gradient(160deg, var(--hero-bg, #0d1b2a) 0%, var(--hero-bg2, #162436) 70%, var(--hero-bg, #0d1b2a) 100%);
   width: 100vw;
   margin-left: calc(50% - 50vw);
   position: relative;
@@ -65,6 +73,53 @@ html body {
     transparent 70%);
   pointer-events: none;
 }
+/* Photo hero: when the business has a real photo, use it full-bleed with a
+   palette-tinted overlay so text stays readable. */
+body.has-hero-photo .hero-wrapper {
+  background:
+    linear-gradient(100deg, color-mix(in srgb, var(--hero-bg, #0d1b2a) 94%, transparent) 0%, color-mix(in srgb, var(--hero-bg, #0d1b2a) 78%, transparent) 55%, color-mix(in srgb, var(--hero-bg, #0d1b2a) 45%, transparent) 100%),
+    var(--hero-photo) center / cover no-repeat,
+    var(--hero-bg, #0d1b2a);
+}
+/* Film grain — the difference between "flat" and "finished" on dark heroes */
+.hero-inner { position: relative; z-index: 1; }
+.hero-wrapper .hero-grain {
+  position: absolute; inset: 0; pointer-events: none; opacity: .5; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+}
+
+/* ── Wordmark — shown instead of a logo when there isn't one ── */
+.wordmark { display: none; }
+body.no-logo #heroLogo { display: none !important; }
+body.no-logo .wordmark {
+  display: flex; flex-direction: column; justify-content: center;
+  width: 250px; min-height: 220px; padding: 1.75rem 1.6rem;
+  border-radius: 20px;
+  background: linear-gradient(160deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03));
+  border: 1px solid rgba(255,255,255,0.16);
+  box-shadow: 0 24px 60px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.12);
+  backdrop-filter: blur(6px);
+  position: relative; overflow: hidden;
+}
+body.no-logo .wordmark::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: linear-gradient(var(--brand-light, #8cc79a), var(--brand-primary, #2f6b3a));
+}
+.wordmark__main {
+  font-family: 'Fraunces', Georgia, serif; font-optical-sizing: auto;
+  font-weight: 700; font-size: 2.1rem; line-height: 1.02; letter-spacing: -0.02em;
+  color: #fff; overflow-wrap: anywhere;
+}
+.wordmark__desc {
+  margin-top: .7rem; font-family: 'DM Sans', sans-serif; font-weight: 700;
+  font-size: .72rem; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--brand-light, #8cc79a);
+}
+.wordmark__desc:empty { display: none; }
+.wordmark__rule { width: 36px; height: 1px; background: rgba(255,255,255,0.25); margin: 1rem 0 .7rem; }
+.wordmark__place { font-size: .8rem; color: rgba(240,246,255,0.62); font-weight: 500; }
+.wordmark__place:empty, .wordmark__rule:has(+ .wordmark__place:empty) { display: none; }
+
 .hero-inner {
   max-width: 1040px;
   margin-inline: auto;
@@ -93,11 +148,11 @@ html body {
   color: rgba(255,255,255,0.7);
 }
 .hero-content { display: flex; flex-direction: column; gap: 0; }
-.hero-headline {
-  font-family: 'DM Sans', sans-serif;
-  font-size: clamp(1.7rem, 3.5vw, 2.3rem);
-  font-weight: 800; line-height: 1.12;
-  letter-spacing: -0.025em;
+.hero-content .hero-headline {
+  font-family: 'Fraunces', Georgia, serif; font-optical-sizing: auto;
+  font-size: clamp(1.9rem, 4vw, 2.75rem);
+  font-weight: 600; line-height: 1.08;
+  letter-spacing: -0.02em;
   color: #ffffff !important;
   margin-bottom: 0.7rem;
   text-shadow: 0 2px 20px rgba(0,0,0,0.3);
@@ -163,7 +218,7 @@ html body {
 }
 .hero-trust-item svg {
   width: 14px; height: 14px; flex-shrink: 0;
-  stroke: var(--brand-primary, #4ade80);
+  stroke: var(--brand-light, #4ade80);
   fill: none; stroke-width: 2.5;
   stroke-linecap: round; stroke-linejoin: round;
   opacity: 0.9;
@@ -174,47 +229,7 @@ html body {
    Applied via body class set from primary_category in JS.
    ─────────────────────────────────────────────────────────── */
 
-/* Landscaping / Outdoor — earthy, organic */
-body.persona-landscaping .hero-wrapper {
-  background: linear-gradient(160deg, #0d1f0f 0%, #142b12 60%, #0d1f0f 100%);
-}
-body.persona-landscaping .section::before { background: #2d6a2d; }
-
-/* Plumbing / Heating — clean, reliable, technical */
-body.persona-plumbing .hero-wrapper {
-  background: linear-gradient(160deg, #0a1628 0%, #0f2540 60%, #0a1628 100%);
-}
-body.persona-plumbing .section::before { background: #1e5a96; }
-
-/* HVAC — modern, air/cool palette */
-body.persona-hvac .hero-wrapper {
-  background: linear-gradient(160deg, #0b1a24 0%, #122535 60%, #0b1a24 100%);
-}
-body.persona-hvac .section::before { background: #1a7a9a; }
-
-/* Electrical — bold, safety-aware */
-body.persona-electrical .hero-wrapper {
-  background: linear-gradient(160deg, #1a1400 0%, #2a2000 60%, #1a1400 100%);
-}
-body.persona-electrical .section::before { background: #c09010; }
-
-/* Cleaning — fresh, bright */
-body.persona-cleaning .hero-wrapper {
-  background: linear-gradient(160deg, #091820 0%, #0f2530 60%, #091820 100%);
-}
-body.persona-cleaning .section::before { background: #1a8a6a; }
-
-/* Contractor / General — solid, dependable */
-body.persona-contractor .hero-wrapper {
-  background: linear-gradient(160deg, #1a1208 0%, #2a1e0c 60%, #1a1208 100%);
-}
-body.persona-contractor .section::before { background: #8a5a20; }
-
-/* Retail / Gifts — warm, inviting */
-body.persona-retail .hero-wrapper {
-  background: linear-gradient(160deg, #1a0a18 0%, #280f26 60%, #1a0a18 100%);
-}
-body.persona-retail .section::before { background: #9a3a8a; }
+/* Persona hero colors now come from the server palette (api/_lib/page-style.js). */
 
 /* ── Contact strip (sticky top bar) ── */
 .contact-strip {
@@ -267,9 +282,12 @@ body.persona-retail .section::before { background: #9a3a8a; }
   background: transparent;
   border: none; box-shadow: none;
 }
+.why-sidebar h2, .faq-heading, .gallery-section h2 {
+  font-family: 'Fraunces', Georgia, serif !important; font-optical-sizing: auto; font-weight: 600 !important;
+}
 .section h2 {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 1.35rem; font-weight: 700;
+  font-family: 'Fraunces', Georgia, serif; font-optical-sizing: auto;
+  font-size: 1.6rem; font-weight: 600;
   color: #0a1628; margin-bottom: 1rem;
   letter-spacing: -0.02em;
 }
@@ -769,6 +787,9 @@ body.persona-retail .section::before { background: #9a3a8a; }
   .hero-layout { grid-template-columns: 1fr; text-align: center; }
   .hero-profile { justify-content: center; margin-bottom: 1rem; }
   .profile-avatar { width: 160px; height: 160px; }
+  body.no-logo .wordmark { width: 100%; max-width: 320px; min-height: 0; align-items: center; text-align: center; padding: 1.35rem 1.25rem; }
+  body.no-logo .wordmark::before { left: 0; right: 0; top: 0; bottom: auto; width: auto; height: 3px; }
+  .wordmark__main { font-size: 1.7rem; }
   .hero-meta { justify-content: center; }
   .hero-trust { justify-content: center; }
   .location-grid { grid-template-columns: 1fr; }
@@ -867,7 +888,7 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 {{BRAND_COLOR_STYLE}}
 </head>
 
-<body>
+<body class="{{BODY_CLASS}}">
 <script>window.__PROFILE__ = {{PROFILE_JSON}};</script>
 
 <!-- UNCLAIMED PAGE BANNER -->
@@ -897,11 +918,18 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 
 <!-- HERO -->
 <section class="hero-wrapper">
+  <div class="hero-grain" aria-hidden="true"></div>
   <div class="hero-inner">
     <div class="hero-layout">
       <div class="hero-profile">
         <div class="profile-avatar hidden" id="heroLogo">
           <img id="logoImage" alt="" loading="eager" decoding="async" fetchpriority="high" src="{{MONOGRAM_URI}}" />
+        </div>
+        <div class="wordmark" aria-hidden="true">
+          <div class="wordmark__main">{{WORDMARK_MAIN}}</div>
+          <div class="wordmark__desc">{{WORDMARK_DESCRIPTOR}}</div>
+          <div class="wordmark__rule"></div>
+          <div class="wordmark__place">{{WORDMARK_PLACE}}</div>
         </div>
       </div>
       <div class="hero-content">
@@ -1354,7 +1382,9 @@ async function loadProfile() {
     const items = [];
 
     // Trust badges (Licensed & Insured, etc.)
-    badges.forEach(b => {
+    // Skip badges that just repeat the location pill (e.g. "Mansfield, MA").
+    const cityLc = String(p.city || '').toLowerCase();
+    badges.filter(b => !(cityLc && String(b).toLowerCase().startsWith(cityLc + ','))).forEach(b => {
       items.push(`<span class="hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>${b}</span>`);
     });
 
@@ -1368,7 +1398,9 @@ async function loadProfile() {
     if (p.hero_response_time) items.push(`<span class="hero-trust-item"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.8 19.8 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.8 19.8 0 012.08 4.18 2 2 0 014.06 2h3a2 2 0 012 1.72c.12.86.31 1.7.57 2.5a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.58-1.09a2 2 0 012.11-.45c.8.26 1.64.45 2.5.57A2 2 0 0122 16.92z"/></svg>${p.hero_response_time}</span>`);
 
     // Add Google rating pill if available
-    if (p.average_rating && p.review_count) {
+    // show_rating is decided server-side (isStrongRating): a thin or middling
+    // rating ("4★ from 1 review") does more harm than showing nothing.
+    if (p.show_rating && p.average_rating && p.review_count) {
       items.unshift(`<span class="hero-trust-item"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor" stroke="none"/></svg>${p.average_rating} · ${p.review_count} Google reviews</span>`);
     }
     if (items.length) { heroTrust.innerHTML = items.join(''); heroTrust.classList.remove('hidden'); }
@@ -1550,11 +1582,12 @@ async function loadProfile() {
   }
 
   /* ── Testimonials — carousel ── */
-  const testimonialList = getEl('testimonialList');
-  const testimonialsWrap = getEl('testimonialsWrap');
-  if (Array.isArray(p.testimonials) && p.testimonials.length && testimonialList) {
-    const testimonials = p.testimonials;
-    // Build cards
+  // Owner-entered testimonials first; if there are none, real Google reviews
+  // fill the slot once they load (see Google data below).
+  const renderTestimonials = (testimonials) => {
+    const testimonialList = getEl('testimonialList');
+    const testimonialsWrap = getEl('testimonialsWrap');
+    if (!Array.isArray(testimonials) || !testimonials.length || !testimonialList) return false;
     testimonialList.innerHTML = testimonials.map((t, i) => {
       const initial = (t.author || '?')[0].toUpperCase();
       const starCount = Math.min(5, Math.max(1, Math.round(Number(t.rating) || 5)));
@@ -1572,13 +1605,11 @@ async function loadProfile() {
       </div>`;
     }).join('');
 
-    // Build carousel nav if more than 1
     const carouselNav = getEl('carouselNav');
     const carouselDots = getEl('carouselDots');
     const prevBtn = getEl('carouselPrev');
     const nextBtn = getEl('carouselNext');
     let currentIdx = 0;
-
     const showSlide = (idx) => {
       const cards = testimonialList.querySelectorAll('.testimonial');
       const dots = carouselDots?.querySelectorAll('.carousel-dot');
@@ -1586,9 +1617,7 @@ async function loadProfile() {
       dots?.forEach((d, i) => d.classList.toggle('active', i === idx));
       currentIdx = idx;
     };
-
     if (testimonials.length > 1) {
-      // Build dots
       if (carouselDots) {
         carouselDots.innerHTML = testimonials.map((_, i) =>
           `<button class="carousel-dot${i === 0 ? ' active' : ''}" data-i="${i}" aria-label="Review ${i+1}"></button>`
@@ -1601,16 +1630,14 @@ async function loadProfile() {
         showSlide((currentIdx - 1 + testimonials.length) % testimonials.length));
       if (nextBtn) nextBtn.addEventListener('click', () =>
         showSlide((currentIdx + 1) % testimonials.length));
-
-      // Auto-advance every 5 seconds
-      setInterval(() => showSlide((currentIdx + 1) % testimonials.length), 5000);
-
+      setInterval(() => showSlide((currentIdx + 1) % testimonials.length), 6000);
       if (carouselNav) carouselNav.style.display = 'flex';
     }
-
     testimonialsWrap?.classList.remove('hidden');
     getEl('whyOuterSection')?.classList.remove('hidden');
-  }
+    return true;
+  };
+  const hasOwnTestimonials = renderTestimonials(p.testimonials);
 
   /* ── Towns ── */
   const townsWrap = getEl('townsWrap');
@@ -1659,6 +1686,17 @@ async function loadProfile() {
   }
   const ratingEl = getEl('rating');
   if (ratingEl && google?.rating) { ratingEl.innerHTML = `${google.rating} <span>on Google (${google.userRatingCount || ''} reviews)</span>`; ratingEl.classList.remove('hidden'); }
+  // Same rules as api/_lib/page-style.js pickReviewQuotes (kept in sync by hand):
+  // 4–5 stars, at least 40 characters, trimmed to ~360.
+  if (!hasOwnTestimonials && google?.reviews?.length) {
+    const quotes = google.reviews
+      .map(r => ({ quote: String(r?.text?.text || '').trim(), author: r?.authorAttribution?.displayName || 'Google reviewer', rating: Number(r?.rating) || 0, source: 'google' }))
+      .filter(r => r.rating >= 4 && r.quote.length >= 40)
+      .sort((a, b) => b.rating - a.rating || Math.abs(a.quote.length - 220) - Math.abs(b.quote.length - 220))
+      .slice(0, 3)
+      .map(r => ({ ...r, quote: r.quote.length > 360 ? r.quote.slice(0, 357).replace(/\s+\S*$/, '') + '…' : r.quote }));
+    renderTestimonials(quotes);
+  }
   const reviewsEl = getEl('reviews');
   if (reviewsEl && google?.reviews?.length) {
     const best = google.reviews.filter(r => r.rating === 5).sort((a, b) => (b.publishTime || 0) - (a.publishTime || 0))[0];
