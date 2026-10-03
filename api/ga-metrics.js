@@ -1009,8 +1009,9 @@ async function draftAllOnce({ limit = 8, force = false, deadline } = {}) {
 // ── Outreach prep: verify mailbox → build preview page → draft ─────────────
 // Takes prospects the crawler queued as needs_preview (weak site + found
 // email) and gets each one fully ready to send, cheapest check first:
-//   1. ZeroBounce mailbox check — invalid/spamtrap/etc. never get a page
-//      built or an email sent; temporary failures retry after 3 days.
+//   1. Mailbox check — ZeroBounce if ZEROBOUNCE_API_KEY is set (invalid/
+//      spamtrap/etc. dropped, temporary failures retried after 3 days),
+//      otherwise just an MX lookup on the domain.
 //   2. Preview page (generatePreviewForProspect). Prospects that don't pass
 //      the page-quality gate (no phone, thin rating) are set aside as
 //      no_preview: every email has to show a real page.
@@ -1020,9 +1021,6 @@ async function draftAllOnce({ limit = 8, force = false, deadline } = {}) {
 const VERIFY_RETRY_AFTER_MS = 3 * 24 * 60 * 60 * 1000;
 
 async function prepareOutreachOnce({ limit = 4, deadline } = {}) {
-  if (!process.env.ZEROBOUNCE_API_KEY) {
-    return { attempted: 0, ready: 0, held: "ZEROBOUNCE_API_KEY is not set — nothing is prepared or sent unverified", results: [] };
-  }
   const retryBefore = new Date(Date.now() - VERIFY_RETRY_AFTER_MS).toISOString();
   const { data: prospects, error } = await supabase
     .from("prospects")
@@ -1046,7 +1044,15 @@ async function prepareOutreachOnce({ limit = 4, deadline } = {}) {
         continue;
       }
 
-      const v = await verifyMailbox(prospect.email);
+      // ZeroBounce when ZEROBOUNCE_API_KEY is set; otherwise only the free
+      // MX check (domain accepts mail), with real bounces caught afterwards
+      // by the Resend webhook -> suppression_list.
+      let v = await verifyMailbox(prospect.email);
+      if (v.decision === "unverified") {
+        v = (await hasValidMx(prospect.email))
+          ? { decision: "send", status: "mx_only", sub_status: null }
+          : { decision: "drop", status: "no_mx", sub_status: null };
+      }
       if (v.decision === "drop") {
         await supabase.from("prospects").update({ status: "invalid_email", updated_at: now() }).eq("id", prospect.id);
         results.push({ business_name: prospect.business_name, email: prospect.email, ready: false, reason: `mailbox_${v.status}` });
