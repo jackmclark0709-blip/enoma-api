@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Sales Queue — Enoma Admin</title>
+<title>Call Queue — Enoma Admin</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex,nofollow" />
 <style>
@@ -50,27 +50,13 @@
   }
   .refresh-btn:hover{ border-color:var(--core-dim); color:var(--core); }
 
-  /* ── summary tiles ── */
   .tiles{ display:grid; grid-template-columns:repeat(auto-fit,minmax(128px,1fr)); gap:10px; margin-bottom:22px; }
   .tile{ background:var(--panel); border:1px solid var(--hairline); border-radius:14px; padding:14px 16px; }
   .tile .n{ font-family:var(--mono); font-size:1.5rem; font-weight:600; }
   .tile .l{ font-size:.72rem; color:var(--text-3); text-transform:uppercase; letter-spacing:.06em; margin-top:2px; }
-  .tile.hot .n{ color:var(--crit); }
-  .tile.warm .n{ color:var(--warn); }
-  .tile.rev .n{ color:var(--rev); }
   .tile.core .n{ color:var(--core); }
+  .tile.warm .n{ color:var(--warn); }
 
-  /* ── filters ── */
-  .filters{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
-  .chip{
-    font-family:var(--mono); font-size:.74rem; color:var(--text-2);
-    background:var(--panel); border:1px solid var(--hairline); border-radius:999px;
-    padding:6px 13px; cursor:pointer; user-select:none; white-space:nowrap;
-  }
-  .chip:hover{ border-color:var(--hairline-strong); }
-  .chip.active{ background:rgba(79,216,255,.12); border-color:var(--core-dim); color:var(--core); }
-
-  /* ── queue ── */
   .empty{ color:var(--text-3); font-family:var(--mono); font-size:.85rem; text-align:center; padding:48px 0; }
   .row{
     display:flex; gap:16px; align-items:flex-start; background:var(--panel);
@@ -89,11 +75,12 @@
   .row-top{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
   .row-name{ font-weight:700; font-size:1rem; }
   .row-type{ font-family:var(--mono); font-size:.68rem; color:var(--text-3); text-transform:uppercase; letter-spacing:.05em; }
+  .row-type.phone-only{ color:var(--warn); }
   .row-detail{ color:var(--text-2); font-size:.84rem; margin-top:3px; }
   .row-meta{ display:flex; gap:14px; flex-wrap:wrap; margin-top:8px; font-family:var(--mono); font-size:.74rem; color:var(--text-3); }
   .row-meta a{ color:var(--text-2); }
   .row-meta a:hover{ color:var(--core); }
-  .row-action{ color:var(--core); font-size:.8rem; margin-top:8px; font-weight:600; }
+  .row-meta .phone-num{ color:var(--core); font-weight:600; }
 
   .draft-toggle{
     color:var(--core); font-family:var(--mono); font-size:.78rem; margin-top:10px;
@@ -106,9 +93,9 @@
   }
   .draft-subject{ font-weight:700; font-size:.86rem; margin-bottom:8px; }
   .draft-body{ white-space:pre-wrap; color:var(--text-2); font-size:.82rem; line-height:1.55; }
-  .draft-copy-btn{ margin-top:10px; }
+  .draft-note{ color:var(--text-3); font-size:.76rem; margin-bottom:8px; }
 
-  .row-controls{ flex-shrink:0; display:flex; flex-direction:column; gap:6px; align-items:flex-end; }
+  .row-controls{ flex-shrink:0; display:flex; flex-direction:column; gap:6px; align-items:flex-end; width:190px; }
   .score{ font-family:var(--mono); font-size:.72rem; color:var(--text-3); }
   .btn-row{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
   .mini-btn{
@@ -118,15 +105,8 @@
   }
   .mini-btn:hover{ border-color:var(--core-dim); color:var(--core); }
   .mini-btn:disabled{ opacity:.4; cursor:default; }
-
-  /* ── funnel health ── */
-  .funnel{ margin-top:32px; background:var(--panel); border:1px solid var(--hairline); border-radius:14px; padding:18px 20px; }
-  .funnel h2{ font-size:.85rem; font-family:var(--mono); text-transform:uppercase; letter-spacing:.06em; color:var(--text-3); margin:0 0 4px; }
-  .funnel .note{ color:var(--text-3); font-size:.76rem; margin:0 0 14px; }
-  .funnel-steps{ display:flex; gap:10px; flex-wrap:wrap; }
-  .fstep{ background:var(--panel-raised); border:1px solid var(--hairline); border-radius:10px; padding:9px 13px; min-width:120px; }
-  .fstep .n{ font-family:var(--mono); font-weight:700; color:var(--mkt); }
-  .fstep .l{ font-size:.68rem; color:var(--text-3); margin-top:2px; }
+  .mini-btn.crit:hover{ border-color:var(--crit); color:var(--crit); }
+  .mini-btn.done{ opacity:.6; cursor:default; }
 
   .status-line{ font-family:var(--mono); font-size:.74rem; color:var(--text-3); text-align:center; padding:24px 0; }
   .status-line.error{ color:var(--crit); }
@@ -136,20 +116,20 @@
 
 <div id="unauth" style="display:none;">
   <h2>Unauthorized</h2>
-  <p><a href="/login">Sign in</a> as the Enoma admin account to view the sales queue.</p>
+  <p><a href="/login">Sign in</a> as the Enoma admin account to view the call queue.</p>
 </div>
 
 <div class="wrap" id="app">
   <div class="top">
     <div>
-      <div class="eyebrow">ENOMA <b>SALES QUEUE</b> &middot; internal, admin-only</div>
-      <h1>Who should I talk to?</h1>
-      <p class="subhead">Raw Enoma leads and outbound prospects, scored and sorted by intent. Updated on load.</p>
+      <div class="eyebrow">ENOMA <b>CALL QUEUE</b> &middot; internal, admin-only</div>
+      <h1>Who should I call?</h1>
+      <p class="subhead">Prospects with a phone number who haven't been called yet — including phone-only prospects the email pipeline can never reach.</p>
     </div>
     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:10px;">
       <div class="nav-links">
         <a href="/admin/command-center.html">Command Center</a>
-        <a href="/admin/call-queue.html">Call Queue</a>
+        <a href="/admin/sales-queue.html">Sales Queue</a>
         <a href="/admin/admin-list.html">Business Profiles</a>
         <a href="/admin/voice.html">Voice Agent</a>
       </div>
@@ -159,16 +139,8 @@
 
   <div class="tiles" id="tiles"></div>
 
-  <div class="filters" id="filters"></div>
-
   <div id="queueWrap">
     <div class="status-line" id="statusLine">Loading…</div>
-  </div>
-
-  <div class="funnel">
-    <h2>Self-serve funnel — last 30 days</h2>
-    <p class="note">Aggregate only. Steps before a business page exists carry no name/email/phone to act on, so they're shown here as counts, not as individual leads.</p>
-    <div class="funnel-steps" id="funnelSteps"></div>
   </div>
 </div>
 
@@ -179,35 +151,19 @@
     unauth: document.getElementById('unauth'),
     app: document.getElementById('app'),
     tiles: document.getElementById('tiles'),
-    filters: document.getElementById('filters'),
     queueWrap: document.getElementById('queueWrap'),
-    funnelSteps: document.getElementById('funnelSteps'),
     refreshBtn: document.getElementById('refreshBtn'),
   };
 
   let accessToken = null;
-  let latest = null;       // last server response
-  let activeFilter = 'all';
+  let latest = null;
 
-  const FUNNEL_LABELS = {
-    get_your_website_submitted: 'Started form',
-    choose_path_viewed: 'Viewed path choice',
-    choose_path_selected: 'Picked a path',
-    create_page_viewed: 'Opened builder',
-    create_step_viewed: 'In wizard',
-    create_form_submitted: 'Submitted wizard',
-    create_generation_succeeded: 'Page generated',
-    create_generation_failed: 'Generation failed',
-  };
-
-  const FILTERS = [
-    { key: 'all', label: 'All' },
-    { key: 'hot', label: '🔥 High intent' },
-    { key: 'uncontacted', label: 'Uncontacted' },
-    { key: 'new_today', label: 'New today' },
-    { key: 'new_week', label: 'New this week' },
-    { key: 'raw_lead', label: 'Raw leads' },
-    { key: 'prospect', label: 'Prospects' },
+  const OUTCOMES = [
+    { key: 'interested', label: 'Interested', cls: '' },
+    { key: 'not_interested', label: 'Not interested', cls: '' },
+    { key: 'voicemail', label: 'Voicemail', cls: '' },
+    { key: 'no_answer', label: 'No answer', cls: '' },
+    { key: 'do_not_call', label: 'Do not call', cls: 'crit' },
   ];
 
   async function init() {
@@ -218,34 +174,20 @@
     }
     accessToken = session.accessToken;
     els.app.style.display = 'block';
-    renderFilters();
     els.refreshBtn.addEventListener('click', load);
     load();
-  }
-
-  function timeAgo(iso) {
-    if (!iso) return '—';
-    const ms = Date.now() - new Date(iso).getTime();
-    const mins = Math.round(ms / 60000);
-    if (mins < 1) return 'just now';
-    if (mins < 60) return mins + 'm ago';
-    const hrs = Math.round(mins / 60);
-    if (hrs < 24) return hrs + 'h ago';
-    const days = Math.round(hrs / 24);
-    return days + 'd ago';
   }
 
   async function load() {
     els.queueWrap.innerHTML = '<div class="status-line" id="statusLine">Loading…</div>';
     try {
-      const res = await fetch('/api/ga-metrics?action=sales_queue', {
+      const res = await fetch('/api/ga-metrics?action=call_queue', {
         headers: { 'Authorization': 'Bearer ' + accessToken }
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Failed to load');
       latest = data;
       renderTiles(data.summary);
-      renderFunnel(data.funnel_health);
       renderQueue();
     } catch (err) {
       els.queueWrap.innerHTML = `<div class="status-line error">${err.message}</div>`;
@@ -254,72 +196,29 @@
 
   function renderTiles(s) {
     els.tiles.innerHTML = `
-      <div class="tile hot"><div class="n">${s.hot}</div><div class="l">High intent</div></div>
-      <div class="tile warm"><div class="n">${s.warm}</div><div class="l">Warm</div></div>
-      <div class="tile core"><div class="n">${s.new_today}</div><div class="l">New today</div></div>
-      <div class="tile core"><div class="n">${s.new_this_week}</div><div class="l">New this week</div></div>
-      <div class="tile"><div class="n">${s.raw_leads_uncontacted}</div><div class="l">Uncontacted leads</div></div>
-      <div class="tile rev"><div class="n">${s.prospects_ready_to_send}</div><div class="l">Ready to send</div></div>
-      <div class="tile rev"><div class="n">${s.prospects_awaiting_reply}</div><div class="l">Awaiting reply</div></div>
+      <div class="tile core"><div class="n">${s.total}</div><div class="l">In queue</div></div>
+      <div class="tile warm"><div class="n">${s.phone_only}</div><div class="l">Phone-only (no email)</div></div>
     `;
-  }
-
-  function renderFunnel(steps) {
-    els.funnelSteps.innerHTML = (steps || []).map(s => `
-      <div class="fstep">
-        <div class="n">${s.count_last_30_days}</div>
-        <div class="l">${FUNNEL_LABELS[s.event] || s.event}</div>
-      </div>
-    `).join('');
-  }
-
-  function renderFilters() {
-    els.filters.innerHTML = FILTERS.map(f =>
-      `<div class="chip${f.key === activeFilter ? ' active' : ''}" data-key="${f.key}">${f.label}</div>`
-    ).join('');
-    els.filters.querySelectorAll('.chip').forEach(chip => {
-      chip.addEventListener('click', () => {
-        activeFilter = chip.dataset.key;
-        renderFilters();
-        renderQueue();
-      });
-    });
-  }
-
-  function matchesFilter(row) {
-    const now = Date.now();
-    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-    const weekStart = now - 7 * 24 * 60 * 60 * 1000;
-    switch (activeFilter) {
-      case 'hot': return row.tier === 'hot';
-      case 'uncontacted': return row.lead_type === 'raw_lead' && row.status === 'new';
-      case 'new_today': return new Date(row.last_activity_at) >= todayStart;
-      case 'new_week': return new Date(row.last_activity_at).getTime() >= weekStart;
-      case 'raw_lead': return row.lead_type === 'raw_lead';
-      case 'prospect': return row.lead_type === 'prospect';
-      default: return true;
-    }
   }
 
   function renderQueue() {
     if (!latest) return;
-    const rows = latest.queue.filter(matchesFilter);
+    const rows = latest.queue;
     if (!rows.length) {
-      els.queueWrap.innerHTML = '<div class="empty">Nothing in this view.</div>';
+      els.queueWrap.innerHTML = '<div class="empty">Nobody left to call right now.</div>';
       return;
     }
     els.queueWrap.innerHTML = rows.map(rowHtml).join('');
-    els.queueWrap.querySelectorAll('[data-action]').forEach(btn => {
-      btn.addEventListener('click', () => runAction(btn.dataset.leadType, btn.dataset.id, btn.dataset.action));
+    els.queueWrap.querySelectorAll('[data-outcome]').forEach(btn => {
+      btn.addEventListener('click', () => logCall(btn.dataset.id, btn.dataset.outcome, btn.closest('.row')));
     });
     els.queueWrap.querySelectorAll('[data-toggle-draft]').forEach(toggle => {
       toggle.addEventListener('click', () => toggleDraft(toggle, rows));
     });
   }
 
-  // Populates the draft box via textContent (never innerHTML) — draft_subject/
-  // draft_body are AI-generated from scraped third-party website text, so this
-  // deliberately never gets treated as trusted markup.
+  // textContent only, same reasoning as sales-queue.html — draft copy is
+  // AI-generated from scraped third-party text, never treated as markup.
   function toggleDraft(toggleEl, rows) {
     const id = toggleEl.dataset.toggleDraft;
     const box = els.queueWrap.querySelector(`[data-draft-box="${CSS.escape(id)}"]`);
@@ -327,101 +226,79 @@
     const isOpen = box.style.display !== 'none';
     if (isOpen) {
       box.style.display = 'none';
-      toggleEl.textContent = '▸ View draft';
+      toggleEl.textContent = '▸ View talking points (email draft)';
       return;
     }
     if (!box.dataset.populated) {
       const row = rows.find(r => String(r.id) === id);
       if (!row) return;
       box.innerHTML = '';
+      const noteEl = document.createElement('div');
+      noteEl.className = 'draft-note';
+      noteEl.textContent = 'No call script yet — here\'s the drafted email for the same prospect as a talking-points reference:';
       const subjectEl = document.createElement('div');
       subjectEl.className = 'draft-subject';
       subjectEl.textContent = row.draft_subject || '(no subject)';
       const bodyEl = document.createElement('div');
       bodyEl.className = 'draft-body';
       bodyEl.textContent = row.draft_body || '';
-      const copyBtn = document.createElement('button');
-      copyBtn.className = 'mini-btn draft-copy-btn';
-      copyBtn.textContent = 'Copy for email';
-      copyBtn.addEventListener('click', async () => {
-        const text = `Subject: ${row.draft_subject || ''}\n\n${row.draft_body || ''}`;
-        try {
-          await navigator.clipboard.writeText(text);
-          copyBtn.textContent = 'Copied!';
-        } catch {
-          copyBtn.textContent = 'Copy failed — select manually';
-        }
-        setTimeout(() => { copyBtn.textContent = 'Copy for email'; }, 1500);
-      });
-      box.append(subjectEl, bodyEl, copyBtn);
+      box.append(noteEl, subjectEl, bodyEl);
       box.dataset.populated = '1';
     }
     box.style.display = 'block';
-    toggleEl.textContent = '▾ Hide draft';
+    toggleEl.textContent = '▾ Hide';
   }
 
   function rowHtml(r) {
-    const title = r.lead_type === 'raw_lead' ? (r.name || 'Unnamed lead') : (r.business_name || 'Unnamed business');
     const contact = [
+      `<a class="phone-num" href="tel:${r.phone}">${r.phone}</a>`,
       r.email ? `<a href="mailto:${r.email}">${r.email}</a>` : null,
-      r.phone ? `<a href="tel:${r.phone}">${r.phone}</a>` : null,
-      r.preview_url ? `<a href="${r.preview_url}" target="_blank">preview page →</a>` : null,
     ].filter(Boolean).join(' &middot; ');
 
-    let controls = '';
-    if (r.lead_type === 'raw_lead') {
-      controls = r.status === 'replied'
-        ? `<span class="mini-btn" style="opacity:.6;">Replied</span>`
-        : `<button class="mini-btn" data-lead-type="raw_lead" data-id="${r.id}" data-action="mark_replied">Mark replied</button>
-           <button class="mini-btn" data-lead-type="raw_lead" data-id="${r.id}" data-action="${r.status === 'read' ? 'mark_unread' : 'mark_read'}">${r.status === 'read' ? 'Mark unread' : 'Mark read'}</button>`;
-    } else {
-      const next = { new: 'reviewed', reviewed: 'drafted', drafted: 'approved' }[r.status];
-      controls = `
-        ${next ? `<button class="mini-btn" data-lead-type="prospect" data-id="${r.id}" data-action="${next}">Mark ${next}</button>` : ''}
-        <button class="mini-btn" data-lead-type="prospect" data-id="${r.id}" data-action="skipped">Skip</button>
-      `;
-    }
+    const outcomeButtons = OUTCOMES.map(o =>
+      `<button class="mini-btn ${o.cls}" data-id="${r.id}" data-outcome="${o.key}">${o.label}</button>`
+    ).join('');
 
     return `
       <div class="row">
         <div class="tier-badge ${r.tier}">${r.tier}</div>
         <div class="row-main">
           <div class="row-top">
-            <span class="row-name">${title}</span>
-            <span class="row-type">${r.lead_type === 'raw_lead' ? 'enoma lead' : 'prospect'} · ${r.source || '—'}</span>
+            <span class="row-name">${r.business_name || 'Unnamed business'}</span>
+            <span class="row-type${r.phone_only ? ' phone-only' : ''}">${r.trade || 'prospect'}${r.phone_only ? ' · phone-only' : ''}</span>
           </div>
           ${r.detail ? `<div class="row-detail">${r.detail}</div>` : ''}
-          <div class="row-meta">
-            ${contact || '<span>no contact info on file</span>'}
-            <span>${timeAgo(r.last_activity_at)}</span>
-            <span>status: ${r.status}</span>
-          </div>
-          <div class="row-action">→ ${r.suggested_action}</div>
+          <div class="row-meta">${contact}</div>
           ${r.draft_body ? `
-            <div class="draft-toggle" data-toggle-draft="${r.id}">▸ View draft</div>
+            <div class="draft-toggle" data-toggle-draft="${r.id}">▸ View talking points (email draft)</div>
             <div class="draft-box" data-draft-box="${r.id}" style="display:none;"></div>
           ` : ''}
         </div>
         <div class="row-controls">
           <div class="score">score ${r.score}</div>
-          <div class="btn-row">${controls}</div>
+          <div class="btn-row">${outcomeButtons}</div>
         </div>
       </div>
     `;
   }
 
-  async function runAction(leadType, id, action) {
+  async function logCall(id, outcome, rowEl) {
+    const btns = rowEl.querySelectorAll('[data-outcome]');
+    btns.forEach(b => b.disabled = true);
     try {
-      const res = await fetch('/api/ga-metrics?action=update_lead_status', {
+      const res = await fetch('/api/ga-metrics?action=log_call', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken },
-        body: JSON.stringify({ lead_type: leadType, id, action })
+        body: JSON.stringify({ prospect_id: id, outcome })
       });
       const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || 'Update failed');
-      load();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to log call');
+      rowEl.style.opacity = '.4';
+      rowEl.querySelector('.btn-row').innerHTML = '<span class="mini-btn done">Logged</span>';
+      setTimeout(load, 600);
     } catch (err) {
       alert(err.message);
+      btns.forEach(b => b.disabled = false);
     }
   }
 
