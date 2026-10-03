@@ -972,7 +972,7 @@ async function draftAllOnce({ limit = 8, force = false, deadline } = {}) {
     // with nothing honest to pitch — that verdict holds regardless of
     // force, it isn't a "haven't gotten to it yet" state like the others.
     .neq("status", "reviewed");
-  if (!force) q = q.not("status", "in", "(drafted,approved,sent,invalid_email,claimed,needs_preview,verify_retry,no_preview)");
+  if (!force) q = q.not("status", "in", "(drafted,sending,approved,sent,invalid_email,claimed,needs_preview,verify_retry,no_preview)");
   q = q.order("updated_at", { ascending: true }).limit(cappedLimit);
 
   const { data: prospects, error } = await q;
@@ -1215,10 +1215,28 @@ async function handleSendOutreach(req, res) {
     return res.status(200).send(`<!-- To: ${p.email} | Subject: ${p.draft_subject} -->\n${sample.html}`);
   }
 
+  // Counts sends already made today plus sends in flight (message row
+  // created, not yet marked sent), so overlapping runs share one cap.
+  const usedToday = async () => {
+    const { count } = await supabase.from("outreach_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("channel", "email").in("status", ["sent", "drafted"]).gte("created_at", startOfDay.toISOString());
+    return count || 0;
+  };
+
   const results = [];
   for (const prospect of prospects || []) {
+    if ((await usedToday()) >= Math.min(OUTREACH_DAILY_CAP, rampCap)) break;
+    // Reserve this prospect: only one run can move it out of 'drafted', so
+    // a cron retry or a manual run at the same time can't email it twice.
+    const { data: reserved } = await supabase.from("prospects")
+      .update({ status: "sending", updated_at: new Date().toISOString() })
+      .eq("id", prospect.id).eq("status", "drafted").select("id");
+    if (!reserved?.length) continue;
+
     const slug = slugFromPreviewUrl(prospect.preview_url);
     if (!slug) {
+      await supabase.from("prospects").update({ status: "no_preview", updated_at: new Date().toISOString() }).eq("id", prospect.id);
       results.push({ business_name: prospect.business_name, sent: false, reason: "bad_preview_url" });
       continue;
     }
@@ -1238,6 +1256,7 @@ async function handleSendOutreach(req, res) {
     // The message row is created first so its id can go into every link,
     // the Reply-To address and the Resend tags of this exact email.
     let messageId = null;
+    let sendAccepted = false;
     try {
       if (!resend) throw new Error("RESEND_API_KEY not configured");
       const { data: msg, error: msgErr } = await supabase.from("outreach_messages")
@@ -1265,6 +1284,7 @@ async function handleSendOutreach(req, res) {
         tags: [{ name: "outreach_message_id", value: messageId }, { name: "kind", value: "cold_outreach" }]
       });
       if (sendErr) throw new Error(sendErr.message || "Resend send failed");
+      sendAccepted = true;
 
       const sentAt = new Date().toISOString();
       await supabase.from("outreach_messages")
@@ -1273,7 +1293,14 @@ async function handleSendOutreach(req, res) {
       await supabase.from("prospects").update({ status: "sent", updated_at: sentAt }).eq("id", prospect.id);
       results.push({ business_name: prospect.business_name, email: prospect.email, sent: true, message_id: messageId, preview_url: prospect.preview_url });
     } catch (err) {
-      if (messageId) await supabase.from("outreach_messages").delete().eq("id", messageId);
+      if (sendAccepted) {
+        // Resend accepted it; only our bookkeeping failed. Never re-send.
+        await supabase.from("prospects").update({ status: "sent", updated_at: new Date().toISOString() }).eq("id", prospect.id);
+      } else {
+        if (messageId) await supabase.from("outreach_messages").delete().eq("id", messageId);
+        // Released for the next run.
+        await supabase.from("prospects").update({ status: "drafted", updated_at: new Date().toISOString() }).eq("id", prospect.id);
+      }
       await logNotificationFailure("send-outreach", prospect.email, err, { prospect_id: prospect.id, business_name: prospect.business_name });
       results.push({ business_name: prospect.business_name, email: prospect.email, sent: false, reason: err.message });
     }
@@ -1444,15 +1471,22 @@ async function handleResendWebhook(req, res) {
 // Reply-To set to the sender so he can answer straight from his inbox.
 async function handleInboundReply(data) {
   const messageId = messageIdFromReplyAddress([...(data.to || []), ...(data.received_for || [])]);
-  let full = {};
-  try {
-    const r = await fetch(`https://api.resend.com/emails/receiving/${encodeURIComponent(data.email_id)}`, {
-      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` }
-    });
-    if (r.ok) full = await r.json();
-  } catch (e) {
-    console.error("Fetching inbound email failed:", e);
-  }
+  if (!data.email_id) throw new Error("Inbound event without email_id");
+
+  // Resend retries a webhook delivery that doesn't get a 2xx, so a retry
+  // of a reply we already stored is acknowledged without a second copy.
+  const { data: existing } = await supabase.from("outreach_replies")
+    .select("id").eq("resend_inbound_id", data.email_id).maybeSingle();
+  if (existing) return;
+
+  // The webhook has metadata only. If the body can't be fetched, throw so
+  // the webhook answers 500 and Resend retries, rather than storing an
+  // empty reply and losing an opt-out.
+  const r = await fetch(`https://api.resend.com/emails/receiving/${encodeURIComponent(data.email_id)}`, {
+    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` }
+  });
+  if (!r.ok) throw new Error(`Fetching inbound email ${data.email_id} failed: HTTP ${r.status}`);
+  const full = await r.json();
 
   const text = full.text || "";
   const subject = full.subject || data.subject || "";

@@ -90,18 +90,24 @@ export default async function handler(req, res) {
       metadata: { slug: profile.username }
     }).then(({ error }) => { if (error) console.warn("funnel_events insert failed:", error.message); });
 
-    // If this page came from cold outreach, credit the claim to that email.
+    // Cold-outreach attribution. The prospect behind this preview page is
+    // marked claimed either way; the claim is credited to an email only
+    // when the visitor arrived through that email's tracked link (?m=),
+    // so organic or other-channel claims aren't counted as email wins.
     try {
+      const now = new Date().toISOString();
       const { data: prospects } = await supabaseAdmin
         .from("prospects").select("id")
         .or(`preview_business_id.eq.${profile.business_id},preview_url.eq.https://enoma.io/${profile.username}`);
       const prospectIds = (prospects || []).map(p => p.id);
       if (prospectIds.length) {
-        const now = new Date().toISOString();
         await supabaseAdmin.from("prospects").update({ status: "claimed", updated_at: now }).in("id", prospectIds);
+      }
+      const m = String(req.body?.m || "");
+      if (prospectIds.length && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(m)) {
         await supabaseAdmin.from("outreach_messages")
           .update({ response_status: "claimed", response_at: now, updated_at: now })
-          .eq("channel", "email").in("prospect_id", prospectIds);
+          .eq("id", m).in("prospect_id", prospectIds);
       }
     } catch (e) {
       console.warn("Outreach claim attribution failed:", e.message);
