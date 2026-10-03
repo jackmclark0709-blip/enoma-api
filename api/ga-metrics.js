@@ -14,7 +14,9 @@ import { hasValidMx } from "./_lib/email-verify.js";
 import { siteChecks, decideSiteTier } from "./_lib/site-checks.js";
 import { previousMonth, tallyClicks, buildResultsEmail } from "./_lib/results-email.js";
 import { qualifiesForPreview, buildFactsPrompt, validateGenerated, assembleProfile, slugify, stateAbbr, PREVIEW_TRIAL_DAYS } from "./_lib/preview-generator.js";
-import { verifyUnsubscribeToken, appendComplianceFooter } from "./_lib/outreach-footer.js";
+import { verifyUnsubscribeToken, appendComplianceFooter, buildUnsubscribeUrl, MAILING_ADDRESS } from "./_lib/outreach-footer.js";
+import { buildOutreachEmail, trackedLinks, replyToFor, slugFromPreviewUrl, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "./_lib/outreach-email.js";
+import { verifyMailbox } from "./_lib/mailbox-verify.js";
 import { plainTextToHtml, wrapEmailHtml } from "./_lib/email-html.js";
 import { rampCapForDate } from "./_lib/outreach-ramp.js";
 import { townForDate, tradeForDate } from "./_lib/prospect-rotation.js";
@@ -499,29 +501,20 @@ async function crawlWebsitesOnce({ limit = 6, deadline } = {}) {
         continue;
       }
 
-      // Build their preview page first (when they qualify) so the email can
-      // show it. A generation failure never blocks the draft.
-      let preview_url = prospect.preview_url;
-      if (!preview_url && !(deadline && Date.now() > deadline - 15000)) {
-        try {
-          const gen = await generatePreviewForProspect(prospect, { homeHtml });
-          preview_url = gen.preview_url || null;
-        } catch (e) {
-          console.warn("Preview generation failed:", prospect.business_name, e.message);
-        }
-      }
-
+      // Every outreach email now carries the prospect's own preview page, so
+      // nothing is drafted here. Weak-site prospects with an email queue as
+      // needs_preview; prepareOutreachOnce (below) verifies the mailbox,
+      // builds the page, then drafts. Keeps this crawl step fast.
       // Only the objectively verified problems go in the email itself.
       const emailGaps = checks.pitches.length ? checks.pitches : gaps;
-      const draft = await generateDraftCopy({ ...prospect, preview_url, email, website: prospect.website, site_gaps: emailGaps }, null);
       await supabase.from("prospects")
         .update({
-          email, email_crawl_status: "found", site_tier: tier, site_gaps: gaps,
-          draft_subject: draft.subject, draft_body: draft.body, status: "drafted",
+          email, email_crawl_status: "found", site_tier: tier, site_gaps: emailGaps,
+          status: "needs_preview",
           updated_at: new Date().toISOString()
         })
         .eq("id", prospect.id);
-      results.push({ business_name: prospect.business_name, email, site_tier: tier, gaps, drafted: true, subject: draft.subject });
+      results.push({ business_name: prospect.business_name, email, site_tier: tier, gaps: emailGaps, queued_for_preview: true });
     } catch (err) {
       // Every branch above writes its terminal status and `continue`s
       // immediately, so anything reaching here failed *after* a successful
@@ -540,7 +533,7 @@ async function crawlWebsitesOnce({ limit = 6, deadline } = {}) {
     // exit correctly reports only what was actually processed.
     attempted: results.length,
     emails_found: results.filter(r => r.email).length,
-    drafted: results.filter(r => r.drafted).length,
+    queued_for_preview: results.filter(r => r.queued_for_preview).length,
     results
   };
 }
@@ -661,7 +654,7 @@ async function generatePreviewForProspect(prospect, { homeHtml, force = false } 
   if (profErr) throw profErr;
 
   const preview_url = `https://enoma.io/${slug}`;
-  await supabase.from("prospects").update({ preview_url, updated_at: new Date().toISOString() }).eq("id", prospect.id);
+  await supabase.from("prospects").update({ preview_url, preview_business_id: biz.id, updated_at: new Date().toISOString() }).eq("id", prospect.id);
   return { preview_url, slug, site_checks: checks.signals || [], rating, reviewCount };
 }
 
@@ -867,12 +860,14 @@ async function generateDraftCopy(prospect, instructions) {
   let brief;
   if (prospect.preview_url) {
     // The strongest honest hook: a real page, already built from their own info.
-    brief = `STRUCTURE (follow it):
+    // The model writes ONLY the intro. buildOutreachEmail (outreach-email.js)
+    // appends the page preview card, the "Keep my page live" button, the
+    // reply-yes line and the sign-off, with tracked links.
+    brief = `STRUCTURE (follow it; this is only the opening of the email — the page link, button, reply line and sign-off are added after it automatically):
 1. One line: I'm Jack; I build websites for trades businesses in ${prospect.state || "New England"}.
-2. I put together a new page for ${prospect.business_name} using what's already on their ${prospect.website ? "website and " : ""}Google profile: ${prospect.preview_url}
-3. "Open it on your phone."${gaps.length && siteHost ? ` Then a short list comparing it with ${siteHost}, one line per item, using ONLY these verified problems with their current site (rephrase each as what the new page does instead): ${gaps.join("; ")}` : ""}
-4. Pricing, exactly: "The first month is free. After that it's $49/month, or $99/month if you want me to handle all the updates. No contract."
-5. Close, exactly: "If you want it, just reply \"yes\" and I'll hand it over. If not, reply \"no\" and I'll take it down."`;
+2. I put together a new page for ${prospect.business_name} using what's already on their ${prospect.website ? "website and " : ""}Google profile — it's below. Do NOT include any URL.${gaps.length && siteHost ? `\n3. A short list comparing it with ${siteHost}, one line per item, using ONLY these verified problems with their current site (rephrase each as what the new page does instead): ${gaps.join("; ")}` : ""}
+${gaps.length && siteHost ? "4" : "3"}. Pricing, exactly: "The first month is free. After that it's $49/month, or $99/month if you want me to handle all the updates. No contract."
+Do NOT add a closing line, a call to action, or a sign-off.`;
   } else {
     brief = `STRUCTURE:
 1. One line: I'm Jack; I build websites for trades businesses in ${prospect.state || "New England"}.
@@ -887,7 +882,7 @@ ${brief}
 ${prospect.draft_body ? `\nExisting draft to revise:\nSubject: ${prospect.draft_subject}\n${prospect.draft_body}\n\nRevision instructions: ${instructions || "improve it generally"}` : ""}
 ${!prospect.draft_body && instructions ? `\nSpecific instructions: ${instructions}` : ""}
 
-RULES: Under 140 words. Only state facts given above. Never claim they are invisible on Google, losing customers, or ranking poorly. Never cite results or numbers for other customers. No compliments about their current site, no false urgency, no markdown (bare URLs only). Open with "Hi there,". Subject line: specific to ${prospect.business_name}${prospect.preview_url ? ` and the new page (e.g. "I built ${prospect.business_name} a new page")` : ""}. Sign off "Jack Clark\nEnoma · jack@enoma.io". Return ONLY valid JSON: {"subject": "...", "body": "..."}`;
+RULES: Only state facts given above. Never claim they are invisible on Google, losing customers, or ranking poorly. Never cite results or numbers for other customers. No compliments about their current site, no false urgency, no markdown (bare URLs only). Open with "Hi there,". Subject line: specific to ${prospect.business_name}${prospect.preview_url ? ` and the new page (e.g. "I built ${prospect.business_name} a new page")` : ""}.${prospect.preview_url ? " No sign-off." : ' Sign off "Jack Clark\nEnoma · jack@enoma.io".'} Under ${prospect.preview_url ? 90 : 140} words. Return ONLY valid JSON: {"subject": "...", "body": "..."}`;
 
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -970,11 +965,14 @@ async function draftAllOnce({ limit = 8, force = false, deadline } = {}) {
     .from("prospects")
     .select("id, business_name, trade, city, state, phone, email, website, site_gaps, preview_url, status, draft_subject, draft_body")
     .not("email", "is", null)
+    // Every outreach email carries the prospect's preview page — no page,
+    // no draft. Prospects without one go through prepareOutreachOnce.
+    .not("preview_url", "is", null)
     // reviewed means the crawler already decided this one is a good_site
     // with nothing honest to pitch — that verdict holds regardless of
     // force, it isn't a "haven't gotten to it yet" state like the others.
     .neq("status", "reviewed");
-  if (!force) q = q.not("status", "in", "(drafted,approved,sent)");
+  if (!force) q = q.not("status", "in", "(drafted,sending,approved,sent,invalid_email,claimed,needs_preview,verify_retry,no_preview)");
   q = q.order("updated_at", { ascending: true }).limit(cappedLimit);
 
   const { data: prospects, error } = await q;
@@ -1006,6 +1004,96 @@ async function draftAllOnce({ limit = 8, force = false, deadline } = {}) {
     failed: results.filter(r => !r.drafted).length,
     results
   };
+}
+
+// ── Outreach prep: verify mailbox → build preview page → draft ─────────────
+// Takes prospects the crawler queued as needs_preview (weak site + found
+// email) and gets each one fully ready to send, cheapest check first:
+//   1. Mailbox check — ZeroBounce if ZEROBOUNCE_API_KEY is set (invalid/
+//      spamtrap/etc. dropped, temporary failures retried after 3 days),
+//      otherwise just an MX lookup on the domain.
+//   2. Preview page (generatePreviewForProspect). Prospects that don't pass
+//      the page-quality gate (no phone, thin rating) are set aside as
+//      no_preview: every email has to show a real page.
+//   3. Draft the intro copy around that page.
+// Each prospect costs ~15-25s (two OpenAI calls + site/Places fetches), so
+// this runs on its own crons several times a day under the shared deadline.
+const VERIFY_RETRY_AFTER_MS = 3 * 24 * 60 * 60 * 1000;
+
+async function prepareOutreachOnce({ limit = 4, deadline } = {}) {
+  const retryBefore = new Date(Date.now() - VERIFY_RETRY_AFTER_MS).toISOString();
+  const { data: prospects, error } = await supabase
+    .from("prospects")
+    .select("id, business_name, trade, city, state, phone, address, email, website, site_gaps, preview_url, google_place_id, raw, status, draft_subject, draft_body")
+    .not("email", "is", null)
+    .or(`status.eq.needs_preview,and(status.eq.verify_retry,updated_at.lt.${retryBefore})`)
+    .order("updated_at", { ascending: true })
+    .limit(Math.min(limit || 4, 10));
+  if (error) throw error;
+
+  const results = [];
+  for (const prospect of prospects || []) {
+    if (deadline && Date.now() > deadline - 20000) break;
+    const now = () => new Date().toISOString();
+    try {
+      const { data: suppressed } = await supabase
+        .from("suppression_list").select("id").eq("email", prospect.email).maybeSingle();
+      if (suppressed) {
+        await supabase.from("prospects").update({ status: "invalid_email", updated_at: now() }).eq("id", prospect.id);
+        results.push({ business_name: prospect.business_name, ready: false, reason: "suppressed" });
+        continue;
+      }
+
+      // ZeroBounce when ZEROBOUNCE_API_KEY is set; otherwise only the free
+      // MX check (domain accepts mail), with real bounces caught afterwards
+      // by the Resend webhook -> suppression_list.
+      let v = await verifyMailbox(prospect.email);
+      if (v.decision === "unverified") {
+        v = (await hasValidMx(prospect.email))
+          ? { decision: "send", status: "mx_only", sub_status: null }
+          : { decision: "drop", status: "no_mx", sub_status: null };
+      }
+      if (v.decision === "drop") {
+        await supabase.from("prospects").update({ status: "invalid_email", updated_at: now() }).eq("id", prospect.id);
+        results.push({ business_name: prospect.business_name, email: prospect.email, ready: false, reason: `mailbox_${v.status}` });
+        continue;
+      }
+      if (v.decision !== "send" && v.decision !== "send_catch_all") {
+        await supabase.from("prospects").update({ status: "verify_retry", updated_at: now() }).eq("id", prospect.id);
+        results.push({ business_name: prospect.business_name, email: prospect.email, ready: false, reason: `verify_${v.sub_status || v.decision}` });
+        continue;
+      }
+
+      let preview_url = prospect.preview_url;
+      if (!preview_url) {
+        const gen = await generatePreviewForProspect(prospect);
+        preview_url = gen.preview_url || null;
+        if (!preview_url) {
+          await supabase.from("prospects").update({ status: "no_preview", updated_at: now() }).eq("id", prospect.id);
+          results.push({ business_name: prospect.business_name, ready: false, reason: `no_preview_${gen.skipped || "failed"}` });
+          continue;
+        }
+      }
+
+      const draft = await generateDraftCopy({ ...prospect, preview_url, draft_body: null, draft_subject: null }, null);
+      await supabase.from("prospects")
+        .update({ draft_subject: draft.subject, draft_body: draft.body, status: "drafted", updated_at: now() })
+        .eq("id", prospect.id);
+      results.push({ business_name: prospect.business_name, email: prospect.email, mailbox: v.status, preview_url, subject: draft.subject, ready: true });
+    } catch (err) {
+      // Left at its current status so the next run retries it.
+      await supabase.from("prospects").update({ updated_at: now() }).eq("id", prospect.id);
+      results.push({ business_name: prospect.business_name, ready: false, error: err.message });
+    }
+  }
+
+  return { attempted: results.length, ready: results.filter(r => r.ready).length, results };
+}
+
+async function handlePrepareOutreach(req, res) {
+  const limit = parseInt(req.query.limit, 10) || 4;
+  const result = await prepareOutreachOnce({ limit, deadline: Date.now() + DAILY_PIPELINE_BUDGET_MS });
+  return res.status(200).json({ success: true, ...result });
 }
 
 async function handleDraftAll(req, res) {
@@ -1067,11 +1155,10 @@ async function handleDailyPipeline(req, res) {
     ? await crawlWebsitesOnce({ limit: 15, deadline })
     : { attempted: 0, emails_found: 0, drafted: 0, results: [], skipped_reason: "out of time after pull" };
 
-  const draft = Date.now() < deadline
-    ? await draftAllOnce({ limit: 15, force: false, deadline })
-    : { attempted: 0, drafted: 0, failed: 0, results: [], skipped_reason: "out of time after crawl" };
-
-  return res.status(200).json({ success: true, trade, pull, crawl, draft });
+  // Drafting moved to prepare_outreach (own crons): every email now needs a
+  // verified mailbox and a built preview page first, which doesn't fit in
+  // the time left after pull + crawl.
+  return res.status(200).json({ success: true, trade, pull, crawl });
 }
 
 // Sends everything currently sitting at status='drafted' — the actual
@@ -1088,22 +1175,71 @@ async function handleDailyPipeline(req, res) {
 // send attempt. Real mailbox-level bounces are handled after the fact by the
 // Resend webhook (handleResendWebhook, below) feeding suppression_list.
 const SEND_OUTREACH_FROM = "Jack at Enoma <outreach@mail.enoma.io>";
+// Hard ceiling on cold emails per day, whatever the cron or a caller asks for.
+const OUTREACH_DAILY_CAP = 10;
 
 async function handleSendOutreach(req, res) {
   const rampCap = rampCapForDate(new Date());
-  const limit = Math.min(parseInt(req.query.limit, 10) || 20, 20, rampCap);
+  // Count today's sends too, so a manual re-run can't push past the cap.
+  const startOfDay = new Date(); startOfDay.setUTCHours(0, 0, 0, 0);
+  const { count: sentToday } = await supabase.from("outreach_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("channel", "email").eq("status", "sent").gte("sent_at", startOfDay.toISOString());
+  const remaining = Math.max(0, Math.min(OUTREACH_DAILY_CAP, rampCap) - (sentToday || 0));
+  const limit = Math.min(parseInt(req.query.limit, 10) || OUTREACH_DAILY_CAP, remaining);
+  const captureReplies = process.env.OUTREACH_REPLY_CAPTURE === "1";
 
-  const { data: prospects, error } = await supabase
-    .from("prospects")
-    .select("id, business_name, email, draft_subject, draft_body")
-    .eq("status", "drafted")
-    .not("email", "is", null)
-    .order("updated_at", { ascending: true })
-    .limit(limit);
+  const { data: prospects, error } = limit > 0
+    ? await supabase
+      .from("prospects")
+      .select("id, business_name, email, draft_subject, draft_body, preview_url")
+      .eq("status", "drafted")
+      .not("email", "is", null)
+      // No page, no email: every send shows the prospect their own page.
+      .not("preview_url", "is", null)
+      .order("updated_at", { ascending: true })
+      .limit(limit)
+    : { data: [], error: null };
   if (error) throw error;
+
+  // ?dry_run=1 renders the next queued email as HTML (sample message id,
+  // nothing written or sent) so the template can be checked in a browser.
+  if (req.query.dry_run === "1") {
+    const p = (prospects || [])[0];
+    if (!p) return res.status(200).json({ success: true, dry_run: true, note: "No drafted prospect with a preview page is queued" });
+    const sample = buildOutreachEmail({
+      intro: p.draft_body, businessName: p.business_name, messageId: "00000000-0000-4000-8000-000000000000",
+      slug: slugFromPreviewUrl(p.preview_url), unsubscribeUrl: buildUnsubscribeUrl(p.email), mailingAddress: MAILING_ADDRESS
+    });
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    return res.status(200).send(`<!-- To: ${p.email} | Subject: ${p.draft_subject} -->\n${sample.html}`);
+  }
+
+  // Counts sends already made today plus sends in flight (message row
+  // created, not yet marked sent), so overlapping runs share one cap.
+  const usedToday = async () => {
+    const { count } = await supabase.from("outreach_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("channel", "email").in("status", ["sent", "drafted"]).gte("created_at", startOfDay.toISOString());
+    return count || 0;
+  };
 
   const results = [];
   for (const prospect of prospects || []) {
+    if ((await usedToday()) >= Math.min(OUTREACH_DAILY_CAP, rampCap)) break;
+    // Reserve this prospect: only one run can move it out of 'drafted', so
+    // a cron retry or a manual run at the same time can't email it twice.
+    const { data: reserved } = await supabase.from("prospects")
+      .update({ status: "sending", updated_at: new Date().toISOString() })
+      .eq("id", prospect.id).eq("status", "drafted").select("id");
+    if (!reserved?.length) continue;
+
+    const slug = slugFromPreviewUrl(prospect.preview_url);
+    if (!slug) {
+      await supabase.from("prospects").update({ status: "no_preview", updated_at: new Date().toISOString() }).eq("id", prospect.id);
+      results.push({ business_name: prospect.business_name, sent: false, reason: "bad_preview_url" });
+      continue;
+    }
     const { data: suppressed } = await supabase
       .from("suppression_list").select("id").eq("email", prospect.email).maybeSingle();
     if (suppressed) {
@@ -1111,38 +1247,60 @@ async function handleSendOutreach(req, res) {
       results.push({ business_name: prospect.business_name, email: prospect.email, sent: false, reason: "suppressed" });
       continue;
     }
-
     if (!(await hasValidMx(prospect.email))) {
       await supabase.from("prospects").update({ status: "invalid_email", updated_at: new Date().toISOString() }).eq("id", prospect.id);
       results.push({ business_name: prospect.business_name, email: prospect.email, sent: false, reason: "no_mx_record" });
       continue;
     }
 
+    // The message row is created first so its id can go into every link,
+    // the Reply-To address and the Resend tags of this exact email.
+    let messageId = null;
+    let sendAccepted = false;
     try {
-      if (!resend) throw new Error('RESEND_API_KEY not configured');
-      const body = appendComplianceFooter(prospect.draft_body, prospect.email);
-      // Sent as real HTML (with a plain-text alternative for clients that
-      // prefer it) so links render as clickable anchors instead of bare URL
-      // text — plainTextToHtml escapes the body first, so a business_name
-      // with HTML-breaking characters (scraped data, not written by us)
-      // can't inject markup, then linkifies the URLs we constructed
-      // ourselves (case study, signup, unsubscribe).
-      const html = wrapEmailHtml(plainTextToHtml(body));
-      const { error: sendErr } = await resend.emails.send({
+      if (!resend) throw new Error("RESEND_API_KEY not configured");
+      const { data: msg, error: msgErr } = await supabase.from("outreach_messages")
+        .insert({ prospect_id: prospect.id, channel: "email", status: "drafted", draft_subject: prospect.draft_subject, draft_body: prospect.draft_body })
+        .select("id").single();
+      if (msgErr) throw msgErr;
+      messageId = msg.id;
+
+      const email = buildOutreachEmail({
+        intro: prospect.draft_body,
+        businessName: prospect.business_name,
+        messageId,
+        slug,
+        unsubscribeUrl: buildUnsubscribeUrl(prospect.email),
+        mailingAddress: MAILING_ADDRESS
+      });
+      const { data: sendData, error: sendErr } = await resend.emails.send({
         from: SEND_OUTREACH_FROM,
         to: prospect.email,
-        replyTo: "jack@enoma.io",
+        replyTo: replyToFor(messageId, { captureReplies }),
         subject: prospect.draft_subject,
-        text: body,
-        html
+        text: email.text,
+        html: email.html,
+        headers: { "List-Unsubscribe": `<${buildUnsubscribeUrl(prospect.email)}>` },
+        tags: [{ name: "outreach_message_id", value: messageId }, { name: "kind", value: "cold_outreach" }]
       });
       if (sendErr) throw new Error(sendErr.message || "Resend send failed");
+      sendAccepted = true;
 
       const sentAt = new Date().toISOString();
+      await supabase.from("outreach_messages")
+        .update({ status: "sent", sent_at: sentAt, resend_email_id: sendData?.id || null, updated_at: sentAt })
+        .eq("id", messageId);
       await supabase.from("prospects").update({ status: "sent", updated_at: sentAt }).eq("id", prospect.id);
-      await supabase.from("outreach_messages").insert({ prospect_id: prospect.id, channel: "email", status: "sent", sent_at: sentAt });
-      results.push({ business_name: prospect.business_name, email: prospect.email, sent: true });
+      results.push({ business_name: prospect.business_name, email: prospect.email, sent: true, message_id: messageId, preview_url: prospect.preview_url });
     } catch (err) {
+      if (sendAccepted) {
+        // Resend accepted it; only our bookkeeping failed. Never re-send.
+        await supabase.from("prospects").update({ status: "sent", updated_at: new Date().toISOString() }).eq("id", prospect.id);
+      } else {
+        if (messageId) await supabase.from("outreach_messages").delete().eq("id", messageId);
+        // Released for the next run.
+        await supabase.from("prospects").update({ status: "drafted", updated_at: new Date().toISOString() }).eq("id", prospect.id);
+      }
       await logNotificationFailure("send-outreach", prospect.email, err, { prospect_id: prospect.id, business_name: prospect.business_name });
       results.push({ business_name: prospect.business_name, email: prospect.email, sent: false, reason: err.message });
     }
@@ -1150,12 +1308,49 @@ async function handleSendOutreach(req, res) {
 
   return res.status(200).json({
     success: true,
-    ramp_cap: rampCap,
+    daily_cap: Math.min(OUTREACH_DAILY_CAP, rampCap),
+    sent_earlier_today: sentToday || 0,
     attempted: results.length,
     sent: results.filter(r => r.sent).length,
     skipped: results.filter(r => !r.sent).length,
     results
   });
+}
+
+// Public — the links inside outreach emails. Records the click against the
+// exact email (outreach_messages id), then redirects to the prospect's page
+// or the claim flow. Destinations are built from our own database row, never
+// from the query string, so this can't be used as an open redirect.
+async function handleOutreachRedirect(req, res) {
+  const m = String(req.query.m || "");
+  const to = req.query.to === "claim" ? "claim" : "page";
+  if (!isUuid(m)) return res.redirect(302, "https://enoma.io/");
+
+  const { data: msg } = await supabase.from("outreach_messages")
+    .select("id, preview_visited_at, prospects(preview_url)")
+    .eq("id", m).maybeSingle();
+  const slug = slugFromPreviewUrl(msg?.prospects?.preview_url);
+  if (!msg || !slug) return res.redirect(302, "https://enoma.io/");
+
+  const links = trackedLinks(msg.id, slug);
+  const at = new Date().toISOString();
+  try {
+    if (!msg.preview_visited_at) {
+      await supabase.from("outreach_messages").update({ preview_visited_at: at, updated_at: at }).eq("id", msg.id);
+    }
+    await supabase.from("page_events").insert({
+      slug,
+      event: to === "claim" ? "outreach_claim_click" : "outreach_page_click",
+      metadata: { m: msg.id },
+      referrer: req.headers.referer || null,
+      user_agent: req.headers["user-agent"] || null,
+      ip: (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || null,
+      is_internal: false
+    });
+  } catch (e) {
+    console.error("Outreach click logging failed:", e);
+  }
+  return res.redirect(302, to === "claim" ? links.claimDest : links.pageDest);
 }
 
 // Public — Resend's servers call this, they can't send ADMIN_SECRET/
@@ -1190,16 +1385,40 @@ function verifyResendWebhookSignature(req) {
   });
 }
 
+// Finds the outreach_messages row an event is about: our own tag first
+// (set on every send since the tracking rebuild), then Resend's email id.
+async function findOutreachMessage(data) {
+  const tags = data?.tags || {};
+  const tagged = Array.isArray(tags) ? tags.find(t => t?.name === "outreach_message_id")?.value : tags.outreach_message_id;
+  const cols = "id, prospect_id, delivered_at, first_opened_at, open_count, first_clicked_at, click_count";
+  if (isUuid(tagged)) {
+    const { data: row } = await supabase.from("outreach_messages").select(cols).eq("id", tagged).maybeSingle();
+    if (row) return row;
+  }
+  if (data?.email_id) {
+    const { data: row } = await supabase.from("outreach_messages").select(cols).eq("resend_email_id", data.email_id).maybeSingle();
+    if (row) return row;
+  }
+  return null;
+}
+
 async function handleResendWebhook(req, res) {
   if (!verifyResendWebhookSignature(req)) {
     return res.status(401).json({ error: "Invalid signature" });
   }
 
   const event = req.body;
-  const email = event?.data?.to?.[0];
   const type = event?.type;
+  const data = event?.data || {};
+  const at = data.created_at || event?.created_at || new Date().toISOString();
 
-  if (email && (type === "email.bounced" || type === "email.complained")) {
+  if (type === "email.received") {
+    await handleInboundReply(data);
+    return res.status(200).json({ success: true });
+  }
+
+  const email = data?.to?.[0];
+  if (email && (type === "email.bounced" || type === "email.complained" || type === "email.suppressed")) {
     // suppression_list.reason and outreach_messages.response_status both have
     // CHECK constraints limited to specific values — map Resend's raw event
     // type strings onto them rather than storing verbatim. Note this is
@@ -1208,19 +1427,118 @@ async function handleResendWebhook(req, res) {
     // CHECK constraint doesn't even allow "bounced"/"opted_out") — a bounce
     // or complaint is what happened *after* it was sent, same field
     // bestOutreachSignal (above) already reads for replies/claims.
-    const reason = type === "email.bounced" ? "bounced" : "opted_out";
+    const reason = type === "email.complained" ? "opted_out" : "bounced";
     await supabase.from("suppression_list").upsert({ email, reason }, { onConflict: "email" });
     const { data: matches } = await supabase.from("prospects").select("id").eq("email", email);
     const prospectIds = (matches || []).map(p => p.id);
     if (prospectIds.length) {
       await supabase.from("outreach_messages")
-        .update({ response_status: reason, response_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .update({ response_status: reason, response_at: at, updated_at: new Date().toISOString() })
         .eq("channel", "email")
         .in("prospect_id", prospectIds);
     }
+    return res.status(200).json({ success: true });
   }
 
-  return res.status(200).json({ success: true });
+  const msg = await findOutreachMessage(data);
+  if (!msg) return res.status(200).json({ success: true, matched: false });
+
+  const patch = { updated_at: new Date().toISOString() };
+  if (type === "email.delivered" && !msg.delivered_at) patch.delivered_at = at;
+  if (type === "email.opened") {
+    patch.open_count = (msg.open_count || 0) + 1;
+    patch.last_opened_at = at;
+    if (!msg.first_opened_at) patch.first_opened_at = at;
+  }
+  if (type === "email.clicked") {
+    patch.click_count = (msg.click_count || 0) + 1;
+    patch.last_clicked_url = data?.click?.link || null;
+    if (!msg.first_clicked_at) patch.first_clicked_at = at;
+  }
+  if (type === "email.delivery_delayed" || type === "email.failed") {
+    patch.notes = `${type} at ${at}${data?.failed?.reason ? `: ${data.failed.reason}` : ""}`;
+  }
+  if (Object.keys(patch).length > 1) {
+    await supabase.from("outreach_messages").update(patch).eq("id", msg.id);
+  }
+  return res.status(200).json({ success: true, matched: true });
+}
+
+// Replies to cold outreach arrive at reply+<outreach_message_id>@mail.enoma.io
+// (Resend Inbound, only when OUTREACH_REPLY_CAPTURE=1). The webhook carries
+// metadata only, so the body is fetched from Resend, logged in
+// outreach_replies against the original email, and forwarded to Jack with
+// Reply-To set to the sender so he can answer straight from his inbox.
+async function handleInboundReply(data) {
+  const messageId = messageIdFromReplyAddress([...(data.to || []), ...(data.received_for || [])]);
+  if (!data.email_id) throw new Error("Inbound event without email_id");
+
+  // Resend retries a webhook delivery that doesn't get a 2xx, so a retry
+  // of a reply we already stored is acknowledged without a second copy.
+  const { data: existing } = await supabase.from("outreach_replies")
+    .select("id").eq("resend_inbound_id", data.email_id).maybeSingle();
+  if (existing) return;
+
+  // The webhook has metadata only. If the body can't be fetched, throw so
+  // the webhook answers 500 and Resend retries, rather than storing an
+  // empty reply and losing an opt-out.
+  const r = await fetch(`https://api.resend.com/emails/receiving/${encodeURIComponent(data.email_id)}`, {
+    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` }
+  });
+  if (!r.ok) throw new Error(`Fetching inbound email ${data.email_id} failed: HTTP ${r.status}`);
+  const full = await r.json();
+
+  const text = full.text || "";
+  const subject = full.subject || data.subject || "";
+  const from = full.from || data.from || "";
+  const fromEmail = (String(from).match(/<([^>]+)>/)?.[1] || String(from)).trim().toLowerCase();
+  const intent = classifyReplyIntent({ subject, text, headers: full.headers });
+
+  let prospectId = null;
+  if (messageId) {
+    const { data: msg } = await supabase.from("outreach_messages").select("id, prospect_id").eq("id", messageId).maybeSingle();
+    prospectId = msg?.prospect_id || null;
+  }
+
+  const { data: reply } = await supabase.from("outreach_replies").insert({
+    resend_inbound_id: data.email_id || null,
+    outreach_message_id: prospectId ? messageId : null,
+    prospect_id: prospectId,
+    from_email: fromEmail || null,
+    subject,
+    body_text: text.slice(0, 20000),
+    intent
+  }).select("id").single();
+
+  if (prospectId && intent !== "auto_reply") {
+    await supabase.from("outreach_messages")
+      .update({ response_status: intent === "opt_out" ? "opted_out" : "replied", response_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq("id", messageId);
+  }
+  if (intent === "opt_out" && fromEmail) {
+    await supabase.from("suppression_list").upsert({ email: fromEmail, reason: "opted_out" }, { onConflict: "email" });
+  }
+
+  if (resend) {
+    try {
+      const label = { positive: "INTERESTED", opt_out: "opt-out", auto_reply: "auto-reply", other: "reply" }[intent];
+      await resend.emails.send({
+        from: "Enoma Replies <replies@mail.enoma.io>",
+        to: "jack@enoma.io",
+        replyTo: fromEmail || undefined,
+        subject: `[${label}] ${subject}`,
+        text: `From: ${from}\n\n${text}`,
+        ...(full.html ? { html: `<p style="font-family:Arial,sans-serif;font-size:13px;color:#666;">From: ${escapeForForward(from)} &middot; ${label}</p>${full.html}` } : {})
+      });
+      if (reply?.id) await supabase.from("outreach_replies").update({ forwarded_at: new Date().toISOString() }).eq("id", reply.id);
+    } catch (e) {
+      await logNotificationFailure("inbound-forward", "jack@enoma.io", e, { email_id: data.email_id });
+    }
+  }
+}
+
+function escapeForForward(s) {
+  return String(s || "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
 // Public, no login — a one-click unsubscribe link is a CAN-SPAM requirement,
@@ -1625,6 +1943,16 @@ export default async function handler(req, res) {
     }
   }
 
+  // Public: the tracked links inside outreach emails.
+  if (req.query.action === "go") {
+    try {
+      return await handleOutreachRedirect(req, res);
+    } catch (err) {
+      console.error("Outreach redirect failed:", err);
+      return res.redirect(302, "https://enoma.io/");
+    }
+  }
+
   if (req.query.action === "voice-query") {
     try {
       return await handleVoiceQuery(req, res);
@@ -1740,6 +2068,15 @@ export default async function handler(req, res) {
       return await handleGeneratePreview(req, res);
     } catch (err) {
       console.error("Preview generation failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.query.action === "prepare_outreach") {
+    try {
+      return await handlePrepareOutreach(req, res);
+    } catch (err) {
+      console.error("Prepare outreach failed:", err);
       return res.status(500).json({ success: false, error: err.message });
     }
   }
