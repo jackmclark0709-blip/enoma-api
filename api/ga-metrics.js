@@ -1128,7 +1128,7 @@ async function handleSendOutreach(req, res) {
       // can't inject markup, then linkifies the URLs we constructed
       // ourselves (case study, signup, unsubscribe).
       const html = wrapEmailHtml(plainTextToHtml(body));
-      const { error: sendErr } = await resend.emails.send({
+      const { data: sendData, error: sendErr } = await resend.emails.send({
         from: SEND_OUTREACH_FROM,
         to: prospect.email,
         replyTo: "jack@enoma.io",
@@ -1140,7 +1140,13 @@ async function handleSendOutreach(req, res) {
 
       const sentAt = new Date().toISOString();
       await supabase.from("prospects").update({ status: "sent", updated_at: sentAt }).eq("id", prospect.id);
-      await supabase.from("outreach_messages").insert({ prospect_id: prospect.id, channel: "email", status: "sent", sent_at: sentAt });
+      // Keep Resend's message id — it's the only key the delivered/opened/
+      // clicked webhooks can be matched back to this row on.
+      await supabase.from("outreach_messages").insert({
+        prospect_id: prospect.id, channel: "email", status: "sent", sent_at: sentAt,
+        resend_email_id: sendData?.id || null,
+        draft_subject: prospect.draft_subject, draft_body: prospect.draft_body
+      });
       results.push({ business_name: prospect.business_name, email: prospect.email, sent: true });
     } catch (err) {
       await logNotificationFailure("send-outreach", prospect.email, err, { prospect_id: prospect.id, business_name: prospect.business_name });
@@ -1217,6 +1223,30 @@ async function handleResendWebhook(req, res) {
         .update({ response_status: reason, response_at: new Date().toISOString(), updated_at: new Date().toISOString() })
         .eq("channel", "email")
         .in("prospect_id", prospectIds);
+    }
+  }
+
+  // Engagement events: match on Resend's message id (stored at send time).
+  const emailId = event?.data?.email_id;
+  if (emailId && ["email.delivered", "email.opened", "email.clicked"].includes(type)) {
+    const { data: msg } = await supabase.from("outreach_messages")
+      .select("id, delivered_at, first_opened_at, open_count, first_clicked_at, click_count")
+      .eq("resend_email_id", emailId).maybeSingle();
+    if (msg) {
+      const at = event?.created_at || new Date().toISOString();
+      const patch = { updated_at: new Date().toISOString() };
+      if (type === "email.delivered" && !msg.delivered_at) patch.delivered_at = at;
+      if (type === "email.opened") {
+        patch.open_count = (msg.open_count || 0) + 1;
+        patch.last_opened_at = at;
+        if (!msg.first_opened_at) patch.first_opened_at = at;
+      }
+      if (type === "email.clicked") {
+        patch.click_count = (msg.click_count || 0) + 1;
+        patch.last_clicked_url = event?.data?.click?.link || null;
+        if (!msg.first_clicked_at) patch.first_clicked_at = at;
+      }
+      await supabase.from("outreach_messages").update(patch).eq("id", msg.id);
     }
   }
 
