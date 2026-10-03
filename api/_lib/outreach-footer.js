@@ -7,7 +7,7 @@
 // sales-queue UI stays exactly what the model wrote.
 import crypto from "node:crypto";
 
-const MAILING_ADDRESS = "Enoma, 183 Fairway Dr, Attleboro, MA 02703";
+export const MAILING_ADDRESS = "Enoma, 183 Fairway Dr, Attleboro, MA 02703";
 const UNSUBSCRIBE_BASE_URL = "https://enoma.io/api/ga-metrics";
 
 function secret() {
@@ -28,9 +28,13 @@ export function verifyUnsubscribeToken(email, token) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
-export function appendComplianceFooter(body, email) {
+export function buildUnsubscribeUrl(email) {
   const token = buildUnsubscribeToken(email);
-  const unsubscribeUrl = `${UNSUBSCRIBE_BASE_URL}?action=unsubscribe&email=${encodeURIComponent(email)}&token=${token}`;
+  return `${UNSUBSCRIBE_BASE_URL}?action=unsubscribe&email=${encodeURIComponent(email)}&token=${token}`;
+}
+
+export function appendComplianceFooter(body, email) {
+  const unsubscribeUrl = buildUnsubscribeUrl(email);
   // No "Unsubscribe:" label before the URL — the automated HTML send
   // substitutes "Unsubscribe" as the link's own visible text (see
   // LINK_LABEL_RULES in email-html.js), so a label here would read as a

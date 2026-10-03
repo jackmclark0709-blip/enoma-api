@@ -1279,7 +1279,7 @@ async function loadProfile() {
     : '26,60,80';
   document.documentElement.style.setProperty('--brand-rgb', defaultRgb);
 
-  fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug, event: 'page_view' }) }).catch(() => {});
+  fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug, event: 'page_view', metadata: (function () { try { var m = new URLSearchParams(location.search).get('m'); return m ? { m: m } : {}; } catch (e) { return {}; } })() }) }).catch(() => {});
 
   /* ── Sticky nav ── */
   const navBrand = getEl('businessName');
