@@ -194,6 +194,18 @@
     .source-bar-wrap { flex: 1; height: 4px; background: #e8f0f8; border-radius: 999px; margin: 0 0.75rem; min-width: 40px; }
     .source-bar { height: 4px; background: #3882dc; border-radius: 999px; }
     .zero-state { font-size: 0.82rem; color: #9ca3af; padding: 0.5rem 0; line-height: 1.6; }
+    /* ── Review requests ── */
+    .rr-form { display: grid; grid-template-columns: 1fr 1fr auto; gap: 0.5rem; margin-bottom: 0.4rem; }
+    .rr-form input { font: inherit; font-size: 0.85rem; padding: 0.6rem 0.75rem; border: 1px solid #dbe6f2; border-radius: 10px; min-width: 0; }
+    .rr-form input:focus { outline: 2px solid rgba(56,130,220,0.35); border-color: #3882dc; }
+    .rr-form button { font: inherit; font-size: 0.82rem; font-weight: 700; padding: 0.6rem 1rem; border: 0; border-radius: 999px; background: #16a34a; color: #fff; cursor: pointer; white-space: nowrap; }
+    .rr-form button:disabled { opacity: 0.6; cursor: default; }
+    .rr-note { font-size: 0.78rem; color: #6b7280; min-height: 1.2em; margin-bottom: 0.6rem; }
+    .rr-note.error { color: #b42318; } .rr-note.ok { color: #15803d; }
+    .rr-item { display: flex; justify-content: space-between; gap: 0.5rem; padding: 0.55rem 0; border-top: 1px solid #e8f0f8; font-size: 0.82rem; }
+    .rr-item span:last-child { color: #9ca3af; white-space: nowrap; }
+    .rr-clicked { color: #15803d !important; font-weight: 600; }
+    @media (max-width: 560px) { .rr-form { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -286,6 +298,21 @@
           <div id="messages-list" class="messages-list">
             <div class="zero-state" style="text-align:center;padding:1.5rem 0;">Loading messages…</div>
           </div>
+        </div>
+
+        <!-- Review requests -->
+        <div class="card" id="reviews-card">
+          <div class="card-title">
+            Ask for a Google review
+            <span id="rr-stats" style="font-size:0.75rem;color:#9ca3af;font-weight:400;"></span>
+          </div>
+          <form class="rr-form" id="rr-form" autocomplete="off">
+            <input id="rr-name" placeholder="Customer name" maxlength="80">
+            <input id="rr-email" type="email" placeholder="Customer email" required>
+            <button type="submit" id="rr-send">Send request</button>
+          </form>
+          <div class="rr-note" id="rr-note">We'll email them a link straight to your Google review page, plus one reminder if they don't click.</div>
+          <div id="rr-list"></div>
         </div>
 
         <!-- Traffic sources -->
@@ -536,11 +563,77 @@ async function loadDashboard(profile, session) {
   // ── Messages ──
   loadMessages(profile, session);
 
+  // ── Review requests ──
+  setupReviewRequests(profile);
+
   // ── Metrics ──
   loadMetrics(profile);
 
   // ── Quick wins ──
   loadQuickWins(profile);
+}
+
+async function setupReviewRequests(profile) {
+  const form = document.getElementById('rr-form');
+  const note = document.getElementById('rr-note');
+  const list = document.getElementById('rr-list');
+  const stats = document.getElementById('rr-stats');
+  const btn = document.getElementById('rr-send');
+  const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  const authHeader = async () => ({ Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}` });
+  const setNote = (text, kind = '') => { note.textContent = text; note.className = `rr-note ${kind}`; };
+
+  async function refresh() {
+    try {
+      const res = await fetch(`/api/ga-metrics?action=list_review_requests&business_id=${profile.business_id}`, { headers: await authHeader() });
+      if (!res.ok) throw new Error();
+      const { requests, totals_30d, google_connected } = await res.json();
+      if (!google_connected) {
+        btn.disabled = true;
+        setNote("Your Google listing isn't connected yet. Message us and we'll set it up.", 'error');
+      }
+      stats.textContent = totals_30d.sent ? `${totals_30d.sent} sent · ${totals_30d.clicked} opened · last 30 days` : '';
+      list.innerHTML = requests.slice(0, 8).map(r => `
+        <div class="rr-item">
+          <span>${esc(r.customer_name || r.customer_email)}</span>
+          <span class="${r.status === 'clicked' ? 'rr-clicked' : ''}">${
+            r.status === 'clicked' ? 'Opened review page' :
+            r.status === 'failed' ? "Didn't send" :
+            r.reminder_sent_at ? 'Reminder sent' : `Sent ${timeAgo(r.sent_at || r.created_at)}`
+          }</span>
+        </div>`).join('');
+    } catch {
+      list.innerHTML = '';
+    }
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    btn.disabled = true;
+    setNote('Sending…');
+    try {
+      const res = await fetch('/api/ga-metrics?action=send_review_request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
+        body: JSON.stringify({
+          business_id: profile.business_id,
+          name: document.getElementById('rr-name').value,
+          email: document.getElementById('rr-email').value,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || 'Something went wrong. Try again.');
+      form.reset();
+      setNote('Sent! You\'ll see here when they open it.', 'ok');
+      refresh();
+    } catch (err) {
+      setNote(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  refresh();
 }
 
 async function loadMessages(profile, session) {

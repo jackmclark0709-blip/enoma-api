@@ -37,6 +37,7 @@
     { "source": "/for/free-website-for-local-service-business", "destination": "/for/free-website-for-local-service-business.html" },
     { "source": "/for/website-builder-for-contractors", "destination": "/for/website-builder-for-contractors.html" },
     { "source": "/case-studies/conways-landscaping", "destination": "/case-studies/conways-landscaping.html" },
+    { "source": "/r/:id", "destination": "/api/ga-metrics?action=review_go&r=:id" },
     {
       "source": "/((?!assets|api|dashboard|styles|scripts|partials|website-live|pricing|examples|contact|request|privacy|terms|favicon|index|upgrade|for|case-studies).*)",
       "destination": "/api/p?slug=$1"
@@ -124,6 +125,10 @@
     {
       "path": "/api/ga-metrics?action=send_outreach&limit=10",
       "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/ga-metrics?action=review_reminders",
+      "schedule": "0 15 * * *"
     },
     {
       "path": "/api/ga-metrics?action=results_email",

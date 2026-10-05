@@ -21,6 +21,7 @@ import { plainTextToHtml, wrapEmailHtml } from "./_lib/email-html.js";
 import { rampCapForDate } from "./_lib/outreach-ramp.js";
 import { townForDate, tradeForDate } from "./_lib/prospect-rotation.js";
 import { Resend } from "resend";
+import { handleSendReviewRequest, handleListReviewRequests, handleReviewRedirect, handleReviewReminders } from "./_lib/review-requests.js";
 
 // Resend's constructor throws synchronously if the key is missing, which
 // would crash this whole module (prospecting, crawling, drafting, sending,
@@ -2007,6 +2008,24 @@ export default async function handler(req, res) {
     }
   }
 
+  // Review requests. Owner actions authenticate with the owner's Supabase
+  // session (business_members check inside the handler); review_go is the
+  // public tracked link customers click (enoma.io/r/<id>).
+  const reviewActions = {
+    send_review_request: handleSendReviewRequest,
+    list_review_requests: handleListReviewRequests,
+    review_go: handleReviewRedirect,
+  };
+  if (reviewActions[req.query.action]) {
+    try {
+      return await reviewActions[req.query.action](req, res, { supabase, resend });
+    } catch (err) {
+      console.error(`${req.query.action} failed:`, err);
+      if (req.query.action === "review_go") return res.redirect(302, "https://enoma.io/");
+      return res.status(500).json({ success: false, error: "Something went wrong. Try again in a minute." });
+    }
+  }
+
   // Vercel Cron authenticates by sending Authorization: Bearer $CRON_SECRET
   // automatically once CRON_SECRET is set as a project env var — it can't
   // send arbitrary headers like x-admin-secret, so this is accepted as an
@@ -2016,6 +2035,15 @@ export default async function handler(req, res) {
   const isValidCron = !!process.env.CRON_SECRET && cronAuth === `Bearer ${process.env.CRON_SECRET}`;
   if (secret !== process.env.ADMIN_SECRET && !isValidCron) {
     return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  if (req.query.action === "review_reminders") {
+    try {
+      return await handleReviewReminders(req, res, { supabase, resend });
+    } catch (err) {
+      console.error("Review reminders failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
   }
 
   if (req.query.action === "prospect") {
