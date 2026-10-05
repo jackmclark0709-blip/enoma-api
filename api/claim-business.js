@@ -6,6 +6,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import { attributeReferral } from "./_lib/referral.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -83,6 +84,9 @@ export default async function handler(req, res) {
       .update({ is_claimed: true, auth_id: user.id, updated_at: new Date().toISOString() })
       .eq("business_id", profile.business_id);
     if (updateErr) throw updateErr;
+
+    // Credit the referrer if this visitor arrived via a referral link.
+    await attributeReferral(supabaseAdmin, req, profile.business_id);
 
     await supabaseAdmin.from("funnel_events").insert({
       event: "business_claimed",
