@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Keep your website live — Enoma</title>
+  <title>Upgrade to Pro — Enoma</title>
   <link rel="stylesheet" href="/styles/enoma.css" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
@@ -27,6 +27,7 @@
     .plan-features li { display: flex; align-items: flex-start; gap: 0.6rem; font-size: 0.88rem; color: #374151; line-height: 1.45; }
     .plan-features li::before { content: ''; width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; border-radius: 50%; background: #e6f1fb url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%233882dc' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E") no-repeat center; }
     .plan-cta { width: 100%; padding: 0.9rem; border-radius: 999px; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 0.95rem; border: none; cursor: pointer; text-align: center; text-decoration: none; display: block; transition: transform 0.15s, box-shadow 0.15s; }
+    .plan-cta:not(.primary) { background: transparent; color: #0a1628; box-shadow: inset 0 0 0 1.5px #c8d6e5; }
     .plan-cta.primary { background: #0a1628; color: #fff; }
     .plan-cta.primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(10,22,40,0.25); }
     .plan-cta.secondary { background: transparent; color: #5a7a9a; border: 1.5px solid #d4e2f4; }
@@ -49,58 +50,56 @@
 <script type="module" src="/partials/nav.js"></script>
 
 <div class="upgrade-hero">
-  <p class="eyebrow">Enoma Subscription</p>
-  <h1 id="heroTitle">Keep your website live</h1>
-  <p id="heroSub">Your free trial is ending soon. Subscribe to keep your page live, indexed on Google, and managed by Enoma.</p>
+  <p class="eyebrow">Enoma Pro</p>
+  <h1 id="heroTitle">Get more from your page</h1>
+  <p id="heroSub">Your page stays live for free either way. Pro adds your own domain, a monthly results report, and changes made for you.</p>
 </div>
 
 <div class="plan-wrap">
   <div class="plan-card">
-    <p class="plan-name">Self-managed</p>
-    <p class="plan-price">$49<span>/mo</span></p>
-    <p class="plan-desc">Your page stays live and you manage your own content anytime through your dashboard.</p>
+    <p class="plan-name">Free</p>
+    <p class="plan-price">$0<span>/mo</span></p>
+    <p class="plan-desc">Your page stays live on enoma.io for as long as you want. No trial, no expiry.</p>
     <ul class="plan-features">
-      <li>Business website live on enoma.io</li>
-      <li>SEO-optimized and Google-indexed</li>
+      <li>Business page live on enoma.io</li>
+      <li>Built for Google and AI search</li>
       <li>Edit your page anytime from your dashboard</li>
-      <li>Contact form forwarded to your email</li>
-      <li>Analytics — page views and contact clicks</li>
-      <li>Cancel anytime, no contracts</li>
+      <li>New-lead alerts by email</li>
+      <li>Views, calls and quote requests in your dashboard</li>
     </ul>
-    <button class="plan-cta primary" id="selfSubBtn">Subscribe — $49/mo →</button>
+    <a href="/dashboard" class="plan-cta">Stay on Free</a>
   </div>
 
   <div class="plan-card featured">
-    <div class="plan-badge">Best value</div>
-    <p class="plan-name">Managed by Enoma</p>
-    <p class="plan-price">$49.99<span>/mo</span></p>
-    <p class="plan-desc">We handle everything — updates, new photos, copy improvements, and monthly reviews so your page always puts your best foot forward.</p>
+    <div class="plan-badge">Most help</div>
+    <p class="plan-name">Pro</p>
+    <p class="plan-price">$19<span>/mo</span></p>
+    <p class="plan-desc">We do the work: connect your own domain, report your results every month, and make changes when you ask.</p>
     <ul class="plan-features">
-      <li>Everything in self-managed</li>
-      <li>Monthly page review and copy refresh</li>
-      <li>We upload new photos when you send them</li>
-      <li>SEO tuning as your business grows</li>
-      <li>Seasonal content updates (spring cleanups, etc.)</li>
+      <li>Everything in Free</li>
+      <li>Your own domain (yourbusiness.com), connected for you</li>
+      <li>Monthly results report: visits, calls and quote requests</li>
+      <li>Changes made for you — text or email us what to update</li>
+      <li>Google Business Profile check-up</li>
+      <li>Review requests after every job (coming soon)</li>
       <li>Priority support directly from Jack</li>
     </ul>
-    <a href="/contact?subject=managed-plan" class="plan-cta primary">Get in touch to start →</a>
+    <button class="plan-cta primary" id="selfSubBtn">Upgrade — $19/mo →</button>
   </div>
 </div>
 
 <div class="what-wrap">
-  <h2>What's included in every plan</h2>
+  <h2>Good to know</h2>
   <div class="what-grid">
-    <div class="what-item"><h3>Your own professional URL</h3><p>enoma.io/your-business — clean, shareable, and Google-indexed within days of going live.</p></div>
-    <div class="what-item"><h3>SEO built in from day one</h3><p>Title tags, meta descriptions, schema markup, and local SEO signals are all handled automatically.</p></div>
-    <div class="what-item"><h3>Contact form → your inbox</h3><p>Every message sent through your page arrives in your email. No logins needed to respond.</p></div>
-    <div class="what-item"><h3>Looks great on phones</h3><p>Fully responsive — your page works perfectly on any device, including mobile searches.</p></div>
-    <div class="what-item"><h3>Always up to date</h3><p>Log in anytime to update services, photos, or business info. Changes go live immediately.</p></div>
-    <div class="what-item"><h3>No contracts, cancel anytime</h3><p>Monthly billing. If you cancel, your page goes offline. Come back anytime to reactivate it.</p></div>
+    <div class="what-item"><h3>Your page never goes offline</h3><p>Free pages stay live with no expiry. Pro is optional extra help on top.</p></div>
+    <div class="what-item"><h3>No contracts, cancel anytime</h3><p>Pro is billed monthly. If you cancel, your page simply moves back to the free plan.</p></div>
+    <div class="what-item"><h3>Bring your own domain</h3><p>Already own yourbusiness.com? We point it at your page. Don't have one? We'll help you pick and set one up.</p></div>
+    <div class="what-item"><h3>See what it's worth</h3><p>Your monthly report shows exactly how many people visited, tapped to call, and asked for a quote.</p></div>
   </div>
 </div>
 
 <div class="guarantee">
-  <p><strong>Questions before subscribing?</strong> We're a small, local operation. <a href="/contact" style="color:#3882dc;font-weight:600;">Send us a message</a> and we'll talk through whether Enoma makes sense for your business — no pressure.</p>
+  <p><strong>Questions before upgrading?</strong> We're a small, local operation. <a href="/contact" style="color:#3882dc;font-weight:600;">Send us a message</a> and we'll talk it through — no pressure.</p>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -122,9 +121,9 @@ async function init() {
       .eq('business_id', businessId)
       .maybeSingle();
     if (profile) {
-      document.getElementById('heroTitle').textContent = `Keep ${profile.business_name} live`;
+      document.getElementById('heroTitle').textContent = `Get more from ${profile.business_name}'s page`;
       document.getElementById('heroSub').textContent =
-        `Your free trial is ending soon. Subscribe to keep enoma.io/${profile.username} live, indexed on Google, and generating leads for your business.`;
+        `enoma.io/${profile.username} stays live for free either way. Pro adds your own domain, a monthly results report, and changes made for you.`;
     }
   }
 
@@ -142,8 +141,8 @@ async function init() {
       });
       const { url, error } = await res.json();
       if (url) { window.location.href = url; }
-      else { alert(error || 'Could not start checkout.'); btn.disabled = false; btn.textContent = 'Subscribe — $49/mo →'; }
-    } catch { btn.disabled = false; btn.textContent = 'Subscribe — $49/mo →'; }
+      else { alert(error || 'Could not start checkout.'); btn.disabled = false; btn.textContent = 'Upgrade — $19/mo →'; }
+    } catch { btn.disabled = false; btn.textContent = 'Upgrade — $19/mo →'; }
   });
 }
 init();

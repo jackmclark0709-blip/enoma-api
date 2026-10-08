@@ -338,32 +338,27 @@
     </a>
   </div>
 
-  <!-- Trial expires notice -->
-  <div class="expires-bar">
-    ⏰ <span>Your free trial ends on <strong id="trial-end-date">April 21, 2026</strong> — subscribe to keep your website live.</span>
-  </div>
-
-  <!-- Subscribe card -->
+  <!-- Pro upsell -->
   <div class="trial-card">
     <div class="trial-header">
-      <h2>Keep your website live</h2>
-      <span class="trial-badge">$49/month</span>
+      <h2>Your page is free — for good</h2>
+      <span class="trial-badge">Pro $19/mo</span>
     </div>
-    <p>Subscribe to keep your website online, get found in Google, and have your site continuously improved as your business grows.</p>
+    <p>Your page stays live with no trial and no expiry. If you want more, Pro adds:</p>
     <ul class="trial-includes">
-      <li>Website stays live and hosted on enoma.io</li>
-      <li>Indexed by Google — customers can find you in search</li>
-      <li>Ongoing SEO optimization as search trends change</li>
-      <li>Monthly performance report straight to your inbox</li>
-      <li>Cancel anytime — no contracts</li>
+      <li>Your own domain (yourbusiness.com), connected for you</li>
+      <li>Monthly results report: visits, calls and quote requests</li>
+      <li>Changes made for you — text or email us what to update</li>
+      <li>Google Business Profile check-up</li>
+      <li>Cancel anytime — your page stays live on Free</li>
     </ul>
-    <button class="subscribe-btn" id="subscribe-btn">Subscribe and keep my website live →</button>
-    <p class="subscribe-note">You won't be charged until your trial ends on <span id="trial-end-date-2"></span></p>
+    <button class="subscribe-btn" id="subscribe-btn">Upgrade to Pro →</button>
+    <p class="subscribe-note">Optional. You can upgrade later from your dashboard.</p>
   </div>
 
   <!-- What's next -->
   <div class="next-card">
-    <h3>While your trial is active</h3>
+    <h3>Get the most from your page</h3>
     <ul class="next-steps">
       <li>
         <span class="step-num">1</span>
@@ -418,22 +413,6 @@ function initSupabase() {
   try {
     var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Load trial expiry date
-    if (businessId) {
-      sb.from('subscriptions')
-        .select('trial_expires_at')
-        .eq('business_id', businessId)
-        .maybeSingle()
-        .then(function(res) {
-          var sub = res.data;
-          if (sub && sub.trial_expires_at) {
-            var d = new Date(sub.trial_expires_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-            document.getElementById('trial-end-date').textContent = d;
-            document.getElementById('trial-end-date-2').textContent = d;
-          }
-        });
-    }
-
     // Subscribe button
     document.getElementById('subscribe-btn').addEventListener('click', async function() {
       var res = await sb.auth.getSession();
@@ -458,12 +437,12 @@ function initSupabase() {
           window.location.href = data.url;
         } else {
           alert(data.error || 'Could not start checkout. Please try again.');
-          btn.textContent = 'Subscribe and keep my website live →';
+          btn.textContent = 'Upgrade to Pro →';
           btn.disabled = false;
         }
       } catch(err) {
         alert('Something went wrong. Please try again.');
-        btn.textContent = 'Subscribe and keep my website live →';
+        btn.textContent = 'Upgrade to Pro →';
         btn.disabled = false;
       }
     });

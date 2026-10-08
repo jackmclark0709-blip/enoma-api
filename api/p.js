@@ -1,9 +1,7 @@
 // api/p.js
-// CHANGES FROM PREVIOUS VERSION:
-// 1. Checks website_is_active() before serving the page
-// 2. If trial expired and no paid sub, shows a clean "inactive" page
-//    with a subscribe CTA instead of the profile
-// 3. Fixed LOCAL_BUSINESS_SCHEMA escaping (from previous fix session)
+// Serves a business page. Every page stays live for free, whatever its
+// subscription state; paid upgrades (custom domain, text alerts, monthly
+// results email) are gated where they happen, not here.
 
 import fs from "fs";
 import path from "path";
@@ -124,36 +122,6 @@ function guessSchemaType(primaryCategory) {
   if (!primaryCategory) return "LocalBusiness";
   const key = String(primaryCategory).toLowerCase().trim();
   return BUSINESS_TYPE_MAP[key] || "LocalBusiness";
-}
-
-// Clean "inactive" page shown when trial has expired and no subscription
-function inactivePage(businessName, baseUrl) {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>${escapeHtml(businessName)} — Enoma</title>
-  <meta name="robots" content="noindex,nofollow" />
-  <link rel="stylesheet" href="/styles/enoma.css" />
-  <style>
-    body { background: #f6f7fb; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem; }
-    .card { background: white; border-radius: 20px; padding: 3rem 2.5rem; max-width: 480px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.08); border: 1px solid #e5e7eb; }
-    h1 { font-size: 1.4rem; color: #211551; margin: 0 0 0.75rem; }
-    p { color: #6b7280; line-height: 1.6; margin: 0 0 1.5rem; }
-    .btn { display: inline-block; background: #9A8CFF; color: #0b0a14; padding: 0.85rem 2rem; border-radius: 999px; font-weight: 700; text-decoration: none; }
-    .business-name { font-size: 1rem; color: #9ca3af; margin-bottom: 1.5rem; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <p class="business-name">${escapeHtml(businessName)}</p>
-    <h1>This website is currently inactive</h1>
-    <p>This Enoma website's free trial has ended. The business owner can reactivate it by subscribing.</p>
-    <a href="${baseUrl}" class="btn">Learn about Enoma →</a>
-  </div>
-</body>
-</html>`;
 }
 
 // ── Trade color system ──
@@ -350,19 +318,6 @@ export default async function handler(req, res) {
     if (!profile.logo_url) profile.hero_headline = tidyHeadline(profile.hero_headline, profile.business_name);
 
     const baseUrl = absoluteBaseUrl(req);
-
-    // Check if website is active (trial or paid subscription)
-    if (profile.business_id) {
-      const { data: activeCheck } = await supabase
-        .rpc("website_is_active", { p_business_id: profile.business_id });
-
-      if (activeCheck === false) {
-        // Trial expired, no active subscription
-        res.setHeader("Content-Type", "text/html; charset=utf-8");
-        res.setHeader("Cache-Control", "public, max-age=0, s-maxage=60");
-        return res.status(200).send(inactivePage(profile.business_name || slug, baseUrl));
-      }
-    }
 
     // A connected custom domain is the canonical home; enoma.io/<slug> defers to it.
     const canonical = profile.custom_domain

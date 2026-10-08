@@ -2,7 +2,7 @@
 //
 // The model only writes the short personal intro (see generateDraftCopy's
 // preview brief). Everything that has to be exact — the page card, the
-// "Keep my page live" button, the reply line, the sign-off and the CAN-SPAM
+// "Claim my free page" button, the reply line, the sign-off and the CAN-SPAM
 // footer — is assembled here, deterministically, so every send carries the
 // same tracked links and a model can never drop or mangle them.
 //
@@ -62,7 +62,7 @@ export function buildOutreachEmail({ intro, businessName, messageId, slug, unsub
   const text = [
     String(intro || "").trim(),
     `See the page: ${links.page}`,
-    `Want to keep it live and make it yours? ${links.claim}`,
+    `It's free to keep — claim it and make it yours: ${links.claim}`,
     `Or just reply "yes" and I'll set it up for you. If it's not for you, reply "no" and I'll take it down.`,
     signoff,
     `---\n${mailingAddress}\nDon't want these emails? ${unsubscribeUrl}`
@@ -79,7 +79,7 @@ ${plainTextToHtml(String(intro || "").trim())}
 </a>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;">
   <tr><td style="border-radius:8px;background:#1a5c3a;">
-    <a href="${links.claim}" style="display:inline-block;padding:13px 22px;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px;">Keep my page live</a>
+    <a href="${links.claim}" style="display:inline-block;padding:13px 22px;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px;">Claim my free page</a>
   </td></tr>
 </table>
 <p style="margin:0 0 16px;">Or just reply <strong>yes</strong> and I'll set it up for you. If it's not for you, reply <strong>no</strong> and I'll take it down.</p>
