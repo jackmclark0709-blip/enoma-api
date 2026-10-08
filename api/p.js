@@ -305,6 +305,16 @@ export default async function handler(req, res) {
     if (!isEnomaHost && profile && slug && slug !== profile.username) return res.status(404).send("Not found");
     if (profile) slug = profile.username;
 
+    // A custom domain is a Pro feature: once Pro lapses, send its visitors
+    // to the free enoma.io page instead of serving the domain.
+    if (!isEnomaHost && profile?.business_id) {
+      const { data: proActive } = await supabase.rpc("website_is_active", { p_business_id: profile.business_id });
+      if (proActive === false) {
+        res.setHeader("Cache-Control", "public, max-age=0, s-maxage=60");
+        return res.redirect(302, `https://enoma.io/${encodeURIComponent(profile.username)}`);
+      }
+    }
+
     if (error) {
       console.error("Profile lookup error:", error);
       return res.status(500).send("Server error");

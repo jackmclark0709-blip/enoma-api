@@ -1427,6 +1427,7 @@ async function handleResendWebhook(req, res) {
     // bestOutreachSignal (above) already reads for replies/claims.
     const reason = type === "email.complained" ? "opted_out" : "bounced";
     await supabase.from("suppression_list").upsert({ email, reason }, { onConflict: "email" });
+    if (type === "email.complained") await unpublishPreviewForEmail(email);
     const { data: matches } = await supabase.from("prospects").select("id").eq("email", email);
     const prospectIds = (matches || []).map(p => p.id);
     if (prospectIds.length) {
@@ -1515,6 +1516,7 @@ async function handleInboundReply(data) {
   }
   if (intent === "opt_out" && fromEmail) {
     await supabase.from("suppression_list").upsert({ email: fromEmail, reason: "opted_out" }, { onConflict: "email" });
+    await unpublishPreviewForEmail(fromEmail);
   }
 
   if (resend) {
@@ -1535,6 +1537,20 @@ async function handleInboundReply(data) {
   }
 }
 
+// Pages stay live for free, but an unclaimed preview built for a prospect who
+// opts out (unsubscribe, complaint, "no thanks" reply) is taken down — we
+// shouldn't keep a public page of someone's business they've said no to.
+async function unpublishPreviewForEmail(email) {
+  if (!email) return;
+  const { data: prospects } = await supabase.from("prospects")
+    .select("preview_business_id").ilike("email", email).not("preview_business_id", "is", null);
+  const ids = (prospects || []).map(p => p.preview_business_id);
+  if (!ids.length) return;
+  await supabase.from("small_business_profiles")
+    .update({ is_public: false, updated_at: new Date().toISOString() })
+    .in("business_id", ids).eq("is_claimed", false);
+}
+
 function escapeForForward(s) {
   return String(s || "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
@@ -1551,6 +1567,7 @@ async function handleUnsubscribe(req, res) {
   }
 
   await supabase.from("suppression_list").upsert({ email, reason: "requested_removal" }, { onConflict: "email" });
+  await unpublishPreviewForEmail(email);
 
   res.setHeader("Content-Type", "text/html");
   return res.status(200).send(`<!doctype html><html><body style="font-family:sans-serif;max-width:480px;margin:60px auto;text-align:center;"><h2>You're unsubscribed</h2><p>${email} won't receive any more emails from Enoma.</p></body></html>`);
