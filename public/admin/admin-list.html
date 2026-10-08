@@ -63,19 +63,20 @@
 
     if (error) {
       document.getElementById('rows').innerHTML =
-        `<tr><td colspan="5" style="color:red;">Failed to load: ${error.message}</td></tr>`;
+        `<tr><td colspan="5" style="color:red;">Failed to load: ${String(error.message).replace(/</g,"&lt;")}</td></tr>`;
       return;
     }
 
+    const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const tbody = document.getElementById('rows');
     data.forEach(b => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${b.business_name || '—'}</td>
-        <td>${b.email || '—'}</td>
-        <td><a href="/${b.username}" target="_blank">${b.username || '—'}</a></td>
+        <td>${esc(b.business_name || '—')}</td>
+        <td>${esc(b.email || '—')}</td>
+        <td><a href="/${encodeURIComponent(b.username || '')}" target="_blank">${esc(b.username || '—')}</a></td>
         <td>${new Date(b.created_at).toLocaleDateString()}</td>
-        <td><a href="/create?business_id=${b.business_id}">Edit</a></td>
+        <td><a href="/create?business_id=${encodeURIComponent(b.business_id)}">Edit</a></td>
       `;
       tbody.appendChild(tr);
     });

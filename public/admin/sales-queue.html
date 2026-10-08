@@ -247,7 +247,7 @@
       renderFunnel(data.funnel_health);
       renderQueue();
     } catch (err) {
-      els.queueWrap.innerHTML = `<div class="status-line error">${err.message}</div>`;
+      els.queueWrap.innerHTML = `<div class="status-line error">${esc(err.message)}</div>`;
     }
   }
 
@@ -359,50 +359,59 @@
     toggleEl.textContent = '▾ Hide draft';
   }
 
+  // Escape untrusted text (visitor-submitted leads, scraped prospect data) before innerHTML.
+  function esc(v) {
+    return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  // Only allow http(s) links so a stored "javascript:" URL can't run.
+  function safeUrl(u) {
+    return /^https?:\/\//i.test(String(u ?? '')) ? esc(u) : '#';
+  }
+
   function rowHtml(r) {
     const title = r.lead_type === 'raw_lead' ? (r.name || 'Unnamed lead') : (r.business_name || 'Unnamed business');
     const contact = [
-      r.email ? `<a href="mailto:${r.email}">${r.email}</a>` : null,
-      r.phone ? `<a href="tel:${r.phone}">${r.phone}</a>` : null,
-      r.preview_url ? `<a href="${r.preview_url}" target="_blank">preview page →</a>` : null,
+      r.email ? `<a href="mailto:${encodeURIComponent(r.email)}">${esc(r.email)}</a>` : null,
+      r.phone ? `<a href="tel:${esc(r.phone)}">${esc(r.phone)}</a>` : null,
+      r.preview_url ? `<a href="${safeUrl(r.preview_url)}" target="_blank" rel="noopener">preview page →</a>` : null,
     ].filter(Boolean).join(' &middot; ');
 
     let controls = '';
     if (r.lead_type === 'raw_lead') {
       controls = r.status === 'replied'
         ? `<span class="mini-btn" style="opacity:.6;">Replied</span>`
-        : `<button class="mini-btn" data-lead-type="raw_lead" data-id="${r.id}" data-action="mark_replied">Mark replied</button>
-           <button class="mini-btn" data-lead-type="raw_lead" data-id="${r.id}" data-action="${r.status === 'read' ? 'mark_unread' : 'mark_read'}">${r.status === 'read' ? 'Mark unread' : 'Mark read'}</button>`;
+        : `<button class="mini-btn" data-lead-type="raw_lead" data-id="${esc(r.id)}" data-action="mark_replied">Mark replied</button>
+           <button class="mini-btn" data-lead-type="raw_lead" data-id="${esc(r.id)}" data-action="${r.status === 'read' ? 'mark_unread' : 'mark_read'}">${r.status === 'read' ? 'Mark unread' : 'Mark read'}</button>`;
     } else {
       const next = { new: 'reviewed', reviewed: 'drafted', drafted: 'approved' }[r.status];
       controls = `
-        ${next ? `<button class="mini-btn" data-lead-type="prospect" data-id="${r.id}" data-action="${next}">Mark ${next}</button>` : ''}
-        <button class="mini-btn" data-lead-type="prospect" data-id="${r.id}" data-action="skipped">Skip</button>
+        ${next ? `<button class="mini-btn" data-lead-type="prospect" data-id="${esc(r.id)}" data-action="${next}">Mark ${next}</button>` : ''}
+        <button class="mini-btn" data-lead-type="prospect" data-id="${esc(r.id)}" data-action="skipped">Skip</button>
       `;
     }
 
     return `
       <div class="row">
-        <div class="tier-badge ${r.tier}">${r.tier}</div>
+        <div class="tier-badge ${esc(r.tier)}">${esc(r.tier)}</div>
         <div class="row-main">
           <div class="row-top">
-            <span class="row-name">${title}</span>
-            <span class="row-type">${r.lead_type === 'raw_lead' ? 'enoma lead' : 'prospect'} · ${r.source || '—'}</span>
+            <span class="row-name">${esc(title)}</span>
+            <span class="row-type">${r.lead_type === 'raw_lead' ? 'enoma lead' : 'prospect'} · ${esc(r.source || '—')}</span>
           </div>
-          ${r.detail ? `<div class="row-detail">${r.detail}</div>` : ''}
+          ${r.detail ? `<div class="row-detail">${esc(r.detail)}</div>` : ''}
           <div class="row-meta">
             ${contact || '<span>no contact info on file</span>'}
             <span>${timeAgo(r.last_activity_at)}</span>
-            <span>status: ${r.status}</span>
+            <span>status: ${esc(r.status)}</span>
           </div>
-          <div class="row-action">→ ${r.suggested_action}</div>
+          <div class="row-action">→ ${esc(r.suggested_action)}</div>
           ${r.draft_body ? `
-            <div class="draft-toggle" data-toggle-draft="${r.id}">▸ View draft</div>
-            <div class="draft-box" data-draft-box="${r.id}" style="display:none;"></div>
+            <div class="draft-toggle" data-toggle-draft="${esc(r.id)}">▸ View draft</div>
+            <div class="draft-box" data-draft-box="${esc(r.id)}" style="display:none;"></div>
           ` : ''}
         </div>
         <div class="row-controls">
-          <div class="score">score ${r.score}</div>
+          <div class="score">score ${esc(r.score)}</div>
           <div class="btn-row">${controls}</div>
         </div>
       </div>
