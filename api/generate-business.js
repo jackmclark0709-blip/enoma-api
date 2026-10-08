@@ -10,6 +10,7 @@ import fetch from "node-fetch";
 import { createClient } from "@supabase/supabase-js";
 import formidable from "formidable";
 import { Resend } from "resend";
+import { attributeReferral } from "./_lib/referral.js";
 import fs from "fs";
 import {
   first, safeJSON, mergeUserServicePrices, normalizeServiceAreas
@@ -462,6 +463,9 @@ export default async function handler(req, res) {
 
       if (error) throw error;
       business_id = newBiz.id;
+
+      // Credit the referrer if this visitor arrived via a referral link.
+      await attributeReferral(supabaseAdmin, req, business_id);
 
       await supabaseAdmin.from("business_members").insert({
         user_id: user.id,
