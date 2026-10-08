@@ -577,17 +577,17 @@ async function loadMessages(profile, session) {
           ${!m.is_read ? '<div class="unread-dot"></div>' : '<div style="width:7px;flex-shrink:0;"></div>'}
           <div style="flex:1;min-width:0;">
             <div class="message-header">
-              <span class="message-name">${m.name}</span>
+              <span class="message-name">${esc(m.name)}</span>
               <span class="message-time">${timeAgo(m.created_at)}</span>
             </div>
-            <div class="message-email">${m.email}${m.phone ? ` · ${m.phone}` : ''}</div>
-            ${m.subject ? `<div style="font-size:0.75rem;color:#9ca3af;margin-bottom:0.2rem;">${m.subject}</div>` : ''}
-            <div class="message-preview">${m.message}</div>
+            <div class="message-email">${esc(m.email)}${m.phone ? ` · ${esc(m.phone)}` : ''}</div>
+            ${m.subject ? `<div style="font-size:0.75rem;color:#9ca3af;margin-bottom:0.2rem;">${esc(m.subject)}</div>` : ''}
+            <div class="message-preview">${esc(m.message)}</div>
             <div class="message-full">
-              ${m.message.replace(/\n/g, '<br>')}
-              <a href="mailto:${m.email}?subject=Re: Your enquiry" class="message-reply-btn" onclick="event.stopPropagation()">
+              ${esc(m.message).replace(/\n/g, '<br>')}
+              <a href="mailto:${encodeURIComponent(m.email ?? '')}?subject=Re%3A%20Your%20enquiry" class="message-reply-btn" onclick="event.stopPropagation()">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
-                Reply to ${m.name}
+                Reply to ${esc(m.name)}
               </a>
             </div>
           </div>
@@ -622,14 +622,14 @@ async function loadMessages(profile, session) {
           ${!m.is_read ? '<div class="unread-dot"></div>' : '<div style="width:7px;flex-shrink:0;"></div>'}
           <div style="flex:1;min-width:0;">
             <div class="message-header">
-              <span class="message-name">${m.name}</span>
+              <span class="message-name">${esc(m.name)}</span>
               <span class="message-time">${timeAgo(m.created_at)}</span>
             </div>
-            <div class="message-email">${m.email}</div>
-            <div class="message-preview">${m.message}</div>
+            <div class="message-email">${esc(m.email)}</div>
+            <div class="message-preview">${esc(m.message)}</div>
             <div class="message-full">
-              ${m.message.replace(/\n/g, '<br>')}
-              <a href="mailto:${m.email}" class="message-reply-btn" onclick="event.stopPropagation()">← Reply</a>
+              ${esc(m.message).replace(/\n/g, '<br>')}
+              <a href="mailto:${encodeURIComponent(m.email ?? '')}" class="message-reply-btn" onclick="event.stopPropagation()">← Reply</a>
             </div>
           </div>
         </div>
@@ -637,6 +637,12 @@ async function loadMessages(profile, session) {
     `).join('');
     headingEl.textContent = `Recent messages (${msgs.length})`;
   }
+}
+
+// Escape untrusted text (visitor-submitted contact-form fields, referrer sources)
+// before it goes into innerHTML.
+function esc(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
 async function loadMetrics(profile) {
@@ -685,7 +691,7 @@ async function loadMetrics(profile) {
     ? `<li><span class="zero-state">No traffic data yet — share your link to start getting visitors.</span></li>`
     : top.map(([source, visits]) => `
         <li>
-          <span>${source}</span>
+          <span>${esc(source)}</span>
           <div class="source-bar-wrap"><div class="source-bar" style="width:${Math.round(visits/maxVisits*100)}%"></div></div>
           <strong>${visits}</strong>
         </li>`).join('');
