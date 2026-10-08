@@ -233,7 +233,7 @@
   <!-- UPGRADE BANNER (shown during trial / expired) -->
   <div class="upgrade-banner" id="upgrade-banner">
     <p id="banner-text"></p>
-    <a class="upgrade-banner-btn" id="upgrade-btn" href="/upgrade">Keep my website live →</a>
+    <a class="upgrade-banner-btn" id="upgrade-btn" href="/upgrade">See Pro →</a>
   </div>
 
   <!-- NO WEBSITE -->
@@ -490,47 +490,43 @@ async function loadDashboard(profile, session) {
       .from('subscriptions').select('*').eq('business_id', profile.business_id).maybeSingle();
 
     if (sub) {
-      const trialExpiry  = sub.trial_expires_at ? new Date(sub.trial_expires_at) : null;
-      const trialExpired = trialExpiry ? trialExpiry < new Date() : false;
-      const daysLeft      = trialExpiry ? Math.max(0, Math.ceil((trialExpiry - new Date()) / 86400000)) : 0;
       const periodEnd     = sub.current_period_end ? new Date(sub.current_period_end) : null;
       const periodEndFmt  = periodEnd ? periodEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 
-      if (sub.status === 'active') {
-        statusEl.textContent = '● Active'; statusEl.className = 'pill active';
+      // Every page stays live for free. Pro ($19/mo) adds a custom domain,
+      // the monthly results report and edits done for you.
+      const showFreeUpsell = () => {
+        statusEl.textContent = '● Live · Free plan'; statusEl.className = 'pill active';
+        renewalEl.textContent = 'Your page stays live for free';
+        bannerTxt.innerHTML = `<strong>Your page is live and free, for good.</strong> Upgrade to Pro for $19/mo to get your own domain, a monthly results report, and changes made for you.`;
+        upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
+        bannerEl.style.display = 'flex';
+      };
+
+      if (sub.status === 'active' && !sub.is_trial) {
+        statusEl.textContent = '● Pro'; statusEl.className = 'pill active';
         if (periodEnd) renewalEl.textContent = `Renews ${periodEndFmt}`;
 
       } else if (sub.status === 'past_due') {
         statusEl.textContent = '⚠ Payment due'; statusEl.className = 'pill expired';
-        renewalEl.textContent = 'Payment failed — update billing to avoid interruption';
-        bannerTxt.innerHTML = `<strong>Your last payment failed.</strong> Your page is still live while we retry, but update your billing details to avoid it going offline.`;
+        renewalEl.textContent = 'Payment failed — update billing to keep Pro';
+        bannerTxt.innerHTML = `<strong>Your last payment failed.</strong> Your page stays live either way, but update your billing details to keep your Pro features.`;
         upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
         bannerEl.style.display = 'flex';
 
       } else if (sub.status === 'canceled' && periodEnd && periodEnd > new Date()) {
-        statusEl.textContent = '● Active'; statusEl.className = 'pill trial';
-        renewalEl.textContent = `Canceled — active until ${periodEndFmt}`;
-        bannerTxt.innerHTML = `<strong>Your subscription is canceled.</strong> Your page stays live until ${periodEndFmt}, then it will go offline.`;
-        upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
-        bannerEl.style.display = 'flex';
-
-      } else if (sub.is_trial && !trialExpired) {
-        statusEl.textContent = `Free trial — ${daysLeft}d left`; statusEl.className = 'pill trial';
-        renewalEl.textContent = `Trial ends ${trialExpiry.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
-        bannerTxt.innerHTML = `<strong>Your free trial ends in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}.</strong> Subscribe to keep your page live after ${trialExpiry.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}.`;
+        statusEl.textContent = '● Pro'; statusEl.className = 'pill trial';
+        renewalEl.textContent = `Canceled — Pro until ${periodEndFmt}`;
+        bannerTxt.innerHTML = `<strong>Your Pro plan is canceled.</strong> Pro features end on ${periodEndFmt}. Your page stays live on the free plan after that.`;
         upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
         bannerEl.style.display = 'flex';
 
       } else {
-        // Trial expired with no active/past_due/still-paid-through subscription, or fully canceled
-        statusEl.textContent = '● Offline'; statusEl.className = 'pill expired';
-        renewalEl.textContent = '';
-        bannerTxt.innerHTML = `<strong>Your website is currently offline.</strong> Subscribe to bring it back live and start getting leads again.`;
-        upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
-        bannerEl.style.display = 'flex';
+        showFreeUpsell();
       }
     } else {
-      statusEl.textContent = 'No subscription'; statusEl.className = 'pill none';
+      statusEl.textContent = '● Live · Free plan'; statusEl.className = 'pill active';
+      renewalEl.textContent = 'Your page stays live for free';
     }
   }
 

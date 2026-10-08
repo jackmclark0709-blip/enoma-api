@@ -1,6 +1,7 @@
 // api/create-checkout.js
-// Creates a Stripe Checkout session for the starter subscription ($49/mo).
-// The amount lives on the Stripe Price referenced by STRIPE_PRICE_ID.
+// Creates a Stripe Checkout session for the Pro upgrade ($19/mo).
+// The amount lives on the Stripe Price referenced by STRIPE_PRO_PRICE_ID.
+// Until that env var is set, checkout is refused so nobody is charged an old price.
 // Called from dashboard when user clicks "Subscribe"
 
 import Stripe from 'stripe';
@@ -25,6 +26,10 @@ export default async function handler(req, res) {
 
   const { business_id } = req.body;
   if (!business_id) return res.status(400).json({ error: 'business_id required' });
+
+  if (!process.env.STRIPE_PRO_PRICE_ID) {
+    return res.status(503).json({ error: 'Pro upgrades are opening shortly. Email jack@enoma.io and we\'ll set you up.' });
+  }
 
   // Verify the user owns this business
   const { data: membership } = await supabase
@@ -87,7 +92,7 @@ export default async function handler(req, res) {
     payment_method_types: ['card'],
     line_items: [
       {
-        price: process.env.STRIPE_PRICE_ID,
+        price: process.env.STRIPE_PRO_PRICE_ID,
         quantity: 1,
       },
     ],

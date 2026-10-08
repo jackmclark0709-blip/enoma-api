@@ -48,8 +48,8 @@ const email = buildOutreachEmail({
   unsubscribeUrl: "https://enoma.io/api/ga-metrics?action=unsubscribe&email=a%40b.com&token=t",
   mailingAddress: "Enoma, 183 Fairway Dr, Attleboro, MA 02703"
 });
-await test("HTML has the page card, the Keep my page live button and the reply line", () => {
-  assert.match(email.html, /Keep my page live/);
+await test("HTML has the page card, the Claim my free page button and the reply line", () => {
+  assert.match(email.html, /Claim my free page/);
   assert.match(email.html, /reply <strong>yes<\/strong>/);
   assert.ok(email.html.includes(`action=go&m=${ID}&to=claim`));
   assert.ok(email.html.includes(`action=go&m=${ID}&to=page`));

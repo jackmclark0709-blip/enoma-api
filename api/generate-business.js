@@ -374,7 +374,7 @@ export default async function handler(req, res) {
         if (!isPaid) {
           return res.status(403).json({
             error: "free_limit_reached",
-            message: "Your free website has already been created. Visit your dashboard to edit your existing page or subscribe to keep it live.",
+            message: "Your free website has already been created. Visit your dashboard to edit your existing page.",
             business_id: firstBizId,
             dashboard_url: `/dashboard?business_id=${firstBizId}`
           });
