@@ -21,6 +21,7 @@ import { plainTextToHtml, wrapEmailHtml } from "./_lib/email-html.js";
 import { rampCapForDate } from "./_lib/outreach-ramp.js";
 import { townForDate, tradeForDate } from "./_lib/prospect-rotation.js";
 import { Resend } from "resend";
+import { isGrandfathered } from "./_lib/trial-policy.js";
 
 // Resend's constructor throws synchronously if the key is missing, which
 // would crash this whole module (prospecting, crawling, drafting, sending,
@@ -683,8 +684,11 @@ async function handleResultsEmail(req, res) {
     if (p.results_email_opt_out) { skip("opted_out"); continue; }
     if (!p.email || /@enoma\.io$/i.test(p.email)) { skip("no_customer_email"); continue; }
     if (!testTo && p.results_email_last_sent_at && new Date(p.results_email_last_sent_at) >= end) { skip("already_sent"); continue; }
-    const { data: active } = await supabase.rpc("website_is_active", { p_business_id: p.business_id });
-    if (active === false) { skip("inactive"); continue; }
+    const { data: biz } = await supabase.from("businesses").select("created_at").eq("id", p.business_id).maybeSingle();
+    if (!isGrandfathered(biz?.created_at)) {
+      const { data: active } = await supabase.rpc("website_is_active", { p_business_id: p.business_id });
+      if (active === false) { skip("inactive"); continue; }
+    }
 
     const [{ count: views }, { data: clicks }, { count: quotes }] = await Promise.all([
       supabase.from("page_events").select("id", { count: "exact", head: true })
@@ -764,8 +768,8 @@ async function toolGetRevenueStatus() {
   const stalledTrials = rows.filter(s =>
     s.is_trial && s.trial_expires_at && new Date(s.trial_expires_at) <= now && s.status !== "active"
   );
-  // Pro upgrade price ($19/mo). Pages themselves are free; only Pro is billed.
-  const PRICE = 19;
+  // One plan: $19.99/month after the free first month.
+  const PRICE = 19.99;
 
   return {
     mrr: Math.round(paying.length * PRICE * 100) / 100,
@@ -859,18 +863,18 @@ async function generateDraftCopy(prospect, instructions) {
   if (prospect.preview_url) {
     // The strongest honest hook: a real page, already built from their own info.
     // The model writes ONLY the intro. buildOutreachEmail (outreach-email.js)
-    // appends the page preview card, the "Claim my free page" button, the
+    // appends the page preview card, the "Keep my page live" button, the
     // reply-yes line and the sign-off, with tracked links.
     brief = `STRUCTURE (follow it; this is only the opening of the email — the page link, button, reply line and sign-off are added after it automatically):
 1. One line: I'm Jack; I build websites for trades businesses in ${prospect.state || "New England"}.
 2. I put together a new page for ${prospect.business_name} using what's already on their ${prospect.website ? "website and " : ""}Google profile — it's below. Do NOT include any URL.${gaps.length && siteHost ? `\n3. A short list comparing it with ${siteHost}, one line per item, using ONLY these verified problems with their current site (rephrase each as what the new page does instead): ${gaps.join("; ")}` : ""}
-${gaps.length && siteHost ? "4" : "3"}. Pricing, exactly: "It's free, and it stays live — no trial, no card. If you ever want your own domain and me handling updates, that's $19/month."
+${gaps.length && siteHost ? "4" : "3"}. Pricing, exactly: "The first month is free. After that it's $19.99/month to keep it live, and I'm there if you ever want changes. No contract."
 Do NOT add a closing line, a call to action, or a sign-off.`;
   } else {
     brief = `STRUCTURE:
 1. One line: I'm Jack; I build websites for trades businesses in ${prospect.state || "New England"}.
 2. ${gaps.length && siteHost ? `Name ONE of these verified problems with ${siteHost} and why it costs them calls: ${gaps[0]}` : `They don't have a website, so homeowners who search for a ${prospect.trade || "local service"} business can't find a page for them.`}
-3. Enoma builds a one-page site made to turn a local search into a call. It's free and stays live; an optional Pro upgrade is $19/month.
+3. Enoma builds a one-page site made to turn a local search into a call. First month free, then $19.99/month; no contract.
 4. Close, exactly: "Want me to build yours? Reply \"yes\" and I'll set it up — or ${SIGNUP_URL} to start it yourself."`;
   }
 
@@ -1650,7 +1654,7 @@ const TOOL_IMPL = {
   approve_outreach_email: toolApproveOutreachEmail
 };
 
-const SYSTEM_PROMPT = `You are Enoma's internal voice assistant, speaking directly to Jack, the founder. Enoma builds AI-generated business websites for local service businesses (landscaping, plumbing, HVAC, etc.) — free pages that stay live, with an optional Pro upgrade at $19/mo (custom domain, monthly results report, changes made for you). Its ideal customer is a business that doesn't have a website yet.
+const SYSTEM_PROMPT = `You are Enoma's internal voice assistant, speaking directly to Jack, the founder. Enoma builds AI-generated business websites for local service businesses (landscaping, plumbing, HVAC, etc.) — free 30-day trial, then $19.99/mo. Its ideal customer is a business that doesn't have a website yet.
 
 You have tools for revenue, marketing traffic, CRM/prospecting data, business page status, and outreach drafting — always call a tool rather than guessing at any number or inventing message copy. You can also discuss outbound/inbound marketing strategy and the BD pipeline by reasoning over what the tools return.
 
