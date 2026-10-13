@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { TOWN_PAGE_SLUGS } from "./_lib/town-pages-slugs.js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -39,6 +40,9 @@ const STATIC_PAGES = [
   { url: "https://enoma.io/for/plumber-websites-massachusetts", lastmod: TODAY, changefreq: "monthly", priority: "0.85" },
   { url: "https://enoma.io/for/lawn-care-website-agawam-ma", lastmod: TODAY, changefreq: "monthly", priority: "0.80" },
   { url: "https://enoma.io/for/plumber-website-attleboro-ma", lastmod: TODAY, changefreq: "monthly", priority: "0.80" },
+
+  // Trade + town pages built from Enoma's own prospect research (scripts/build-town-pages.mjs)
+  ...TOWN_PAGE_SLUGS.map(slug => ({ url: `https://enoma.io/for/${slug}`, lastmod: TODAY, changefreq: "monthly", priority: "0.80" })),
 ];
 
 export default async function handler(req, res) {
