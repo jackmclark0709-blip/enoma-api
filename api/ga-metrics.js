@@ -21,6 +21,10 @@ import { plainTextToHtml, wrapEmailHtml } from "./_lib/email-html.js";
 import { rampCapForDate } from "./_lib/outreach-ramp.js";
 import { townForDate, tradeForDate } from "./_lib/prospect-rotation.js";
 import { Resend } from "resend";
+import {
+  TEXT_DAILY_CAP, TEXT_REMIND_AFTER_DAYS, NEVER_TEXT_STATUSES, normalizeUsPhone, assessPageQuality,
+  assessRenderedPage, buildTextMessage, buildTextBatchEmail, verifyTextMarkToken,
+} from "./_lib/text-outreach.js";
 
 // Resend's constructor throws synchronously if the key is missing, which
 // would crash this whole module (prospecting, crawling, drafting, sending,
@@ -730,6 +734,177 @@ async function handleGeneratePreview(req, res) {
   if (!prospect) return res.status(404).json({ error: "Prospect not found" });
   const result = await generatePreviewForProspect(prospect, { force: req.query.force === "1" });
   return res.status(200).json({ success: true, business_name: prospect.business_name, ...result });
+}
+
+// ── Text outreach ──────────────────────────────────────────────────────────
+// See api/_lib/text-outreach.js. Three actions:
+//   prepare_texts (cron)  builds pages for phone-only prospects, so the text
+//                         channel isn't limited to people we found an email for.
+//   text_batch    (cron)  emails Jack the morning batch of ready-to-send texts.
+//   text_mark   (public)  the signed "I sent it / Skip / They said stop" links.
+// Nothing here ever sends a text. Jack sends each one by hand from his phone.
+const TEXT_BATCH_TO = process.env.TEXT_BATCH_TO || "jack@enoma.io";
+
+async function prepareTextsOnce({ limit = 2, deadline } = {}) {
+  const { data: rows, error } = await supabase
+    .from("prospects")
+    .select("*")
+    .eq("status", "new")
+    .is("preview_url", null)
+    .is("text_status", null)
+    .not("phone", "is", null)
+    .order("created_at", { ascending: true })
+    .limit(60);
+  if (error) throw error;
+
+  // Only spend a generation on prospects whose Google reputation could pass
+  // the text quality gate anyway (4.5★ from 10+ reviews).
+  const candidates = (rows || []).filter(p => {
+    const r = Number(p.raw?.rating), n = Number(p.raw?.reviews);
+    return normalizeUsPhone(p.phone) && r >= 4.5 && n >= 10;
+  });
+
+  const results = [];
+  for (const prospect of candidates.slice(0, Math.min(limit, 5))) {
+    if (deadline && Date.now() > deadline - 20000) break;
+    try {
+      const gen = await generatePreviewForProspect(prospect);
+      if (!gen.preview_url) {
+        await supabase.from("prospects").update({ text_status: "no_page", text_quality: { reasons: [gen.skipped || "failed"] }, updated_at: new Date().toISOString() }).eq("id", prospect.id);
+      }
+      results.push({ business_name: prospect.business_name, preview_url: gen.preview_url || null, skipped: gen.skipped || null });
+    } catch (err) {
+      results.push({ business_name: prospect.business_name, error: err.message });
+    }
+  }
+  return { candidates: candidates.length, attempted: results.length, built: results.filter(r => r.preview_url).length, results };
+}
+
+async function handlePrepareTexts(req, res) {
+  const limit = parseInt(req.query.limit, 10) || 2;
+  const result = await prepareTextsOnce({ limit, deadline: Date.now() + DAILY_PIPELINE_BUDGET_MS });
+  return res.status(200).json({ success: true, ...result });
+}
+
+// Builds today's batch. ?dry_run=1 returns the batch (and every rejection with
+// its reasons) without emailing or changing anything.
+async function handleTextBatch(req, res) {
+  const dryRun = req.query.dry_run === "1";
+  const cap = Math.min(parseInt(req.query.limit, 10) || TEXT_DAILY_CAP, 20);
+  const remindBefore = new Date(Date.now() - TEXT_REMIND_AFTER_DAYS * 86400000).toISOString();
+  const deadline = Date.now() + DAILY_PIPELINE_BUDGET_MS;
+
+  const { data: rows, error } = await supabase
+    .from("prospects")
+    .select("id, business_name, trade, city, state, phone, email, status, preview_url, text_status, text_queued_at, created_at")
+    .not("preview_url", "is", null)
+    .not("phone", "is", null)
+    .is("texted_at", null)
+    .or(`text_status.is.null,text_status.eq.ready,and(text_status.eq.queued,text_queued_at.lt.${remindBefore})`)
+    .order("created_at", { ascending: true })
+    .limit(80);
+  if (error) throw error;
+
+  // Reminders first (already promised to Jack), then new ones.
+  const ordered = [...(rows || []).filter(r => r.text_status === "queued"), ...(rows || []).filter(r => r.text_status !== "queued")];
+
+  const items = [], rejected = [];
+  for (const p of ordered) {
+    if (items.length >= cap) break;
+    if (Date.now() > deadline - 5000) break;
+    const reject = async (reasons) => {
+      rejected.push({ business_name: p.business_name, preview_url: p.preview_url, reasons });
+      if (!dryRun) await supabase.from("prospects").update({ text_status: "low_quality", text_quality: { reasons, checked_at: new Date().toISOString() } }).eq("id", p.id);
+    };
+
+    if (NEVER_TEXT_STATUSES.has(p.status)) { rejected.push({ business_name: p.business_name, reasons: [`status_${p.status}`] }); continue; }
+    const phoneE164 = normalizeUsPhone(p.phone);
+    if (!phoneE164) { await reject(["no_valid_phone"]); continue; }
+    {
+      const filters = [`phone_digits.eq.${phoneE164.slice(2)}`];
+      if (p.email && /^[^\s,()]+@[^\s,()]+$/.test(p.email)) filters.push(`email.eq.${p.email}`);
+      // A bounced email isn't an opt-out; only people who asked to stop are skipped.
+      const { data: suppressed } = await supabase.from("suppression_list").select("id")
+        .in("reason", ["opted_out", "requested_removal"]).or(filters.join(",")).limit(1);
+      if (suppressed?.length) { rejected.push({ business_name: p.business_name, reasons: ["on_suppression_list"] }); continue; }
+    }
+    const slug = slugFromPreviewUrl(p.preview_url);
+    if (!slug) { await reject(["bad_preview_url"]); continue; }
+    const { data: profile } = await supabase.from("small_business_profiles").select("*").eq("username", slug).maybeSingle();
+    const quality = assessPageQuality(profile);
+    if (!quality.ok) { await reject(quality.reasons); continue; }
+
+    let render;
+    try {
+      const r = await fetch(p.preview_url, { headers: { "User-Agent": "EnomaTextCheck/1.0" }, signal: AbortSignal.timeout(8000) });
+      render = assessRenderedPage({ status: r.status, html: await r.text(), businessName: profile.business_name });
+    } catch (err) {
+      render = { ok: false, reasons: [`page_fetch_failed`] };
+    }
+    if (!render.ok) { await reject(render.reasons); continue; }
+
+    items.push({
+      id: p.id, businessName: profile.business_name || p.business_name, trade: p.trade, city: p.city,
+      phone: p.phone, phoneE164, previewUrl: p.preview_url,
+      rating: profile.average_rating, reviewCount: profile.review_count,
+      reminder: p.text_status === "queued",
+      body: buildTextMessage({ id: p.id, businessName: profile.business_name || p.business_name, previewUrl: p.preview_url, rating: profile.average_rating, reviewCount: profile.review_count }),
+    });
+  }
+
+  const dateLabel = new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/New_York" });
+  const email = buildTextBatchEmail(items, { dateLabel });
+  const summary = items.map(i => ({ business_name: i.businessName, phone: i.phone, preview_url: i.previewUrl, reminder: i.reminder, text: i.body }));
+  if (dryRun) return res.status(200).json({ success: true, dry_run: true, to: TEXT_BATCH_TO, subject: email.subject, items: summary, rejected });
+
+  if (!resend) throw new Error("RESEND_API_KEY not configured");
+  const { error: sendErr } = await resend.emails.send({
+    from: "Enoma <jack@enoma.io>", to: TEXT_BATCH_TO, subject: email.subject, text: email.text, html: email.html,
+  });
+  if (sendErr) throw new Error(sendErr.message);
+
+  const now = new Date().toISOString();
+  for (const it of items) {
+    await supabase.from("prospects").update(
+      it.reminder ? { text_status: "reminded" } : { text_status: "queued", text_queued_at: now, text_body: it.body }
+    ).eq("id", it.id);
+  }
+  return res.status(200).json({ success: true, to: TEXT_BATCH_TO, subject: email.subject, items: summary, rejected_count: rejected.length });
+}
+
+// Public: the buttons in Jack's batch email. Signed per prospect and per mark.
+async function handleTextMark(req, res) {
+  const id = String(req.query.id || "");
+  const mark = String(req.query.mark || "");
+  const token = String(req.query.token || "");
+  const page = (title, msg) => `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title></head><body style="font-family:Inter,Arial,sans-serif;background:#f0f6ff;display:flex;align-items:center;justify-content:center;min-height:90vh;margin:0;padding:24px;"><div style="background:#fff;border:1px solid #d4e2f4;border-radius:16px;padding:28px;max-width:420px;text-align:center;"><h1 style="font-size:20px;color:#0a1628;margin:0 0 8px;">${title}</h1><p style="color:#2a4060;margin:0;">${msg}</p></div></body></html>`;
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  if (!verifyTextMarkToken(id, mark, token)) return res.status(400).send(page("Link not valid", "This link is broken or expired."));
+
+  const now = new Date().toISOString();
+  const update = mark === "sent" ? { text_status: "sent", texted_at: now }
+    : mark === "skip" ? { text_status: "skipped" }
+    : { text_status: "opted_out", status: "opted_out" };
+  const { data: p, error } = await supabase.from("prospects").update({ ...update, updated_at: now }).eq("id", id).select("business_name, email, phone").maybeSingle();
+  if (error) throw error;
+  // A STOP by text goes on the suppression list by phone, and by email too,
+  // so neither the texts nor the cold emails ever reach them again.
+  if (mark === "opted_out" && p) {
+    const phoneDigits = (normalizeUsPhone(p.phone) || "").slice(2) || null;
+    let email = p.email || null;
+    if (email) {
+      const { data: existing } = await supabase.from("suppression_list").select("id").eq("email", email).maybeSingle();
+      if (existing) email = null;
+    }
+    if (phoneDigits || email) {
+      await supabase.from("suppression_list").insert({ phone_digits: phoneDigits, email, reason: "opted_out", notes: "Replied STOP to a text" });
+    }
+  }
+  const name = p?.business_name || "This business";
+  const msg = mark === "sent" ? `${name} is marked as texted. It won't show up again.`
+    : mark === "skip" ? `${name} is skipped. It won't show up again.`
+    : `${name} is marked as opted out. Nobody will contact them again.`;
+  return res.status(200).send(page("Done", msg.replace(/[<>&]/g, "")));
 }
 
 const ENOMA_ADMIN_EMAIL = "jack@enoma.io";
@@ -1958,6 +2133,16 @@ export default async function handler(req, res) {
     }
   }
 
+  // Public: the signed buttons in Jack's morning text batch.
+  if (req.query.action === "text_mark") {
+    try {
+      return await handleTextMark(req, res);
+    } catch (err) {
+      console.error("Text mark failed:", err);
+      return res.status(500).send("Something went wrong.");
+    }
+  }
+
   // Public: the tracked links inside outreach emails.
   if (req.query.action === "go") {
     try {
@@ -2031,6 +2216,24 @@ export default async function handler(req, res) {
   const isValidCron = !!process.env.CRON_SECRET && cronAuth === `Bearer ${process.env.CRON_SECRET}`;
   if (secret !== process.env.ADMIN_SECRET && !isValidCron) {
     return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  if (req.query.action === "prepare_texts") {
+    try {
+      return await handlePrepareTexts(req, res);
+    } catch (err) {
+      console.error("Prepare texts failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.query.action === "text_batch") {
+    try {
+      return await handleTextBatch(req, res);
+    } catch (err) {
+      console.error("Text batch failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
   }
 
   if (req.query.action === "prospect") {
