@@ -1,13 +1,14 @@
 // api/p.js
-// Serves a business page. Every page stays live for free, whatever its
-// subscription state; paid upgrades (custom domain, text alerts, monthly
-// results email) are gated where they happen, not here.
+// Serves a business page. The first month is free; after that an unpaid page
+// shows a clean "inactive" screen (website_is_active). Pages created before
+// PRICING_TRIAL_STARTS_AT keep their free-for-good promise (trial-policy.js).
 
 import fs from "fs";
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
 import { personaFor, pickPalette, splitWordmark, heroPatternSvg, isStrongRating, stripWeakRatingClaims, tidyHeadline } from "./_lib/page-style.js";
 import { renderSections, faqSchema } from "./_lib/page-ssr.js";
+import { isGrandfathered } from "./_lib/trial-policy.js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -122,6 +123,45 @@ function guessSchemaType(primaryCategory) {
   if (!primaryCategory) return "LocalBusiness";
   const key = String(primaryCategory).toLowerCase().trim();
   return BUSINESS_TYPE_MAP[key] || "LocalBusiness";
+}
+
+// Clean "inactive" page shown when trial has expired and no subscription
+function inactivePage(businessName, baseUrl) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeHtml(businessName)} — Enoma</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <link rel="stylesheet" href="/styles/enoma.css" />
+  <style>
+    body { background: #f6f7fb; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem; }
+    .card { background: white; border-radius: 20px; padding: 3rem 2.5rem; max-width: 480px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.08); border: 1px solid #e5e7eb; }
+    h1 { font-size: 1.4rem; color: #211551; margin: 0 0 0.75rem; }
+    p { color: #6b7280; line-height: 1.6; margin: 0 0 1.5rem; }
+    .btn { display: inline-block; background: #9A8CFF; color: #0b0a14; padding: 0.85rem 2rem; border-radius: 999px; font-weight: 700; text-decoration: none; }
+    .business-name { font-size: 1rem; color: #9ca3af; margin-bottom: 1.5rem; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <p class="business-name">${escapeHtml(businessName)}</p>
+    <h1>This website is currently inactive</h1>
+    <p>This Enoma website's free trial has ended. The business owner can reactivate it by subscribing.</p>
+    <a href="${baseUrl}" class="btn">Learn about Enoma →</a>
+  </div>
+</body>
+</html>`;
+}
+
+// Is this page live? Grandfathered pages always are; otherwise it needs an
+// active trial or subscription (website_is_active).
+async function pageIsLive(businessId) {
+  const { data: biz } = await supabase.from("businesses").select("created_at").eq("id", businessId).maybeSingle();
+  if (isGrandfathered(biz?.created_at)) return true;
+  const { data: active } = await supabase.rpc("website_is_active", { p_business_id: businessId });
+  return active !== false;
 }
 
 // ── Trade color system ──
@@ -305,11 +345,10 @@ export default async function handler(req, res) {
     if (!isEnomaHost && profile && slug && slug !== profile.username) return res.status(404).send("Not found");
     if (profile) slug = profile.username;
 
-    // A custom domain is a Pro feature: once Pro lapses, send its visitors
-    // to the free enoma.io page instead of serving the domain.
+    // A custom domain only serves a live page: once the page is inactive,
+    // send its visitors to the enoma.io page (which shows the inactive screen).
     if (!isEnomaHost && profile?.business_id) {
-      const { data: proActive } = await supabase.rpc("website_is_active", { p_business_id: profile.business_id });
-      if (proActive === false) {
+      if (!(await pageIsLive(profile.business_id))) {
         res.setHeader("Cache-Control", "public, max-age=0, s-maxage=60");
         return res.redirect(302, `https://enoma.io/${encodeURIComponent(profile.username)}`);
       }
@@ -328,6 +367,16 @@ export default async function handler(req, res) {
     if (!profile.logo_url) profile.hero_headline = tidyHeadline(profile.hero_headline, profile.business_name);
 
     const baseUrl = absoluteBaseUrl(req);
+
+    // Check if website is active (trial or paid subscription)
+    if (profile.business_id) {
+      if (!(await pageIsLive(profile.business_id))) {
+        // Trial expired, no active subscription
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        res.setHeader("Cache-Control", "public, max-age=0, s-maxage=60");
+        return res.status(200).send(inactivePage(profile.business_name || slug, baseUrl));
+      }
+    }
 
     // A connected custom domain is the canonical home; enoma.io/<slug> defers to it.
     const canonical = profile.custom_domain

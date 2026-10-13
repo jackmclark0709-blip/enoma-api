@@ -1,7 +1,9 @@
 // api/create-checkout.js
-// Creates a Stripe Checkout session for the Pro upgrade ($19/mo).
-// The amount lives on the Stripe Price referenced by STRIPE_PRO_PRICE_ID.
-// Until that env var is set, checkout is refused so nobody is charged an old price.
+// Creates a Stripe Checkout session for the monthly subscription ($19.99/mo:
+// keeps the page live after the free month, with personalized support).
+// The amount lives on the Stripe Price referenced by STRIPE_MONTHLY_PRICE_ID.
+// Until that env var is set, checkout is refused so nobody is charged an old
+// price (STRIPE_PRICE_ID was the $49 price).
 // Called from dashboard when user clicks "Subscribe"
 
 import Stripe from 'stripe';
@@ -27,8 +29,8 @@ export default async function handler(req, res) {
   const { business_id } = req.body;
   if (!business_id) return res.status(400).json({ error: 'business_id required' });
 
-  if (!process.env.STRIPE_PRO_PRICE_ID) {
-    return res.status(503).json({ error: 'Pro upgrades are opening shortly. Email jack@enoma.io and we\'ll set you up.' });
+  if (!process.env.STRIPE_MONTHLY_PRICE_ID) {
+    return res.status(503).json({ error: 'Subscriptions are opening shortly. Email jack@enoma.io and we\'ll keep your page live in the meantime.' });
   }
 
   // Verify the user owns this business
@@ -92,7 +94,7 @@ export default async function handler(req, res) {
     payment_method_types: ['card'],
     line_items: [
       {
-        price: process.env.STRIPE_PRO_PRICE_ID,
+        price: process.env.STRIPE_MONTHLY_PRICE_ID,
         quantity: 1,
       },
     ],
