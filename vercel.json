@@ -128,6 +128,22 @@
     {
       "path": "/api/ga-metrics?action=results_email",
       "schedule": "0 14 1 * *"
+    },
+    {
+      "path": "/api/ga-metrics?action=prepare_texts&limit=2",
+      "schedule": "35 13 * * *"
+    },
+    {
+      "path": "/api/ga-metrics?action=prepare_texts&limit=2",
+      "schedule": "35 17 * * *"
+    },
+    {
+      "path": "/api/ga-metrics?action=prepare_texts&limit=2",
+      "schedule": "35 21 * * *"
+    },
+    {
+      "path": "/api/ga-metrics?action=text_batch&limit=10",
+      "schedule": "30 12 * * 1-5"
     }
   ]
 }
