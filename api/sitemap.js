@@ -1,4 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
+import { TOWN_PAGE_SLUGS } from "./_lib/town-pages-slugs.js";
+import { isSitemapListable } from "./_lib/sitemap-filter.js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -39,6 +41,9 @@ const STATIC_PAGES = [
   { url: "https://enoma.io/for/plumber-websites-massachusetts", lastmod: TODAY, changefreq: "monthly", priority: "0.85" },
   { url: "https://enoma.io/for/lawn-care-website-agawam-ma", lastmod: TODAY, changefreq: "monthly", priority: "0.80" },
   { url: "https://enoma.io/for/plumber-website-attleboro-ma", lastmod: TODAY, changefreq: "monthly", priority: "0.80" },
+
+  // Trade + town pages built from Enoma's own prospect research (scripts/build-town-pages.mjs)
+  ...TOWN_PAGE_SLUGS.map(slug => ({ url: `https://enoma.io/for/${slug}`, lastmod: TODAY, changefreq: "monthly", priority: "0.80" })),
 ];
 
 export default async function handler(req, res) {
@@ -48,7 +53,7 @@ export default async function handler(req, res) {
     // but shouldn't be indexed/listed until the business actually claims them.
     const { data: profiles, error } = await supabase
       .from("small_business_profiles")
-      .select("username, updated_at")
+      .select("username, business_name, updated_at, businesses(is_internal)")
       .eq("is_public", true)
       .eq("is_claimed", true)
       .not("username", "is", null)
@@ -70,7 +75,9 @@ export default async function handler(req, res) {
     ).join("");
 
     // Build dynamic profile page entries
+    // Test, QA and Enoma-internal pages stay visitable but out of the sitemap.
     const profileEntries = (profiles || [])
+      .filter(isSitemapListable)
       .map(
         (p) => `
       <url>
