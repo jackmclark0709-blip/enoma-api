@@ -290,6 +290,26 @@
       display: none;
     }
     .field-error.visible { display: block; }
+    .hidden { display: none !important; }
+    .submit-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+    button.submit-btn { width: 100%; border: 0; font: inherit; }
+    .form-card__alt { margin: 1rem 0 0; font-size: 0.82rem; color: var(--text-dim); text-align: center; line-height: 1.5; }
+    .form-card__alt a { color: var(--green-light); font-weight: 600; text-decoration: none; }
+    .form-card__alt a:hover { text-decoration: underline; }
+    .build-steps { list-style: none; margin: 0.5rem 0 0; padding: 0; display: grid; gap: 0.7rem; }
+    .build-steps li { position: relative; padding-left: 1.9rem; font-size: 0.95rem; color: var(--text-dim); transition: color 0.3s; }
+    .build-steps li::before { content: ''; position: absolute; left: 0; top: 0.1rem; width: 1.1rem; height: 1.1rem; border-radius: 50%; border: 2px solid var(--card-border); box-sizing: border-box; }
+    .build-steps li.active { color: var(--text); }
+    .build-steps li.active::before { border-color: var(--green-light); border-top-color: transparent; animation: gyw-spin 0.8s linear infinite; }
+    .build-steps li.done { color: var(--text); }
+    .build-steps li.done::before { content: '✓'; border: 0; background: var(--green-light); color: #0a1628; font-size: 0.7rem; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+    @keyframes gyw-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .build-steps li.active::before { animation: none; border-top-color: var(--green-light); } }
+    .build-error { margin-top: 1.25rem; padding: 1rem; border-radius: 12px; background: rgba(217,64,64,0.12); border: 1px solid rgba(217,64,64,0.35); }
+    .build-error p { margin: 0; font-size: 0.9rem; color: var(--text); line-height: 1.5; }
+    .build-error p + p { margin-top: 0.6rem; }
+    .build-error a { color: var(--green-light); }
+    .pac-container { z-index: 10000; }
 
     /* Submit */
     .submit-btn {
@@ -489,10 +509,51 @@
 
   <!-- RIGHT: FORM CARD -->
   <div class="form-card">
+    <div id="lookupPanel">
+      <div class="form-card__header">
+        <p class="form-card__trade">Free for a month — no credit card</p>
+        <h2 class="form-card__title">See your page in 30 seconds</h2>
+        <p class="form-card__sub">Find your business on Google. We'll build your page from your listing and your current website. Nothing to fill out.</p>
+      </div>
+
+      <div class="field">
+        <label for="biz_lookup">Your business</label>
+        <input id="biz_lookup" type="text" placeholder="Start typing your business name…" autocomplete="off" />
+        <div class="field-error" id="err_lookup">Pick your business from the list as you type.</div>
+      </div>
+
+      <button type="button" class="submit-btn" id="lookupBtn" disabled>
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        Build my page →
+      </button>
+
+      <p class="form-card__alt">Not on Google, or rather have Jack build it? <a href="#" id="showManual">Use the short form instead →</a></p>
+    </div>
+
+    <div id="buildPanel" class="hidden" aria-live="polite">
+      <div class="form-card__header">
+        <p class="form-card__trade" id="buildBiz">Building your page</p>
+        <h2 class="form-card__title" id="buildTitle">Building your page…</h2>
+        <p class="form-card__sub" id="buildSub">This takes about 20 seconds. Don't close this tab.</p>
+      </div>
+      <ol class="build-steps" id="buildSteps">
+        <li>Pulling your Google listing</li>
+        <li>Reading your current website</li>
+        <li>Writing your services and service area</li>
+        <li>Adding your reviews and hours</li>
+        <li>Publishing your page</li>
+      </ol>
+      <div class="build-error hidden" id="buildError">
+        <p id="buildErrorMsg"></p>
+        <p class="form-card__alt"><a href="#" id="tryAgain">Try a different listing</a> &nbsp;·&nbsp; <a href="#" id="showManual2">Use the short form</a></p>
+      </div>
+    </div>
+
+    <div id="manualPanel" class="hidden">
     <div class="form-card__header">
       <p class="form-card__trade">Start for free — no credit card</p>
       <h2 class="form-card__title">Build my free lead gen page</h2>
-      <p class="form-card__sub">Three fields. Your page can be live today — or we'll build it for you.</p>
+      <p class="form-card__sub">Three fields. Build it yourself, or we'll build it for you.</p>
     </div>
 
     <div class="field">
@@ -517,6 +578,8 @@
       <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
       Build my free lead gen page →
     </a>
+    <p class="form-card__alt"><a href="#" id="showLookup">← Find my business on Google instead</a></p>
+    </div>
 
     <p class="form-card__proof">First month free &nbsp;·&nbsp; No credit card &nbsp;·&nbsp; Cancel anytime</p>
   </div>
@@ -526,21 +589,17 @@
 <!-- HOW IT WORKS -->
 <div class="how-it-works">
   <p class="how-it-works__label">How it works</p>
-  <h2 class="how-it-works__h2">From form to generating leads in three steps</h2>
+  <h2 class="how-it-works__h2">From search to generating leads in three steps</h2>
   <div class="steps">
     <div class="step">
       <div class="step__num">1</div>
-      <p class="step__title">Fill out the form</p>
-      <p class="step__desc">Tell us your business name, location, and email. That's it — we handle everything else.</p>
+      <p class="step__title">Find your business</p>
+      <p class="step__desc">Pick your business from Google. We build your page from your listing and your current website in about 20 seconds.</p>
     </div>
     <div class="step">
       <div class="step__num">2</div>
-      <p class="step__title">Choose how it gets built</p>
-      <p class="step__desc">Two ways to go — your call:</p>
-      <ul class="step__options">
-        <li><strong>Build it myself</strong> — our AI writes your page copy instantly. Live in about 5 minutes.</li>
-        <li><strong>Have Jack build it</strong> — tell us a bit more and we'll build it by hand for you. Ready within 1 business day.</li>
-      </ul>
+      <p class="step__title">Claim it with your email</p>
+      <p class="step__desc">Like what you see? Enter your email, tap the link we send, and the page is yours. First month free, no credit card. Not on Google? We'll build it by hand within 1 business day.</p>
     </div>
     <div class="step">
       <div class="step__num">3</div>
@@ -611,5 +670,104 @@
     this.href = `/choose-path?${params.toString()}`;
   });
 </script>
+<script>
+  // ── Instant preview: find the business on Google, build the page, show it ──
+  (function () {
+    var lookup = document.getElementById('biz_lookup');
+    var btn = document.getElementById('lookupBtn');
+    var errEl = document.getElementById('err_lookup');
+    var panels = { lookup: document.getElementById('lookupPanel'), build: document.getElementById('buildPanel'), manual: document.getElementById('manualPanel') };
+    var chosen = null;
+    var stepTimer = null;
+
+    function show(name) {
+      Object.keys(panels).forEach(function (k) { panels[k].classList.toggle('hidden', k !== name); });
+    }
+    function link(id, target) {
+      document.getElementById(id).addEventListener('click', function (e) { e.preventDefault(); resetBuild(); show(target); if (target === 'lookup') lookup.focus(); });
+    }
+    link('showManual', 'manual'); link('showManual2', 'manual'); link('showLookup', 'lookup'); link('tryAgain', 'lookup');
+
+    window.initBizLookup = function () {
+      var ac = new google.maps.places.Autocomplete(lookup, { types: ['establishment'], componentRestrictions: { country: 'us' }, fields: ['place_id', 'name', 'formatted_address'] });
+      ac.addListener('place_changed', function () {
+        var place = ac.getPlace();
+        if (!place || !place.place_id) { chosen = null; btn.disabled = true; return; }
+        chosen = { id: place.place_id, name: place.name || lookup.value };
+        btn.disabled = false;
+        errEl.classList.remove('visible');
+      });
+    };
+    lookup.addEventListener('input', function () { chosen = null; btn.disabled = true; });
+    lookup.addEventListener('keydown', function (e) { if (e.key === 'Enter' && chosen) { e.preventDefault(); btn.click(); } });
+    lookup.addEventListener('blur', function () { if (lookup.value.trim() && !chosen) setTimeout(function () { if (!chosen) errEl.classList.add('visible'); }, 300); });
+
+    var steps = Array.prototype.slice.call(document.querySelectorAll('#buildSteps li'));
+    function runSteps() {
+      var i = 0;
+      steps.forEach(function (li) { li.className = ''; });
+      steps[0].className = 'active';
+      // Paced to a typical ~20s build; the last step waits for the server.
+      stepTimer = setInterval(function () {
+        if (i >= steps.length - 2) { clearInterval(stepTimer); }
+        steps[i].className = 'done'; i++;
+        if (steps[i]) steps[i].className = 'active';
+      }, 4500);
+    }
+    function resetBuild() {
+      clearInterval(stepTimer);
+      document.getElementById('buildError').classList.add('hidden');
+      document.getElementById('buildSteps').classList.remove('hidden');
+    }
+    function fail(msg, reason) {
+      clearInterval(stepTimer);
+      document.getElementById('buildSteps').classList.add('hidden');
+      document.getElementById('buildTitle').textContent = 'We couldn’t build it automatically';
+      document.getElementById('buildSub').textContent = '';
+      document.getElementById('buildErrorMsg').innerHTML = msg;
+      document.getElementById('buildError').classList.remove('hidden');
+      if (window.enomaTrack) enomaTrack('instant_preview_failed', { reason: reason });
+    }
+
+    btn.addEventListener('click', async function () {
+      if (!chosen) { errEl.classList.add('visible'); return; }
+      resetBuild();
+      document.getElementById('buildBiz').textContent = chosen.name;
+      document.getElementById('buildTitle').textContent = 'Building your page…';
+      document.getElementById('buildSub').textContent = 'This takes about 20 seconds. Don’t close this tab.';
+      show('build'); runSteps();
+      if (window.enomaTrack) enomaTrack('instant_preview_started');
+      var data = {};
+      try {
+        var res = await fetch('/api/ga-metrics?action=instant_preview', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ place_id: chosen.id, ref: document.referrer || null })
+        });
+        data = await res.json().catch(function () { return {}; });
+        if (res.status === 429) {
+          return fail(data.error === 'busy'
+            ? 'We’re building a lot of pages right now. Use the short form and Jack will build yours by hand within 1 business day.'
+            : 'You’ve built a few pages today already. Use the short form and Jack will help you finish.', 'rate_limited');
+        }
+        if (data.success && data.slug) {
+          if (data.existing && data.claimed) {
+            return fail('There’s already an Enoma page for this business: <a href="/' + encodeURIComponent(data.slug) + '">view it</a>. If it’s yours, <a href="/login">sign in</a> to edit it.', 'already_claimed');
+          }
+          steps.forEach(function (li) { li.className = 'done'; });
+          document.getElementById('buildTitle').textContent = 'Your page is ready';
+          window.location.href = '/' + encodeURIComponent(data.slug) + '?new=1';
+          return;
+        }
+        if (data.reason === 'no_phone') {
+          return fail('Your Google listing doesn’t have a phone number, and your page is built around a call button. Use the short form and we’ll set it up with you.', 'no_phone');
+        }
+        fail('Something went wrong building your page. Try again, or use the short form and we’ll build it for you.', data.reason || data.error || 'failed');
+      } catch (e) {
+        fail('Something went wrong building your page. Try again, or use the short form and we’ll build it for you.', 'network_error');
+      }
+    });
+  })();
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD2DZjVEIuq6luIvl-lVeOaxqd3BG2V7IA&libraries=places&callback=initBizLookup" async defer></script>
 </body>
 </html>

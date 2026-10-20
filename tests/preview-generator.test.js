@@ -1,7 +1,7 @@
 // Run with: node tests/preview-generator.test.js (also wired into `npm test`)
 
 import assert from "node:assert/strict";
-import { slugify, qualifiesForPreview, validateGenerated, assembleProfile, stateAbbr, buildFactsPrompt } from "../api/_lib/preview-generator.js";
+import { slugify, qualifiesForPreview, validateGenerated, assembleProfile, stateAbbr, buildFactsPrompt, isValidPlaceId, inboundLimitReason, placeToProspect, INBOUND_LIMITS } from "../api/_lib/preview-generator.js";
 import { renderSections, faqSchema, splitAbout } from "../api/_lib/page-ssr.js";
 
 let passed = 0;
@@ -86,6 +86,37 @@ test("sections render escaped content and visibility classes", () => {
 test("faq schema only when there are faqs", () => {
   assert.equal(faqSchema({}), null);
   assert.equal(faqSchema({ faqs: [{ q: "Q", a: "A" }] }, "https://enoma.io/x").mainEntity[0].acceptedAnswer.text, "A");
+});
+
+console.log("instant previews");
+test("place ids: real ones pass, junk and injection attempts fail", () => {
+  assert.ok(isValidPlaceId("ChIJN1t_tDeuEmsRUsoyG83frY4"));
+  assert.ok(!isValidPlaceId(""));
+  assert.ok(!isValidPlaceId("short"));
+  assert.ok(!isValidPlaceId("ChIJN1t_tDeuEmsRUsoyG83frY4/../../x"));
+  assert.ok(!isValidPlaceId("ChIJN1t_tDeuEmsRUsoyG83frY4?fields=*"));
+  assert.ok(!isValidPlaceId(null));
+});
+test("inbound limits: per-visitor and global caps", () => {
+  assert.equal(inboundLimitReason({ perIp: 0, global: 0 }), null);
+  assert.equal(inboundLimitReason({ perIp: INBOUND_LIMITS.perIpPerDay, global: 0 }), "too_many");
+  assert.equal(inboundLimitReason({ perIp: 0, global: INBOUND_LIMITS.globalPerDay }), "busy");
+  assert.equal(inboundLimitReason({ perIp: INBOUND_LIMITS.perIpPerDay - 1, global: INBOUND_LIMITS.globalPerDay - 1 }), null);
+});
+test("placeToProspect reads name, phone, site and city/state from address components", () => {
+  const p = placeToProspect({
+    displayName: { text: "Grillo Plumbing" }, nationalPhoneNumber: "(508) 298-5042",
+    formattedAddress: "305 Union St, Franklin, MA 02038, USA", websiteUri: "https://grilloplumbing.com/",
+    primaryTypeDisplayName: { text: "Plumber" },
+    addressComponents: [
+      { longText: "Franklin", shortText: "Franklin", types: ["locality", "political"] },
+      { longText: "Massachusetts", shortText: "MA", types: ["administrative_area_level_1", "political"] },
+    ],
+  }, "ChIJN1t_tDeuEmsRUsoyG83frY4");
+  assert.deepEqual(p, { business_name: "Grillo Plumbing", phone: "(508) 298-5042", address: "305 Union St, Franklin, MA 02038, USA",
+    city: "Franklin", state: "MA", website: "https://grilloplumbing.com/", google_place_id: "ChIJN1t_tDeuEmsRUsoyG83frY4", trade: "Plumber" });
+  const bare = placeToProspect({ displayName: { text: "X" } }, "ChIJN1t_tDeuEmsRUsoyG83frY4");
+  assert.equal(bare.phone, null); assert.equal(bare.city, null); assert.equal(bare.state, null);
 });
 
 console.log(`${passed} passed`);

@@ -823,6 +823,20 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 .unclaimed-banner p { margin: 0; font-size: 0.85rem; color: #7a5a10; line-height: 1.5; }
 .unclaimed-cta { font-weight: 700; color: #0a1628; text-decoration: underline; white-space: nowrap; margin-left: 0.4rem; }
 .unclaimed-cta:hover { color: var(--brand-primary, #1a3a2a); }
+.claim-box { max-width: 560px; margin: 0.25rem auto 0.35rem; text-align: left; }
+.unclaimed-banner.is-new { background: #0d1f0f; border-bottom-color: #0d1f0f; padding: 1.1rem 1.25rem 1.2rem; }
+.unclaimed-banner.is-new .claim-box__title { color: #f0f6ff; }
+.unclaimed-banner.is-new .claim-box__sub, .unclaimed-banner.is-new .claim-box__label, .unclaimed-banner.is-new .claim-box__msg { color: rgba(240,246,255,0.75); }
+.claim-box__title { margin: 0 0 0.25rem; font-size: 1.05rem; font-weight: 800; color: #0a1628; letter-spacing: -0.01em; }
+.claim-box__sub { margin: 0 0 0.75rem; font-size: 0.85rem; color: #7a5a10; line-height: 1.5; }
+.claim-box__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.claim-box__form { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.claim-box__form input { flex: 1 1 220px; min-width: 0; padding: 0.7rem 0.85rem; border: 1px solid #d4c08a; border-radius: 10px; font: inherit; font-size: 0.95rem; background: #fff; color: #0a1628; }
+.claim-box__form button { flex: 0 0 auto; padding: 0.7rem 1.1rem; border: 0; border-radius: 10px; background: #4a9e3a; color: #0a1628; font: inherit; font-weight: 800; font-size: 0.92rem; cursor: pointer; }
+.claim-box__form button:disabled { opacity: 0.6; cursor: wait; }
+.claim-box__msg { margin: 0.6rem 0 0; font-size: 0.88rem; color: #7a5a10; line-height: 1.5; }
+.claim-box__msg.is-error { color: #d94040 !important; }
+@media (max-width: 480px) { .claim-box__form button { flex: 1 1 100%; } }
 
 /* ── Before/After slider ── */
 .ba-section { max-width: 900px; margin: 2.5rem auto; padding: 0 1.5rem; }
@@ -895,7 +909,17 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 
 <!-- UNCLAIMED PAGE BANNER -->
 <div class="unclaimed-banner hidden" id="unclaimedBanner">
-  <p><span id="unclaimedText"></span><a id="unclaimedCta" class="unclaimed-cta">Claim this page →</a></p>
+  <p id="unclaimedLine"><span id="unclaimedText"></span><a id="unclaimedCta" class="unclaimed-cta" href="#">Claim this page →</a></p>
+  <div class="claim-box hidden" id="claimBox">
+    <p class="claim-box__title" id="claimTitle">This is your page. Claim it to keep it live.</p>
+    <p class="claim-box__sub" id="claimSub">Free for your first month, no credit card. We'll email you a link: tap it and the page is yours to edit.</p>
+    <form class="claim-box__form" id="claimForm" novalidate>
+      <label class="claim-box__label" for="claimEmail">Your email</label>
+      <input id="claimEmail" type="email" autocomplete="email" placeholder="you@yourbusiness.com" required />
+      <button type="submit" id="claimSubmit">Email me my claim link</button>
+    </form>
+    <p class="claim-box__msg hidden" id="claimMsg" role="status"></p>
+  </div>
 </div>
 
 <!-- STICKY NAV -->
@@ -1127,6 +1151,51 @@ function truncateText(text, max = 300) {
   if (!text || text.length <= max) return text;
   return text.slice(0, max).trim() + '…';
 }
+/* ── Claim by email link (no password) ──
+   The owner gets a Supabase sign-in link that lands on /claim, which claims
+   the page with the new session. Fresh instant previews (?new=1) open the
+   form straight away; other unclaimed previews open it from the banner. */
+function setupClaimBox(pageSlug) {
+  const banner = getEl('unclaimedBanner'), box = getEl('claimBox'), line = getEl('unclaimedLine');
+  const form = getEl('claimForm'), input = getEl('claimEmail'), submit = getEl('claimSubmit'), msg = getEl('claimMsg');
+  const cta = getEl('unclaimedCta');
+  if (!banner || !box || !form || !pageSlug) return;
+  const qs = new URLSearchParams(window.location.search);
+  const outreachMsg = qs.get('m') || '';
+  const open = () => { box.classList.remove('hidden'); line.classList.add('hidden'); };
+  if (qs.get('new') === '1') {
+    banner.classList.add('is-new'); open();
+    if (window.gtag) try { gtag('event', 'instant_preview_viewed', { page_slug: pageSlug }); } catch (e) {}
+  }
+  if (cta) cta.addEventListener('click', e => { e.preventDefault(); open(); input.focus(); });
+  const say = (text, isError) => { msg.textContent = text; msg.classList.remove('hidden'); msg.classList.toggle('is-error', !!isError); };
+  const loadSupabase = () => window.supabase ? Promise.resolve() : new Promise((resolve, reject) => {
+    const sc = document.createElement('script');
+    sc.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
+    sc.onload = resolve; sc.onerror = reject; document.head.appendChild(sc);
+  });
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = input.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { say('Please enter a valid email address.', true); input.focus(); return; }
+    submit.disabled = true; submit.textContent = 'Sending…';
+    try {
+      await loadSupabase();
+      const sb = window.supabase.createClient('https://qhsivcenpnxwmvwznqie.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc');
+      const redirect = 'https://enoma.io/claim?business=' + encodeURIComponent(pageSlug) + (outreachMsg ? '&m=' + encodeURIComponent(outreachMsg) : '');
+      const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: redirect, shouldCreateUser: true } });
+      if (error) throw error;
+      form.classList.add('hidden');
+      say(`Check your inbox at ${email}. Tap the link in the email and the page is yours. (It can take a minute; check spam if you don't see it.)`);
+      try { fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true, body: JSON.stringify({ event: 'claim_link_requested', metadata: { slug: pageSlug } }) }); } catch (_) {}
+      if (window.gtag) try { gtag('event', 'claim_link_requested', { page_slug: pageSlug, transport_type: 'beacon' }); } catch (_) {}
+    } catch (err) {
+      submit.disabled = false; submit.textContent = 'Email me my claim link';
+      say(/rate|seconds/i.test(err?.message || '') ? 'We just sent a link. Please wait a minute before asking for another.' : 'Something went wrong sending your link. Try again, or email jack@enoma.io.', true);
+    }
+  });
+}
+
 function trackContactClick(type) {
   if (!window.profileData?.username) return;
   // Mirror to GA4 so calls/quote taps on client pages show up as a key event.
@@ -1270,6 +1339,7 @@ async function loadProfile() {
       if (unclaimedText) unclaimedText.textContent = `This is a preview page for ${p.business_name || 'this business'} — not yet claimed by the business owner.`;
       if (unclaimedCta) unclaimedCta.href = `/signup?business=${encodeURIComponent(p.username || slug || '')}`;
       unclaimedBanner.classList.remove('hidden');
+      setupClaimBox(p.username || slug || '');
     }
   }
 

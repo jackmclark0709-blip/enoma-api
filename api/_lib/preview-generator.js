@@ -180,3 +180,46 @@ export function assembleProfile({ slug, name, trade, city, state, phone, address
     before_after_images: [],
   };
 }
+
+// ── Instant previews from the website ("find your business") ──────────────
+// A visitor picks their Google listing and gets a page in ~20s. Unlike
+// outbound previews there's no quality gate (they asked for it) except a
+// phone number, which every page's call button needs. Unclaimed instant
+// previews stay live for a week; claiming starts the normal free month.
+
+export const INBOUND_PREVIEW_DAYS = 7;
+export const INBOUND_LIMITS = { perIpPerDay: 3, globalPerDay: 60 };
+export const INBOUND_SOURCE = "inbound_lookup";
+
+// Google place ids are URL-safe base64-ish strings; reject anything else
+// before it goes into a Places URL or a query.
+export function isValidPlaceId(id) {
+  return typeof id === "string" && /^[A-Za-z0-9_-]{10,300}$/.test(id);
+}
+
+/** Which limit (if any) a new instant preview would exceed. */
+export function inboundLimitReason({ perIp, global }, limits = INBOUND_LIMITS) {
+  if (global >= limits.globalPerDay) return "busy";
+  if (perIp >= limits.perIpPerDay) return "too_many";
+  return null;
+}
+
+/**
+ * Map a Places API (v1) place-details response to the prospect fields the
+ * preview generator reads. City/state come from addressComponents.
+ */
+export function placeToProspect(place, placeId) {
+  const comps = place?.addressComponents || [];
+  const find = type => comps.find(c => (c.types || []).includes(type));
+  const city = (find("locality") || find("postal_town") || find("sublocality") || find("administrative_area_level_3"))?.longText || null;
+  const state = find("administrative_area_level_1")?.shortText || null;
+  return {
+    business_name: place?.displayName?.text || null,
+    phone: place?.nationalPhoneNumber || null,
+    address: place?.formattedAddress || null,
+    city, state,
+    website: place?.websiteUri || null,
+    google_place_id: placeId,
+    trade: place?.primaryTypeDisplayName?.text || null,
+  };
+}
