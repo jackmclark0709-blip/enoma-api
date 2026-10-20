@@ -10,10 +10,14 @@ const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const data = JSON.parse(fs.readFileSync(path.join(root, "data/town-pages.json"), "utf8"));
 const outDir = path.join(root, "public/for");
 
+// Retired pairs (Oct 2026: town pages without a local client were folded into
+// the national trade pages and 301'd in vercel.json) are kept in the data for
+// reference but not built, listed in the sitemap, or linked as siblings.
+const live = data.pairs.filter(p => !p.retired);
 const slugs = [];
-for (const p of data.pairs) {
+for (const p of live) {
   const slug = pageSlug(p);
-  fs.writeFileSync(path.join(outDir, `${slug}.html`), renderTownPage(p, data));
+  fs.writeFileSync(path.join(outDir, `${slug}.html`), renderTownPage(p, { ...data, pairs: live }));
   slugs.push(slug);
 }
 

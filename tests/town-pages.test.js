@@ -23,7 +23,7 @@ test("every data pair uses a known trade", () => {
 });
 
 test("generated slug list matches the data (rebuild after editing data)", () => {
-  assert.deepEqual(TOWN_PAGE_SLUGS, data.pairs.map(pageSlug));
+  assert.deepEqual(TOWN_PAGE_SLUGS, data.pairs.filter(p => !p.retired).map(pageSlug));
 });
 
 test("findings state only what the numbers support", () => {
@@ -37,6 +37,16 @@ test("findings state only what the numbers support", () => {
   assert.match(none, /Most of them already have a website/);
   const low = localFindings({ trade: "plumber", city: "Norton", st: "MA", n: 5, noSite: 0, weakSite: 1, avgRating: 3.4 }, "October 2026").join(" ");
   assert.doesNotMatch(low, /average Google rating/);
+});
+
+test("retired town pages are not built and are redirected", () => {
+  const vercel = JSON.parse(fs.readFileSync(new URL("../vercel.json", import.meta.url), "utf8"));
+  const redirected = new Set(vercel.redirects.map(r => r.source));
+  for (const p of data.pairs.filter(x => x.retired)) {
+    const slug = pageSlug(p);
+    assert.ok(!fs.existsSync(new URL(`../public/for/${slug}.html`, import.meta.url)), `${slug} should not be built`);
+    assert.ok(redirected.has(`/for/${slug}`), `${slug} needs a redirect`);
+  }
 });
 
 test("siblings are the same trade in other towns, max 5", () => {
