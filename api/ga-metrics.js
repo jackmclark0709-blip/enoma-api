@@ -777,7 +777,8 @@ async function handlePlaceSearch(req, res) {
   if (origin && !INSTANT_PREVIEW_ORIGIN.test(origin)) return res.status(403).json({ error: "forbidden" });
   const input = String(req.body?.input || "").trim().slice(0, 120);
   const sessionToken = isValidSessionToken(req.body?.session) ? req.body.session : undefined;
-  if (input.length < 3 || !process.env.GOOGLE_SERVER_PLACES_KEY) return res.status(200).json({ suggestions: [] });
+  if (!process.env.GOOGLE_SERVER_PLACES_KEY) return res.status(503).json({ suggestions: [], error: "search_unavailable" });
+  if (input.length < 3) return res.status(200).json({ suggestions: [] });
   const r = await fetch("https://places.googleapis.com/v1/places:autocomplete", {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Goog-Api-Key": process.env.GOOGLE_SERVER_PLACES_KEY },
