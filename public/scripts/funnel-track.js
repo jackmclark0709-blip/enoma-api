@@ -22,7 +22,7 @@
     // Mirror every funnel event to GA4 too, so the ones that matter
     // (get_your_website_submitted, concierge_requested, create_generation_succeeded)
     // can be marked as key events and used as ad conversions.
-    try { if (typeof window.gtag === "function") window.gtag("event", event, metadata || {}); } catch (e) {}
+    try { if (typeof window.gtag === "function") window.gtag("event", event, Object.assign({ transport_type: "beacon" }, metadata || {})); } catch (e) {}
     try {
       fetch("/api/track", {
         method: "POST",
