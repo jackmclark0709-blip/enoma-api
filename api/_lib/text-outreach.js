@@ -101,9 +101,9 @@ export function buildTextMessage({ id, businessName, previewUrl, rating, reviewC
   const name = shortName(businessName);
   const reviews = Number(reviewCount) >= 10 ? " and reviews" : "";
   const variants = [
-    `Hi, this is Jack Clark with Enoma in Attleboro. I built a website for ${name} from your Google listing${reviews}: ${previewUrl}\n\nIf you want it, just reply and I'll set it up for you. Not interested? Reply STOP and I won't text again.`,
-    `Hi, Jack Clark here from Enoma (Attleboro). I put together a page for ${name} using your Google listing${reviews}. Take a look: ${previewUrl}\n\nWant to keep it? Reply and I'll get it set up. If not, reply STOP and I won't reach out again.`,
-    `Hi, it's Jack Clark with Enoma, a small web company in Attleboro. I made ${name} a website from your Google listing${reviews}: ${previewUrl}\n\nHappy to set it up for you if you like it. Reply STOP if you'd rather I didn't text.`,
+    `Hi, this is Jack Clark with Enoma in Attleboro, MA. I built a website for ${name} from your Google listing${reviews}: ${previewUrl}\n\nIf you want it, just reply and I'll set it up for you. Not interested? Reply STOP and I won't text again.`,
+    `Hi, Jack Clark here from Enoma (Attleboro, MA). I put together a page for ${name} using your Google listing${reviews}. Take a look: ${previewUrl}\n\nWant to keep it? Reply and I'll get it set up. If not, reply STOP and I won't reach out again.`,
+    `Hi, it's Jack Clark with Enoma, a small web company in Attleboro, MA. I made ${name} a website from your Google listing${reviews}: ${previewUrl}\n\nHappy to set it up for you if you like it. Reply STOP if you'd rather I didn't text.`,
   ];
   return variants[variantFor(id, variants.length)];
 }

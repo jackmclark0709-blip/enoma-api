@@ -20,7 +20,7 @@ test("slugify drops legal suffixes and punctuation", () => {
   assert.equal(slugify("A&D Landscaping Services LLC"), "a-and-d-landscaping-services");
   assert.equal(slugify("Conway's Landscaping"), "conways-landscaping");
 });
-test("stateAbbr", () => { assert.equal(stateAbbr("Massachusetts"), "MA"); assert.equal(stateAbbr("RI"), "RI"); });
+test("stateAbbr", () => { assert.equal(stateAbbr("Massachusetts"), "MA"); assert.equal(stateAbbr("RI"), "RI"); assert.equal(stateAbbr("Texas"), "TX"); assert.equal(stateAbbr("North Carolina"), "NC"); assert.equal(stateAbbr("District of Columbia"), "DC"); });
 test("qualification gates on rating, phone and objective site weakness", () => {
   assert.equal(qualifiesForPreview({ rating: 5, reviewCount: 106, hasWebsite: true, siteCheckScore: 3, phone: "x" }).ok, true);
   assert.equal(qualifiesForPreview({ rating: 5, reviewCount: 106, hasWebsite: true, siteCheckScore: 1, phone: "x" }).reason, "site_not_weak_enough");

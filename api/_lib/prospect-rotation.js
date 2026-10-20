@@ -1,23 +1,24 @@
-// Rotates the daily_pipeline prospect pull across nearby towns so the raw
-// "new" pool doesn't saturate. Attleboro, MA alone was fully mined after
-// ~a month at limit=25/trade/day -- repeat pulls returned zero new listings
-// (see enoma-dev-practices memory). An explicit ?location= query param on
-// the cron path still overrides this for one-off/manual pulls. Widened
-// 2026-09-17 beyond the original 7-town Attleboro-area cluster to cover more
-// of the surrounding MA/RI market at the same per-pull Outscraper cost.
+// Rotates the daily_pipeline prospect pull across towns so the raw "new"
+// pool doesn't saturate (Attleboro alone was fully mined in about a month at
+// limit=25/trade/day). An explicit ?location= on the cron path still
+// overrides this for one-off pulls.
+//
+// Oct 2026: national. Enoma is self-serve and every prospect gets their own
+// page before we reach out, so nothing about the pitch needs a local market.
+// Mid-size cities and suburbs with lots of owner-operated trades businesses,
+// spread across regions and time zones; consecutive days land in different
+// states so one bad market (or a local competitor) doesn't dominate a week.
 const TOWNS = [
-  "Attleboro, MA",
-  "North Attleborough, MA",
-  "Norton, MA",
-  "Mansfield, MA",
-  "Seekonk, MA",
-  "Rehoboth, MA",
-  "Pawtucket, RI",
-  "Taunton, MA",
-  "Foxborough, MA",
-  "Franklin, MA",
-  "Cumberland, RI",
-  "Providence, RI"
+  "Plano, TX", "Boise, ID", "Knoxville, TN", "Chesapeake, VA", "Fort Collins, CO",
+  "Grand Rapids, MI", "Sarasota, FL", "Columbia, SC", "Overland Park, KS", "Spokane, WA",
+  "Lancaster, PA", "Huntsville, AL", "Fort Wayne, IN", "Gilbert, AZ", "Wilmington, NC",
+  "Madison, WI", "Rochester, NY", "Tulsa, OK", "Des Moines, IA", "Reno, NV",
+  "Lexington, KY", "Murfreesboro, TN", "Akron, OH", "Round Rock, TX", "Cape Coral, FL",
+  "Greenville, SC", "Springfield, MO", "Salem, OR", "Rockford, IL", "Ogden, UT",
+  "Manchester, NH", "Worcester, MA", "Lafayette, LA", "Fredericksburg, VA", "Savannah, GA",
+  "Rochester, MN", "Santa Rosa, CA", "Allentown, PA", "Omaha, NE", "Albuquerque, NM",
+  "Chattanooga, TN", "Lakeland, FL", "Toms River, NJ", "Frederick, MD", "Kalamazoo, MI",
+  "Colorado Springs, CO", "Waco, TX", "Hartford, CT"
 ];
 
 // Trades the daily_pipeline cron rotates through (see handleDailyPipeline in

@@ -34,7 +34,9 @@ export function trackedLinks(messageId, slug) {
     // Where action=go finally sends people (kept here so the redirect
     // handler and the email agree on the destinations).
     pageDest: `${BASE}/${slug}?m=${encodeURIComponent(messageId)}`,
-    claimDest: `${BASE}/claim?business=${encodeURIComponent(slug)}&m=${encodeURIComponent(messageId)}`
+    // The page itself, with its claim box open: the owner enters an email and
+    // claims by sign-in link (no password), and m= carries through to /claim.
+    claimDest: `${BASE}/${slug}?claim=1&m=${encodeURIComponent(messageId)}`
   };
 }
 

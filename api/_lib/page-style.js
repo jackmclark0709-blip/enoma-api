@@ -3,6 +3,12 @@
 // no logo, no photos, thin Google data. Used by api/p.js (server render) and
 // unit-tested in tests/page-style.test.js. No network, no DB.
 
+import { US_STATE_NAMES, US_STATE_ABBR } from "./service-utils.js";
+
+// Full state name → postal code for any US state; anything else passes through.
+const STATE_CODES = Object.fromEntries(US_STATE_NAMES.map((n, i) => [n, US_STATE_ABBR[i].toUpperCase()]));
+function stateCode(s) { const v = String(s || "").trim(); return STATE_CODES[v.toLowerCase()] || v; }
+
 // ── Persona: collapse free-text categories ("hvac contractor", "Plumber",
 // "house cleaning service") into the handful of looks we design for.
 const PERSONA_RULES = [
@@ -198,7 +204,7 @@ export function stripWeakRatingClaims(profile) {
     landscaping: "Landscaping and lawn care", plumbing: "Plumbing and heating", hvac: "Heating and cooling",
     electrical: "Electrical work", cleaning: "Cleaning", painting: "Painting", contractor: "Quality work",
   }[personaFor(out.primary_category)] || "Local, reliable service";
-  const where = out.city ? ` in ${out.city}${out.state ? ", " + String(out.state).replace(/^Massachusetts$/i, "MA").replace(/^Rhode Island$/i, "RI").replace(/^Connecticut$/i, "CT") : ""}` : "";
+  const where = out.city ? ` in ${out.city}${out.state ? ", " + stateCode(out.state) : ""}` : "";
 
   if (ratingClaimIsWeak(out.hero_tagline)) {
     out.hero_tagline = `${tradeWord}${where} — call for a free, no-obligation quote.`;

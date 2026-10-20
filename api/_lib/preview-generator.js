@@ -11,10 +11,12 @@
 // Pure functions here; network/DB lives in ga-metrics.js (generatePreviewForProspect).
 
 import { isStrongRating, pickReviewQuotes, personaFor } from "./page-style.js";
+import { US_STATE_NAMES, US_STATE_ABBR } from "./service-utils.js";
 
 export const PREVIEW_TRIAL_DAYS = 90;
 
-const STATE_ABBR = { massachusetts: "MA", "rhode island": "RI", connecticut: "CT", "new hampshire": "NH", vermont: "VT", maine: "ME", "new york": "NY" };
+// Full state name → postal code, for all 50 states + DC (prospecting is national).
+const STATE_ABBR = Object.fromEntries(US_STATE_NAMES.map((n, i) => [n, US_STATE_ABBR[i].toUpperCase()]));
 export const stateAbbr = s => STATE_ABBR[String(s || "").toLowerCase().trim()] || String(s || "").trim();
 
 export function slugify(text) {

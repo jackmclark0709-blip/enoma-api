@@ -1155,7 +1155,8 @@ async function generateDraftCopy(prospect, instructions) {
   // describe Conway's results as "significant improvement in call volume"
   // (not something we can show). Only verifiable statements now.
   const campaignSlug = (prospect.trade || "general").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "general";
-  const SIGNUP_URL = `https://enoma.io/signup?utm_source=cold_email&utm_medium=email&utm_campaign=outreach_${campaignSlug}`;
+  // Instant-preview lookup: they see their own page in ~20s, no signup first.
+  const SIGNUP_URL = `https://enoma.io/get-your-website?utm_source=cold_email&utm_medium=email&utm_campaign=outreach_${campaignSlug}`;
   const gaps = Array.isArray(prospect.site_gaps) ? prospect.site_gaps.filter(Boolean).slice(0, 3) : [];
   const siteHost = prospect.website ? String(prospect.website).replace(/%3F.*$/i, "").replace(/^https?:\/\//, "").replace(/\/.*$/, "") : "";
 
@@ -1166,16 +1167,16 @@ async function generateDraftCopy(prospect, instructions) {
     // appends the page preview card, the "Keep my page live" button, the
     // reply-yes line and the sign-off, with tracked links.
     brief = `STRUCTURE (follow it; this is only the opening of the email — the page link, button, reply line and sign-off are added after it automatically):
-1. One line: I'm Jack; I build websites for trades businesses in ${prospect.state || "New England"}.
+1. One line: I'm Jack; I build simple websites for trades businesses.
 2. I put together a new page for ${prospect.business_name} using what's already on their ${prospect.website ? "website and " : ""}Google profile — it's below. Do NOT include any URL.${gaps.length && siteHost ? `\n3. A short list comparing it with ${siteHost}, one line per item, using ONLY these verified problems with their current site (rephrase each as what the new page does instead): ${gaps.join("; ")}` : ""}
 ${gaps.length && siteHost ? "4" : "3"}. Pricing, exactly: "The first month is free. After that it's $19.99/month to keep it live, and I'm there if you ever want changes. No contract."
 Do NOT add a closing line, a call to action, or a sign-off.`;
   } else {
     brief = `STRUCTURE:
-1. One line: I'm Jack; I build websites for trades businesses in ${prospect.state || "New England"}.
+1. One line: I'm Jack; I build simple websites for trades businesses.
 2. ${gaps.length && siteHost ? `Name ONE of these verified problems with ${siteHost} and why it costs them calls: ${gaps[0]}` : `They don't have a website, so homeowners who search for a ${prospect.trade || "local service"} business can't find a page for them.`}
 3. Enoma builds a one-page site made to turn a local search into a call. First month free, then $19.99/month; no contract.
-4. Close, exactly: "Want me to build yours? Reply \"yes\" and I'll set it up — or ${SIGNUP_URL} to start it yourself."`;
+4. Close, exactly: "Want me to build yours? Reply \"yes\" and I'll set it up — or find your business at ${SIGNUP_URL} and see your page in about 30 seconds."`;
   }
 
   const prompt = `Write a short, plain cold email from Jack at Enoma to ${prospect.business_name} (${prospect.trade || "local service business"}, ${[prospect.city, prospect.state].filter(Boolean).join(", ") || "location unknown"}).
