@@ -309,7 +309,14 @@
     .build-error p { margin: 0; font-size: 0.9rem; color: var(--text); line-height: 1.5; }
     .build-error p + p { margin-top: 0.6rem; }
     .build-error a { color: var(--green-light); }
-    .pac-container { z-index: 10000; }
+    .lookup-wrap { position: relative; }
+    .lookup-list { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 50; margin: 0; padding: 0.3rem; list-style: none; background: #fff; border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.35); max-height: 300px; overflow-y: auto; }
+    .lookup-list li { padding: 0.6rem 0.7rem; border-radius: 7px; cursor: pointer; color: #0a1628; line-height: 1.3; }
+    .lookup-list li[aria-selected="true"], .lookup-list li:hover { background: #eaf4e7; }
+    .lookup-list .lk-name { display: block; font-weight: 700; font-size: 0.93rem; }
+    .lookup-list .lk-detail { display: block; font-size: 0.8rem; color: #5a7a9a; margin-top: 0.1rem; }
+    .lookup-list .lk-empty { cursor: default; color: #5a7a9a; font-size: 0.85rem; }
+    .lookup-list .lk-empty:hover { background: transparent; }
 
     /* Submit */
     .submit-btn {
@@ -518,7 +525,10 @@
 
       <div class="field">
         <label for="biz_lookup">Your business</label>
-        <input id="biz_lookup" type="text" placeholder="Start typing your business name…" autocomplete="off" />
+        <div class="lookup-wrap">
+          <input id="biz_lookup" type="text" placeholder="Business name and town…" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="lookupList" />
+          <ul class="lookup-list hidden" id="lookupList" role="listbox"></ul>
+        </div>
         <div class="field-error" id="err_lookup">Pick your business from the list as you type.</div>
       </div>
 
@@ -688,18 +698,69 @@
     }
     link('showManual', 'manual'); link('showManual2', 'manual'); link('showLookup', 'lookup'); link('tryAgain', 'lookup');
 
-    window.initBizLookup = function () {
-      var ac = new google.maps.places.Autocomplete(lookup, { types: ['establishment'], componentRestrictions: { country: 'us' }, fields: ['place_id', 'name', 'formatted_address'] });
-      ac.addListener('place_changed', function () {
-        var place = ac.getPlace();
-        if (!place || !place.place_id) { chosen = null; btn.disabled = true; return; }
-        chosen = { id: place.place_id, name: place.name || lookup.value };
-        btn.disabled = false;
-        errEl.classList.remove('visible');
+    var list = document.getElementById('lookupList');
+    var session = (window.crypto && crypto.randomUUID) ? crypto.randomUUID().replace(/-/g, '').slice(0, 32) : String(Date.now()) + Math.random().toString(36).slice(2, 12);
+    var items = [], active = -1, debounce = null, seq = 0;
+
+    function closeList() { list.classList.add('hidden'); lookup.setAttribute('aria-expanded', 'false'); active = -1; }
+    function renderList(empty) {
+      list.innerHTML = '';
+      if (!items.length) {
+        if (!empty) return closeList();
+        var li = document.createElement('li'); li.className = 'lk-empty';
+        li.textContent = 'No matches. Try adding your town, or use the short form below.';
+        list.appendChild(li);
+      }
+      items.forEach(function (it, i) {
+        var li = document.createElement('li');
+        li.setAttribute('role', 'option'); li.id = 'lk-' + i;
+        li.setAttribute('aria-selected', i === active ? 'true' : 'false');
+        var n = document.createElement('span'); n.className = 'lk-name'; n.textContent = it.name;
+        var d = document.createElement('span'); d.className = 'lk-detail'; d.textContent = it.detail;
+        li.appendChild(n); li.appendChild(d);
+        li.addEventListener('mousedown', function (e) { e.preventDefault(); pick(i); });
+        list.appendChild(li);
       });
-    };
-    lookup.addEventListener('input', function () { chosen = null; btn.disabled = true; });
-    lookup.addEventListener('keydown', function (e) { if (e.key === 'Enter' && chosen) { e.preventDefault(); btn.click(); } });
+      list.classList.remove('hidden'); lookup.setAttribute('aria-expanded', 'true');
+    }
+    function pick(i) {
+      var it = items[i]; if (!it) return;
+      chosen = { id: it.placeId, name: it.name };
+      lookup.value = it.name + (it.detail ? ', ' + it.detail : '');
+      btn.disabled = false; errEl.classList.remove('visible'); closeList();
+    }
+    async function search(q) {
+      var mine = ++seq;
+      try {
+        var res = await fetch('/api/ga-metrics?action=place_search', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ input: q, session: session })
+        });
+        var data = await res.json();
+        if (mine !== seq) return;
+        items = data.suggestions || []; active = -1; renderList(true);
+      } catch (e) { if (mine === seq) { items = []; closeList(); } }
+    }
+    lookup.addEventListener('input', function () {
+      chosen = null; btn.disabled = true;
+      var q = lookup.value.trim();
+      clearTimeout(debounce);
+      if (q.length < 3) { items = []; closeList(); return; }
+      debounce = setTimeout(function () { search(q); }, 250);
+    });
+    lookup.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        if (!items.length) return;
+        e.preventDefault();
+        active = (active + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+        renderList(); lookup.setAttribute('aria-activedescendant', 'lk-' + active);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (!list.classList.contains('hidden') && items.length) pick(active >= 0 ? active : 0);
+        else if (chosen) btn.click();
+      } else if (e.key === 'Escape') { closeList(); }
+    });
+    lookup.addEventListener('blur', function () { setTimeout(closeList, 150); });
     lookup.addEventListener('blur', function () { if (lookup.value.trim() && !chosen) setTimeout(function () { if (!chosen) errEl.classList.add('visible'); }, 300); });
 
     var steps = Array.prototype.slice.call(document.querySelectorAll('#buildSteps li'));
@@ -741,7 +802,7 @@
       try {
         var res = await fetch('/api/ga-metrics?action=instant_preview', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ place_id: chosen.id, ref: document.referrer || null })
+          body: JSON.stringify({ place_id: chosen.id, session: session, ref: document.referrer || null })
         });
         data = await res.json().catch(function () { return {}; });
         if (res.status === 429) {
@@ -768,6 +829,5 @@
     });
   })();
 </script>
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD2DZjVEIuq6luIvl-lVeOaxqd3BG2V7IA&libraries=places&callback=initBizLookup" async defer></script>
 </body>
 </html>

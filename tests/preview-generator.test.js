@@ -1,7 +1,7 @@
 // Run with: node tests/preview-generator.test.js (also wired into `npm test`)
 
 import assert from "node:assert/strict";
-import { slugify, qualifiesForPreview, validateGenerated, assembleProfile, stateAbbr, buildFactsPrompt, isValidPlaceId, inboundLimitReason, placeToProspect, INBOUND_LIMITS } from "../api/_lib/preview-generator.js";
+import { slugify, qualifiesForPreview, validateGenerated, assembleProfile, stateAbbr, buildFactsPrompt, isValidPlaceId, inboundLimitReason, placeToProspect, INBOUND_LIMITS, placeSuggestions, isValidSessionToken } from "../api/_lib/preview-generator.js";
 import { renderSections, faqSchema, splitAbout } from "../api/_lib/page-ssr.js";
 
 let passed = 0;
@@ -119,4 +119,22 @@ test("placeToProspect reads name, phone, site and city/state from address compon
   assert.equal(bare.phone, null); assert.equal(bare.city, null); assert.equal(bare.state, null);
 });
 
+test("placeSuggestions keeps valid predictions with a name, max 5", () => {
+  const pred = (id, main, sec) => ({ placePrediction: { placeId: id, text: { text: `${main}, ${sec}` }, structuredFormat: { mainText: { text: main }, secondaryText: { text: sec } } } });
+  const out = placeSuggestions({ suggestions: [
+    pred("ChIJN1t_tDeuEmsRUsoyG83frY4", "Conway's Landscaping", "Agawam, MA, USA"),
+    pred("bad id!", "Nope", "x"),
+    { queryPrediction: { text: { text: "landscaping" } } },
+    ...Array.from({ length: 6 }, (_, i) => pred(`ChIJN1t_tDeuEmsRUsoyG83frY${i}`, `Biz ${i}`, "Town")),
+  ] });
+  assert.equal(out.length, 5);
+  assert.deepEqual(out[0], { placeId: "ChIJN1t_tDeuEmsRUsoyG83frY4", name: "Conway's Landscaping", detail: "Agawam, MA, USA" });
+  assert.deepEqual(placeSuggestions({}), []);
+});
+test("session tokens: url-safe, bounded", () => {
+  assert.ok(isValidSessionToken("3f2a9c1e7b4d4e0f9a1b2c3d4e5f6a7b"));
+  assert.ok(!isValidSessionToken("x"));
+  assert.ok(!isValidSessionToken("a".repeat(37)));
+  assert.ok(!isValidSessionToken("abc def ghi"));
+});
 console.log(`${passed} passed`);

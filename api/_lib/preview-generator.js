@@ -223,3 +223,23 @@ export function placeToProspect(place, placeId) {
     trade: place?.primaryTypeDisplayName?.text || null,
   };
 }
+
+// Session tokens are client-generated UUIDs (Google accepts any URL-safe
+// base64 string up to 36 chars).
+export function isValidSessionToken(t) {
+  return typeof t === "string" && /^[A-Za-z0-9_-]{8,36}$/.test(t);
+}
+
+/** Places API (New) autocomplete response → [{ placeId, name, detail }]. */
+export function placeSuggestions(data, max = 5) {
+  return (data?.suggestions || [])
+    .map(s => s.placePrediction)
+    .filter(p => p && isValidPlaceId(p.placeId))
+    .slice(0, max)
+    .map(p => ({
+      placeId: p.placeId,
+      name: p.structuredFormat?.mainText?.text || p.text?.text || "",
+      detail: p.structuredFormat?.secondaryText?.text || "",
+    }))
+    .filter(s => s.name);
+}

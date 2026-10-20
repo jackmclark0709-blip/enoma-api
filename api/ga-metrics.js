@@ -13,7 +13,7 @@ import { extractEmails, pickBestEmail, htmlToText, isPrivateOrReservedIp } from 
 import { hasValidMx } from "./_lib/email-verify.js";
 import { siteChecks, decideSiteTier } from "./_lib/site-checks.js";
 import { previousMonth, tallyClicks, buildResultsEmail } from "./_lib/results-email.js";
-import { qualifiesForPreview, buildFactsPrompt, validateGenerated, assembleProfile, slugify, stateAbbr, PREVIEW_TRIAL_DAYS, INBOUND_PREVIEW_DAYS, INBOUND_SOURCE, isValidPlaceId, inboundLimitReason, placeToProspect } from "./_lib/preview-generator.js";
+import { qualifiesForPreview, buildFactsPrompt, validateGenerated, assembleProfile, slugify, stateAbbr, PREVIEW_TRIAL_DAYS, INBOUND_PREVIEW_DAYS, INBOUND_SOURCE, isValidPlaceId, inboundLimitReason, placeToProspect, isValidSessionToken, placeSuggestions } from "./_lib/preview-generator.js";
 import { verifyUnsubscribeToken, appendComplianceFooter, buildUnsubscribeUrl, MAILING_ADDRESS } from "./_lib/outreach-footer.js";
 import { buildOutreachEmail, trackedLinks, replyToFor, slugFromPreviewUrl, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "./_lib/outreach-email.js";
 import { verifyMailbox } from "./_lib/mailbox-verify.js";
@@ -557,11 +557,12 @@ async function handleCrawlWebsites(req, res) {
 // page before their outreach is drafted, so the email can show it) and by
 // action=generate_preview for one-offs (e.g. phone/text outreach).
 
-async function fetchPlaceDetails(placeId, { withAddressComponents = false } = {}) {
+async function fetchPlaceDetails(placeId, { withAddressComponents = false, sessionToken } = {}) {
   if (!placeId || !process.env.GOOGLE_SERVER_PLACES_KEY) return null;
   const fields = "displayName,formattedAddress,nationalPhoneNumber,rating,userRatingCount,reviews,regularOpeningHours.weekdayDescriptions,types,primaryTypeDisplayName,websiteUri"
     + (withAddressComponents ? ",addressComponents" : "");
-  const r = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {
+  const qs = sessionToken ? `?sessionToken=${encodeURIComponent(sessionToken)}` : "";
+  const r = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}${qs}`, {
     headers: { "X-Goog-Api-Key": process.env.GOOGLE_SERVER_PLACES_KEY, "X-Goog-FieldMask": fields }
   });
   if (!r.ok) return null;
@@ -765,6 +766,32 @@ async function existingPreviewForPlace(placeId) {
   return data?.[0] || null;
 }
 
+// Business search for the lookup box. The browser Maps key's legacy Places
+// Autocomplete returns REQUEST_DENIED (Google closed it to new projects in
+// 2025), so suggestions come from Places API (New) with the server key. The
+// client's session token ties these keystrokes to the details call in
+// instant_preview, so Google bills them as one session.
+async function handlePlaceSearch(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+  const origin = String(req.headers.origin || "");
+  if (origin && !INSTANT_PREVIEW_ORIGIN.test(origin)) return res.status(403).json({ error: "forbidden" });
+  const input = String(req.body?.input || "").trim().slice(0, 120);
+  const sessionToken = isValidSessionToken(req.body?.session) ? req.body.session : undefined;
+  if (input.length < 3 || !process.env.GOOGLE_SERVER_PLACES_KEY) return res.status(200).json({ suggestions: [] });
+  const r = await fetch("https://places.googleapis.com/v1/places:autocomplete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Goog-Api-Key": process.env.GOOGLE_SERVER_PLACES_KEY },
+    body: JSON.stringify({ input, includedRegionCodes: ["us"], ...(sessionToken ? { sessionToken } : {}) }),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    console.error("Places autocomplete failed:", r.status, data?.error?.message);
+    return res.status(502).json({ suggestions: [], error: "search_failed" });
+  }
+  res.setHeader("Cache-Control", "no-store");
+  return res.status(200).json({ suggestions: placeSuggestions(data) });
+}
+
 async function handleInstantPreview(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
   const origin = String(req.headers.origin || "");
@@ -785,7 +812,8 @@ async function handleInstantPreview(req, res) {
   const limited = inboundLimitReason({ perIp: perIp || 0, global: global || 0 });
   if (limited) return res.status(429).json({ error: limited });
 
-  const place = await fetchPlaceDetails(placeId, { withAddressComponents: true });
+  const sessionToken = isValidSessionToken(req.body?.session) ? req.body.session : undefined;
+  const place = await fetchPlaceDetails(placeId, { withAddressComponents: true, sessionToken });
   if (!place) return res.status(404).json({ error: "place_not_found" });
   const fields = placeToProspect(place, placeId);
   if (!fields.business_name) return res.status(404).json({ error: "place_not_found" });
@@ -2231,6 +2259,16 @@ export default async function handler(req, res) {
     } catch (err) {
       console.error("Text mark failed:", err);
       return res.status(500).send("Something went wrong.");
+    }
+  }
+
+  // Public: suggestions for the "find your business" box.
+  if (req.query.action === "place_search") {
+    try {
+      return await handlePlaceSearch(req, res);
+    } catch (err) {
+      console.error("Place search failed:", err);
+      return res.status(500).json({ suggestions: [], error: "search_failed" });
     }
   }
 
