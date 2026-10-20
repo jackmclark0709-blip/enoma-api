@@ -21,12 +21,12 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --green: #2d6a2d;
-      --green-light: #4a9e3a;
-      --green-glow: rgba(74,158,58,0.18);
+      --accent: #3882dc;
+      --accent-light: #5aa8f0;
+      --accent-glow: rgba(56,130,220,0.18);
       --blue: #3882dc;
       --dark: #0a1628;
-      --dark-green: #0d1f0f;
+      --dark-navy: #0a1628;
       --text: #f0f6ff;
       --text-dim: rgba(240,246,255,0.62);
       --card-bg: rgba(255,255,255,0.05);
@@ -172,7 +172,7 @@
     .browser-mini__frame {
       height: 220px;
       overflow: hidden;
-      background: #0d1f0f;
+      background: #0a1628;
       position: relative;
     }
     .browser-mini__frame iframe {
@@ -294,25 +294,25 @@
     .submit-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
     button.submit-btn { width: 100%; border: 0; font: inherit; }
     .form-card__alt { margin: 1rem 0 0; font-size: 0.82rem; color: var(--text-dim); text-align: center; line-height: 1.5; }
-    .form-card__alt a { color: var(--green-light); font-weight: 600; text-decoration: none; }
+    .form-card__alt a { color: var(--accent-light); font-weight: 600; text-decoration: none; }
     .form-card__alt a:hover { text-decoration: underline; }
     .build-steps { list-style: none; margin: 0.5rem 0 0; padding: 0; display: grid; gap: 0.7rem; }
     .build-steps li { position: relative; padding-left: 1.9rem; font-size: 0.95rem; color: var(--text-dim); transition: color 0.3s; }
     .build-steps li::before { content: ''; position: absolute; left: 0; top: 0.1rem; width: 1.1rem; height: 1.1rem; border-radius: 50%; border: 2px solid var(--card-border); box-sizing: border-box; }
     .build-steps li.active { color: var(--text); }
-    .build-steps li.active::before { border-color: var(--green-light); border-top-color: transparent; animation: gyw-spin 0.8s linear infinite; }
+    .build-steps li.active::before { border-color: var(--accent-light); border-top-color: transparent; animation: gyw-spin 0.8s linear infinite; }
     .build-steps li.done { color: var(--text); }
-    .build-steps li.done::before { content: '✓'; border: 0; background: var(--green-light); color: #0a1628; font-size: 0.7rem; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+    .build-steps li.done::before { content: '✓'; border: 0; background: var(--accent); color: #fff; font-size: 0.7rem; font-weight: 800; display: flex; align-items: center; justify-content: center; }
     @keyframes gyw-spin { to { transform: rotate(360deg); } }
-    @media (prefers-reduced-motion: reduce) { .build-steps li.active::before { animation: none; border-top-color: var(--green-light); } }
+    @media (prefers-reduced-motion: reduce) { .build-steps li.active::before { animation: none; border-top-color: var(--accent-light); } }
     .build-error { margin-top: 1.25rem; padding: 1rem; border-radius: 12px; background: rgba(217,64,64,0.12); border: 1px solid rgba(217,64,64,0.35); }
     .build-error p { margin: 0; font-size: 0.9rem; color: var(--text); line-height: 1.5; }
     .build-error p + p { margin-top: 0.6rem; }
-    .build-error a { color: var(--green-light); }
+    .build-error a { color: var(--accent-light); }
     .lookup-wrap { position: relative; }
     .lookup-list { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 50; margin: 0; padding: 0.3rem; list-style: none; background: #fff; border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.35); max-height: 300px; overflow-y: auto; }
     .lookup-list li { padding: 0.6rem 0.7rem; border-radius: 7px; cursor: pointer; color: #0a1628; line-height: 1.3; }
-    .lookup-list li[aria-selected="true"], .lookup-list li:hover { background: #eaf4e7; }
+    .lookup-list li[aria-selected="true"], .lookup-list li:hover { background: #e6f1fb; }
     .lookup-list .lk-name { display: block; font-weight: 700; font-size: 0.93rem; }
     .lookup-list .lk-detail { display: block; font-size: 0.8rem; color: #5a7a9a; margin-top: 0.1rem; }
     .lookup-list .lk-empty { cursor: default; color: #5a7a9a; font-size: 0.85rem; }
