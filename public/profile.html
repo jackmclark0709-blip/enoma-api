@@ -1352,7 +1352,7 @@ async function loadProfile() {
   /* ── Primary CTA button ── */
   const primaryAction = getEl('primaryAction');
   const primaryCtaBtn = getEl('primaryCtaButton');
-  if (primaryCtaBtn) primaryCtaBtn.addEventListener('click', () => trackContactClick(p.primary_cta_type || 'primary_cta'));
+  if (primaryCtaBtn) primaryCtaBtn.addEventListener('click', () => trackContactClick(p.primary_cta_type || (p.phone ? 'call' : 'primary_cta')));
   if (p.primary_cta_label && p.primary_cta_type && p.primary_cta_value) {
     let href = '#contact';
     if (p.primary_cta_type === 'call') href = `tel:${p.primary_cta_value}`;
@@ -1364,7 +1364,6 @@ async function loadProfile() {
   } else if (p.phone) {
     primaryCtaBtn.textContent = 'Call for a Free Quote';
     primaryCtaBtn.href = `tel:${p.phone}`;
-    primaryCtaBtn.addEventListener('click', () => trackContactClick('call'));
     primaryAction.classList.remove('hidden');
   }
 
