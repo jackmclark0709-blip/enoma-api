@@ -1129,7 +1129,10 @@ function truncateText(text, max = 300) {
 }
 function trackContactClick(type) {
   if (!window.profileData?.username) return;
-  fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: window.profileData.username, event: 'contact_click', metadata: { type } }) }).catch(() => {});
+  // Mirror to GA4 so calls/quote taps on client pages show up as a key event.
+  // Beacon transport: most of these clicks open the dialer or navigate away.
+  try { if (typeof window.gtag === 'function') window.gtag('event', 'client_contact_click', { contact_type: type, page_slug: window.profileData.username, transport_type: 'beacon' }); } catch (e) {}
+  fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true, body: JSON.stringify({ slug: window.profileData.username, event: 'contact_click', metadata: { type } }) }).catch(() => {});
 }
 
 /* ── Brand color extraction from logo ── */
@@ -1349,7 +1352,7 @@ async function loadProfile() {
   /* ── Primary CTA button ── */
   const primaryAction = getEl('primaryAction');
   const primaryCtaBtn = getEl('primaryCtaButton');
-  if (primaryCtaBtn) primaryCtaBtn.addEventListener('click', () => trackContactClick(p.primary_cta_type || 'primary_cta'));
+  if (primaryCtaBtn) primaryCtaBtn.addEventListener('click', () => trackContactClick(p.primary_cta_type || (p.phone ? 'call' : 'primary_cta')));
   if (p.primary_cta_label && p.primary_cta_type && p.primary_cta_value) {
     let href = '#contact';
     if (p.primary_cta_type === 'call') href = `tel:${p.primary_cta_value}`;
@@ -1361,7 +1364,6 @@ async function loadProfile() {
   } else if (p.phone) {
     primaryCtaBtn.textContent = 'Call for a Free Quote';
     primaryCtaBtn.href = `tel:${p.phone}`;
-    primaryCtaBtn.addEventListener('click', () => trackContactClick('call'));
     primaryAction.classList.remove('hidden');
   }
 

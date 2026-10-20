@@ -88,7 +88,7 @@ async function run() {
       setStatus('Could not claim this page', data.error || 'Something went wrong.', true);
       return;
     }
-    try { gtag('event', 'business_claimed', { slug: slug }); } catch (e) {}
+    try { gtag('event', 'business_claimed', { slug: slug, transport_type: 'beacon' }); } catch (e) {}
     setStatus(
       data.already_claimed_by_you ? 'You already claimed this page' : 'Page claimed!',
       'Redirecting to your dashboard…',
