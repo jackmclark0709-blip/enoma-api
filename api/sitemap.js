@@ -34,11 +34,12 @@ const STATIC_PAGES = [
   // Intent/question pages (AEO)
   { url: "https://enoma.io/for/do-i-need-a-website-for-my-landscaping-business", lastmod: TODAY, changefreq: "monthly", priority: "0.9" },
   { url: "https://enoma.io/for/facebook-vs-website-local-business", lastmod: TODAY, changefreq: "monthly", priority: "0.9" },
+  { url: "https://enoma.io/for/how-to-get-more-plumbing-calls", lastmod: TODAY, changefreq: "monthly", priority: "0.9" },
+  { url: "https://enoma.io/for/how-to-get-more-lawn-care-customers", lastmod: TODAY, changefreq: "monthly", priority: "0.9" },
+  { url: "https://enoma.io/for/how-much-does-a-contractor-website-cost", lastmod: TODAY, changefreq: "monthly", priority: "0.9" },
   { url: "https://enoma.io/for/website-for-local-service-business", lastmod: TODAY, changefreq: "monthly", priority: "0.9" },
 
   // Original MA/local pages
-  { url: "https://enoma.io/for/landscaping-websites-massachusetts", lastmod: TODAY, changefreq: "monthly", priority: "0.85" },
-  { url: "https://enoma.io/for/plumber-websites-massachusetts", lastmod: TODAY, changefreq: "monthly", priority: "0.85" },
   { url: "https://enoma.io/for/lawn-care-website-agawam-ma", lastmod: TODAY, changefreq: "monthly", priority: "0.80" },
   { url: "https://enoma.io/for/plumber-website-attleboro-ma", lastmod: TODAY, changefreq: "monthly", priority: "0.80" },
 
