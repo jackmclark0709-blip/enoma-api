@@ -107,6 +107,17 @@ export default async function handler(req, res) {
       if (prospectIds.length) {
         await supabaseAdmin.from("prospects").update({ status: "claimed", updated_at: now }).in("id", prospectIds);
       }
+      // Instant previews built from the website only stay up for a week
+      // unclaimed; claiming one starts the normal free month from today.
+      const { data: inbound } = prospectIds.length
+        ? await supabaseAdmin.from("prospects").select("id").in("id", prospectIds).eq("source", "inbound_lookup").limit(1)
+        : { data: [] };
+      if (inbound?.length) {
+        const monthOut = new Date(Date.now() + 30 * 86400000).toISOString();
+        await supabaseAdmin.from("subscriptions")
+          .update({ trial_expires_at: monthOut, updated_at: now })
+          .eq("business_id", profile.business_id).eq("is_trial", true).lt("trial_expires_at", monthOut);
+      }
       const m = String(req.body?.m || "");
       if (prospectIds.length && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(m)) {
         await supabaseAdmin.from("outreach_messages")

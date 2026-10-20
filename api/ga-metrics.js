@@ -13,7 +13,7 @@ import { extractEmails, pickBestEmail, htmlToText, isPrivateOrReservedIp } from 
 import { hasValidMx } from "./_lib/email-verify.js";
 import { siteChecks, decideSiteTier } from "./_lib/site-checks.js";
 import { previousMonth, tallyClicks, buildResultsEmail } from "./_lib/results-email.js";
-import { qualifiesForPreview, buildFactsPrompt, validateGenerated, assembleProfile, slugify, stateAbbr, PREVIEW_TRIAL_DAYS } from "./_lib/preview-generator.js";
+import { qualifiesForPreview, buildFactsPrompt, validateGenerated, assembleProfile, slugify, stateAbbr, PREVIEW_TRIAL_DAYS, INBOUND_PREVIEW_DAYS, INBOUND_SOURCE, isValidPlaceId, inboundLimitReason, placeToProspect, isValidSessionToken, placeSuggestions } from "./_lib/preview-generator.js";
 import { verifyUnsubscribeToken, appendComplianceFooter, buildUnsubscribeUrl, MAILING_ADDRESS } from "./_lib/outreach-footer.js";
 import { buildOutreachEmail, trackedLinks, replyToFor, slugFromPreviewUrl, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "./_lib/outreach-email.js";
 import { verifyMailbox } from "./_lib/mailbox-verify.js";
@@ -557,10 +557,12 @@ async function handleCrawlWebsites(req, res) {
 // page before their outreach is drafted, so the email can show it) and by
 // action=generate_preview for one-offs (e.g. phone/text outreach).
 
-async function fetchPlaceDetails(placeId) {
+async function fetchPlaceDetails(placeId, { withAddressComponents = false, sessionToken } = {}) {
   if (!placeId || !process.env.GOOGLE_SERVER_PLACES_KEY) return null;
-  const fields = "displayName,formattedAddress,nationalPhoneNumber,rating,userRatingCount,reviews,regularOpeningHours.weekdayDescriptions,types,primaryTypeDisplayName,websiteUri";
-  const r = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {
+  const fields = "displayName,formattedAddress,nationalPhoneNumber,rating,userRatingCount,reviews,regularOpeningHours.weekdayDescriptions,types,primaryTypeDisplayName,websiteUri"
+    + (withAddressComponents ? ",addressComponents" : "");
+  const qs = sessionToken ? `?sessionToken=${encodeURIComponent(sessionToken)}` : "";
+  const r = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}${qs}`, {
     headers: { "X-Goog-Api-Key": process.env.GOOGLE_SERVER_PLACES_KEY, "X-Goog-FieldMask": fields }
   });
   if (!r.ok) return null;
@@ -599,19 +601,22 @@ async function uniqueSlug(base) {
   throw new Error("Could not find a free slug");
 }
 
-async function generatePreviewForProspect(prospect, { homeHtml, force = false } = {}) {
+// gate: false skips the outbound quality gate (instant previews a visitor asked
+// for). place: pass already-fetched details to skip a second Places call.
+async function generatePreviewForProspect(prospect, { homeHtml, force = false, gate = true, trialDays = PREVIEW_TRIAL_DAYS, place: knownPlace } = {}) {
   if (prospect.preview_url && !force) return { skipped: "already_has_preview", preview_url: prospect.preview_url };
 
   const raw = prospect.raw || {};
-  const place = await fetchPlaceDetails(prospect.google_place_id);
+  const place = knownPlace || await fetchPlaceDetails(prospect.google_place_id);
   const rating = Number(place?.rating ?? raw.rating) || null;
   const reviewCount = Number(place?.userRatingCount ?? raw.reviews) || 0;
   const phone = place?.nationalPhoneNumber || prospect.phone || raw.phone || null;
 
   const site = prospect.website ? await gatherSiteText(prospect.website, homeHtml) : { text: "", homeHtml: null, homeUrl: null };
   const checks = site.homeHtml ? siteChecks(site.homeHtml, site.homeUrl) : { score: 0 };
-  const gate = qualifiesForPreview({ rating, reviewCount, hasWebsite: !!prospect.website, siteCheckScore: checks.score, phone });
-  if (!gate.ok && !force) return { skipped: gate.reason };
+  const quality = qualifiesForPreview({ rating, reviewCount, hasWebsite: !!prospect.website, siteCheckScore: checks.score, phone });
+  if (!phone && !force) return { skipped: "no_phone" };
+  if (gate && !quality.ok && !force) return { skipped: quality.reason };
 
   const trade = place?.primaryTypeDisplayName?.text || prospect.trade || raw.type || "local service";
   const hours = place?.regularOpeningHours?.weekdayDescriptions || [];
@@ -651,7 +656,7 @@ async function generatePreviewForProspect(prospect, { homeHtml, force = false } 
   const { error: subErr } = await supabase.from("subscriptions").insert({
     business_id: biz.id, provider: "stripe", plan_code: "starter", status: "trialing", is_trial: true,
     trial_starts_at: new Date().toISOString(),
-    trial_expires_at: new Date(Date.now() + PREVIEW_TRIAL_DAYS * 86400000).toISOString(),
+    trial_expires_at: new Date(Date.now() + trialDays * 86400000).toISOString(),
   });
   if (subErr) throw subErr;
 
@@ -738,6 +743,126 @@ async function handleGeneratePreview(req, res) {
   if (!prospect) return res.status(404).json({ error: "Prospect not found" });
   const result = await generatePreviewForProspect(prospect, { force: req.query.force === "1" });
   return res.status(200).json({ success: true, business_name: prospect.business_name, ...result });
+}
+
+// ── Instant preview (public) ───────────────────────────────────────────────
+// "Find your business" on /get-your-website: the visitor picks their Google
+// listing and we build their page with the same facts-only generator the
+// outbound pipeline uses. One page per Google listing (a repeat lookup returns
+// the existing page), capped per visitor and per day because each build costs
+// a Places + OpenAI call. Every new page emails Jack the business and its
+// Google phone number, so a visitor who leaves before claiming is still a lead.
+
+const INSTANT_PREVIEW_ORIGIN = /^https:\/\/(enoma\.io|www\.enoma\.io|enoma-api-[a-z0-9-]+\.vercel\.app)$/;
+
+function ipHash(req) {
+  const ip = (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || req.socket?.remoteAddress || "unknown";
+  return crypto.createHash("sha256").update(`enoma-instant:${ip}`).digest("hex").slice(0, 32);
+}
+
+async function existingPreviewForPlace(placeId) {
+  const { data } = await supabase.from("small_business_profiles")
+    .select("username, is_claimed").eq("google_place_id", placeId).not("username", "is", null).limit(1);
+  return data?.[0] || null;
+}
+
+// Business search for the lookup box. The browser Maps key's legacy Places
+// Autocomplete returns REQUEST_DENIED (Google closed it to new projects in
+// 2025), so suggestions come from Places API (New) with the server key. The
+// client's session token ties these keystrokes to the details call in
+// instant_preview, so Google bills them as one session.
+async function handlePlaceSearch(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+  const origin = String(req.headers.origin || "");
+  if (origin && !INSTANT_PREVIEW_ORIGIN.test(origin)) return res.status(403).json({ error: "forbidden" });
+  const input = String(req.body?.input || "").trim().slice(0, 120);
+  const sessionToken = isValidSessionToken(req.body?.session) ? req.body.session : undefined;
+  if (!process.env.GOOGLE_SERVER_PLACES_KEY) return res.status(503).json({ suggestions: [], error: "search_unavailable" });
+  if (input.length < 3) return res.status(200).json({ suggestions: [] });
+  // Bias results toward the visitor (Vercel's IP geolocation); without it
+  // Google ranks matches near the server, which is in Virginia.
+  const lat = Number(req.headers["x-vercel-ip-latitude"]), lng = Number(req.headers["x-vercel-ip-longitude"]);
+  const locationBias = Number.isFinite(lat) && Number.isFinite(lng) && (lat || lng)
+    ? { circle: { center: { latitude: lat, longitude: lng }, radius: 50000 } } : undefined;
+  const autocomplete = async text => {
+    const r = await fetch("https://places.googleapis.com/v1/places:autocomplete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Goog-Api-Key": process.env.GOOGLE_SERVER_PLACES_KEY },
+      body: JSON.stringify({ input: text, includedRegionCodes: ["us"], ...(locationBias ? { locationBias } : {}), ...(sessionToken ? { sessionToken } : {}) }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw Object.assign(new Error(data?.error?.message || "autocomplete failed"), { status: r.status });
+    return placeSuggestions(data);
+  };
+  let suggestions;
+  try {
+    suggestions = await autocomplete(input);
+    // Google often finds nothing for possessives ("Conway's") that it matches without the apostrophe.
+    if (!suggestions.length && /['’]/.test(input)) suggestions = await autocomplete(input.replace(/['’]/g, ""));
+  } catch (e) {
+    console.error("Places autocomplete failed:", e.status, e.message);
+    return res.status(502).json({ suggestions: [], error: "search_failed" });
+  }
+  res.setHeader("Cache-Control", "no-store");
+  return res.status(200).json({ suggestions });
+}
+
+async function handleInstantPreview(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+  const origin = String(req.headers.origin || "");
+  if (origin && !INSTANT_PREVIEW_ORIGIN.test(origin)) return res.status(403).json({ error: "forbidden" });
+
+  const placeId = String(req.body?.place_id || "");
+  if (!isValidPlaceId(placeId)) return res.status(400).json({ error: "invalid_place" });
+
+  const existing = await existingPreviewForPlace(placeId);
+  if (existing) return res.status(200).json({ success: true, slug: existing.username, existing: true, claimed: existing.is_claimed !== false });
+
+  const since = new Date(Date.now() - 86400000).toISOString();
+  const hash = ipHash(req);
+  const [{ count: global }, { count: perIp }] = await Promise.all([
+    supabase.from("prospects").select("id", { count: "exact", head: true }).eq("source", INBOUND_SOURCE).gte("created_at", since),
+    supabase.from("prospects").select("id", { count: "exact", head: true }).eq("source", INBOUND_SOURCE).gte("created_at", since).eq("raw->>ip_hash", hash),
+  ]);
+  const limited = inboundLimitReason({ perIp: perIp || 0, global: global || 0 });
+  if (limited) return res.status(429).json({ error: limited });
+
+  const sessionToken = isValidSessionToken(req.body?.session) ? req.body.session : undefined;
+  const place = await fetchPlaceDetails(placeId, { withAddressComponents: true, sessionToken });
+  if (!place) return res.status(404).json({ error: "place_not_found" });
+  const fields = placeToProspect(place, placeId);
+  if (!fields.business_name) return res.status(404).json({ error: "place_not_found" });
+  if (!fields.phone) return res.status(200).json({ success: false, reason: "no_phone", business_name: fields.business_name, city: fields.city, state: fields.state });
+
+  const { data: prospect, error: pErr } = await supabase.from("prospects").insert({
+    source: INBOUND_SOURCE, status: "inbound_preview", ...fields,
+    raw: { ip_hash: hash, rating: place.rating ?? null, reviews: place.userRatingCount ?? null, referrer: req.body?.ref || null },
+  }).select("*").single();
+  if (pErr) throw pErr;
+
+  const gen = await generatePreviewForProspect(prospect, { gate: false, trialDays: INBOUND_PREVIEW_DAYS, place });
+  if (!gen.slug) return res.status(200).json({ success: false, reason: gen.skipped || "failed", business_name: fields.business_name });
+
+  await supabase.from("funnel_events").insert({ event: "instant_preview_generated", business_id: null, metadata: { slug: gen.slug, place_id: placeId } })
+    .then(({ error }) => { if (error) console.warn("funnel_events insert failed:", error.message); });
+
+  if (resend) {
+    try {
+      const where = [fields.city, fields.state].filter(Boolean).join(", ");
+      await resend.emails.send({
+        from: "Enoma <noreply@enoma.io>",
+        to: "jack@enoma.io",
+        subject: `New instant preview: ${fields.business_name}${where ? ` (${where})` : ""}`,
+        html: `<p><strong>${escapeForForward(fields.business_name)}</strong>${where ? ` in ${escapeForForward(where)}` : ""} just built a preview page from the website.</p>
+<p>Page: <a href="${gen.preview_url}">${gen.preview_url}</a><br>Phone (Google): ${escapeForForward(fields.phone)}<br>Current site: ${fields.website ? escapeForForward(fields.website) : "none"}</p>
+<p>Not claimed yet. If they don't claim it within a day or two, they're a warm lead to text.</p>`,
+      });
+    } catch (e) {
+      await logNotificationFailure("instant_preview", "jack@enoma.io", e, { slug: gen.slug });
+    }
+  }
+
+  return res.status(200).json({ success: true, slug: gen.slug });
 }
 
 // ── Text outreach ──────────────────────────────────────────────────────────
@@ -1898,6 +2023,11 @@ async function handleVoiceQuery(req, res) {
 // funnel-health panel below.
 
 const FUNNEL_STEP_ORDER = [
+  "instant_preview_started",
+  "instant_preview_generated",
+  "instant_preview_failed",
+  "claim_link_requested",
+  "business_claimed",
   "get_your_website_submitted",
   "choose_path_viewed",
   "choose_path_selected",
@@ -2144,6 +2274,26 @@ export default async function handler(req, res) {
     } catch (err) {
       console.error("Text mark failed:", err);
       return res.status(500).send("Something went wrong.");
+    }
+  }
+
+  // Public: suggestions for the "find your business" box.
+  if (req.query.action === "place_search") {
+    try {
+      return await handlePlaceSearch(req, res);
+    } catch (err) {
+      console.error("Place search failed:", err);
+      return res.status(500).json({ suggestions: [], error: "search_failed" });
+    }
+  }
+
+  // Public: "find your business" instant previews from /get-your-website.
+  if (req.query.action === "instant_preview") {
+    try {
+      return await handleInstantPreview(req, res);
+    } catch (err) {
+      console.error("Instant preview failed:", err);
+      return res.status(500).json({ success: false, error: "generation_failed" });
     }
   }
 
