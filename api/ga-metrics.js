@@ -779,18 +779,32 @@ async function handlePlaceSearch(req, res) {
   const sessionToken = isValidSessionToken(req.body?.session) ? req.body.session : undefined;
   if (!process.env.GOOGLE_SERVER_PLACES_KEY) return res.status(503).json({ suggestions: [], error: "search_unavailable" });
   if (input.length < 3) return res.status(200).json({ suggestions: [] });
-  const r = await fetch("https://places.googleapis.com/v1/places:autocomplete", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Goog-Api-Key": process.env.GOOGLE_SERVER_PLACES_KEY },
-    body: JSON.stringify({ input, includedRegionCodes: ["us"], ...(sessionToken ? { sessionToken } : {}) }),
-  });
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) {
-    console.error("Places autocomplete failed:", r.status, data?.error?.message);
+  // Bias results toward the visitor (Vercel's IP geolocation); without it
+  // Google ranks matches near the server, which is in Virginia.
+  const lat = Number(req.headers["x-vercel-ip-latitude"]), lng = Number(req.headers["x-vercel-ip-longitude"]);
+  const locationBias = Number.isFinite(lat) && Number.isFinite(lng) && (lat || lng)
+    ? { circle: { center: { latitude: lat, longitude: lng }, radius: 50000 } } : undefined;
+  const autocomplete = async text => {
+    const r = await fetch("https://places.googleapis.com/v1/places:autocomplete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Goog-Api-Key": process.env.GOOGLE_SERVER_PLACES_KEY },
+      body: JSON.stringify({ input: text, includedRegionCodes: ["us"], ...(locationBias ? { locationBias } : {}), ...(sessionToken ? { sessionToken } : {}) }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw Object.assign(new Error(data?.error?.message || "autocomplete failed"), { status: r.status });
+    return placeSuggestions(data);
+  };
+  let suggestions;
+  try {
+    suggestions = await autocomplete(input);
+    // Google often finds nothing for possessives ("Conway's") that it matches without the apostrophe.
+    if (!suggestions.length && /['’]/.test(input)) suggestions = await autocomplete(input.replace(/['’]/g, ""));
+  } catch (e) {
+    console.error("Places autocomplete failed:", e.status, e.message);
     return res.status(502).json({ suggestions: [], error: "search_failed" });
   }
   res.setHeader("Cache-Control", "no-store");
-  return res.status(200).json({ suggestions: placeSuggestions(data) });
+  return res.status(200).json({ suggestions });
 }
 
 async function handleInstantPreview(req, res) {
