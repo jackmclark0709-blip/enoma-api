@@ -1163,6 +1163,7 @@ function setupClaimBox(pageSlug) {
   const qs = new URLSearchParams(window.location.search);
   const outreachMsg = qs.get('m') || '';
   const open = () => { box.classList.remove('hidden'); line.classList.add('hidden'); };
+  if (qs.get('claim') === '1') { banner.classList.add('is-new'); open(); }
   if (qs.get('new') === '1') {
     banner.classList.add('is-new'); open();
     if (window.gtag) try { gtag('event', 'instant_preview_viewed', { page_slug: pageSlug }); } catch (e) {}

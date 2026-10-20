@@ -81,6 +81,7 @@ test("text names Jack and Enoma, carries the link, offers STOP, never quotes a p
     assert.match(t, /Enoma/);
     assert.ok(t.includes("https://enoma.io/grillo-plumbing"));
     assert.match(t, /STOP/);
+    assert.match(t, /Attleboro, MA/);
     assert.doesNotMatch(t, /\$\d/);
     assert.doesNotMatch(t, /Inc\./);
     assert.ok(t.length < 320, `too long: ${t.length}`);

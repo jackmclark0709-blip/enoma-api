@@ -45,6 +45,12 @@ test("custom town list is respected", () => {
   assert.equal(townForDate(new Date("2026-01-04T00:00:00Z"), custom), "A");
 });
 
+test("national list: every entry is 'City, ST' and no two days in a row share a state", () => {
+  for (const t of TOWNS) assert.match(t, /^[A-Za-z .'-]+, [A-Z]{2}$/, t);
+  for (let i = 0; i < TOWNS.length; i++) assert.notEqual(TOWNS[i].slice(-2), TOWNS[(i + 1) % TOWNS.length].slice(-2), `${TOWNS[i]} → ${TOWNS[(i + 1) % TOWNS.length]}`);
+  assert.equal(new Set(TOWNS).size, TOWNS.length);
+});
+
 console.log("\ntradeForDate");
 
 test("Jan 1 picks the first trade", () => {
