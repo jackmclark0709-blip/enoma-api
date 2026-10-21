@@ -1248,7 +1248,7 @@ function setupPreviewPoll(pageSlug) {
   const remember = () => { try { localStorage.setItem(key, '1'); } catch (_) {} };
   const step1 = getEl('pollStep1'), step2 = getEl('pollStep2'), thanks = getEl('pollThanks');
   const claimInput = getEl('claimEmail');
-  let shown = false, feedbackId = null, answer = null;
+  let shown = false, votePending = null, answer = null;
   const post = (body) => fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true, body: JSON.stringify(body) })
     .then(r => r.ok ? r.json() : {}).catch(() => ({}));
   const show = () => {
@@ -1271,8 +1271,7 @@ function setupPreviewPoll(pageSlug) {
   step1.querySelectorAll('button[data-answer]').forEach(btn => btn.addEventListener('click', () => {
     answer = btn.getAttribute('data-answer');
     remember();
-    post({ event: 'feedback', source: 'preview_poll', answer, slug: pageSlug, m: /^[0-9a-f-]{36}$/i.test(m || '') ? m : null })
-      .then(r => { if (r && r.id) feedbackId = r.id; });
+    votePending = post({ event: 'feedback', source: 'preview_poll', answer, slug: pageSlug, m: /^[0-9a-f-]{36}$/i.test(m || '') ? m : null });
     try { if (window.gtag) gtag('event', 'preview_poll', { answer, page_slug: pageSlug }); } catch (_) {}
     step1.classList.add('hidden');
     getEl('pollQ2').textContent = answer === 'yes' ? 'Great! Anything you\u2019d change?' : answer === 'maybe' ? 'What would make it a yes?' : 'What\u2019s missing, or why not?';
@@ -1281,8 +1280,9 @@ function setupPreviewPoll(pageSlug) {
   step2.addEventListener('submit', e => {
     e.preventDefault();
     const text = getEl('pollComment').value.trim();
-    if (text && feedbackId) post({ event: 'feedback', feedback_id: feedbackId, comment: text });
-    else if (text) post({ event: 'feedback', source: 'preview_poll', answer, slug: pageSlug, comment: text });
+    // Wait for the vote's row id so the comment attaches to it instead of
+    // inserting a second vote while the first request is still in flight.
+    if (text && votePending) votePending.then(r => { if (r && r.id) post({ event: 'feedback', feedback_id: r.id, comment: text }); });
     step2.classList.add('hidden');
     thanks.classList.remove('hidden');
     setTimeout(hide, 2500);

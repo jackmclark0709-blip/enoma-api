@@ -56,7 +56,7 @@
   var v = qs.get('v') === 'up' ? 'up' : 'down';
   var validId = /^[0-9a-f-]{36}$/i.test(m);
   var el = function (id) { return document.getElementById(id); };
-  var feedbackId = null;
+  var votePending = null;
 
   function post(body) {
     return fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true, body: JSON.stringify(body) })
@@ -82,7 +82,7 @@
   // The vote is recorded by this script, not by the email link itself, so
   // link scanners that pre-fetch email URLs don't cast fake votes.
   if (validId) {
-    post({ event: 'feedback', source: 'email_vote', answer: v, m: m }).then(function (r) { if (r && r.id) feedbackId = r.id; });
+    votePending = post({ event: 'feedback', source: 'email_vote', answer: v, m: m });
     try { if (window.gtag) gtag('event', 'outreach_feedback', { vote: v }); } catch (e) {}
   }
 
@@ -91,9 +91,11 @@
     var text = el('fbComment').value.trim();
     if (!text) { el('fbComment').focus(); return; }
     var btn = el('fbSend'); btn.disabled = true; btn.textContent = 'Sending…';
-    var send = feedbackId
-      ? post({ event: 'feedback', feedback_id: feedbackId, comment: text })
-      : (validId ? post({ event: 'feedback', source: 'email_vote', answer: v, m: m, comment: text }) : Promise.resolve());
+    // Chain on the vote so the comment attaches to its row rather than
+    // inserting a second vote while the first request is still in flight.
+    var send = votePending
+      ? votePending.then(function (r) { return r && r.id ? post({ event: 'feedback', feedback_id: r.id, comment: text }) : null; })
+      : Promise.resolve();
     send.then(function () {
       el('fbForm').classList.add('hidden');
       el('fbDone').classList.remove('hidden');
