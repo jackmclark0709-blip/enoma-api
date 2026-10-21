@@ -899,6 +899,19 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
   .mobile-call-bar svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; flex-shrink: 0; }
   body.has-mobile-call-bar { padding-bottom: 70px; }
 }
+
+/* ── Preview-page poll (unclaimed pages only) ── */
+.preview-poll { position: fixed; right: 16px; bottom: 16px; z-index: 60; width: min(340px, calc(100vw - 32px)); background: #0a1628; color: #f0f6ff; border-radius: 16px; padding: 1rem 1rem 0.9rem; box-shadow: 0 14px 40px rgba(10,22,40,0.35); font-family: 'DM Sans', system-ui, sans-serif; transform: translateY(12px); opacity: 0; transition: opacity .25s ease, transform .25s ease; }
+.preview-poll.is-shown { transform: none; opacity: 1; }
+.preview-poll__close { position: absolute; top: 6px; right: 8px; background: none; border: 0; color: rgba(240,246,255,0.6); font-size: 1.3rem; line-height: 1; cursor: pointer; padding: 4px 6px; }
+.preview-poll .preview-poll__q { color: #f0f6ff; margin: 0 1.5rem 0.75rem 0; font-size: 0.95rem; font-weight: 700; line-height: 1.4; }
+.preview-poll__opts { display: flex; gap: 0.4rem; }
+.preview-poll__opts button { flex: 1; padding: 0.6rem 0.4rem; border: 1px solid rgba(122,179,224,0.45); border-radius: 10px; background: rgba(56,130,220,0.12); color: #f0f6ff; font: inherit; font-size: 0.88rem; font-weight: 700; cursor: pointer; }
+.preview-poll__opts button:hover, .preview-poll__opts button:focus-visible { background: #3882dc; border-color: #3882dc; outline: none; }
+.preview-poll textarea { width: 100%; box-sizing: border-box; min-height: 70px; margin: 0 0 0.5rem; padding: 0.6rem 0.7rem; border-radius: 10px; border: 1px solid rgba(122,179,224,0.45); background: #fff; color: #0a1628; font: inherit; font-size: 0.9rem; resize: vertical; }
+.preview-poll__send { width: 100%; padding: 0.6rem; border: 0; border-radius: 10px; background: #3882dc; color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.preview-poll .preview-poll__thanks { margin: 0; font-size: 0.92rem; color: #7ab3e0; font-weight: 700; }
+@media (max-width: 768px) { body.has-mobile-call-bar .preview-poll { bottom: 82px; } }
 </style>
 {{BRAND_COLOR_STYLE}}
 <script src="/scripts/ref-capture.js"></script>
@@ -920,6 +933,25 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
     </form>
     <p class="claim-box__msg hidden" id="claimMsg" role="status"></p>
   </div>
+</div>
+
+<!-- PREVIEW POLL (unclaimed pages; shown by setupPreviewPoll) -->
+<div class="preview-poll hidden" id="previewPoll" role="dialog" aria-labelledby="pollQ">
+  <button type="button" class="preview-poll__close" id="pollClose" aria-label="Close">&times;</button>
+  <div id="pollStep1">
+    <p class="preview-poll__q" id="pollQ">Quick question: would you use a page like this for your business?</p>
+    <div class="preview-poll__opts">
+      <button type="button" data-answer="yes">Yes</button>
+      <button type="button" data-answer="maybe">Not yet</button>
+      <button type="button" data-answer="no">No</button>
+    </div>
+  </div>
+  <form class="hidden" id="pollStep2" novalidate>
+    <p class="preview-poll__q" id="pollQ2">What's missing?</p>
+    <textarea id="pollComment" maxlength="1000" placeholder="Optional. Anything helps."></textarea>
+    <button type="submit" class="preview-poll__send">Send</button>
+  </form>
+  <p class="preview-poll__thanks hidden" id="pollThanks">Thanks! That really helps.</p>
 </div>
 
 <!-- STICKY NAV -->
@@ -1197,6 +1229,66 @@ function setupClaimBox(pageSlug) {
   });
 }
 
+/* Session recording (Microsoft Clarity) only on unclaimed previews, never on
+   a customer's live page. No-op until a project id is set in clarity.js. */
+function loadClarity() {
+  const sc = document.createElement('script');
+  sc.src = '/scripts/clarity.js'; sc.defer = true; document.head.appendChild(sc);
+}
+
+/* ── Preview-page poll ──
+   One question on unclaimed preview pages, once per page per browser, after
+   the visitor has had a moment with the page. Answers land in the feedback
+   table via /api/track. Stays out of the way of the claim form. */
+function setupPreviewPoll(pageSlug) {
+  const poll = getEl('previewPoll');
+  if (!poll || !pageSlug) return;
+  const key = 'enoma_poll_' + pageSlug;
+  try { if (localStorage.getItem(key)) return; } catch (_) {}
+  const remember = () => { try { localStorage.setItem(key, '1'); } catch (_) {} };
+  const step1 = getEl('pollStep1'), step2 = getEl('pollStep2'), thanks = getEl('pollThanks');
+  const claimInput = getEl('claimEmail');
+  let shown = false, votePending = null, answer = null;
+  const post = (body) => fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true, body: JSON.stringify(body) })
+    .then(r => r.ok ? r.json() : {}).catch(() => ({}));
+  const show = () => {
+    if (shown) return;
+    if (claimInput && document.activeElement === claimInput) return; // don't interrupt a claim
+    shown = true;
+    poll.classList.remove('hidden');
+    requestAnimationFrame(() => poll.classList.add('is-shown'));
+    window.removeEventListener('scroll', onScroll);
+  };
+  const hide = () => { poll.classList.remove('is-shown'); setTimeout(() => poll.classList.add('hidden'), 250); };
+  const onScroll = () => {
+    const h = document.documentElement.scrollHeight - window.innerHeight;
+    if (h > 0 && window.scrollY / h > 0.4) show();
+  };
+  setTimeout(show, 15000);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  getEl('pollClose').addEventListener('click', () => { remember(); hide(); });
+  const m = new URLSearchParams(window.location.search).get('m') || null;
+  step1.querySelectorAll('button[data-answer]').forEach(btn => btn.addEventListener('click', () => {
+    answer = btn.getAttribute('data-answer');
+    remember();
+    votePending = post({ event: 'feedback', source: 'preview_poll', answer, slug: pageSlug, m: /^[0-9a-f-]{36}$/i.test(m || '') ? m : null });
+    try { if (window.gtag) gtag('event', 'preview_poll', { answer, page_slug: pageSlug }); } catch (_) {}
+    step1.classList.add('hidden');
+    getEl('pollQ2').textContent = answer === 'yes' ? 'Great! Anything you\u2019d change?' : answer === 'maybe' ? 'What would make it a yes?' : 'What\u2019s missing, or why not?';
+    step2.classList.remove('hidden');
+  }));
+  step2.addEventListener('submit', e => {
+    e.preventDefault();
+    const text = getEl('pollComment').value.trim();
+    // Wait for the vote's row id so the comment attaches to it instead of
+    // inserting a second vote while the first request is still in flight.
+    if (text && votePending) votePending.then(r => { if (r && r.id) post({ event: 'feedback', feedback_id: r.id, comment: text }); });
+    step2.classList.add('hidden');
+    thanks.classList.remove('hidden');
+    setTimeout(hide, 2500);
+  });
+}
+
 function trackContactClick(type) {
   if (!window.profileData?.username) return;
   // Mirror to GA4 so calls/quote taps on client pages show up as a key event.
@@ -1341,6 +1433,8 @@ async function loadProfile() {
       if (unclaimedCta) unclaimedCta.href = `/signup?business=${encodeURIComponent(p.username || slug || '')}`;
       unclaimedBanner.classList.remove('hidden');
       setupClaimBox(p.username || slug || '');
+      setupPreviewPoll(p.username || slug || '');
+      loadClarity();
     }
   }
 

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Thanks for the feedback — Enoma</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <link rel="stylesheet" href="/styles/enoma.css" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-S8XTG72Y2Y');</script>
+  <script src="/scripts/clarity.js" defer></script>
+  <style>
+    body { background: #f0f6ff; min-height: 100vh; display: flex; flex-direction: column; }
+    .fb-page { flex: 1; display: flex; align-items: center; justify-content: center; padding: 3rem 1rem; }
+    .fb-card { width: 100%; max-width: 460px; background: #fff; border: 1px solid #d4e2f4; border-radius: 20px; padding: 2.25rem 1.75rem; text-align: center; box-shadow: 0 12px 40px rgba(10,22,40,0.10); }
+    .fb-eyebrow { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #3882dc; margin: 0 0 0.75rem; }
+    .fb-card h1 { font-family: 'DM Sans', sans-serif; font-size: 1.45rem; font-weight: 800; color: #0a1628; letter-spacing: -0.02em; margin: 0 0 0.5rem; }
+    .fb-sub { font-size: 0.92rem; color: #5a7a9a; margin: 0 0 1.25rem; line-height: 1.6; }
+    .fb-form { text-align: left; }
+    .fb-form label { display: block; font-size: 0.85rem; font-weight: 700; color: #0a1628; margin-bottom: 0.4rem; }
+    .fb-form textarea { width: 100%; box-sizing: border-box; min-height: 96px; padding: 0.75rem 0.85rem; border: 1px solid #d4e2f4; border-radius: 12px; font: inherit; font-size: 0.95rem; color: #0a1628; resize: vertical; }
+    .fb-form textarea:focus { outline: 2px solid #3882dc; outline-offset: 1px; }
+    .fb-btn { display: inline-block; margin-top: 0.75rem; padding: 0.75rem 1.25rem; border: 0; border-radius: 10px; background: #3882dc; color: #fff; font: inherit; font-weight: 800; font-size: 0.95rem; text-decoration: none; cursor: pointer; }
+    .fb-btn:disabled { opacity: 0.6; cursor: wait; }
+    .fb-form .fb-btn { width: 100%; }
+    .fb-note { font-size: 0.85rem; color: #5a7a9a; margin: 1rem 0 0; }
+    .hidden { display: none !important; }
+    #site-footer { margin-top: auto; }
+  </style>
+</head>
+<body>
+<script type="module" src="/partials/nav.js"></script>
+
+<div class="fb-page">
+  <div class="fb-card">
+    <p class="fb-eyebrow">Enoma</p>
+    <h1 id="fbHeading">Thanks, that helps.</h1>
+    <p class="fb-sub" id="fbSub">I read every answer.</p>
+
+    <form class="fb-form hidden" id="fbForm" novalidate>
+      <label for="fbComment" id="fbLabel">What would make it useful for your business?</label>
+      <textarea id="fbComment" maxlength="1000" placeholder="e.g. I get all my work from referrals, I already have a site, it's missing photos…"></textarea>
+      <button type="submit" class="fb-btn" id="fbSend">Send</button>
+    </form>
+
+    <a class="fb-btn hidden" id="fbKeep" href="#">Keep my page live</a>
+    <p class="fb-note hidden" id="fbDone">Got it. Thank you! You can close this tab.</p>
+  </div>
+</div>
+
+<script>
+(function () {
+  var qs = new URLSearchParams(location.search);
+  var m = qs.get('m') || '';
+  var v = qs.get('v') === 'up' ? 'up' : 'down';
+  var validId = /^[0-9a-f-]{36}$/i.test(m);
+  var el = function (id) { return document.getElementById(id); };
+  var votePending = null;
+
+  function post(body) {
+    return fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true, body: JSON.stringify(body) })
+      .then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; });
+  }
+
+  if (v === 'up') {
+    el('fbHeading').textContent = 'Great, glad it looks useful.';
+    el('fbSub').textContent = 'Your first month is free, no credit card. Anything you’d change about the page?';
+    el('fbLabel').textContent = 'Anything you’d change? (optional)';
+    el('fbComment').placeholder = 'e.g. add my service area, different photos, change the wording…';
+    if (validId) {
+      var keep = el('fbKeep');
+      keep.href = '/api/ga-metrics?action=go&m=' + encodeURIComponent(m) + '&to=claim';
+      keep.classList.remove('hidden');
+    }
+  } else {
+    el('fbHeading').textContent = 'Thanks for being honest.';
+    el('fbSub').textContent = 'One quick question so I can make this better:';
+  }
+  el('fbForm').classList.remove('hidden');
+
+  // The vote is recorded by this script, not by the email link itself, so
+  // link scanners that pre-fetch email URLs don't cast fake votes.
+  if (validId) {
+    votePending = post({ event: 'feedback', source: 'email_vote', answer: v, m: m });
+    try { if (window.gtag) gtag('event', 'outreach_feedback', { vote: v }); } catch (e) {}
+  }
+
+  el('fbForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var text = el('fbComment').value.trim();
+    if (!text) { el('fbComment').focus(); return; }
+    var btn = el('fbSend'); btn.disabled = true; btn.textContent = 'Sending…';
+    // Chain on the vote so the comment attaches to its row rather than
+    // inserting a second vote while the first request is still in flight.
+    var send = votePending
+      ? votePending.then(function (r) { return r && r.id ? post({ event: 'feedback', feedback_id: r.id, comment: text }) : null; })
+      : Promise.resolve();
+    send.then(function () {
+      el('fbForm').classList.add('hidden');
+      el('fbDone').classList.remove('hidden');
+    });
+  });
+})();
+</script>
+</body>
+</html>

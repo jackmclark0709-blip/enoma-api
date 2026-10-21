@@ -21,6 +21,7 @@
     { "source": "/widget", "destination": "/widget.html" },
 { "source": "/choose-path", "destination": "/choose-path.html" },
     { "source": "/claim", "destination": "/claim.html" },
+    { "source": "/feedback", "destination": "/feedback.html" },
     { "source": "/for/lawn-care-website-agawam-ma", "destination": "/for/lawn-care-website-agawam-ma.html" },
     { "source": "/for/plumber-website-attleboro-ma", "destination": "/for/plumber-website-attleboro-ma.html" },
     { "source": "/for/website-for-local-service-business", "destination": "/for/website-for-local-service-business.html" },
@@ -37,7 +38,7 @@
     { "source": "/case-studies/conways-landscaping", "destination": "/case-studies/conways-landscaping.html" },
     { "source": "/for/:slug", "destination": "/for/:slug.html" },
     {
-      "source": "/((?!assets|api|dashboard|styles|scripts|partials|website-live|pricing|examples|contact|request|privacy|terms|favicon|index|upgrade|for|case-studies).*)",
+      "source": "/((?!favicon|(?:assets|api|dashboard|styles|scripts|partials|website-live|pricing|examples|contact|request|privacy|terms|index|upgrade|for|case-studies|feedback)(?:/|\\.|$)).*)",
       "destination": "/api/p?slug=$1"
     }
   ],
