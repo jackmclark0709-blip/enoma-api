@@ -10,6 +10,7 @@
 // outreach_messages id, so a click is recorded against that exact email even
 // if Resend's own click tracking is off, then lands on the real page.
 import { escapeHtml, plainTextToHtml } from "./email-html.js";
+import { feedbackLinks } from "./feedback.js";
 
 const BASE = "https://enoma.io";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -58,6 +59,7 @@ export function messageIdFromReplyAddress(addresses) {
 
 export function buildOutreachEmail({ intro, businessName, messageId, slug, unsubscribeUrl, mailingAddress }) {
   const links = trackedLinks(messageId, slug);
+  const vote = feedbackLinks(messageId);
   const name = businessName || "your business";
   const signoff = "Jack Clark\nEnoma · jack@enoma.io";
 
@@ -67,6 +69,7 @@ export function buildOutreachEmail({ intro, businessName, messageId, slug, unsub
     `Want to keep it live and make it yours? ${links.claim}`,
     `Or just reply "yes" and I'll set it up for you. If it's not for you, reply "no" and I'll take it down.`,
     signoff,
+    `Quick favor: is a page like this useful to you? Yes: ${vote.up}  Not really: ${vote.down}`,
     `---\n${mailingAddress}\nDon't want these emails? ${unsubscribeUrl}`
   ].join("\n\n");
 
@@ -86,12 +89,13 @@ ${plainTextToHtml(String(intro || "").trim())}
 </table>
 <p style="margin:0 0 16px;">Or just reply <strong>yes</strong> and I'll set it up for you. If it's not for you, reply <strong>no</strong> and I'll take it down.</p>
 <p style="margin:0 0 24px;">Jack Clark<br>Enoma &middot; jack@enoma.io</p>
+<p style="margin:0 0 24px;font-size:14px;color:#555555;">Quick favor: is a page like this useful to you?&nbsp; <a href="${vote.up}" style="color:#1a73e8;text-decoration:none;">&#128077; Yes</a> &nbsp;&middot;&nbsp; <a href="${vote.down}" style="color:#1a73e8;text-decoration:none;">&#128078; Not really</a></p>
 <p style="margin:0;font-size:12px;color:#888888;border-top:1px solid #eeeeee;padding-top:12px;">${escapeHtml(mailingAddress)}<br><a href="${unsubscribeUrl}" style="color:#888888;">Unsubscribe</a></p>
 </div>
 </body>
 </html>`;
 
-  return { text, html, links };
+  return { text, html, links: { ...links, voteUp: vote.up, voteDown: vote.down } };
 }
 
 // Rough intent of an inbound reply, for sorting only — Jack still sees every

@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { parseFeedback } from "./_lib/feedback.js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -55,6 +56,26 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Owner feedback (preview-page poll, outreach 👍/👎). Its own table so
+    // answers are easy to read back; a second call adds the optional comment.
+    if (event === "feedback") {
+      const parsed = parseFeedback(req.body);
+      if (!parsed.ok) return res.status(400).json({ error: parsed.error });
+      if (parsed.kind === "comment") {
+        const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+        await supabase.from("feedback").update({ comment: parsed.comment })
+          .eq("id", parsed.id).is("comment", null).gte("created_at", since);
+        return res.json({ success: true });
+      }
+      const { data, error } = await supabase.from("feedback").insert({
+        ...parsed.row,
+        referrer: req.headers.referer || null,
+        user_agent: req.headers["user-agent"] || null
+      }).select("id").single();
+      if (error) throw error;
+      return res.json({ success: true, id: data.id });
+    }
+
     if (slug) {
       await supabase.from("page_events").insert({
         slug,

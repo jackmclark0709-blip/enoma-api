@@ -143,6 +143,7 @@ export function renderTownPage(p, { pairs, asOf, asOfLabel }) {
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700;9..40,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
+  <script src="/scripts/clarity.js" defer></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-S8XTG72Y2Y');</script>
   <script type="application/ld+json">${JSON.stringify(schema)}</script>
   <script type="application/ld+json">${JSON.stringify(faq)}</script>

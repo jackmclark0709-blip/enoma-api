@@ -58,6 +58,9 @@ await test("HTML has the page card, the Keep my page live button and the reply l
 await test("HTML keeps the CAN-SPAM address and unsubscribe link", () => {
   assert.match(email.html, /183 Fairway Dr/);
   assert.match(email.html, /action=unsubscribe/);
+  assert.ok(email.html.includes(`/feedback?m=${ID}&amp;v=up`) || email.html.includes(`/feedback?m=${ID}&v=up`));
+  assert.ok(email.html.includes(`/feedback?m=${ID}&v=down`));
+  assert.ok(email.text.includes(`/feedback?m=${ID}&v=down`));
 });
 await test("business name and intro are escaped", () => {
   assert.ok(!email.html.includes("<Plumbing>"));
