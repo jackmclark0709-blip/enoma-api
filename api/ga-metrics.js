@@ -9,7 +9,7 @@ import { createClient } from "@supabase/supabase-js";
 import { scoreRawLead, scoreProspect } from "./_lib/lead-scoring.js";
 import dns from "node:dns/promises";
 import crypto from "node:crypto";
-import { extractEmails, pickBestEmail, htmlToText, isPrivateOrReservedIp } from "./_lib/email-crawler.js";
+import { extractEmails, pickBestEmail, htmlToText, isPrivateOrReservedIp, websiteCandidates } from "./_lib/email-crawler.js";
 import { hasValidMx } from "./_lib/email-verify.js";
 import { siteChecks, decideSiteTier } from "./_lib/site-checks.js";
 import { previousMonth, tallyClicks, buildResultsEmail } from "./_lib/results-email.js";
@@ -330,8 +330,8 @@ async function fetchPageText(url, timeoutMs) {
   for (let hop = 0; hop <= MAX_CRAWL_REDIRECTS; hop++) {
     try {
       await assertPublicHost(currentUrl);
-    } catch {
-      return { ok: false, html: null };
+    } catch (err) {
+      return { ok: false, html: null, reason: `dns:${err.code || "blocked"}` };
     }
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -341,15 +341,16 @@ async function fetchPageText(url, timeoutMs) {
         currentUrl = new URL(res.headers.get("location"), currentUrl).toString();
         continue;
       }
-      if (!res.ok) return { ok: false, html: null };
+      if (!res.ok) return { ok: false, html: null, reason: `http:${res.status}` };
       return { ok: true, html: await res.text() };
-    } catch {
-      return { ok: false, html: null };
+    } catch (err) {
+      const reason = err.name === "AbortError" ? "timeout" : `net:${err.cause?.code || err.name}`;
+      return { ok: false, html: null, reason };
     } finally {
       clearTimeout(timeout);
     }
   }
-  return { ok: false, html: null };
+  return { ok: false, html: null, reason: "too_many_redirects" };
 }
 
 // Tries the homepage first, then one contact-page fallback if the homepage
@@ -359,15 +360,26 @@ async function fetchPageText(url, timeoutMs) {
 // tells the caller whether any page was actually read successfully, so it
 // can tell a genuine "no email on this site" apart from "site blocked us."
 async function findEmailForWebsite(website) {
-  let base;
-  try {
-    base = new URL(website.match(/^https?:\/\//) ? website : `https://${website}`);
-  } catch {
-    return { emails: [], html: null, homeHtml: null, homeUrl: null, domain: null, fetched: false };
+  // Listing URLs can carry (sometimes percent-encoded) UTM junk or point at
+  // a deep page; try the cleaned URL, then the bare origin.
+  const candidates = websiteCandidates(website);
+  if (!candidates.length) {
+    return { emails: [], html: null, homeHtml: null, homeUrl: null, domain: null, fetched: false, failReason: "bad_url" };
   }
+  let homepage = { ok: false, html: null };
+  let homeUrl = candidates[0];
+  const failReasons = [];
+  for (const candidate of candidates) {
+    homeUrl = candidate;
+    homepage = await fetchPageText(candidate, 6000);
+    if (homepage.ok) break;
+    failReasons.push(homepage.reason);
+    // Same host: a DNS failure or timeout won't fix itself at the origin.
+    if (!String(homepage.reason).startsWith("http:")) break;
+  }
+  const base = new URL(homeUrl);
   const domain = base.hostname.replace(/^www\./, "");
 
-  const homepage = await fetchPageText(base.toString(), 6000);
   let emails = extractEmails(homepage.html);
   let html = homepage.html;
   let fetched = homepage.ok;
@@ -376,6 +388,7 @@ async function findEmailForWebsite(website) {
     if (emails.length) break;
     const contact = await fetchPageText(`${base.origin}${path}`, 5000);
     fetched = fetched || contact.ok;
+    if (!contact.ok) failReasons.push(contact.reason);
     const contactEmails = extractEmails(contact.html);
     if (contactEmails.length) {
       emails = contactEmails;
@@ -385,7 +398,7 @@ async function findEmailForWebsite(website) {
 
   // homeHtml/homeUrl: the homepage specifically, for objective site checks
   // (siteChecks) — `html` may be a contact page if that's where the email was.
-  return { emails, html, homeHtml: homepage.html, homeUrl: base.toString(), domain, fetched };
+  return { emails, html, homeHtml: homepage.html, homeUrl, domain, fetched, failReason: fetched ? null : [...new Set(failReasons)].join(",") };
 }
 
 // Only called once a real email has been found — no point spending an OpenAI
@@ -450,6 +463,10 @@ async function crawlWebsitesOnce({ limit = 6, deadline } = {}) {
     .not("website", "is", null)
     .is("email", null)
     .or(`email_crawl_status.is.null,and(email_crawl_status.eq.fetch_failed,updated_at.lt.${new Date(Date.now() - FETCH_FAILED_RETRY_AFTER_MS).toISOString()})`)
+    // Never-crawled first (newest pulls first), so 3-day fetch_failed
+    // retries only use slots the fresh queue doesn't need.
+    .order("email_crawl_status", { ascending: true, nullsFirst: true })
+    .order("created_at", { ascending: false })
     .limit(cappedLimit);
   if (error) throw error;
 
@@ -465,17 +482,18 @@ async function crawlWebsitesOnce({ limit = 6, deadline } = {}) {
     // batch boundary — picked up on the next run.
     if (deadline && Date.now() > deadline) break;
     try {
-      const { emails, html, homeHtml, homeUrl, domain, fetched } = await findEmailForWebsite(prospect.website);
+      const { emails, html, homeHtml, homeUrl, domain, fetched, failReason } = await findEmailForWebsite(prospect.website);
       const email = pickBestEmail(emails, domain);
 
       if (!email) {
         // Only report "no_email_found" if we actually read a page — a
         // blocked/errored fetch means we never really checked.
         const status = fetched ? "no_email_found" : "fetch_failed";
+        if (!fetched) console.warn(`crawl fetch_failed ${prospect.website}: ${failReason}`);
         await supabase.from("prospects")
           .update({ email_crawl_status: status, updated_at: new Date().toISOString() })
           .eq("id", prospect.id);
-        results.push({ business_name: prospect.business_name, website: prospect.website, email_crawl_status: status });
+        results.push({ business_name: prospect.business_name, website: prospect.website, email_crawl_status: status, ...(fetched ? {} : { fail_reason: failReason }) });
         continue;
       }
 
@@ -543,9 +561,16 @@ async function crawlWebsitesOnce({ limit = 6, deadline } = {}) {
   };
 }
 
+const CRAWL_ONLY_BUDGET_MS = 35000;
+
 async function handleCrawlWebsites(req, res) {
   const limit = parseInt(req.query.limit, 10) || 6;
-  const result = await crawlWebsitesOnce({ limit });
+  // Own cron entries (vercel.json) so crawling isn't limited to whatever
+  // time daily_pipeline has left after the pull. The deadline is checked
+  // before each site, and one site can take ~20s+ (homepage, origin
+  // fallback, two contact pages, OpenAI), so stop starting new ones at 35s
+  // to stay under the 60s maxDuration.
+  const result = await crawlWebsitesOnce({ limit, deadline: Date.now() + CRAWL_ONLY_BUDGET_MS });
   return res.status(200).json({ success: true, ...result });
 }
 
