@@ -100,3 +100,28 @@ export function htmlToText(html, maxLen = 6000) {
     .trim()
     .slice(0, maxLen);
 }
+
+// Google Business Profile links often carry UTM params, and some listings
+// store them with the "?" percent-encoded ("site.com/%3Futm_source%3D..."),
+// which turns the query into a path that 404s. Returns the URLs worth trying
+// as a site's homepage, best first: the cleaned listing URL (query, hash and
+// any encoded query dropped), then the bare origin when the listing pointed
+// at a deep page (e.g. "/service-area/sarasota/"). Empty array if unparseable.
+export function websiteCandidates(website) {
+  if (!website) return [];
+  const raw = String(website).trim().replace(/%3F.*$/i, "");
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(raw) && !/^https?:\/\//i.test(raw)) return [];
+  let url;
+  try {
+    url = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+  } catch {
+    return [];
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") return [];
+  url.search = "";
+  url.hash = "";
+  const out = [url.toString()];
+  const origin = `${url.origin}/`;
+  if (!out.includes(origin)) out.push(origin);
+  return out;
+}

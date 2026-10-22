@@ -177,6 +177,22 @@
       "schedule": "20 10 * * *"
     },
     {
+      "path": "/api/ga-metrics?action=crawl_websites&limit=15",
+      "schedule": "45 10 * * *"
+    },
+    {
+      "path": "/api/ga-metrics?action=crawl_websites&limit=15",
+      "schedule": "45 13 * * *"
+    },
+    {
+      "path": "/api/ga-metrics?action=crawl_websites&limit=15",
+      "schedule": "45 16 * * *"
+    },
+    {
+      "path": "/api/ga-metrics?action=crawl_websites&limit=15",
+      "schedule": "45 19 * * *"
+    },
+    {
       "path": "/api/ga-metrics?action=prepare_outreach&limit=4",
       "schedule": "5 12 * * *"
     },

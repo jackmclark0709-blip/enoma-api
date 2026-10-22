@@ -2,7 +2,7 @@
 // Run with: node tests/email-crawler.test.js (also wired into `npm test`)
 
 import assert from "node:assert/strict";
-import { extractEmails, pickBestEmail, htmlToText, isPrivateOrReservedIp } from "../api/_lib/email-crawler.js";
+import { extractEmails, pickBestEmail, htmlToText, isPrivateOrReservedIp, websiteCandidates } from "../api/_lib/email-crawler.js";
 
 let passed = 0;
 function test(name, fn) {
@@ -146,6 +146,33 @@ test("resolves IPv4-mapped IPv6 addresses before checking", () => {
 test("treats empty/missing input as blocked", () => {
   assert.equal(isPrivateOrReservedIp(""), true);
   assert.equal(isPrivateOrReservedIp(null), true);
+});
+
+test("websiteCandidates: strips percent-encoded GBP query", () => {
+  assert.deepEqual(
+    websiteCandidates("https://strongroofingsrq.com/%3Futm_source%3Dgoogle%26utm_medium%3Dorganic"),
+    ["https://strongroofingsrq.com/"]
+  );
+  assert.deepEqual(websiteCandidates("http://www.wdelectriciansharonma.com/%3F"), ["http://www.wdelectriciansharonma.com/"]);
+});
+
+test("websiteCandidates: strips real query and hash", () => {
+  assert.deepEqual(websiteCandidates("https://acme.com/?utm_source=gbp#top"), ["https://acme.com/"]);
+});
+
+test("websiteCandidates: deep listing page falls back to origin", () => {
+  assert.deepEqual(
+    websiteCandidates("https://www.veteranair.com/service-area/sarasota/%3Futm_source%3Dgoogle-gbp"),
+    ["https://www.veteranair.com/service-area/sarasota/", "https://www.veteranair.com/"]
+  );
+});
+
+test("websiteCandidates: bare domain, junk and non-http", () => {
+  assert.deepEqual(websiteCandidates("acme.com"), ["https://acme.com/"]);
+  assert.deepEqual(websiteCandidates(""), []);
+  assert.deepEqual(websiteCandidates(null), []);
+  assert.deepEqual(websiteCandidates("http://"), []);
+  assert.deepEqual(websiteCandidates("ftp://acme.com"), []);
 });
 
 console.log(`\n${passed} passed`);
