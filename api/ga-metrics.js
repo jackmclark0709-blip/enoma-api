@@ -9,7 +9,7 @@ import { createClient } from "@supabase/supabase-js";
 import { scoreRawLead, scoreProspect } from "./_lib/lead-scoring.js";
 import dns from "node:dns/promises";
 import crypto from "node:crypto";
-import { extractEmails, pickBestEmail, htmlToText, isPrivateOrReservedIp, websiteCandidates } from "./_lib/email-crawler.js";
+import { extractEmails, pickBestEmail, htmlToText, isPrivateOrReservedIp, websiteCandidates, contactLinks, alternateOrigins } from "./_lib/email-crawler.js";
 import { hasValidMx } from "./_lib/email-verify.js";
 import { siteChecks, decideSiteTier } from "./_lib/site-checks.js";
 import { previousMonth, tallyClicks, buildResultsEmail } from "./_lib/results-email.js";
@@ -377,6 +377,16 @@ async function findEmailForWebsite(website) {
     // Same host: a DNS failure or timeout won't fix itself at the origin.
     if (!String(homepage.reason).startsWith("http:")) break;
   }
+  // Unreachable as listed: try the other scheme / www spelling once each
+  // (an http:// listing for an https-only site, a bare domain that only
+  // answers on www., and so on).
+  if (!homepage.ok) {
+    for (const alt of alternateOrigins(candidates[0])) {
+      const r = await fetchPageText(alt, 5000);
+      if (r.ok) { homepage = r; homeUrl = alt; break; }
+      failReasons.push(r.reason);
+    }
+  }
   const base = new URL(homeUrl);
   const domain = base.hostname.replace(/^www\./, "");
 
@@ -384,9 +394,14 @@ async function findEmailForWebsite(website) {
   let html = homepage.html;
   let fetched = homepage.ok;
 
-  for (const path of CONTACT_FALLBACK_PATHS) {
+  // Follow the site's own contact/quote/about links first; the fixed
+  // /contact and /contact-us guesses are only a fallback when the homepage
+  // has no such links (or couldn't be read).
+  const discovered = contactLinks(homepage.html, homeUrl, 3);
+  const pages = discovered.length ? discovered : CONTACT_FALLBACK_PATHS.map(p => `${base.origin}${p}`);
+  for (const url of pages) {
     if (emails.length) break;
-    const contact = await fetchPageText(`${base.origin}${path}`, 5000);
+    const contact = await fetchPageText(url, 5000);
     fetched = fetched || contact.ok;
     if (!contact.ok) failReasons.push(contact.reason);
     const contactEmails = extractEmails(contact.html);
