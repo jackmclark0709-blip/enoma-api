@@ -2,7 +2,7 @@
 // Run with: node tests/email-crawler.test.js (also wired into `npm test`)
 
 import assert from "node:assert/strict";
-import { extractEmails, pickBestEmail, htmlToText, isPrivateOrReservedIp, websiteCandidates } from "../api/_lib/email-crawler.js";
+import { extractEmails, pickBestEmail, htmlToText, isPrivateOrReservedIp, websiteCandidates, decodeCfEmail, contactLinks, alternateOrigins } from "../api/_lib/email-crawler.js";
 
 let passed = 0;
 function test(name, fn) {
@@ -173,6 +173,72 @@ test("websiteCandidates: bare domain, junk and non-http", () => {
   assert.deepEqual(websiteCandidates(null), []);
   assert.deepEqual(websiteCandidates("http://"), []);
   assert.deepEqual(websiteCandidates("ftp://acme.com"), []);
+});
+
+console.log("obfuscated emails");
+
+test("decodes WordPress antispambot entity-encoded mailto", () => {
+  const enc = [..."mailto:info@acmeroofing.com"].map(c => `&#${c.charCodeAt(0)};`).join("");
+  const html = `<a href="${enc}">${[..."info@acmeroofing.com"].map(c => `&#x${c.charCodeAt(0).toString(16)};`).join("")}</a>`;
+  assert.deepEqual(extractEmails(html), ["info@acmeroofing.com"]);
+});
+
+test("decodes Cloudflare data-cfemail and email-protection links", () => {
+  const key = 0x42;
+  const hex = key.toString(16).padStart(2, "0") + [..."office@bluesky.com"].map(c => (c.charCodeAt(0) ^ key).toString(16).padStart(2, "0")).join("");
+  assert.equal(decodeCfEmail(hex), "office@bluesky.com");
+  assert.deepEqual(extractEmails(`<span class="__cf_email__" data-cfemail="${hex}">[email&#160;protected]</span>`), ["office@bluesky.com"]);
+  assert.deepEqual(extractEmails(`<a href="/cdn-cgi/l/email-protection#${hex}">Email</a>`), ["office@bluesky.com"]);
+});
+
+test("rejects garbage cf hex", () => {
+  assert.equal(decodeCfEmail("zz"), null);
+  assert.equal(decodeCfEmail("4242"), null);
+});
+
+test("reads email from JSON-LD even though other scripts are ignored", () => {
+  const html = `<script type="application/ld+json">{"@type":"LocalBusiness","email":"mailto:jobs@pelicanroofing.com"}</script><script>var x="dev@vendor.io"</script>`;
+  assert.deepEqual(extractEmails(html), ["jobs@pelicanroofing.com"]);
+});
+
+test("reads spelled-out [at] [dot] addresses", () => {
+  assert.deepEqual(extractEmails(`<p>Email: mike [at] fogleelectric [dot] com</p>`), ["mike@fogleelectric.com"]);
+  assert.deepEqual(extractEmails(`<p>sales(at)gregoryelectric.com</p>`), ["sales@gregoryelectric.com"]);
+});
+
+test("strips trailing punctuation from bare-text matches", () => {
+  assert.deepEqual(extractEmails(`<p>Write to info@site.com.</p>`), ["info@site.com"]);
+});
+
+console.log("contactLinks");
+
+test("finds same-site contact/quote links, contact first, skips external and tel/mailto", () => {
+  const html = `
+    <a href="/about-us/">About Us</a>
+    <a href="https://www.acme.com/get-a-quote">Free Quote</a>
+    <a href="/reach-us.html">Contact</a>
+    <a href="https://facebook.com/acme/contact">FB</a>
+    <a href="tel:5551234">Call</a>
+    <a href="/services">Services</a>`;
+  const links = contactLinks(html, "https://acme.com/");
+  assert.equal(links[0], "https://acme.com/reach-us.html");
+  assert.ok(links.includes("https://www.acme.com/get-a-quote"));
+  assert.ok(links.includes("https://acme.com/about-us/"));
+  assert.ok(!links.some(l => l.includes("facebook") || l.includes("services")));
+});
+
+test("caps the number of links and handles empty input", () => {
+  const html = Array.from({ length: 8 }, (_, i) => `<a href="/contact-${i}">Contact</a>`).join("");
+  assert.equal(contactLinks(html, "https://a.com/", 3).length, 3);
+  assert.deepEqual(contactLinks("", "https://a.com/"), []);
+});
+
+console.log("alternateOrigins");
+
+test("flips scheme and www", () => {
+  assert.deepEqual(alternateOrigins("http://boyerconstruction.net/"), ["https://boyerconstruction.net/", "https://www.boyerconstruction.net/"]);
+  assert.deepEqual(alternateOrigins("https://www.axiselectric.llc/"), ["http://www.axiselectric.llc/", "https://axiselectric.llc/"]);
+  assert.deepEqual(alternateOrigins("not a url"), []);
 });
 
 console.log(`\n${passed} passed`);
