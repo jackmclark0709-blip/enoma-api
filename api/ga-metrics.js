@@ -17,7 +17,7 @@ import { siteChecks, decideSiteTier } from "./_lib/site-checks.js";
 import { previousMonth, tallyClicks, buildResultsEmail } from "./_lib/results-email.js";
 import { qualifiesForPreview, buildFactsPrompt, validateGenerated, assembleProfile, slugify, stateAbbr, PREVIEW_TRIAL_DAYS, INBOUND_PREVIEW_DAYS, INBOUND_SOURCE, isValidPlaceId, inboundLimitReason, placeToProspect, isValidSessionToken, placeSuggestions } from "./_lib/preview-generator.js";
 import { verifyUnsubscribeToken, appendComplianceFooter, buildUnsubscribeUrl, MAILING_ADDRESS } from "./_lib/outreach-footer.js";
-import { buildOutreachEmail, buildOutreachIntro, isLikelyLinkScanner, trackedLinks, replyToFor, slugFromPreviewUrl, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "./_lib/outreach-email.js";
+import { buildOutreachEmail, buildOutreachIntro, buildFollowUpEmail, isFollowUpDue, FOLLOW_UP_AFTER_DAYS, FOLLOW_UP_MAX_AGE_DAYS, isLikelyLinkScanner, trackedLinks, replyToFor, slugFromPreviewUrl, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "./_lib/outreach-email.js";
 import { verifyMailbox } from "./_lib/mailbox-verify.js";
 import { plainTextToHtml, wrapEmailHtml } from "./_lib/email-html.js";
 import { rampCapForDate } from "./_lib/outreach-ramp.js";
@@ -1542,6 +1542,74 @@ const SEND_OUTREACH_FROM = "Jack at Enoma <outreach@mail.enoma.io>";
 // Hard ceiling on cold emails per day, whatever the cron or a caller asks for.
 const OUTREACH_DAILY_CAP = 10;
 
+// One follow-up per cold email, 3-10 days after it went out, only while the
+// owner hasn't replied, bounced, opted out or claimed, and the page is still
+// up and unclaimed. The original message row is reserved by stamping
+// followup_sent_at first, so overlapping runs can't send it twice.
+async function sendFollowUpsOnce({ maxSends, captureReplies }) {
+  const results = [];
+  if (!maxSends) return { sent: 0, results };
+  const now = Date.now();
+  const { data: rows, error } = await supabase.from("outreach_messages")
+    .select("id, sent_at, draft_subject, followup_sent_at, response_status, prospects(id, business_name, email, preview_url, status)")
+    .eq("channel", "email").eq("status", "sent")
+    .is("followup_sent_at", null).is("response_status", null)
+    .gte("sent_at", new Date(now - FOLLOW_UP_MAX_AGE_DAYS * 864e5).toISOString())
+    .lte("sent_at", new Date(now - FOLLOW_UP_AFTER_DAYS * 864e5).toISOString())
+    .order("sent_at", { ascending: true })
+    .limit(Math.min(maxSends * 3, 30));
+  if (error) throw error;
+
+  let sent = 0;
+  for (const row of rows || []) {
+    if (sent >= maxSends) break;
+    const p = row.prospects;
+    const slug = slugFromPreviewUrl(p?.preview_url);
+    const skip = (reason) => results.push({ business_name: p?.business_name, sent: false, reason });
+    if (!isFollowUpDue({ sentAt: row.sent_at, followupSentAt: row.followup_sent_at, responseStatus: row.response_status, now })) continue;
+    if (!p?.email || !slug) { skip("no_email_or_page"); continue; }
+    if (p.status !== "sent") { skip(`prospect_${p.status}`); continue; }
+    const { data: suppressed } = await supabase.from("suppression_list").select("id").eq("email", p.email).maybeSingle();
+    if (suppressed) { skip("suppressed"); continue; }
+    const { data: page } = await supabase.from("small_business_profiles")
+      .select("is_public, is_claimed").eq("username", slug).maybeSingle();
+    if (!page?.is_public || page.is_claimed !== false) { skip("page_not_live_or_claimed"); continue; }
+
+    const stamp = new Date().toISOString();
+    const { data: reserved } = await supabase.from("outreach_messages")
+      .update({ followup_sent_at: stamp, updated_at: stamp })
+      .eq("id", row.id).is("followup_sent_at", null).select("id");
+    if (!reserved?.length) continue;
+
+    try {
+      const email = buildFollowUpEmail({
+        businessName: p.business_name, originalSubject: row.draft_subject, messageId: row.id, slug,
+        unsubscribeUrl: buildUnsubscribeUrl(p.email), mailingAddress: MAILING_ADDRESS
+      });
+      const { data: sendData, error: sendErr } = await resend.emails.send({
+        from: SEND_OUTREACH_FROM,
+        to: p.email,
+        replyTo: replyToFor(row.id, { captureReplies }),
+        subject: email.subject,
+        text: email.text,
+        html: email.html,
+        headers: { "List-Unsubscribe": `<${buildUnsubscribeUrl(p.email)}>` },
+        tags: [{ name: "outreach_message_id", value: row.id }, { name: "kind", value: "cold_outreach_followup" }]
+      });
+      if (sendErr) throw new Error(sendErr.message || "Resend send failed");
+      await supabase.from("outreach_messages").update({ followup_resend_email_id: sendData?.id || null }).eq("id", row.id);
+      sent++;
+      results.push({ business_name: p.business_name, email: p.email, sent: true, message_id: row.id });
+    } catch (err) {
+      // Not sent: release it so a later run can try again.
+      await supabase.from("outreach_messages").update({ followup_sent_at: null }).eq("id", row.id);
+      await logNotificationFailure("send-followup", p.email, err, { prospect_id: p.id, business_name: p.business_name });
+      results.push({ business_name: p.business_name, email: p.email, sent: false, reason: err.message });
+    }
+  }
+  return { sent, results };
+}
+
 async function handleSendOutreach(req, res) {
   const rampCap = rampCapForDate(new Date());
   // Count today's sends too, so a manual re-run can't push past the cap.
@@ -1549,9 +1617,18 @@ async function handleSendOutreach(req, res) {
   const { count: sentToday } = await supabase.from("outreach_messages")
     .select("id", { count: "exact", head: true })
     .eq("channel", "email").eq("status", "sent").gte("sent_at", startOfDay.toISOString());
-  const remaining = Math.max(0, Math.min(OUTREACH_DAILY_CAP, rampCap) - (sentToday || 0));
-  const limit = Math.min(parseInt(req.query.limit, 10) || OUTREACH_DAILY_CAP, remaining);
+  const { count: followupsToday } = await supabase.from("outreach_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("channel", "email").gte("followup_sent_at", startOfDay.toISOString());
   const captureReplies = process.env.OUTREACH_REPLY_CAPTURE === "1";
+  const dailyCap = Math.min(OUTREACH_DAILY_CAP, rampCap);
+  // Follow-ups go first: they're time-boxed (days 3-10) and to people who
+  // already got one email. Both kinds count toward the same daily cap.
+  const followUps = req.query.dry_run === "1" ? { sent: 0, results: [] }
+    : await sendFollowUpsOnce({ maxSends: Math.max(0, dailyCap - (sentToday || 0) - (followupsToday || 0)), captureReplies });
+  const usedSoFar = (sentToday || 0) + (followupsToday || 0) + followUps.sent;
+  const remaining = Math.max(0, dailyCap - usedSoFar);
+  const limit = Math.min(parseInt(req.query.limit, 10) || OUTREACH_DAILY_CAP, remaining);
 
   const { data: prospects, error } = limit > 0
     ? await supabase
@@ -1585,7 +1662,7 @@ async function handleSendOutreach(req, res) {
     const { count } = await supabase.from("outreach_messages")
       .select("id", { count: "exact", head: true })
       .eq("channel", "email").in("status", ["sent", "drafted"]).gte("created_at", startOfDay.toISOString());
-    return count || 0;
+    return (count || 0) + (followupsToday || 0) + followUps.sent;
   };
 
   const results = [];
@@ -1678,13 +1755,30 @@ async function handleSendOutreach(req, res) {
 
   return res.status(200).json({
     success: true,
-    daily_cap: Math.min(OUTREACH_DAILY_CAP, rampCap),
-    sent_earlier_today: sentToday || 0,
+    daily_cap: dailyCap,
+    sent_earlier_today: (sentToday || 0) + (followupsToday || 0),
+    follow_ups: followUps,
     attempted: results.length,
     sent: results.filter(r => r.sent).length,
     skipped: results.filter(r => !r.sent).length,
     results
   });
+}
+
+// Public — lets a preview page opened from Jack's email (?m=<message id>)
+// prefill the claim form with the address that email went to, so keeping the
+// page is one tap. Only answers for a real message whose page matches the
+// slug asked about; the message id is an unguessable UUID only in that email.
+async function handleClaimHint(req, res) {
+  res.setHeader("Cache-Control", "no-store");
+  const m = String(req.query.m || "");
+  const slug = String(req.query.slug || "").toLowerCase();
+  if (!isUuid(m) || !/^[a-z0-9][a-z0-9-]*$/.test(slug)) return res.status(200).json({});
+  const { data: msg } = await supabase.from("outreach_messages")
+    .select("id, prospects(email, preview_url)")
+    .eq("id", m).maybeSingle();
+  if (!msg || slugFromPreviewUrl(msg.prospects?.preview_url) !== slug) return res.status(200).json({});
+  return res.status(200).json({ email: msg.prospects?.email || null });
 }
 
 // Public — the links inside outreach emails. Records the click against the
@@ -2418,6 +2512,15 @@ export default async function handler(req, res) {
   }
 
   // Public: the tracked links inside outreach emails.
+  if (req.query.action === "claim_hint") {
+    try {
+      return await handleClaimHint(req, res);
+    } catch (err) {
+      console.error("Claim hint failed:", err);
+      return res.status(200).json({});
+    }
+  }
+
   if (req.query.action === "go") {
     try {
       return await handleOutreachRedirect(req, res);

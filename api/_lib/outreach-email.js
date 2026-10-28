@@ -147,6 +147,47 @@ ${plainTextToHtml(String(intro || "").trim())}
   return { text, html, links };
 }
 
+// Follow-up window: one follow-up, 3 days after the first email (the daily
+// send runs at 7am ET, so it lands on day 3 or 4), and never for emails
+// older than 10 days, where a "following up" would read as random.
+export const FOLLOW_UP_AFTER_DAYS = 3;
+export const FOLLOW_UP_MAX_AGE_DAYS = 10;
+
+export function isFollowUpDue({ sentAt, followupSentAt, responseStatus, now = Date.now() }) {
+  if (!sentAt || followupSentAt || responseStatus) return false;
+  const age = now - new Date(sentAt).getTime();
+  return age >= FOLLOW_UP_AFTER_DAYS * 864e5 && age <= FOLLOW_UP_MAX_AGE_DAYS * 864e5;
+}
+
+// The second (and last) email: a short reply in the same thread, the same
+// tracked page link, and one new reason to say yes (help getting the page onto
+// their Google listing).
+export function buildFollowUpEmail({ businessName, originalSubject, messageId, slug, unsubscribeUrl, mailingAddress }) {
+  const links = trackedLinks(messageId, slug);
+  const name = cleanBusinessName(businessName) || "your business";
+  const base = String(originalSubject || `I built ${name} a new page`).replace(/^\s*re:\s*/i, "");
+  const subject = `Re: ${base}`;
+  const p1 = `Following up on the page I built for ${name}. It's still up:`;
+  const p2 = `If you keep it, I'll help you add it to your Google listing, so people who find you there can see what you do and call you in one tap. Reply "yes" and I'll set it up, or "no" and I'll take it down.`;
+  const text = [
+    "Hi there,", `${p1} ${links.page}`, p2, "Jack",
+    `---\n${mailingAddress}\nDon't want these emails? ${unsubscribeUrl}`
+  ].join("\n\n");
+  const html = `<!doctype html>
+<html>
+<body style="margin:0;padding:0;background:#ffffff;">
+<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#222222;max-width:560px;margin:0 auto;padding:24px 16px;">
+<p style="margin:0 0 16px;">Hi there,</p>
+<p style="margin:0 0 16px;">${escapeHtml(p1)} <a href="${links.page}" style="color:#1a73e8;">${escapeHtml(name)} on Enoma</a></p>
+<p style="margin:0 0 16px;">${escapeHtml(p2).replace(/&quot;yes&quot;/, "<strong>yes</strong>").replace(/&quot;no&quot;/, "<strong>no</strong>")}</p>
+<p style="margin:0 0 24px;">Jack</p>
+<p style="margin:0;font-size:12px;color:#888888;border-top:1px solid #eeeeee;padding-top:12px;">${escapeHtml(mailingAddress)}<br><a href="${unsubscribeUrl}" style="color:#888888;">Unsubscribe</a></p>
+</div>
+</body>
+</html>`;
+  return { subject, text, html, links };
+}
+
 // A click within two minutes of sending is a mail filter checking the link,
 // not a person (people open the email later; scanners hit it on arrival).
 export const SCANNER_WINDOW_MS = 2 * 60 * 1000;

@@ -1,7 +1,7 @@
 // Run with: node tests/outreach-email.test.js (also wired into `npm test`)
 
 import assert from "node:assert/strict";
-import { buildOutreachEmail, buildOutreachIntro, cleanBusinessName, isLikelyLinkScanner, trackedLinks, slugFromPreviewUrl, replyToFor, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "../api/_lib/outreach-email.js";
+import { buildOutreachEmail, buildOutreachIntro, buildFollowUpEmail, isFollowUpDue, cleanBusinessName, isLikelyLinkScanner, trackedLinks, slugFromPreviewUrl, replyToFor, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "../api/_lib/outreach-email.js";
 import { decisionForStatus, verifyMailbox } from "../api/_lib/mailbox-verify.js";
 
 let passed = 0;
@@ -92,6 +92,26 @@ await test("cleanBusinessName drops taglines and legal suffixes", () => {
   assert.equal(cleanBusinessName("Alex & Son Construction llc"), "Alex & Son Construction");
   assert.equal(cleanBusinessName("Smith - Jones Electric"), "Smith - Jones Electric");
   assert.equal(cleanBusinessName("Ace Plumbing - Serving Taunton Since 1990"), "Ace Plumbing");
+});
+
+console.log("follow-up");
+await test("due 3 to 10 days after sending, once, and only with no response", () => {
+  const sentAt = "2026-10-20T11:00:00Z";
+  const at = (d) => Date.parse(sentAt) + d * 864e5;
+  assert.equal(isFollowUpDue({ sentAt, now: at(2.9) }), false);
+  assert.equal(isFollowUpDue({ sentAt, now: at(3.1) }), true);
+  assert.equal(isFollowUpDue({ sentAt, now: at(11) }), false);
+  assert.equal(isFollowUpDue({ sentAt, now: at(4), followupSentAt: "2026-10-24T11:00:00Z" }), false);
+  for (const r of ["replied", "bounced", "opted_out", "claimed"]) assert.equal(isFollowUpDue({ sentAt, now: at(4), responseStatus: r }), false);
+});
+await test("follow-up replies in the thread with the same tracked page link", () => {
+  const f = buildFollowUpEmail({ businessName: "DePaolo's Painting Inc", originalSubject: "I built DePaolo's Painting a new page", messageId: ID, slug: "depaolos-painting", unsubscribeUrl: "https://enoma.io/u", mailingAddress: "Enoma, 183 Fairway Dr, Attleboro, MA 02703" });
+  assert.equal(f.subject, "Re: I built DePaolo's Painting a new page");
+  assert.ok(f.text.includes(`action=go&m=${ID}&to=page`));
+  assert.match(f.text, /Google listing/);
+  assert.match(f.html, /reply|Reply/);
+  assert.match(f.html, /183 Fairway Dr/);
+  assert.equal(buildFollowUpEmail({ businessName: "A", originalSubject: "Re: x", messageId: ID, slug: "a", unsubscribeUrl: "u", mailingAddress: "m" }).subject, "Re: x");
 });
 
 console.log("isLikelyLinkScanner");

@@ -1207,8 +1207,16 @@ function setupClaimBox(pageSlug, businessName) {
     banner.classList.add('is-new'); open();
     const t = getEl('claimTitle'), sub = getEl('claimSub');
     if (t) t.textContent = `Hi, it's Jack. I built this page for ${businessName || 'your business'}.`;
-    if (sub) sub.textContent = "It's made from your Google listing, and it's yours if you want it: free for the first month, then $19.99/month. No card now, no contract. Want something changed first? Reply to my email or write to jack@enoma.io.";
+    if (sub) sub.textContent = "It's made from your Google listing, and it's yours if you want it. Keep it and I'll help you add it to your Google listing, so people who find you there land here. Free for the first month, then $19.99/month. No card now, no contract. Want changes first? Reply to my email or write to jack@enoma.io.";
     submit.textContent = 'Keep my page';
+    // This visitor is the owner, so the "Call Now" bar would only call
+    // themselves; hide it and give the claim box the room.
+    const bar = getEl('mobileCallBar');
+    if (bar) { bar.classList.add('hidden'); document.body.classList.remove('has-mobile-call-bar'); }
+    document.body.classList.add('is-owner-view');
+    // Prefill with the address the email went to, so keeping it is one tap.
+    fetch('/api/ga-metrics?action=claim_hint&m=' + encodeURIComponent(outreachMsg) + '&slug=' + encodeURIComponent(pageSlug))
+      .then(r => r.ok ? r.json() : {}).then(d => { if (d && d.email && !input.value) input.value = d.email; }).catch(() => {});
     if (window.gtag) try { gtag('event', 'outreach_preview_viewed', { page_slug: pageSlug }); } catch (e) {}
   }
   const submitLabel = submit.textContent;
@@ -1488,7 +1496,7 @@ async function loadProfile() {
   /* ── Sticky mobile call bar ── */
   const mobileCallBar = getEl('mobileCallBar');
   const mcbCall = getEl('mcbCall');
-  if (mobileCallBar && mcbCall && p.phone) {
+  if (mobileCallBar && mcbCall && p.phone && !document.body.classList.contains('is-owner-view')) {
     mcbCall.href = `tel:${p.phone}`;
     mcbCall.addEventListener('click', () => trackContactClick('mobile_bar_call'));
     const mcbQuote = getEl('mcbQuote');
