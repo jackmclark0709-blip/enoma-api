@@ -20,7 +20,7 @@ import { verifyUnsubscribeToken, appendComplianceFooter, buildUnsubscribeUrl, MA
 import { buildOutreachEmail, buildOutreachIntro, buildFollowUpEmail, isFollowUpDue, FOLLOW_UP_AFTER_DAYS, FOLLOW_UP_MAX_AGE_DAYS, isLikelyLinkScanner, trackedLinks, replyToFor, slugFromPreviewUrl, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "./_lib/outreach-email.js";
 import { verifyMailbox } from "./_lib/mailbox-verify.js";
 import { plainTextToHtml, wrapEmailHtml } from "./_lib/email-html.js";
-import { rampCapForDate } from "./_lib/outreach-ramp.js";
+import { rampCapForDate, capWithBounceBrake } from "./_lib/outreach-ramp.js";
 import { townForDate, tradeForDate } from "./_lib/prospect-rotation.js";
 import { Resend } from "resend";
 import { isGrandfathered } from "./_lib/trial-policy.js";
@@ -1539,8 +1539,11 @@ async function handleDailyPipeline(req, res) {
 // send attempt. Real mailbox-level bounces are handled after the fact by the
 // Resend webhook (handleResendWebhook, below) feeding suppression_list.
 const SEND_OUTREACH_FROM = "Jack at Enoma <outreach@mail.enoma.io>";
-// Hard ceiling on cold emails per day, whatever the cron or a caller asks for.
-const OUTREACH_DAILY_CAP = 10;
+// Hard ceiling on cold emails per day (first emails + follow-ups together),
+// whatever the cron or a caller asks for. Raised 10 -> 20 on 2026-10-28 after
+// two months of warm-up; capWithBounceBrake drops it back to 10 if the last
+// 7 days bounce more than 3%.
+const OUTREACH_DAILY_CAP = 20;
 
 // One follow-up per cold email, 3-10 days after it went out, only while the
 // owner hasn't replied, bounced, opted out or claimed, and the page is still
@@ -1611,7 +1614,14 @@ async function sendFollowUpsOnce({ maxSends, captureReplies }) {
 }
 
 async function handleSendOutreach(req, res) {
-  const rampCap = rampCapForDate(new Date());
+  const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString();
+  const [{ count: sends7d }, { count: bounces7d }] = await Promise.all([
+    supabase.from("outreach_messages").select("id", { count: "exact", head: true })
+      .eq("channel", "email").eq("status", "sent").gte("sent_at", weekAgo),
+    supabase.from("outreach_messages").select("id", { count: "exact", head: true })
+      .eq("channel", "email").eq("response_status", "bounced").gte("sent_at", weekAgo),
+  ]);
+  const rampCap = capWithBounceBrake(rampCapForDate(new Date()), { sends7d: sends7d || 0, bounces7d: bounces7d || 0 });
   // Count today's sends too, so a manual re-run can't push past the cap.
   const startOfDay = new Date(); startOfDay.setUTCHours(0, 0, 0, 0);
   const { count: sentToday } = await supabase.from("outreach_messages")
@@ -1756,6 +1766,7 @@ async function handleSendOutreach(req, res) {
   return res.status(200).json({
     success: true,
     daily_cap: dailyCap,
+    bounce_rate_7d: sends7d ? Math.round(((bounces7d || 0) / sends7d) * 1000) / 10 : null,
     sent_earlier_today: (sentToday || 0) + (followupsToday || 0),
     follow_ups: followUps,
     attempted: results.length,
