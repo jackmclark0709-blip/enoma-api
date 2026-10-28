@@ -43,6 +43,7 @@
     }
   ],
   "redirects": [
+    { "source": "/compare", "destination": "/for/enoma-vs-angi-thumbtack-yelp", "permanent": false },
     { "source": "/for/website-for-landscapers-rehoboth-ma", "destination": "/for/website-for-landscaping-business", "permanent": true },
     { "source": "/for/website-for-landscapers-rehoboth-ma.html", "destination": "/for/website-for-landscaping-business", "permanent": true },
     { "source": "/for/website-for-landscapers-attleboro-ma", "destination": "/for/website-for-landscaping-business", "permanent": true },

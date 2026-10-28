@@ -29,6 +29,10 @@ const GUIDE_LINK_TEXT = {
   "how-to-get-more-google-reviews-for-contractors": "Getting more Google reviews",
   "how-to-get-more-cleaning-clients": "Getting more cleaning clients",
   "how-to-get-more-hvac-customers": "Getting more HVAC customers",
+  "enoma-vs-angi-thumbtack-yelp": "Enoma vs Angi, Thumbtack and Yelp",
+  "do-i-need-a-website-if-i-have-a-google-business-profile": "Website vs. Google Business Profile",
+  "thumbtack-vs-angi-for-contractors": "Thumbtack vs Angi",
+  "are-yelp-ads-worth-it-for-contractors": "Are Yelp ads worth it?",
 };
 
 const escAttr = s => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
