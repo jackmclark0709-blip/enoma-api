@@ -166,7 +166,28 @@ const bareHost = (h) => String(h || "").toLowerCase().replace(/^www\./, "");
  * Why (or whether) a crawled address is safe to send cold outreach to.
  * @returns {{ ok: boolean, reason: string }}
  */
-export function classifyEmail(email, websiteDomain) {
+// A business's email domain often isn't its website domain
+// (papashvac.com vs papasplumbinghvac.com). Counted as related only when the
+// email domain contains a distinctive word from the business name or the
+// website's own name, so a stray address on someone else's domain never is.
+// Trade and filler words are excluded: "plumbing" in someone else's domain
+// says nothing about whether it's this business's address.
+const STOP_WORDS = new Set([
+  "the", "and", "llc", "inc", "co", "company", "services", "service", "group", "home", "pros", "pro", "local", "best",
+  "plumbing", "plumber", "heating", "cooling", "air", "conditioning", "hvac", "electric", "electrical", "electrician",
+  "roofing", "painting", "painters", "construction", "contracting", "contractors", "contractor", "landscaping", "lawn",
+  "care", "cleaning", "repair", "remodeling", "builders", "solutions", "systems", "general", "family",
+]);
+function relatedDomain(emailDomain, site, businessName) {
+  const label = emailDomain.split(".").slice(0, -1).join("");
+  const words = [
+    ...String(businessName || "").toLowerCase().replace(/['’]/g, "").split(/[^a-z0-9]+/),
+    ...(site ? [site.split(".")[0]] : []),
+  ].filter(w => w.length >= 4 && !STOP_WORDS.has(w));
+  return words.some(w => label.includes(w));
+}
+
+export function classifyEmail(email, websiteDomain, businessName) {
   const e = String(email || "").trim().toLowerCase();
   const m = e.match(/^([a-z0-9._%+-]+)@([a-z0-9-]+(?:\.[a-z0-9-]+)+)$/);
   if (!m) return { ok: false, reason: "malformed" };
@@ -178,16 +199,22 @@ export function classifyEmail(email, websiteDomain) {
   const site = bareHost(websiteDomain);
   if (site && (domain === site || domain.endsWith(`.${site}`))) return { ok: true, reason: "on_domain" };
   if (FREE_MAIL_DOMAINS.has(domain)) return { ok: true, reason: "free_mail" };
+  // Related but different domain: allowed only once ZeroBounce confirms the
+  // mailbox (prepareOutreachOnce), never on a domain-name match alone.
+  if (relatedDomain(domain, site, businessName)) return { ok: true, reason: "related_domain", needsVerification: true };
   return { ok: false, reason: "off_domain" };
 }
 
 // Best address found on the business's own pages: one on their own domain
 // first, then a personal mailbox (gmail etc., common for one-truck
 // businesses). Anything else is skipped rather than risked.
-export function pickBestEmail(emails, websiteDomain) {
-  const ok = (emails || []).filter(e => classifyEmail(e, websiteDomain).ok);
-  if (!ok.length) return null;
-  return ok.find(e => classifyEmail(e, websiteDomain).reason === "on_domain") || ok[0];
+export function pickBestEmail(emails, websiteDomain, businessName) {
+  const ranked = (emails || [])
+    .map(e => ({ e, c: classifyEmail(e, websiteDomain, businessName) }))
+    .filter(x => x.c.ok);
+  const order = ["on_domain", "free_mail", "related_domain"];
+  ranked.sort((a, b) => order.indexOf(a.c.reason) - order.indexOf(b.c.reason));
+  return ranked[0]?.e || null;
 }
 
 // Blocks the crawler from being pointed at internal infrastructure via a

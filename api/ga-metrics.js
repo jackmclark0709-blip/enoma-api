@@ -505,7 +505,7 @@ async function crawlWebsitesOnce({ limit = 6, deadline } = {}) {
     if (deadline && Date.now() > deadline) break;
     try {
       const { emails, html, homeHtml, homeUrl, domain, fetched, failReason } = await findEmailForWebsite(prospect.website);
-      const email = pickBestEmail(emails, domain);
+      const email = pickBestEmail(emails, domain, prospect.business_name);
 
       if (!email) {
         // Only report "no_email_found" if we actually read a page — a
@@ -1401,7 +1401,7 @@ async function prepareOutreachOnce({ limit = 4, deadline } = {}) {
 
       // Addresses found before the crawler's quality filter (classifyEmail)
       // existed may be mis-parsed, off-site or role mailboxes: skip, don't guess.
-      const quality = classifyEmail(prospect.email, websiteHost(prospect.website));
+      const quality = classifyEmail(prospect.email, websiteHost(prospect.website), prospect.business_name);
       if (!quality.ok) {
         await supabase.from("prospects").update({ status: "invalid_email", updated_at: now() }).eq("id", prospect.id);
         results.push({ business_name: prospect.business_name, email: prospect.email, ready: false, reason: `email_${quality.reason}` });
@@ -1425,6 +1425,13 @@ async function prepareOutreachOnce({ limit = 4, deadline } = {}) {
       if (v.decision !== "send" && v.decision !== "send_catch_all") {
         await supabase.from("prospects").update({ status: "verify_retry", updated_at: now() }).eq("id", prospect.id);
         results.push({ business_name: prospect.business_name, email: prospect.email, ready: false, reason: `verify_${v.sub_status || v.decision}` });
+        continue;
+      }
+      // An address on a related-but-different domain goes out only when
+      // ZeroBounce confirms that exact mailbox (not catch-all, not MX-only).
+      if (quality.needsVerification && v.status !== "valid") {
+        await supabase.from("prospects").update({ status: "invalid_email", updated_at: now() }).eq("id", prospect.id);
+        results.push({ business_name: prospect.business_name, email: prospect.email, ready: false, reason: `related_domain_${v.status || "unverified"}` });
         continue;
       }
 
@@ -1698,7 +1705,9 @@ async function handleSendOutreach(req, res) {
       results.push({ business_name: prospect.business_name, email: prospect.email, sent: false, reason: "suppressed" });
       continue;
     }
-    const quality = classifyEmail(prospect.email, websiteHost(prospect.website));
+    // Drafted prospects already passed prepareOutreachOnce (which verifies
+    // related-domain addresses); this re-check only catches the hard fails.
+    const quality = classifyEmail(prospect.email, websiteHost(prospect.website), prospect.business_name);
     if (!quality.ok) {
       await supabase.from("prospects").update({ status: "invalid_email", updated_at: new Date().toISOString() }).eq("id", prospect.id);
       results.push({ business_name: prospect.business_name, email: prospect.email, sent: false, reason: `email_${quality.reason}` });
