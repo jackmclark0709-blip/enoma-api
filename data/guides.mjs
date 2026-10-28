@@ -370,6 +370,263 @@ export const GUIDES = [
       bullets: ["Name every job in plain words", "Catch after-hours calls with a form", "Offer a maintenance plan on every call", "Market before the season, not during it"],
     },
   },
+
+  {
+    slug: "enoma-vs-angi-thumbtack-yelp",
+    published: "2026-10-28",
+    title: "Enoma vs Angi, Thumbtack, Yelp and Google: An Honest Comparison | Enoma",
+    description: "How Enoma compares to Angi, Thumbtack, Yelp, Nextdoor and a Google Business Profile on its own: how each charges, who gets the lead, and when each one makes sense.",
+    eyebrow: "Comparison for local service business owners",
+    h1: "Enoma vs Angi, Thumbtack, Yelp<br><em>and Google, side by side</em>",
+    heroSub: "Lead sites rent you access to their homeowners. A Google listing gets you on the map. Enoma gives you a page of your own where every call is yours. Here's how they really compare, and when each one is worth it.",
+    article: `
+<h2>The short version</h2>
+<p>Angi, Thumbtack and Yelp make money by standing between the homeowner and your business. You pay per lead, per contact or per click, and the same homeowner is often shown other pros too. A Google Business Profile is free and essential, but it shows competitors right beside you. Enoma is a page that's only about you, for one flat monthly price, and the call goes straight to you.</p>
+<p>That doesn't mean you should drop everything else. It means you should know what each one is for.</p>
+
+<h2>How they compare</h2>
+<table>
+  <tr><th></th><th>How you pay</th><th>Who else gets the lead</th></tr>
+  <tr><td><strong>Enoma</strong></td><td>First month free, then $19.99/mo flat. No contract. We build it for you.</td><td>Nobody. One business per page.</td></tr>
+  <tr><td>Angi</td><td>Per lead, plus program fees depending on your plan</td><td>Requests can go to several pros at once</td></tr>
+  <tr><td>Thumbtack</td><td>Per lead when you contact a customer or get auto-matched</td><td>Customers usually hear from several pros</td></tr>
+  <tr><td>Yelp</td><td>Free page; ads are per click; upgrades cost extra</td><td>Quote requests can go to several businesses; competitor ads can show on your page</td></tr>
+  <tr><td>Nextdoor</td><td>Free page; paid ads and local deals</td><td>Your post sits in a feed next to others</td></tr>
+  <tr><td>Google Business Profile</td><td>Free</td><td>Competitors are shown alongside you</td></tr>
+</table>
+<p>Prices on the lead sites change often and vary by trade and zip code. Check current numbers in your own area before you compare.</p>
+
+<h2>Do the math that actually matters: cost per booked job</h2>
+<p>Cost per lead hides the real number. A cheap lead you lose to three other pros isn't cheap. Put in last month's numbers from any lead site to see what each job really cost you.</p>
+<div class="lp-calc" style="border:1px solid rgba(127,127,127,.3);border-radius:12px;padding:1.25rem;margin:1.5rem 0;">
+  <label style="display:block;margin-bottom:.75rem;">What you spent on leads or ads last month ($)<br><input id="calcSpend" type="number" min="0" step="1" inputmode="decimal" placeholder="e.g. 400" style="width:100%;max-width:240px;padding:.5rem;margin-top:.25rem;font-size:1rem;"></label>
+  <label style="display:block;margin-bottom:.75rem;">Jobs you actually booked from them<br><input id="calcJobs" type="number" min="0" step="1" inputmode="numeric" placeholder="e.g. 3" style="width:100%;max-width:240px;padding:.5rem;margin-top:.25rem;font-size:1rem;"></label>
+  <p id="calcOut" aria-live="polite" style="margin:0;font-weight:600;">Enter both numbers to see your cost per booked job.</p>
+</div>
+<script>
+(function(){
+  var s=document.getElementById('calcSpend'),j=document.getElementById('calcJobs'),o=document.getElementById('calcOut');
+  function run(){
+    var spend=parseFloat(s.value),jobs=parseFloat(j.value);
+    if(!(spend>=0)||!(jobs>=0)||s.value===''||j.value===''){o.textContent='Enter both numbers to see your cost per booked job.';return;}
+    if(jobs===0){o.textContent='You spent $'+spend.toFixed(0)+' and booked no jobs. An Enoma page is $19.99 a month, and every call from it is only yours.';return;}
+    var per=spend/jobs;
+    o.textContent='Each booked job cost you $'+per.toFixed(0)+'. Compare that with $19.99 a month flat for an Enoma page, where every call is only yours and there are no per-lead fees.';
+  }
+  s.addEventListener('input',run);j.addEventListener('input',run);
+})();
+</script>
+
+<h2>When each one makes sense</h2>
+<h3>Angi and Thumbtack</h3>
+<p>Useful when you're new, your calendar has gaps, and you can answer every lead within minutes. Speed decides most marketplace jobs. Track cost per booked job, not cost per lead, and cut back as your own calls grow.</p>
+<h3>Yelp</h3>
+<p>Keep your free page claimed and accurate: Yelp listings show up in Google and AI assistants read them. Paid Yelp ads work in some cities and trades and not in others. Test with a small budget and a hard monthly cap.</p>
+<h3>Nextdoor</h3>
+<p>Good for neighbor recommendations and word of mouth. It's a feed, not a search engine, so it won't help much when someone Googles "[your service] near me".</p>
+<h3>Google Business Profile</h3>
+<p>Non-negotiable. It's free and it's where most local searches start. Fill in every field, pick the right primary category, list your towns and ask every customer for a review.</p>
+<h3>Enoma</h3>
+<p>For owners who want calls they don't share and don't have time to build a website. Your page names your services and towns so Google and AI assistants understand what you do, your Business Profile links to it, and every call and quote request goes straight to you.</p>
+<div class="lp-callout">Want to see yours? We build it from your Google listing in about 30 seconds, and you see it live before you pay anything. <a href="/get-your-website" data-cta="inline">See your page</a>.</div>
+
+<h2>A sensible setup for most trades</h2>
+<ol>
+  <li>A complete, verified Google Business Profile.</li>
+  <li>A page of your own that your profile links to.</li>
+  <li>A review request sent after every job.</li>
+  <li>Marketplaces only as a top-up, judged on cost per booked job.</li>
+</ol>
+`,
+    faqs: [
+      { q: "Is Enoma a lead marketplace like Angi or Thumbtack?", a: "No. Enoma doesn't sell leads. It builds a one-page website for your business, and every call or quote request from that page goes only to you. You pay $19.99 a month after a free first month, with no per-lead fees." },
+      { q: "Should I cancel Angi or Thumbtack if I get an Enoma page?", a: "Not right away. Keep anything that books jobs profitably, track cost per booked job for each source for a month or two, and cut the ones that cost the most per job as calls from your own page and Google listing grow." },
+      { q: "Do I still need a Google Business Profile if I have an Enoma page?", a: "Yes. Your Google Business Profile is where most local searches start. Link it to your Enoma page so Google and customers find the same services, towns and phone number in both places." },
+      { q: "Why does cost per booked job matter more than cost per lead?", a: "Because you can pay for a lead and never win the job, especially when the same homeowner hears from several pros. Dividing what you spent by the jobs you actually booked shows what each customer really cost." },
+      { q: "What does Enoma cost?", a: "Your first month is free, with no credit card. After that it's $19.99 a month to keep your page live, and that includes personal support. No contract; cancel anytime." },
+    ],
+    ctaH2: "Get calls that are only yours",
+    ctaSub: "Pick your business on Google and see your page in about 30 seconds. One flat monthly price, no per-lead fees, and every call goes straight to you.",
+    social: {
+      hook: "Paying per lead and still losing jobs to other pros?",
+      bullets: ["Lead sites share the homeowner", "Google listings show competitors beside you", "Your own page: calls only you get", "Judge every channel on cost per booked job"],
+    },
+  },
+
+  {
+    slug: "do-i-need-a-website-if-i-have-a-google-business-profile",
+    published: "2026-10-28",
+    title: "Do I Need a Website If I Have a Google Business Profile? | Enoma",
+    description: "Your Google Business Profile is essential but isn't the whole job. What a profile can't do alone, what a simple website adds, and how to make them work together.",
+    eyebrow: "Guide for local service business owners",
+    h1: "Do I need a website if I have<br><em>a Google Business Profile?</em>",
+    heroSub: "Short answer: keep your profile, and give it a page to point to. Here's what each one does, what a profile can't do alone, and the simplest way to get both working.",
+    article: `
+<h2>What your Google Business Profile does well</h2>
+<p>Your Business Profile is the listing in the map results: name, phone, hours, reviews, photos, directions. For most local service businesses it's the single most valuable thing online, and it's free. If you haven't claimed and verified yours, do that before anything else.</p>
+
+<h2>What a profile can't do on its own</h2>
+<ul>
+  <li><strong>It shows your competitors right beside you.</strong> The map results put three or more businesses side by side, and Google can show others on and around your listing.</li>
+  <li><strong>It gives Google and AI assistants very little to read.</strong> A short description and a category don't explain every service you offer or every town you cover.</li>
+  <li><strong>It can't answer a customer's questions.</strong> Do you do this specific job? Do you come to my town? Are you licensed and insured? A profile has little room for that.</li>
+  <li><strong>It's not yours.</strong> Google controls the layout, can change features, and can suspend a listing. A page of your own is a stable home your profile, truck and business cards can all point to.</li>
+</ul>
+
+<h2>What a simple website adds</h2>
+<p>You don't need ten pages. You need one page that says what you do, where you do it, and how to reach you, written so Google understands it and a homeowner calls.</p>
+<ul>
+  <li>Every service, in plain words, so you can show up for more searches.</li>
+  <li>Every town you cover, matching your profile's service area.</li>
+  <li>A tap-to-call button and a quote form for people who search after hours.</li>
+  <li>Your name, phone and address exactly as they appear on your profile.</li>
+</ul>
+<div class="lp-callout">That's exactly what an Enoma page is: one page built from your Google listing, with your services, your towns, tap-to-call and a quote form that sends requests straight to you. <a href="/get-your-website" data-cta="inline">See yours in 30 seconds</a>.</div>
+
+<h2>How to make them work together</h2>
+<ol>
+  <li>Put your page's link in your Business Profile's website field.</li>
+  <li>Keep your business name, phone and address identical in both places, down to the suite number.</li>
+  <li>List the same towns on your page that you list as your service area.</li>
+  <li>Ask every happy customer for a Google review, and show those reviews on your page.</li>
+  <li>Use your page's link everywhere else: truck, invoices, Facebook, yard signs.</li>
+</ol>
+
+<h2>What about AI assistants like ChatGPT?</h2>
+<p>More homeowners now ask an AI assistant to recommend a plumber or landscaper. These tools lean on the same signals Google does: a complete profile, consistent business details across the web, reviews, and clear pages that describe what you do and where. A page of your own helps on every one of those.</p>
+`,
+    faqs: [
+      { q: "Is a Google Business Profile enough without a website?", a: "It's enough to appear on Google Maps, but it gives Google and customers limited information and shows competitors beside you. A simple website with your services, towns and phone number helps you show up for more searches and gives people a place to call you from." },
+      { q: "Will a website help my Google Business Profile rank better?", a: "It can. Google uses your website to understand what you do and where. A page that names your services and service towns, with the same name, phone and address as your profile, gives Google more to work with." },
+      { q: "What should I put in the website field of my Google Business Profile?", a: "A page you control that matches your profile: your services, the towns you serve, your phone number and a way to request a quote. Avoid linking only to a Facebook page." },
+      { q: "Do AI assistants like ChatGPT use my website?", a: "AI assistants draw on public information about your business, including your Google listing, review sites and web pages. Clear, consistent details on a page of your own make it easier for them to understand and describe your business." },
+      { q: "What does Enoma cost?", a: "Your first month is free, with no credit card. After that it's $19.99 a month to keep your page live, and that includes personal support. No contract; cancel anytime." },
+    ],
+    ctaH2: "Give your Google listing a page to point to",
+    ctaSub: "Pick your business on Google and see your page in about 30 seconds: your services, your towns, tap-to-call and a quote form that sends leads straight to you.",
+    social: {
+      hook: "Got a Google Business Profile? Good. Now give it somewhere to send people.",
+      bullets: ["Profiles show competitors beside you", "A page lists every service and town", "Match name, phone and address everywhere", "Link your page in the website field"],
+    },
+  },
+
+  {
+    slug: "thumbtack-vs-angi-for-contractors",
+    published: "2026-10-28",
+    title: "Thumbtack vs Angi for Contractors: Which Is Worth It? | Enoma",
+    description: "Thumbtack and Angi both charge contractors for leads, in different ways. How each works, what to watch for, and how to tell which one actually books you jobs.",
+    eyebrow: "Guide for contractors and home service pros",
+    h1: "Thumbtack vs Angi:<br><em>which one is worth it?</em>",
+    heroSub: "Both platforms can fill a slow week, and both can quietly eat your margin. Here's how each one charges, where each one tends to work, and the one number that tells you whether to keep paying.",
+    article: `
+<h2>How Angi works for pros</h2>
+<p>Angi matches homeowner requests to pros in the trade and area you choose, and charges per lead, with program fees depending on your plan. A request can go to several pros, so the homeowner may hear from more than one company. Angi also sells advertising placements on its own site. Read your agreement carefully for contract length and how lead credits work.</p>
+
+<h2>How Thumbtack works for pros</h2>
+<p>Thumbtack has no subscription. You pay when you contact a customer or when you're automatically matched to a request, whether or not they hire you. Customers usually hear from several pros, so the first good response tends to win. You can set a weekly budget to cap what you spend.</p>
+
+<h2>The real differences</h2>
+<table>
+  <tr><th></th><th>Angi</th><th>Thumbtack</th></tr>
+  <tr><td>How you pay</td><td>Per lead, plus program fees</td><td>Per lead, when you contact or are matched</td></tr>
+  <tr><td>Subscription</td><td>Depends on plan; check contract terms</td><td>None</td></tr>
+  <tr><td>Competition</td><td>Requests can go to several pros</td><td>Customers usually hear from several pros</td></tr>
+  <tr><td>Spending control</td><td>Spend targets and lead settings</td><td>Weekly budget</td></tr>
+  <tr><td>Your reviews</td><td>Live on Angi</td><td>Live on Thumbtack</td></tr>
+</table>
+<p>Pricing on both changes often and varies by trade and zip code, so check what you'd pay in your area.</p>
+
+<h2>Which one is worth it? Measure cost per booked job</h2>
+<p>The price per lead is the wrong number to compare. What matters is what each booked job costs you. For each platform, take last month's total spend and divide it by the jobs you actually booked from it. Ask "how did you find us?" on every call so you know which jobs came from where.</p>
+<p>Whichever one costs less per booked job is the one worth keeping. If both are high, that's your signal to build a source of calls you don't have to share. Our <a href="/for/enoma-vs-angi-thumbtack-yelp">comparison page</a> has a quick calculator.</p>
+
+<h2>How to get more out of either one</h2>
+<ul>
+  <li>Answer within minutes. On both platforms, speed often decides who gets the job.</li>
+  <li>Narrow your job types and areas to the work you actually want.</li>
+  <li>Dispute invalid leads (wrong number, wrong service) promptly.</li>
+  <li>Move happy customers to Google reviews, which stay with you if you leave.</li>
+</ul>
+
+<h2>The alternative: calls only you get</h2>
+<p>Every lead these platforms sell started as a homeowner searching. Showing up in that search yourself means the call comes straight to you. That takes a complete Google Business Profile, steady reviews, and a page that names your services and towns.</p>
+<div class="lp-callout">An Enoma page does that last part for $19.99/mo after a free first month, with no per-lead fees and no sharing. <a href="/get-your-website" data-cta="inline">See your page in 30 seconds</a>.</div>
+`,
+    faqs: [
+      { q: "Is Thumbtack or Angi better for contractors?", a: "It depends on your trade and area. The only reliable test is cost per booked job: divide last month's spend on each platform by the jobs you actually booked from it, and keep the one that costs less per job." },
+      { q: "Does Thumbtack charge if the customer doesn't hire me?", a: "Yes. Thumbtack charges when you contact a customer or are automatically matched, whether or not they hire you. A weekly budget caps how much you can spend." },
+      { q: "Are Angi leads shared with other contractors?", a: "Angi can send a homeowner's request to more than one pro, so you may be competing with other companies for the same job. Responding quickly improves your chances." },
+      { q: "How do I get contractor leads without paying per lead?", a: "Show up where homeowners search: a verified Google Business Profile, a steady flow of Google reviews, and a website that names your services and towns with tap-to-call and a quote form. Those calls come only to you." },
+      { q: "What does Enoma cost?", a: "Your first month is free, with no credit card. After that it's $19.99 a month to keep your page live, and that includes personal support. No contract; cancel anytime." },
+    ],
+    ctaH2: "Build a source of calls you don't share",
+    ctaSub: "Pick your business on Google and see your page in about 30 seconds. Calls and quote requests go straight to you. No per-lead fees.",
+    social: {
+      hook: "Thumbtack or Angi? Wrong question.",
+      bullets: ["Compare cost per booked job, not per lead", "Both charge whether you win or not", "Speed decides most marketplace jobs", "Build calls you don't have to share"],
+    },
+  },
+
+  {
+    slug: "are-yelp-ads-worth-it-for-contractors",
+    published: "2026-10-28",
+    title: "Are Yelp Ads Worth It for Contractors? An Honest Look | Enoma",
+    description: "Yelp ads work for some contractors and drain budgets for others. How Yelp charges, what the free page already does, and how to test ads without getting locked in.",
+    eyebrow: "Guide for contractors and home service pros",
+    h1: "Are Yelp ads worth it<br><em>for contractors?</em>",
+    heroSub: "Sometimes. It depends on your trade, your city, and how fast you answer. Here's what the free Yelp page already gives you, how paid ads charge, and a low-risk way to find out if they pay off for you.",
+    article: `
+<h2>Start with the free Yelp page</h2>
+<p>Before paying anything, claim your free Yelp business page and fill it in completely: categories, service area, hours, photos and a clear description. Yelp pages often show up in Google results, and AI assistants read review sites when they recommend local businesses. Keep your name, phone and address identical to your Google Business Profile.</p>
+<p>Free pages can receive quote requests too. Answer them fast: a request can go to several businesses, and the first good reply usually wins.</p>
+
+<h2>How Yelp ads charge</h2>
+<p>Yelp ads are pay-per-click. You set a monthly budget, and your business appears in sponsored spots in Yelp search results and on other businesses' pages. Yelp also sells page upgrades, such as removing competitor ads from your own page and adding a call-to-action button. Expect sales calls once your page is claimed.</p>
+
+<h2>When Yelp ads tend to work</h2>
+<ul>
+  <li>Your city has heavy Yelp usage, and people search Yelp for your trade.</li>
+  <li>You already have a strong rating and plenty of recent reviews.</li>
+  <li>You answer quote requests and calls within minutes, every time.</li>
+  <li>Your average job is big enough to absorb the cost of clicks that don't book.</li>
+</ul>
+
+<h2>When they usually don't</h2>
+<ul>
+  <li>Few people in your area search Yelp for your trade.</li>
+  <li>You have a handful of reviews, or a rating below your competitors'.</li>
+  <li>You can't answer quickly during the workday.</li>
+  <li>You're judging results by clicks or "leads" instead of booked jobs.</li>
+</ul>
+
+<h2>A low-risk way to test</h2>
+<ol>
+  <li>Get your free page complete and your reviews in good shape first.</li>
+  <li>Run a small budget for a set period with a hard monthly cap.</li>
+  <li>Ask every caller how they found you, and count booked jobs, not clicks.</li>
+  <li>Divide what you spent by jobs booked. Keep going only if that number works for you.</li>
+  <li>Get any contract or cancellation terms in writing before you agree.</li>
+</ol>
+<p>Our <a href="/for/enoma-vs-angi-thumbtack-yelp">comparison page</a> has a quick calculator for cost per booked job.</p>
+
+<h2>The part Yelp can't give you</h2>
+<p>Your Yelp page is Yelp's page: other businesses can advertise on it unless you pay to remove them, and it lives on Yelp's site. A page of your own, linked from your Google listing, shows only your business and sends every call straight to you.</p>
+<div class="lp-callout">That's what an Enoma page is: your services, your towns, tap-to-call and a quote form, with no competitor ads. $19.99/mo after a free first month. <a href="/get-your-website" data-cta="inline">See your page in 30 seconds</a>.</div>
+`,
+    faqs: [
+      { q: "Are Yelp ads worth it for contractors?", a: "They can be in cities and trades where people search Yelp heavily, and when you answer leads within minutes. Test with a small capped budget and judge it on cost per booked job, not clicks." },
+      { q: "How does Yelp advertising charge?", a: "Yelp ads are pay-per-click: you set a monthly budget and pay when someone clicks your ad. Yelp also sells page upgrades, such as removing competitor ads from your page." },
+      { q: "Is a free Yelp business page worth having?", a: "Yes. A claimed, complete Yelp page can show up in Google results, can receive quote requests, and is one of the sources AI assistants read. Keep its details identical to your Google Business Profile." },
+      { q: "Why do competitor ads show on my Yelp page?", a: "Yelp sells ad placements that can appear on other businesses' pages. Removing them from your own page is a paid upgrade." },
+      { q: "What does Enoma cost?", a: "Your first month is free, with no credit card. After that it's $19.99 a month to keep your page live, and that includes personal support. No contract; cancel anytime." },
+    ],
+    ctaH2: "Get a page with no competitor ads on it",
+    ctaSub: "Pick your business on Google and see your page in about 30 seconds. Every call and quote request goes straight to you.",
+    social: {
+      hook: "Thinking about Yelp ads? Read this first.",
+      bullets: ["Claim and complete the free page first", "Ads are pay-per-click; set a hard cap", "Judge on booked jobs, not clicks", "Your own page has no competitor ads"],
+    },
+  },
 ];
 
 // One label everywhere a CTA leads to the instant-preview signup.
