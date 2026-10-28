@@ -840,6 +840,19 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 .claim-box__form button:disabled { opacity: 0.6; cursor: wait; }
 .claim-box__msg { margin: 0.6rem 0 0; font-size: 0.88rem; color: #7a5a10; line-height: 1.5; }
 .claim-box__msg.is-error { color: #d94040 !important; }
+/* Owner view (opened from Jack's email): price, page progress, what's next */
+.owner-extras { margin-top: 0.7rem; color: rgba(240,246,255,0.8); font-size: 0.85rem; line-height: 1.5; }
+.unclaimed-banner .owner-extras .owner-extras__price { margin: 0 0 0.75rem; font-weight: 700; color: #f0f6ff; }
+.owner-progress { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 0.75rem 0.85rem; margin: 0 0 0.7rem; }
+.unclaimed-banner .owner-progress .owner-progress__title { margin: 0 0 0.45rem; font-weight: 800; color: #f0f6ff; font-size: 0.92rem; }
+.owner-progress__bar { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.15); overflow: hidden; margin-bottom: 0.6rem; }
+.owner-progress__bar span { display: block; height: 100%; background: #4a9e3a; border-radius: 999px; }
+.owner-progress__list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.owner-progress__list li { font-size: 0.8rem; padding: 0.2rem 0.55rem; border-radius: 999px; border: 1px solid rgba(255,255,255,0.18); color: rgba(240,246,255,0.75); }
+.owner-progress__list li.is-done { border-color: rgba(74,158,58,0.6); color: #cfe8c8; }
+.owner-progress__list li.is-done::before { content: "\2713  "; }
+.owner-progress__list li:not(.is-done)::before { content: "\25CB  "; }
+.unclaimed-banner .owner-extras .owner-extras__note { margin: 0; color: rgba(240,246,255,0.75); font-size: 0.85rem; }
 @media (max-width: 480px) { .claim-box__form button { flex: 1 1 100%; } }
 
 /* ── Before/After slider ── */
@@ -936,6 +949,15 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
       <button type="submit" id="claimSubmit">Email me my claim link</button>
     </form>
     <p class="claim-box__msg hidden" id="claimMsg" role="status"></p>
+    <div class="owner-extras hidden" id="ownerExtras">
+      <p class="owner-extras__price">Free for the first month, then $19.99/month. No card now, no contract.</p>
+      <div class="owner-progress">
+        <p class="owner-progress__title"><span id="ownerPercent"></span></p>
+        <div class="owner-progress__bar"><span id="ownerBar"></span></div>
+        <ul class="owner-progress__list" id="ownerList"></ul>
+      </div>
+      <p class="owner-extras__note">Keep it and I'll fill in the rest with you, make changes whenever you ask, and help add it to your Google listing. Questions? Reply to my email or write to jack@enoma.io.</p>
+    </div>
   </div>
 </div>
 
@@ -1206,9 +1228,29 @@ function setupClaimBox(pageSlug, businessName) {
   if (outreachMsg) {
     banner.classList.add('is-new'); open();
     const t = getEl('claimTitle'), sub = getEl('claimSub');
-    if (t) t.textContent = `Hi, it's Jack. I built this page for ${businessName || 'your business'}.`;
-    if (sub) sub.textContent = "It's made from your Google listing, and it's yours if you want it. Keep it and I'll help you add it to your Google listing, so people who find you there land here. Free for the first month, then $19.99/month. No card now, no contract. Want changes first? Reply to my email or write to jack@enoma.io.";
+    if (t) t.textContent = `Hi, it's Jack. This is a first draft of ${businessName ? businessName + "'s" : 'your'} page.`;
+    if (sub) sub.textContent = "I built it in a minute from your Google listing. Keep it and I'll make it better with you.";
     submit.textContent = 'Keep my page';
+    // What's done and what's still missing, from this page's own data, so
+    // $19.99 reads as "it keeps getting better", not just "it stays up".
+    const extras = getEl('ownerExtras');
+    if (extras) {
+      extras.classList.remove('hidden');
+      import('/scripts/page-checklist.js').then(({ pageChecklist }) => {
+        const c = pageChecklist(window.__PROFILE__ || {});
+        getEl('ownerPercent').textContent = `Your page is ${c.percent}% done`;
+        getEl('ownerBar').style.width = `${c.percent}%`;
+        const list = getEl('ownerList');
+        list.innerHTML = '';
+        // Missing items first: they're the point.
+        [...c.items.filter(i => !i.done), ...c.items.filter(i => i.done)].forEach(i => {
+          const li = document.createElement('li');
+          li.textContent = i.label;
+          if (i.done) li.className = 'is-done';
+          list.appendChild(li);
+        });
+      }).catch(() => { extras.querySelector('.owner-progress')?.remove(); });
+    }
     // This visitor is the owner, so the "Call Now" bar would only call
     // themselves; hide it and give the claim box the room.
     const bar = getEl('mobileCallBar');
