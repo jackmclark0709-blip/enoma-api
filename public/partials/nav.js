@@ -37,7 +37,7 @@ async function loadNav() {
         <a href="/examples">Examples</a>
         <a href="/contact">Contact</a>
         <a href="/login" class="site-nav__login">Sign in</a>
-        <a href="/signup" class="btn-primary" style="font-size:0.85rem;padding:0.45rem 1.1rem;">Create my website</a>
+        <a href="/get-your-website?cta=nav" class="btn-primary" style="font-size:0.85rem;padding:0.45rem 1.1rem;">See your page</a>
       `;
     }
 

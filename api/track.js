@@ -34,7 +34,8 @@ const FUNNEL_EVENTS = new Set([
   "create_generation_failed",
   "instant_preview_started",
   "instant_preview_failed",
-  "claim_link_requested"
+  "claim_link_requested",
+  "cta_clicked"
 ]);
 
 export default async function handler(req, res) {

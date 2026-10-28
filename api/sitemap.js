@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { TOWN_PAGE_SLUGS } from "./_lib/town-pages-slugs.js";
 import { isSitemapListable } from "./_lib/sitemap-filter.js";
+import { GUIDES } from "../data/guides.mjs";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -38,6 +39,9 @@ const STATIC_PAGES = [
   { url: "https://enoma.io/for/how-to-get-more-lawn-care-customers", lastmod: TODAY, changefreq: "monthly", priority: "0.9" },
   { url: "https://enoma.io/for/how-much-does-a-contractor-website-cost", lastmod: TODAY, changefreq: "monthly", priority: "0.9" },
   { url: "https://enoma.io/for/website-for-local-service-business", lastmod: TODAY, changefreq: "monthly", priority: "0.9" },
+
+  // Owner-intent guides (data/guides.mjs) — real publish/update dates
+  ...GUIDES.map(g => ({ url: `https://enoma.io/for/${g.slug}`, lastmod: g.updated || g.published, changefreq: "monthly", priority: "0.9" })),
 
   // Original MA/local pages
   { url: "https://enoma.io/for/lawn-care-website-agawam-ma", lastmod: TODAY, changefreq: "monthly", priority: "0.80" },

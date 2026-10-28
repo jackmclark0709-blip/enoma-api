@@ -4,6 +4,8 @@
 // the x-admin-secret header to match ADMIN_SECRET.
 
 import { BetaAnalyticsDataClient } from "@google-analytics/data";
+import { cleanAttribution } from "./_lib/attribution.js";
+import { summarizeContent } from "./_lib/content-performance.js";
 import { JWT } from "google-auth-library";
 import { createClient } from "@supabase/supabase-js";
 import { scoreRawLead, scoreProspect } from "./_lib/lead-scoring.js";
@@ -876,14 +878,14 @@ async function handleInstantPreview(req, res) {
 
   const { data: prospect, error: pErr } = await supabase.from("prospects").insert({
     source: INBOUND_SOURCE, status: "inbound_preview", ...fields,
-    raw: { ip_hash: hash, rating: place.rating ?? null, reviews: place.userRatingCount ?? null, referrer: req.body?.ref || null },
+    raw: { ip_hash: hash, rating: place.rating ?? null, reviews: place.userRatingCount ?? null, referrer: req.body?.ref || null, attribution: cleanAttribution(req.body?.attribution) },
   }).select("*").single();
   if (pErr) throw pErr;
 
   const gen = await generatePreviewForProspect(prospect, { gate: false, trialDays: INBOUND_PREVIEW_DAYS, place });
   if (!gen.slug) return res.status(200).json({ success: false, reason: gen.skipped || "failed", business_name: fields.business_name });
 
-  await supabase.from("funnel_events").insert({ event: "instant_preview_generated", business_id: null, metadata: { slug: gen.slug, place_id: placeId } })
+  await supabase.from("funnel_events").insert({ event: "instant_preview_generated", business_id: null, metadata: { slug: gen.slug, place_id: placeId, ...(cleanAttribution(req.body?.attribution) || {}) } })
     .then(({ error }) => { if (error) console.warn("funnel_events insert failed:", error.message); });
 
   if (resend) {
@@ -1963,6 +1965,7 @@ async function toolUpdateProspectStatus(args) {
 const VOICE_TOOLS = [
   { type: "function", function: { name: "get_revenue_status", description: "Real MRR, paying vs. comped accounts, active and stalled trials.", parameters: { type: "object", properties: {} } } },
   { type: "function", function: { name: "get_marketing_traffic", description: "Website traffic: GA4 sessions/users/pageviews for the last 7 days, acquisition channels for the last 30 days, plus Search Console clicks/impressions/CTR/position and top search queries for the last 28 days.", parameters: { type: "object", properties: {} } } },
+  { type: "function", function: { name: "get_content_performance", description: "Per-guide performance for the /for/ SEO guides over the last 28 days: Search Console impressions, clicks, CTR, average position and top queries per guide, CTA clicks and instant-preview signups attributed to each guide, and queries worth testing with paid ads (searched often but not yet on page one).", parameters: { type: "object", properties: {} } } },
   { type: "function", function: { name: "get_crm_prospects", description: "Prospecting/CRM data pulled via Outscraper. Each result includes has_draft so you know which prospects already have outreach copy.", parameters: { type: "object", properties: {
     status: { type: "string", enum: ["new", "dedup_match", "reviewed", "skipped", "drafted", "approved"], description: "Filter by status" },
     trade: { type: "string", description: "Filter by trade, e.g. landscaping" }
@@ -1987,6 +1990,7 @@ const VOICE_TOOLS = [
 const TOOL_IMPL = {
   get_revenue_status: toolGetRevenueStatus,
   get_marketing_traffic: toolGetMarketingTraffic,
+  get_content_performance: toolGetContentPerformance,
   get_crm_prospects: toolGetCrmProspects,
   get_business_pages_status: toolGetBusinessPagesStatus,
   update_prospect_status: toolUpdateProspectStatus,
@@ -2233,6 +2237,48 @@ async function handleMarketingTraffic(req, res) {
   return res.status(200).json({ success: true, generated_at: new Date().toISOString(), ...data });
 }
 
+// Per-guide SEO + conversion report for the /for/ content: Search Console
+// impressions/clicks/position and top queries per guide (last 28 days), joined
+// with CTA clicks and instant-preview starts attributed to each guide. Queries
+// flagged paid_test_queries are searched often but not yet on page one —
+// candidates for a small Google Ads test while organic ranking builds.
+async function toolGetContentPerformance() {
+  const { token } = await searchConsoleAuth.getAccessToken();
+  const siteUrl = await getSearchConsoleSiteUrl(token);
+  const end = new Date();
+  const start = new Date(end);
+  start.setDate(start.getDate() - 28);
+  const fmt = d => d.toISOString().slice(0, 10);
+  const filter = { dimensionFilterGroups: [{ filters: [{ dimension: "page", operator: "contains", expression: "/for/" }] }] };
+  async function query(body) {
+    const res = await fetch(`https://searchconsole.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ startDate: fmt(start), endDate: fmt(end), ...filter, ...body })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error?.message || "Search Console query failed");
+    return data.rows || [];
+  }
+  const [pageRows, pageQueryRows, { data: events, error }] = await Promise.all([
+    query({ dimensions: ["page"], rowLimit: 500 }),
+    query({ dimensions: ["page", "query"], rowLimit: 5000 }),
+    supabase.from("funnel_events")
+      .select("event, metadata")
+      .in("event", ["cta_clicked", "instant_preview_started"])
+      .gte("created_at", start.toISOString())
+  ]);
+  if (error) throw error;
+  return { window: { start: fmt(start), end: fmt(end) }, ...summarizeContent(pageRows, pageQueryRows, events || []) };
+}
+
+async function handleContentPerformance(req, res) {
+  const user = await requireAdmin(req);
+  if (!user) return res.status(401).json({ error: "Unauthorized" });
+  const data = await toolGetContentPerformance();
+  return res.status(200).json({ success: true, generated_at: new Date().toISOString(), ...data });
+}
+
 async function handleBusinessPagesStatus(req, res) {
   const user = await requireAdmin(req);
   if (!user) return res.status(401).json({ error: "Unauthorized" });
@@ -2389,6 +2435,15 @@ export default async function handler(req, res) {
       return await handleMarketingTraffic(req, res);
     } catch (err) {
       console.error("Marketing traffic failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.query.action === "content_performance") {
+    try {
+      return await handleContentPerformance(req, res);
+    } catch (err) {
+      console.error("Content performance failed:", err);
       return res.status(500).json({ success: false, error: err.message });
     }
   }

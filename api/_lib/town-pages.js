@@ -188,7 +188,7 @@ export function renderTownPage(p, { pairs, asOf, asOfLabel }) {
     <h1>A website that gets ${esc(p.city)} homeowners <em>calling you</em></h1>
     <p>A one-page site for your ${esc(t.business)}, built for one job: turning a local Google search into a call or a quote request. Build it in about 5 minutes, or we'll set it up for you.</p>
     <div class="tp-actions">
-      <a href="/signup" class="btn-primary">Build mine free →</a>
+      <a href="/get-your-website" class="btn-primary">See your page in 30 seconds →</a>
       <a href="/get-your-website" class="btn-secondary">Have us set it up</a>
     </div>
     <p class="tp-proof">First month free &nbsp;·&nbsp; No credit card &nbsp;·&nbsp; Then $19.99/mo with personal support</p>
@@ -245,7 +245,7 @@ ${sibs.length ? `
     <h2>Get your ${esc(p.city)} ${esc(t.business)} found</h2>
     <p>Your page can be live today. If it isn't bringing in calls after your free month, walk away. No contract.</p>
     <div class="tp-actions">
-      <a href="/signup" class="btn-primary">Build mine free →</a>
+      <a href="/get-your-website" class="btn-primary">See your page in 30 seconds →</a>
       <a href="/examples" class="btn-secondary">See live examples</a>
     </div>
   </div>
@@ -254,6 +254,7 @@ ${sibs.length ? `
 <div id="footer"></div>
 <script>fetch('/partials/footer.html').then(r=>r.text()).then(html=>{document.getElementById('footer').innerHTML=html});</script>
 <script src="/scripts/global-cta.js" defer></script>
+<script src="/scripts/cta-track.js" defer></script>
 </body>
 </html>
 `;
