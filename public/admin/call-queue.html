@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Call Queue — Enoma Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex,nofollow" />
+<style>
+  :root{
+    --void:#060911; --panel:#0d1420; --panel-raised:#121b2c;
+    --hairline: rgba(130,180,255,.14); --hairline-strong: rgba(130,180,255,.26);
+    --core:#4fd8ff; --core-dim: rgba(79,216,255,.35);
+    --mkt:#c98af5; --rev:#34e0a1; --warn:#ffb84a; --crit:#ff5c72;
+    --text-1:#eaf3ff; --text-2:#9db2d4; --text-3:#5d7396;
+    --mono: ui-monospace,"Cascadia Code","SFMono-Regular","Consolas","Liberation Mono",monospace;
+    --sans: -apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--void);}
+  body{
+    font-family:var(--sans); color:var(--text-1); -webkit-font-smoothing:antialiased;
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -10%, rgba(79,216,255,.09), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 10%, rgba(201,138,245,.06), transparent 55%),
+      var(--void);
+    min-height:100vh; padding:28px 20px 80px;
+  }
+  a{color:var(--core)}
+
+  .wrap{ max-width:1180px; margin:0 auto; }
+
+  #unauth{ text-align:center; margin-top:20vh; }
+  #unauth h2{ color:var(--crit); font-family:var(--mono); font-size:1rem; letter-spacing:.02em; }
+  #unauth p{ color:var(--text-2); }
+
+  #app{ display:none; }
+
+  .top{ display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:16px; margin-bottom:22px; }
+  .eyebrow{ font-family:var(--mono); font-size:.7rem; letter-spacing:.14em; text-transform:uppercase; color:var(--text-3); }
+  .eyebrow b{ color:var(--core); }
+  h1{ font-size:1.6rem; margin:.25rem 0 0; letter-spacing:-.02em; }
+  .subhead{ color:var(--text-2); font-size:.85rem; margin:.35rem 0 0; }
+  .nav-links{ display:flex; gap:14px; font-family:var(--mono); font-size:.76rem; }
+  .nav-links a{ color:var(--text-2); text-decoration:none; }
+  .nav-links a:hover{ color:var(--core); }
+  .refresh-btn{
+    font-family:var(--mono); font-size:.74rem; color:var(--text-2);
+    background:var(--panel); border:1px solid var(--hairline); border-radius:999px;
+    padding:6px 14px; cursor:pointer;
+  }
+  .refresh-btn:hover{ border-color:var(--core-dim); color:var(--core); }
+
+  .tiles{ display:grid; grid-template-columns:repeat(auto-fit,minmax(128px,1fr)); gap:10px; margin-bottom:22px; }
+  .tile{ background:var(--panel); border:1px solid var(--hairline); border-radius:14px; padding:14px 16px; }
+  .tile .n{ font-family:var(--mono); font-size:1.5rem; font-weight:600; }
+  .tile .l{ font-size:.72rem; color:var(--text-3); text-transform:uppercase; letter-spacing:.06em; margin-top:2px; }
+  .tile.core .n{ color:var(--core); }
+  .tile.warm .n{ color:var(--warn); }
+
+  .empty{ color:var(--text-3); font-family:var(--mono); font-size:.85rem; text-align:center; padding:48px 0; }
+  .row{
+    display:flex; gap:16px; align-items:flex-start; background:var(--panel);
+    border:1px solid var(--hairline); border-radius:14px; padding:16px 18px; margin-bottom:10px;
+  }
+  .row:hover{ border-color:var(--hairline-strong); }
+  .tier-badge{
+    flex-shrink:0; width:52px; text-align:center; font-family:var(--mono); font-size:.68rem;
+    font-weight:700; text-transform:uppercase; letter-spacing:.04em; border-radius:8px; padding:5px 0;
+  }
+  .tier-badge.hot{ background:rgba(255,92,114,.14); color:var(--crit); }
+  .tier-badge.warm{ background:rgba(255,184,74,.14); color:var(--warn); }
+  .tier-badge.cold{ background:rgba(93,115,150,.16); color:var(--text-3); }
+
+  .row-main{ flex:1; min-width:0; }
+  .row-top{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .row-name{ font-weight:700; font-size:1rem; }
+  .row-type{ font-family:var(--mono); font-size:.68rem; color:var(--text-3); text-transform:uppercase; letter-spacing:.05em; }
+  .row-type.phone-only{ color:var(--warn); }
+  .row-detail{ color:var(--text-2); font-size:.84rem; margin-top:3px; }
+  .row-meta{ display:flex; gap:14px; flex-wrap:wrap; margin-top:8px; font-family:var(--mono); font-size:.74rem; color:var(--text-3); }
+  .row-meta a{ color:var(--text-2); }
+  .row-meta a:hover{ color:var(--core); }
+  .row-meta .phone-num{ color:var(--core); font-weight:600; }
+
+  .draft-toggle{
+    color:var(--core); font-family:var(--mono); font-size:.78rem; margin-top:10px;
+    cursor:pointer; user-select:none; display:inline-block;
+  }
+  .draft-toggle:hover{ text-decoration:underline; }
+  .draft-box{
+    margin-top:8px; background:var(--panel-raised); border:1px solid var(--hairline);
+    border-radius:10px; padding:12px 14px;
+  }
+  .draft-subject{ font-weight:700; font-size:.86rem; margin-bottom:8px; }
+  .draft-body{ white-space:pre-wrap; color:var(--text-2); font-size:.82rem; line-height:1.55; }
+  .draft-note{ color:var(--text-3); font-size:.76rem; margin-bottom:8px; }
+
+  .row-controls{ flex-shrink:0; display:flex; flex-direction:column; gap:6px; align-items:flex-end; width:190px; }
+  .score{ font-family:var(--mono); font-size:.72rem; color:var(--text-3); }
+  .btn-row{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+  .mini-btn{
+    font-family:var(--mono); font-size:.68rem; color:var(--text-2);
+    background:var(--panel-raised); border:1px solid var(--hairline); border-radius:7px;
+    padding:4px 9px; cursor:pointer; white-space:nowrap;
+  }
+  .mini-btn:hover{ border-color:var(--core-dim); color:var(--core); }
+  .mini-btn:disabled{ opacity:.4; cursor:default; }
+  .mini-btn.crit:hover{ border-color:var(--crit); color:var(--crit); }
+  .mini-btn.done{ opacity:.6; cursor:default; }
+
+  .status-line{ font-family:var(--mono); font-size:.74rem; color:var(--text-3); text-align:center; padding:24px 0; }
+  .status-line.error{ color:var(--crit); }
+</style>
+</head>
+<body>
+
+<div id="unauth" style="display:none;">
+  <h2>Unauthorized</h2>
+  <p><a href="/login">Sign in</a> as the Enoma admin account to view the call queue.</p>
+</div>
+
+<div class="wrap" id="app">
+  <div class="top">
+    <div>
+      <div class="eyebrow">ENOMA <b>CALL QUEUE</b> &middot; internal, admin-only</div>
+      <h1>Who should I call?</h1>
+      <p class="subhead">Prospects with a phone number who haven't been called yet — including phone-only prospects the email pipeline can never reach.</p>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:10px;">
+      <div class="nav-links">
+        <a href="/admin/command-center.html">Command Center</a>
+        <a href="/admin/sales-queue.html">Sales Queue</a>
+        <a href="/admin/admin-list.html">Business Profiles</a>
+        <a href="/admin/voice.html">Voice Agent</a>
+      </div>
+      <button class="refresh-btn" id="refreshBtn">↻ Refresh</button>
+    </div>
+  </div>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div id="queueWrap">
+    <div class="status-line" id="statusLine">Loading…</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/scripts/admin-auth.js"></script>
+<script>
+  const els = {
+    unauth: document.getElementById('unauth'),
+    app: document.getElementById('app'),
+    tiles: document.getElementById('tiles'),
+    queueWrap: document.getElementById('queueWrap'),
+    refreshBtn: document.getElementById('refreshBtn'),
+  };
+
+  let accessToken = null;
+  let latest = null;
+
+  const OUTCOMES = [
+    { key: 'interested', label: 'Interested', cls: '' },
+    { key: 'not_interested', label: 'Not interested', cls: '' },
+    { key: 'voicemail', label: 'Voicemail', cls: '' },
+    { key: 'no_answer', label: 'No answer', cls: '' },
+    { key: 'do_not_call', label: 'Do not call', cls: 'crit' },
+  ];
+
+  async function init() {
+    const session = await EnomaAdmin.requireAdminSession();
+    if (!session) {
+      els.unauth.style.display = 'block';
+      return;
+    }
+    accessToken = session.accessToken;
+    els.app.style.display = 'block';
+    els.refreshBtn.addEventListener('click', load);
+    load();
+  }
+
+  async function load() {
+    els.queueWrap.innerHTML = '<div class="status-line" id="statusLine">Loading…</div>';
+    try {
+      const res = await fetch('/api/ga-metrics?action=call_queue', {
+        headers: { 'Authorization': 'Bearer ' + accessToken }
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to load');
+      latest = data;
+      renderTiles(data.summary);
+      renderQueue();
+    } catch (err) {
+      els.queueWrap.innerHTML = `<div class="status-line error">${err.message}</div>`;
+    }
+  }
+
+  function renderTiles(s) {
+    els.tiles.innerHTML = `
+      <div class="tile core"><div class="n">${s.total}</div><div class="l">In queue</div></div>
+      <div class="tile warm"><div class="n">${s.phone_only}</div><div class="l">Phone-only (no email)</div></div>
+    `;
+  }
+
+  function renderQueue() {
+    if (!latest) return;
+    const rows = latest.queue;
+    if (!rows.length) {
+      els.queueWrap.innerHTML = '<div class="empty">Nobody left to call right now.</div>';
+      return;
+    }
+    els.queueWrap.innerHTML = rows.map(rowHtml).join('');
+    els.queueWrap.querySelectorAll('[data-outcome]').forEach(btn => {
+      btn.addEventListener('click', () => logCall(btn.dataset.id, btn.dataset.outcome, btn.closest('.row')));
+    });
+    els.queueWrap.querySelectorAll('[data-toggle-draft]').forEach(toggle => {
+      toggle.addEventListener('click', () => toggleDraft(toggle, rows));
+    });
+  }
+
+  // textContent only, same reasoning as sales-queue.html — draft copy is
+  // AI-generated from scraped third-party text, never treated as markup.
+  function toggleDraft(toggleEl, rows) {
+    const id = toggleEl.dataset.toggleDraft;
+    const box = els.queueWrap.querySelector(`[data-draft-box="${CSS.escape(id)}"]`);
+    if (!box) return;
+    const isOpen = box.style.display !== 'none';
+    if (isOpen) {
+      box.style.display = 'none';
+      toggleEl.textContent = '▸ View talking points (email draft)';
+      return;
+    }
+    if (!box.dataset.populated) {
+      const row = rows.find(r => String(r.id) === id);
+      if (!row) return;
+      box.innerHTML = '';
+      const noteEl = document.createElement('div');
+      noteEl.className = 'draft-note';
+      noteEl.textContent = 'No call script yet — here\'s the drafted email for the same prospect as a talking-points reference:';
+      const subjectEl = document.createElement('div');
+      subjectEl.className = 'draft-subject';
+      subjectEl.textContent = row.draft_subject || '(no subject)';
+      const bodyEl = document.createElement('div');
+      bodyEl.className = 'draft-body';
+      bodyEl.textContent = row.draft_body || '';
+      box.append(noteEl, subjectEl, bodyEl);
+      box.dataset.populated = '1';
+    }
+    box.style.display = 'block';
+    toggleEl.textContent = '▾ Hide';
+  }
+
+  function rowHtml(r) {
+    const contact = [
+      `<a class="phone-num" href="tel:${r.phone}">${r.phone}</a>`,
+      r.email ? `<a href="mailto:${r.email}">${r.email}</a>` : null,
+    ].filter(Boolean).join(' &middot; ');
+
+    const outcomeButtons = OUTCOMES.map(o =>
+      `<button class="mini-btn ${o.cls}" data-id="${r.id}" data-outcome="${o.key}">${o.label}</button>`
+    ).join('');
+
+    return `
+      <div class="row">
+        <div class="tier-badge ${r.tier}">${r.tier}</div>
+        <div class="row-main">
+          <div class="row-top">
+            <span class="row-name">${r.business_name || 'Unnamed business'}</span>
+            <span class="row-type${r.phone_only ? ' phone-only' : ''}">${r.trade || 'prospect'}${r.phone_only ? ' · phone-only' : ''}</span>
+          </div>
+          ${r.detail ? `<div class="row-detail">${r.detail}</div>` : ''}
+          <div class="row-meta">${contact}</div>
+          ${r.draft_body ? `
+            <div class="draft-toggle" data-toggle-draft="${r.id}">▸ View talking points (email draft)</div>
+            <div class="draft-box" data-draft-box="${r.id}" style="display:none;"></div>
+          ` : ''}
+        </div>
+        <div class="row-controls">
+          <div class="score">score ${r.score}</div>
+          <div class="btn-row">${outcomeButtons}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  async function logCall(id, outcome, rowEl) {
+    const btns = rowEl.querySelectorAll('[data-outcome]');
+    btns.forEach(b => b.disabled = true);
+    try {
+      const res = await fetch('/api/ga-metrics?action=log_call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken },
+        body: JSON.stringify({ prospect_id: id, outcome })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to log call');
+      rowEl.style.opacity = '.4';
+      rowEl.querySelector('.btn-row').innerHTML = '<span class="mini-btn done">Logged</span>';
+      setTimeout(load, 600);
+    } catch (err) {
+      alert(err.message);
+      btns.forEach(b => b.disabled = false);
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>
