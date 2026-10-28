@@ -94,6 +94,11 @@ test("classifyEmail explains its decision", () => {
   assert.deepEqual(classifyEmail("joe@mail.joesplumbing.com", "www.joesplumbing.com"), { ok: true, reason: "on_domain" });
   assert.deepEqual(classifyEmail("joe@comcast.net", "joesplumbing.com"), { ok: true, reason: "free_mail" });
   assert.equal(classifyEmail("someone@otherco.com", "joesplumbing.com").reason, "off_domain");
+  assert.deepEqual(classifyEmail("service@papasplumbinghvac.com", "www.papashvac.com", "Papa's Plumbing, Heating & Air Conditioning LLC"), { ok: true, reason: "related_domain", needsVerification: true });
+  assert.equal(classifyEmail("info@comfortaireinc.com", "www.comfortaireheatingandcooling.com", "Comfort Aire Heating & Cooling Inc.").reason, "related_domain");
+  assert.equal(classifyEmail("slhr@ruc.edu.cn", "nrgelectricalinc.com", "NRG Electrical Inc.").reason, "off_domain");
+  assert.equal(classifyEmail("info@bestplumbingco.com", "joesplumbing.com", "Joe's Plumbing").reason, "off_domain", "a shared trade word isn't enough");
+  assert.equal(pickBestEmail(["service@papasplumbinghvac.com", "info@papashvac.com"], "papashvac.com", "Papa's Plumbing"), "info@papashvac.com");
   assert.equal(classifyEmail("admin@joesplumbing.com", "joesplumbing.com").reason, "role_address");
   assert.equal(classifyEmail("not-an-email", "joesplumbing.com").reason, "malformed");
 });
