@@ -623,6 +623,26 @@
 <div id="footer"></div>
 <script>fetch('/partials/footer.html').then(r=>r.text()).then(html=>{document.getElementById('footer').innerHTML=html});</script>
 <script src="/scripts/global-cta.js" defer></script>
+<script>
+  // Attribution for this signup: which guide/button sent the visitor (enoma_cta)
+  // and the first-touch landing page + utm_* params (enoma_attr). Both are set
+  // by /scripts/ref-capture.js; see /scripts/cta-track.js.
+  window.enomaAttribution = function () {
+    var out = {};
+    try {
+      var q = new URLSearchParams(location.search);
+      var cta = JSON.parse(localStorage.getItem('enoma_cta') || 'null');
+      var attr = JSON.parse(localStorage.getItem('enoma_attr') || 'null');
+      out.from = q.get('from') || (cta && cta.from) || null;
+      out.cta = q.get('cta') || (cta && cta.cta) || null;
+      if (attr) {
+        out.landing = attr.landing || null;
+        ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'].forEach(function (k) { if (attr[k]) out[k] = attr[k]; });
+      }
+    } catch (e) {}
+    return out;
+  };
+</script>
 <script src="/scripts/funnel-track.js"></script>
 
 <script>
@@ -675,7 +695,7 @@
         town: city
       })
     }).catch(() => {});
-    if (window.enomaTrack) enomaTrack('get_your_website_submitted');
+    if (window.enomaTrack) enomaTrack('get_your_website_submitted', window.enomaAttribution ? enomaAttribution() : {});
 
     const params = new URLSearchParams({ name, city, email });
     this.href = `/choose-path?${params.toString()}`;
@@ -798,12 +818,12 @@
       document.getElementById('buildTitle').textContent = 'Building your page…';
       document.getElementById('buildSub').textContent = 'This takes about 20 seconds. Don’t close this tab.';
       show('build'); runSteps();
-      if (window.enomaTrack) enomaTrack('instant_preview_started');
+      if (window.enomaTrack) enomaTrack('instant_preview_started', window.enomaAttribution ? enomaAttribution() : {});
       var data = {};
       try {
         var res = await fetch('/api/ga-metrics?action=instant_preview', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ place_id: chosen.id, session: session, ref: document.referrer || null })
+          body: JSON.stringify({ place_id: chosen.id, session: session, ref: document.referrer || null, attribution: window.enomaAttribution ? enomaAttribution() : null })
         });
         data = await res.json().catch(function () { return {}; });
         if (res.status === 429) {
