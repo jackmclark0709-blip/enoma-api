@@ -148,15 +148,46 @@ export function alternateOrigins(url) {
   return out;
 }
 
-// Prefers an email on the business's own domain (most reliable signal it's
-// really theirs) over one picked up from a third-party embed/widget.
+// Only addresses we can stand behind get emailed. Mis-parsed, off-site and
+// role addresses were behind most bounces (Aug-Oct 2026 review of 203 sends):
+// "office@www.richardbros.com", "mailtocontact@glowcleaningcompany.com",
+// "slhr@ruc.edu.cn" scraped off a contractor's site, "webmaster@...".
+// Rather than repair or guess (strip "www.", drop "mailto"), those are skipped.
+export const FREE_MAIL_DOMAINS = new Set([
+  "gmail.com", "googlemail.com", "yahoo.com", "ymail.com", "hotmail.com", "outlook.com", "live.com", "msn.com",
+  "aol.com", "icloud.com", "me.com", "mac.com", "comcast.net", "verizon.net", "att.net", "sbcglobal.net",
+  "cox.net", "charter.net", "optonline.net", "protonmail.com", "proton.me", "bellsouth.net", "earthlink.net"
+]);
+const ROLE_PREFIXES = ["webmaster", "hostmaster", "admin", "administrator", "abuse", "privacy", "legal", "dmca", "careers", "jobs", "hr", "billing", "accounting", "press", "media", "marketing", "seo", "wordpress", "user", "test", "email", "name", "your", "you"];
+
+const bareHost = (h) => String(h || "").toLowerCase().replace(/^www\./, "");
+
+/**
+ * Why (or whether) a crawled address is safe to send cold outreach to.
+ * @returns {{ ok: boolean, reason: string }}
+ */
+export function classifyEmail(email, websiteDomain) {
+  const e = String(email || "").trim().toLowerCase();
+  const m = e.match(/^([a-z0-9._%+-]+)@([a-z0-9-]+(?:\.[a-z0-9-]+)+)$/);
+  if (!m) return { ok: false, reason: "malformed" };
+  const [, local, domain] = m;
+  if (domain.startsWith("www.")) return { ok: false, reason: "malformed" };
+  if (local.startsWith("mailto")) return { ok: false, reason: "malformed" };
+  if (/^\d+$/.test(local) || local.length < 2) return { ok: false, reason: "malformed" };
+  if (ROLE_PREFIXES.includes(local.split(/[+._-]/)[0])) return { ok: false, reason: "role_address" };
+  const site = bareHost(websiteDomain);
+  if (site && (domain === site || domain.endsWith(`.${site}`))) return { ok: true, reason: "on_domain" };
+  if (FREE_MAIL_DOMAINS.has(domain)) return { ok: true, reason: "free_mail" };
+  return { ok: false, reason: "off_domain" };
+}
+
+// Best address found on the business's own pages: one on their own domain
+// first, then a personal mailbox (gmail etc., common for one-truck
+// businesses). Anything else is skipped rather than risked.
 export function pickBestEmail(emails, websiteDomain) {
-  if (!emails.length) return null;
-  if (websiteDomain) {
-    const onDomain = emails.find(e => e.endsWith(`@${websiteDomain}`));
-    if (onDomain) return onDomain;
-  }
-  return emails[0];
+  const ok = (emails || []).filter(e => classifyEmail(e, websiteDomain).ok);
+  if (!ok.length) return null;
+  return ok.find(e => classifyEmail(e, websiteDomain).reason === "on_domain") || ok[0];
 }
 
 // Blocks the crawler from being pointed at internal infrastructure via a

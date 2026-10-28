@@ -11,16 +11,16 @@ import { createClient } from "@supabase/supabase-js";
 import { scoreRawLead, scoreProspect } from "./_lib/lead-scoring.js";
 import dns from "node:dns/promises";
 import crypto from "node:crypto";
-import { extractEmails, pickBestEmail, htmlToText, isPrivateOrReservedIp, websiteCandidates, contactLinks, alternateOrigins } from "./_lib/email-crawler.js";
+import { extractEmails, pickBestEmail, classifyEmail, htmlToText, isPrivateOrReservedIp, websiteCandidates, contactLinks, alternateOrigins } from "./_lib/email-crawler.js";
 import { hasValidMx } from "./_lib/email-verify.js";
 import { siteChecks, decideSiteTier } from "./_lib/site-checks.js";
 import { previousMonth, tallyClicks, buildResultsEmail } from "./_lib/results-email.js";
 import { qualifiesForPreview, buildFactsPrompt, validateGenerated, assembleProfile, slugify, stateAbbr, PREVIEW_TRIAL_DAYS, INBOUND_PREVIEW_DAYS, INBOUND_SOURCE, isValidPlaceId, inboundLimitReason, placeToProspect, isValidSessionToken, placeSuggestions } from "./_lib/preview-generator.js";
 import { verifyUnsubscribeToken, appendComplianceFooter, buildUnsubscribeUrl, MAILING_ADDRESS } from "./_lib/outreach-footer.js";
-import { buildOutreachEmail, trackedLinks, replyToFor, slugFromPreviewUrl, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "./_lib/outreach-email.js";
+import { buildOutreachEmail, buildOutreachIntro, buildFollowUpEmail, isFollowUpDue, FOLLOW_UP_AFTER_DAYS, FOLLOW_UP_MAX_AGE_DAYS, isLikelyLinkScanner, trackedLinks, replyToFor, slugFromPreviewUrl, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "./_lib/outreach-email.js";
 import { verifyMailbox } from "./_lib/mailbox-verify.js";
 import { plainTextToHtml, wrapEmailHtml } from "./_lib/email-html.js";
-import { rampCapForDate } from "./_lib/outreach-ramp.js";
+import { rampCapForDate, capWithBounceBrake } from "./_lib/outreach-ramp.js";
 import { townForDate, tradeForDate } from "./_lib/prospect-rotation.js";
 import { Resend } from "resend";
 import { isGrandfathered } from "./_lib/trial-policy.js";
@@ -470,6 +470,11 @@ Return ONLY valid JSON: {"tier": "weak_site" | "good_site", "gaps": ["short spec
 // after this cooldown rather than abandoning it forever. no_email_found is
 // NOT retried: that page was actually read and genuinely had nothing.
 const FETCH_FAILED_RETRY_AFTER_MS = 3 * 24 * 60 * 60 * 1000;
+
+function websiteHost(website) {
+  try { return new URL(/^https?:\/\//i.test(website || "") ? website : `https://${website}`).hostname; }
+  catch { return null; }
+}
 
 async function crawlWebsitesOnce({ limit = 6, deadline } = {}) {
   const cappedLimit = Math.min(limit || 6, 15);
@@ -1191,6 +1196,13 @@ async function findProspect(businessName) {
 // Drafting is a separate, non-tool-calling OpenAI completion — same raw-fetch
 // pattern already used for page copy in generate-business.js.
 async function generateDraftCopy(prospect, instructions) {
+  // Preview emails are built from a fixed template around one verified reason
+  // (buildOutreachIntro). The model is only used when someone asks for a
+  // custom revision, or for prospects without a preview page.
+  if (prospect.preview_url && !instructions) {
+    const { subject, body } = buildOutreachIntro(prospect);
+    return { subject, body };
+  }
   // Rules learned the hard way (Sept 2026 review of 128 sends, 0 replies):
   // the old prompt told the model the business "isn't showing up in local
   // search" (unverified — often false for a 100-review business) and let it
@@ -1206,13 +1218,11 @@ async function generateDraftCopy(prospect, instructions) {
   if (prospect.preview_url) {
     // The strongest honest hook: a real page, already built from their own info.
     // The model writes ONLY the intro. buildOutreachEmail (outreach-email.js)
-    // appends the page preview card, the "Keep my page live" button, the
-    // reply-yes line and the sign-off, with tracked links.
-    brief = `STRUCTURE (follow it; this is only the opening of the email — the page link, button, reply line and sign-off are added after it automatically):
+    // appends the one tracked page link, the reply/pricing line and sign-off.
+    brief = `STRUCTURE (follow it; this is only the opening of the email — the page link, pricing, reply line and sign-off are added after it automatically):
 1. One line: I'm Jack; I build simple websites for trades businesses.
 2. I put together a new page for ${prospect.business_name} using what's already on their ${prospect.website ? "website and " : ""}Google profile — it's below. Do NOT include any URL.${gaps.length && siteHost ? `\n3. A short list comparing it with ${siteHost}, one line per item, using ONLY these verified problems with their current site (rephrase each as what the new page does instead): ${gaps.join("; ")}` : ""}
-${gaps.length && siteHost ? "4" : "3"}. Pricing, exactly: "The first month is free. After that it's $19.99/month to keep it live, and I'm there if you ever want changes. No contract."
-Do NOT add a closing line, a call to action, or a sign-off.`;
+Do NOT mention pricing (it's in the line added after), and do NOT add a closing line, a call to action, or a sign-off.`;
   } else {
     brief = `STRUCTURE:
 1. One line: I'm Jack; I build simple websites for trades businesses.
@@ -1389,6 +1399,15 @@ async function prepareOutreachOnce({ limit = 4, deadline } = {}) {
         continue;
       }
 
+      // Addresses found before the crawler's quality filter (classifyEmail)
+      // existed may be mis-parsed, off-site or role mailboxes: skip, don't guess.
+      const quality = classifyEmail(prospect.email, websiteHost(prospect.website));
+      if (!quality.ok) {
+        await supabase.from("prospects").update({ status: "invalid_email", updated_at: now() }).eq("id", prospect.id);
+        results.push({ business_name: prospect.business_name, email: prospect.email, ready: false, reason: `email_${quality.reason}` });
+        continue;
+      }
+
       // ZeroBounce when ZEROBOUNCE_API_KEY is set; otherwise only the free
       // MX check (domain accepts mail), with real bounces caught afterwards
       // by the Resend webhook -> suppression_list.
@@ -1520,24 +1539,111 @@ async function handleDailyPipeline(req, res) {
 // send attempt. Real mailbox-level bounces are handled after the fact by the
 // Resend webhook (handleResendWebhook, below) feeding suppression_list.
 const SEND_OUTREACH_FROM = "Jack at Enoma <outreach@mail.enoma.io>";
-// Hard ceiling on cold emails per day, whatever the cron or a caller asks for.
-const OUTREACH_DAILY_CAP = 10;
+// Hard ceiling on cold emails per day (first emails + follow-ups together),
+// whatever the cron or a caller asks for. Raised 10 -> 20 on 2026-10-28 after
+// two months of warm-up; capWithBounceBrake drops it back to 10 if the last
+// 7 days bounce more than 3%.
+const OUTREACH_DAILY_CAP = 20;
+
+// One follow-up per cold email, 3-10 days after it went out, only while the
+// owner hasn't replied, bounced, opted out or claimed, and the page is still
+// up and unclaimed. The original message row is reserved by stamping
+// followup_sent_at first, so overlapping runs can't send it twice.
+async function sendFollowUpsOnce({ maxSends, captureReplies }) {
+  const results = [];
+  if (!maxSends) return { sent: 0, results };
+  const now = Date.now();
+  const { data: rows, error } = await supabase.from("outreach_messages")
+    .select("id, sent_at, draft_subject, followup_sent_at, response_status, prospects(id, business_name, email, preview_url, status)")
+    .eq("channel", "email").eq("status", "sent")
+    .is("followup_sent_at", null).is("response_status", null)
+    .gte("sent_at", new Date(now - FOLLOW_UP_MAX_AGE_DAYS * 864e5).toISOString())
+    .lte("sent_at", new Date(now - FOLLOW_UP_AFTER_DAYS * 864e5).toISOString())
+    .order("sent_at", { ascending: true })
+    .limit(Math.min(maxSends * 3, 30));
+  if (error) throw error;
+
+  let sent = 0;
+  for (const row of rows || []) {
+    if (sent >= maxSends) break;
+    const p = row.prospects;
+    const slug = slugFromPreviewUrl(p?.preview_url);
+    const skip = (reason) => results.push({ business_name: p?.business_name, sent: false, reason });
+    if (!isFollowUpDue({ sentAt: row.sent_at, followupSentAt: row.followup_sent_at, responseStatus: row.response_status, now })) continue;
+    if (!p?.email || !slug) { skip("no_email_or_page"); continue; }
+    if (p.status !== "sent") { skip(`prospect_${p.status}`); continue; }
+    const { data: suppressed } = await supabase.from("suppression_list").select("id").eq("email", p.email).maybeSingle();
+    if (suppressed) { skip("suppressed"); continue; }
+    const { data: page } = await supabase.from("small_business_profiles")
+      .select("is_public, is_claimed").eq("username", slug).maybeSingle();
+    if (!page?.is_public || page.is_claimed !== false) { skip("page_not_live_or_claimed"); continue; }
+
+    const stamp = new Date().toISOString();
+    const { data: reserved } = await supabase.from("outreach_messages")
+      .update({ followup_sent_at: stamp, updated_at: stamp })
+      .eq("id", row.id).is("followup_sent_at", null).select("id");
+    if (!reserved?.length) continue;
+
+    try {
+      const email = buildFollowUpEmail({
+        businessName: p.business_name, originalSubject: row.draft_subject, messageId: row.id, slug,
+        unsubscribeUrl: buildUnsubscribeUrl(p.email), mailingAddress: MAILING_ADDRESS
+      });
+      const { data: sendData, error: sendErr } = await resend.emails.send({
+        from: SEND_OUTREACH_FROM,
+        to: p.email,
+        replyTo: replyToFor(row.id, { captureReplies }),
+        subject: email.subject,
+        text: email.text,
+        html: email.html,
+        headers: { "List-Unsubscribe": `<${buildUnsubscribeUrl(p.email)}>` },
+        tags: [{ name: "outreach_message_id", value: row.id }, { name: "kind", value: "cold_outreach_followup" }]
+      });
+      if (sendErr) throw new Error(sendErr.message || "Resend send failed");
+      await supabase.from("outreach_messages").update({ followup_resend_email_id: sendData?.id || null }).eq("id", row.id);
+      sent++;
+      results.push({ business_name: p.business_name, email: p.email, sent: true, message_id: row.id });
+    } catch (err) {
+      // Not sent: release it so a later run can try again.
+      await supabase.from("outreach_messages").update({ followup_sent_at: null }).eq("id", row.id);
+      await logNotificationFailure("send-followup", p.email, err, { prospect_id: p.id, business_name: p.business_name });
+      results.push({ business_name: p.business_name, email: p.email, sent: false, reason: err.message });
+    }
+  }
+  return { sent, results };
+}
 
 async function handleSendOutreach(req, res) {
-  const rampCap = rampCapForDate(new Date());
+  const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString();
+  const [{ count: sends7d }, { count: bounces7d }] = await Promise.all([
+    supabase.from("outreach_messages").select("id", { count: "exact", head: true })
+      .eq("channel", "email").eq("status", "sent").gte("sent_at", weekAgo),
+    supabase.from("outreach_messages").select("id", { count: "exact", head: true })
+      .eq("channel", "email").eq("response_status", "bounced").gte("sent_at", weekAgo),
+  ]);
+  const rampCap = capWithBounceBrake(rampCapForDate(new Date()), { sends7d: sends7d || 0, bounces7d: bounces7d || 0 });
   // Count today's sends too, so a manual re-run can't push past the cap.
   const startOfDay = new Date(); startOfDay.setUTCHours(0, 0, 0, 0);
   const { count: sentToday } = await supabase.from("outreach_messages")
     .select("id", { count: "exact", head: true })
     .eq("channel", "email").eq("status", "sent").gte("sent_at", startOfDay.toISOString());
-  const remaining = Math.max(0, Math.min(OUTREACH_DAILY_CAP, rampCap) - (sentToday || 0));
-  const limit = Math.min(parseInt(req.query.limit, 10) || OUTREACH_DAILY_CAP, remaining);
+  const { count: followupsToday } = await supabase.from("outreach_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("channel", "email").gte("followup_sent_at", startOfDay.toISOString());
   const captureReplies = process.env.OUTREACH_REPLY_CAPTURE === "1";
+  const dailyCap = Math.min(OUTREACH_DAILY_CAP, rampCap);
+  // Follow-ups go first: they're time-boxed (days 3-10) and to people who
+  // already got one email. Both kinds count toward the same daily cap.
+  const followUps = req.query.dry_run === "1" ? { sent: 0, results: [] }
+    : await sendFollowUpsOnce({ maxSends: Math.max(0, dailyCap - (sentToday || 0) - (followupsToday || 0)), captureReplies });
+  const usedSoFar = (sentToday || 0) + (followupsToday || 0) + followUps.sent;
+  const remaining = Math.max(0, dailyCap - usedSoFar);
+  const limit = Math.min(parseInt(req.query.limit, 10) || OUTREACH_DAILY_CAP, remaining);
 
   const { data: prospects, error } = limit > 0
     ? await supabase
       .from("prospects")
-      .select("id, business_name, email, draft_subject, draft_body, preview_url")
+      .select("id, business_name, email, website, draft_subject, draft_body, preview_url")
       .eq("status", "drafted")
       .not("email", "is", null)
       // No page, no email: every send shows the prospect their own page.
@@ -1566,7 +1672,7 @@ async function handleSendOutreach(req, res) {
     const { count } = await supabase.from("outreach_messages")
       .select("id", { count: "exact", head: true })
       .eq("channel", "email").in("status", ["sent", "drafted"]).gte("created_at", startOfDay.toISOString());
-    return count || 0;
+    return (count || 0) + (followupsToday || 0) + followUps.sent;
   };
 
   const results = [];
@@ -1590,6 +1696,12 @@ async function handleSendOutreach(req, res) {
     if (suppressed) {
       await supabase.from("prospects").update({ status: "invalid_email", updated_at: new Date().toISOString() }).eq("id", prospect.id);
       results.push({ business_name: prospect.business_name, email: prospect.email, sent: false, reason: "suppressed" });
+      continue;
+    }
+    const quality = classifyEmail(prospect.email, websiteHost(prospect.website));
+    if (!quality.ok) {
+      await supabase.from("prospects").update({ status: "invalid_email", updated_at: new Date().toISOString() }).eq("id", prospect.id);
+      results.push({ business_name: prospect.business_name, email: prospect.email, sent: false, reason: `email_${quality.reason}` });
       continue;
     }
     if (!(await hasValidMx(prospect.email))) {
@@ -1653,13 +1765,31 @@ async function handleSendOutreach(req, res) {
 
   return res.status(200).json({
     success: true,
-    daily_cap: Math.min(OUTREACH_DAILY_CAP, rampCap),
-    sent_earlier_today: sentToday || 0,
+    daily_cap: dailyCap,
+    bounce_rate_7d: sends7d ? Math.round(((bounces7d || 0) / sends7d) * 1000) / 10 : null,
+    sent_earlier_today: (sentToday || 0) + (followupsToday || 0),
+    follow_ups: followUps,
     attempted: results.length,
     sent: results.filter(r => r.sent).length,
     skipped: results.filter(r => !r.sent).length,
     results
   });
+}
+
+// Public — lets a preview page opened from Jack's email (?m=<message id>)
+// prefill the claim form with the address that email went to, so keeping the
+// page is one tap. Only answers for a real message whose page matches the
+// slug asked about; the message id is an unguessable UUID only in that email.
+async function handleClaimHint(req, res) {
+  res.setHeader("Cache-Control", "no-store");
+  const m = String(req.query.m || "");
+  const slug = String(req.query.slug || "").toLowerCase();
+  if (!isUuid(m) || !/^[a-z0-9][a-z0-9-]*$/.test(slug)) return res.status(200).json({});
+  const { data: msg } = await supabase.from("outreach_messages")
+    .select("id, prospects(email, preview_url)")
+    .eq("id", m).maybeSingle();
+  if (!msg || slugFromPreviewUrl(msg.prospects?.preview_url) !== slug) return res.status(200).json({});
+  return res.status(200).json({ email: msg.prospects?.email || null });
 }
 
 // Public — the links inside outreach emails. Records the click against the
@@ -1672,21 +1802,26 @@ async function handleOutreachRedirect(req, res) {
   if (!isUuid(m)) return res.redirect(302, "https://enoma.io/");
 
   const { data: msg } = await supabase.from("outreach_messages")
-    .select("id, preview_visited_at, prospects(preview_url)")
+    .select("id, sent_at, preview_visited_at, prospects(preview_url)")
     .eq("id", m).maybeSingle();
   const slug = slugFromPreviewUrl(msg?.prospects?.preview_url);
   if (!msg || !slug) return res.redirect(302, "https://enoma.io/");
 
   const links = trackedLinks(msg.id, slug);
   const at = new Date().toISOString();
+  // Corporate mail filters (Microsoft Safe Links and similar) open every link
+  // within seconds of delivery from cloud IPs. All three "clicks" through
+  // Oct 2026 were these. They're logged, flagged, and kept off
+  // preview_visited_at so reporting counts people, not scanners.
+  const scanner = isLikelyLinkScanner({ sentAt: msg.sent_at, now: Date.now(), userAgent: req.headers["user-agent"] });
   try {
-    if (!msg.preview_visited_at) {
+    if (!msg.preview_visited_at && !scanner) {
       await supabase.from("outreach_messages").update({ preview_visited_at: at, updated_at: at }).eq("id", msg.id);
     }
     await supabase.from("page_events").insert({
       slug,
       event: to === "claim" ? "outreach_claim_click" : "outreach_page_click",
-      metadata: { m: msg.id },
+      metadata: { m: msg.id, ...(scanner ? { likely_scanner: true } : {}) },
       referrer: req.headers.referer || null,
       user_agent: req.headers["user-agent"] || null,
       ip: (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || null,
@@ -1755,7 +1890,10 @@ async function handleResendWebhook(req, res) {
   const event = req.body;
   const type = event?.type;
   const data = event?.data || {};
-  const at = data.created_at || event?.created_at || new Date().toISOString();
+  // event.created_at is when this event (delivery, open, click) happened;
+  // data.created_at is when the email itself was created. Using the latter
+  // stamped every open and click with the send time.
+  const at = event?.created_at || new Date().toISOString();
 
   if (type === "email.received") {
     await handleInboundReply(data);
@@ -2385,6 +2523,15 @@ export default async function handler(req, res) {
   }
 
   // Public: the tracked links inside outreach emails.
+  if (req.query.action === "claim_hint") {
+    try {
+      return await handleClaimHint(req, res);
+    } catch (err) {
+      console.error("Claim hint failed:", err);
+      return res.status(200).json({});
+    }
+  }
+
   if (req.query.action === "go") {
     try {
       return await handleOutreachRedirect(req, res);

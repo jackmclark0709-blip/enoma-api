@@ -2,7 +2,7 @@
 // Run with: node tests/email-crawler.test.js (also wired into `npm test`)
 
 import assert from "node:assert/strict";
-import { extractEmails, pickBestEmail, htmlToText, isPrivateOrReservedIp, websiteCandidates, decodeCfEmail, contactLinks, alternateOrigins } from "../api/_lib/email-crawler.js";
+import { extractEmails, pickBestEmail, classifyEmail, htmlToText, isPrivateOrReservedIp, websiteCandidates, decodeCfEmail, contactLinks, alternateOrigins } from "../api/_lib/email-crawler.js";
 
 let passed = 0;
 function test(name, fn) {
@@ -76,9 +76,26 @@ test("prefers an email on the business's own domain", () => {
   assert.equal(pickBestEmail(emails, "joesplumbing.com"), "info@joesplumbing.com");
 });
 
-test("falls back to the first email when none match the domain", () => {
+test("falls back to a personal mailbox when none match the domain", () => {
   const emails = ["someone@gmail.com", "other@yahoo.com"];
   assert.equal(pickBestEmail(emails, "joesplumbing.com"), "someone@gmail.com");
+});
+
+test("skips addresses that were mis-parsed, off-site or role mailboxes (real bounces)", () => {
+  assert.equal(pickBestEmail(["office@www.richardbros.com"], "richardbros.com"), null);
+  assert.equal(pickBestEmail(["mailtocontact@glowcleaningcompany.com"], "glowcleaningcompany.com"), null);
+  assert.equal(pickBestEmail(["slhr@ruc.edu.cn"], "nrgelectricalinc.com"), null);
+  assert.equal(pickBestEmail(["webmaster@rpiannuccillo.com"], "rpiannuccillo.com"), null);
+  assert.equal(pickBestEmail(["designer@someagency.com", "info@joesplumbing.com"], "www.joesplumbing.com"), "info@joesplumbing.com");
+});
+
+test("classifyEmail explains its decision", () => {
+  assert.deepEqual(classifyEmail("info@joesplumbing.com", "joesplumbing.com"), { ok: true, reason: "on_domain" });
+  assert.deepEqual(classifyEmail("joe@mail.joesplumbing.com", "www.joesplumbing.com"), { ok: true, reason: "on_domain" });
+  assert.deepEqual(classifyEmail("joe@comcast.net", "joesplumbing.com"), { ok: true, reason: "free_mail" });
+  assert.equal(classifyEmail("someone@otherco.com", "joesplumbing.com").reason, "off_domain");
+  assert.equal(classifyEmail("admin@joesplumbing.com", "joesplumbing.com").reason, "role_address");
+  assert.equal(classifyEmail("not-an-email", "joesplumbing.com").reason, "malformed");
 });
 
 test("returns null for an empty list", () => {

@@ -46,3 +46,12 @@ test("before the start date, still capped at the lowest step (never negative/unb
 });
 
 console.log(`\n${passed} passed`);
+
+import { capWithBounceBrake } from "../api/_lib/outreach-ramp.js";
+{
+  const assert2 = (await import("node:assert/strict")).default;
+  assert2.equal(capWithBounceBrake(20, { sends7d: 100, bounces7d: 2 }), 20);
+  assert2.equal(capWithBounceBrake(20, { sends7d: 100, bounces7d: 4 }), 10);
+  assert2.equal(capWithBounceBrake(20, { sends7d: 10, bounces7d: 5 }), 20, "too few sends to judge");
+  console.log("bounce brake: ok");
+}
