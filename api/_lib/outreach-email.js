@@ -10,7 +10,6 @@
 // outreach_messages id, so a click is recorded against that exact email even
 // if Resend's own click tracking is off, then lands on the real page.
 import { escapeHtml, plainTextToHtml } from "./email-html.js";
-import { feedbackLinks } from "./feedback.js";
 
 const BASE = "https://enoma.io";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -57,45 +56,104 @@ export function messageIdFromReplyAddress(addresses) {
   return null;
 }
 
+// "Maynard Roofing /40 yrs Family Business" -> "Maynard Roofing";
+// "Comfort Aire Heating & Cooling Inc." -> "Comfort Aire Heating & Cooling".
+// Listing names often carry taglines and legal suffixes nobody says out loud.
+export function cleanBusinessName(name) {
+  let n = String(name || "").trim();
+  n = n.split(/\s+[\/|]\s*/)[0];
+  // A dash only starts a tagline when what follows reads like one
+  // ("Ace Plumbing - Serving Taunton Since 1990"), not a name ("Smith - Jones").
+  const dash = n.match(/^(.+?)\s+[-–—]\s+(.+)$/);
+  if (dash && /\b(serving|since|family|owned|licensed|insured|best|yrs|years|24\/7|#1|llc|inc|services in|repair in)\b/i.test(dash[2])) n = dash[1];
+  n = n.replace(/[,\s]+(llc|l\.l\.c\.|inc\.?|incorporated|co\.|corp\.?|corporation|ltd\.?)\s*$/i, "");
+  n = n.replace(/[,\s]+(llc|inc\.?)\s*$/i, "").trim();
+  return n || String(name || "").trim();
+}
+
+// The single reason to look, one per verified site problem (site-checks.js
+// pitch text), most persuasive first. Each is something the owner can check
+// on their own phone in ten seconds; none claims anything we can't see.
+const REASONS = [
+  { match: /tap-to-call/i, line: (site) => `When someone finds ${site} on their phone, there's no button to tap and call you.` },
+  { match: /resize for phones/i, line: (site) => `${site} doesn't fit a phone screen, and that's where most people look up a local contractor.` },
+  { match: /quote or contact form/i, line: (site) => `There's no way to ask for a quote on ${site}'s homepage, so anyone who finds you after hours has to remember to call back.` },
+  { match: /not secure/i, line: (site) => `Most browsers show a "Not secure" warning on ${site}, which is often enough to make someone hit back.` },
+  { match: /copyright year/i, line: (site) => `The footer on ${site} shows a copyright year from a few years back, which can make it look like you're not in business anymore.` },
+  { match: /very little text/i, line: (site) => `${site} has very little text on it, so Google has almost nothing to show when someone searches for what you do.` },
+];
+
+/**
+ * The cold email body, built around one reason and one link (the link and
+ * the reply line are added by buildOutreachEmail). Deterministic: no model,
+ * so every claim traces to a verified site check or the Google listing.
+ * @returns {{ subject: string, body: string, reason: string }}
+ */
+export function buildOutreachIntro({ business_name, website, site_gaps, raw }) {
+  const name = cleanBusinessName(business_name);
+  const site = website ? String(website).replace(/%3F.*$/i, "").replace(/^https?:\/\//i, "").replace(/^www\./i, "").replace(/\/.*$/, "") : "";
+  const gaps = Array.isArray(site_gaps) ? site_gaps : [];
+  let reason = null, line = null;
+  if (site) {
+    for (const r of REASONS) {
+      if (gaps.some(g => r.match.test(String(g)))) { reason = String(r.match); line = r.line(site); break; }
+    }
+  } else {
+    reason = "no_website";
+    line = `Your Google listing doesn't link to a website, so people who find you there have nowhere to check you out before they call.`;
+  }
+  const rating = Number(raw?.rating), reviews = Number(raw?.reviews);
+  if (!line && rating >= 4.5 && reviews >= 10) {
+    reason = "rating";
+    line = `You have a ${rating % 1 ? rating.toFixed(1) : rating}-star rating from ${reviews} Google reviews.`;
+    return { subject: `I built ${name} a new page`, body: `Hi there,\n\n${line}\n\nI used your Google listing to build ${name} a page that puts that rating front and center, right next to a button that calls you.`, reason };
+  }
+  if (!line) {
+    reason = "generic";
+    line = `I put together a simple page for ${name} built to turn a Google search into a phone call.`;
+    return { subject: `I built ${name} a new page`, body: `Hi there,\n\n${line}`, reason };
+  }
+  return { subject: `I built ${name} a new page`, body: `Hi there,\n\n${line}\n\nSo I used your Google listing to build ${name} a page that fixes it.`, reason };
+}
+
+// One link (the page), one ask (reply). Fewer links and no images also read
+// less like a marketing blast to spam filters and link scanners.
 export function buildOutreachEmail({ intro, businessName, messageId, slug, unsubscribeUrl, mailingAddress }) {
   const links = trackedLinks(messageId, slug);
-  const vote = feedbackLinks(messageId);
-  const name = businessName || "your business";
+  const ask = `If you want to keep it, just reply "yes". The first month is free, then it's $19.99/month, no contract. If it's not for you, reply "no" and I'll take it down.`;
   const signoff = "Jack Clark\nEnoma · jack@enoma.io";
 
   const text = [
     String(intro || "").trim(),
-    `See the page: ${links.page}`,
-    `Want to keep it live and make it yours? ${links.claim}`,
-    `Or just reply "yes" and I'll set it up for you. If it's not for you, reply "no" and I'll take it down.`,
+    `Here it is: ${links.page}`,
+    ask,
     signoff,
-    `Quick favor: is a page like this useful to you? Yes: ${vote.up}  Not really: ${vote.down}`,
     `---\n${mailingAddress}\nDon't want these emails? ${unsubscribeUrl}`
   ].join("\n\n");
 
   const html = `<!doctype html>
 <html>
 <body style="margin:0;padding:0;background:#ffffff;">
-<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#222222;max-width:560px;margin:0 auto;padding:24px 16px;">
+<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#222222;max-width:560px;margin:0 auto;padding:24px 16px;">
 ${plainTextToHtml(String(intro || "").trim())}
-<a href="${links.page}" style="display:block;text-decoration:none;color:#222222;border:1px solid #e3e6ea;border-radius:10px;overflow:hidden;margin:4px 0 20px;">
-  <img src="${links.image}" alt="Preview of the new page for ${escapeHtml(name)}" width="528" style="display:block;width:100%;max-width:528px;height:auto;border:0;">
-  <span style="display:block;padding:12px 14px;font-size:14px;color:#1a73e8;">View the page built for ${escapeHtml(name)} &rarr;</span>
-</a>
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;">
-  <tr><td style="border-radius:8px;background:#1a5c3a;">
-    <a href="${links.claim}" style="display:inline-block;padding:13px 22px;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px;">Keep my page live</a>
-  </td></tr>
-</table>
-<p style="margin:0 0 16px;">Or just reply <strong>yes</strong> and I'll set it up for you. If it's not for you, reply <strong>no</strong> and I'll take it down.</p>
+<p style="margin:0 0 16px;">Here it is: <a href="${links.page}" style="color:#1a73e8;">${escapeHtml(cleanBusinessName(businessName) || "your page")} on Enoma</a></p>
+<p style="margin:0 0 16px;">${escapeHtml(ask).replace(/&quot;yes&quot;/, "<strong>yes</strong>").replace(/&quot;no&quot;/, "<strong>no</strong>")}</p>
 <p style="margin:0 0 24px;">Jack Clark<br>Enoma &middot; jack@enoma.io</p>
-<p style="margin:0 0 24px;font-size:14px;color:#555555;">Quick favor: is a page like this useful to you?&nbsp; <a href="${vote.up}" style="color:#1a73e8;text-decoration:none;">&#128077; Yes</a> &nbsp;&middot;&nbsp; <a href="${vote.down}" style="color:#1a73e8;text-decoration:none;">&#128078; Not really</a></p>
 <p style="margin:0;font-size:12px;color:#888888;border-top:1px solid #eeeeee;padding-top:12px;">${escapeHtml(mailingAddress)}<br><a href="${unsubscribeUrl}" style="color:#888888;">Unsubscribe</a></p>
 </div>
 </body>
 </html>`;
 
-  return { text, html, links: { ...links, voteUp: vote.up, voteDown: vote.down } };
+  return { text, html, links };
+}
+
+// A click within two minutes of sending is a mail filter checking the link,
+// not a person (people open the email later; scanners hit it on arrival).
+export const SCANNER_WINDOW_MS = 2 * 60 * 1000;
+export function isLikelyLinkScanner({ sentAt, now = Date.now(), userAgent } = {}) {
+  if (/bot|crawler|spider|preview|scanner|python|curl|wget|headless/i.test(String(userAgent || ""))) return true;
+  const sent = sentAt ? new Date(sentAt).getTime() : NaN;
+  return Number.isFinite(sent) && now - sent >= 0 && now - sent < SCANNER_WINDOW_MS;
 }
 
 // Rough intent of an inbound reply, for sorting only — Jack still sees every

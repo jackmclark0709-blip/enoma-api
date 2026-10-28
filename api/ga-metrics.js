@@ -11,13 +11,13 @@ import { createClient } from "@supabase/supabase-js";
 import { scoreRawLead, scoreProspect } from "./_lib/lead-scoring.js";
 import dns from "node:dns/promises";
 import crypto from "node:crypto";
-import { extractEmails, pickBestEmail, htmlToText, isPrivateOrReservedIp, websiteCandidates, contactLinks, alternateOrigins } from "./_lib/email-crawler.js";
+import { extractEmails, pickBestEmail, classifyEmail, htmlToText, isPrivateOrReservedIp, websiteCandidates, contactLinks, alternateOrigins } from "./_lib/email-crawler.js";
 import { hasValidMx } from "./_lib/email-verify.js";
 import { siteChecks, decideSiteTier } from "./_lib/site-checks.js";
 import { previousMonth, tallyClicks, buildResultsEmail } from "./_lib/results-email.js";
 import { qualifiesForPreview, buildFactsPrompt, validateGenerated, assembleProfile, slugify, stateAbbr, PREVIEW_TRIAL_DAYS, INBOUND_PREVIEW_DAYS, INBOUND_SOURCE, isValidPlaceId, inboundLimitReason, placeToProspect, isValidSessionToken, placeSuggestions } from "./_lib/preview-generator.js";
 import { verifyUnsubscribeToken, appendComplianceFooter, buildUnsubscribeUrl, MAILING_ADDRESS } from "./_lib/outreach-footer.js";
-import { buildOutreachEmail, trackedLinks, replyToFor, slugFromPreviewUrl, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "./_lib/outreach-email.js";
+import { buildOutreachEmail, buildOutreachIntro, isLikelyLinkScanner, trackedLinks, replyToFor, slugFromPreviewUrl, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "./_lib/outreach-email.js";
 import { verifyMailbox } from "./_lib/mailbox-verify.js";
 import { plainTextToHtml, wrapEmailHtml } from "./_lib/email-html.js";
 import { rampCapForDate } from "./_lib/outreach-ramp.js";
@@ -470,6 +470,11 @@ Return ONLY valid JSON: {"tier": "weak_site" | "good_site", "gaps": ["short spec
 // after this cooldown rather than abandoning it forever. no_email_found is
 // NOT retried: that page was actually read and genuinely had nothing.
 const FETCH_FAILED_RETRY_AFTER_MS = 3 * 24 * 60 * 60 * 1000;
+
+function websiteHost(website) {
+  try { return new URL(/^https?:\/\//i.test(website || "") ? website : `https://${website}`).hostname; }
+  catch { return null; }
+}
 
 async function crawlWebsitesOnce({ limit = 6, deadline } = {}) {
   const cappedLimit = Math.min(limit || 6, 15);
@@ -1191,6 +1196,13 @@ async function findProspect(businessName) {
 // Drafting is a separate, non-tool-calling OpenAI completion — same raw-fetch
 // pattern already used for page copy in generate-business.js.
 async function generateDraftCopy(prospect, instructions) {
+  // Preview emails are built from a fixed template around one verified reason
+  // (buildOutreachIntro). The model is only used when someone asks for a
+  // custom revision, or for prospects without a preview page.
+  if (prospect.preview_url && !instructions) {
+    const { subject, body } = buildOutreachIntro(prospect);
+    return { subject, body };
+  }
   // Rules learned the hard way (Sept 2026 review of 128 sends, 0 replies):
   // the old prompt told the model the business "isn't showing up in local
   // search" (unverified — often false for a 100-review business) and let it
@@ -1206,13 +1218,11 @@ async function generateDraftCopy(prospect, instructions) {
   if (prospect.preview_url) {
     // The strongest honest hook: a real page, already built from their own info.
     // The model writes ONLY the intro. buildOutreachEmail (outreach-email.js)
-    // appends the page preview card, the "Keep my page live" button, the
-    // reply-yes line and the sign-off, with tracked links.
-    brief = `STRUCTURE (follow it; this is only the opening of the email — the page link, button, reply line and sign-off are added after it automatically):
+    // appends the one tracked page link, the reply/pricing line and sign-off.
+    brief = `STRUCTURE (follow it; this is only the opening of the email — the page link, pricing, reply line and sign-off are added after it automatically):
 1. One line: I'm Jack; I build simple websites for trades businesses.
 2. I put together a new page for ${prospect.business_name} using what's already on their ${prospect.website ? "website and " : ""}Google profile — it's below. Do NOT include any URL.${gaps.length && siteHost ? `\n3. A short list comparing it with ${siteHost}, one line per item, using ONLY these verified problems with their current site (rephrase each as what the new page does instead): ${gaps.join("; ")}` : ""}
-${gaps.length && siteHost ? "4" : "3"}. Pricing, exactly: "The first month is free. After that it's $19.99/month to keep it live, and I'm there if you ever want changes. No contract."
-Do NOT add a closing line, a call to action, or a sign-off.`;
+Do NOT mention pricing (it's in the line added after), and do NOT add a closing line, a call to action, or a sign-off.`;
   } else {
     brief = `STRUCTURE:
 1. One line: I'm Jack; I build simple websites for trades businesses.
@@ -1389,6 +1399,15 @@ async function prepareOutreachOnce({ limit = 4, deadline } = {}) {
         continue;
       }
 
+      // Addresses found before the crawler's quality filter (classifyEmail)
+      // existed may be mis-parsed, off-site or role mailboxes: skip, don't guess.
+      const quality = classifyEmail(prospect.email, websiteHost(prospect.website));
+      if (!quality.ok) {
+        await supabase.from("prospects").update({ status: "invalid_email", updated_at: now() }).eq("id", prospect.id);
+        results.push({ business_name: prospect.business_name, email: prospect.email, ready: false, reason: `email_${quality.reason}` });
+        continue;
+      }
+
       // ZeroBounce when ZEROBOUNCE_API_KEY is set; otherwise only the free
       // MX check (domain accepts mail), with real bounces caught afterwards
       // by the Resend webhook -> suppression_list.
@@ -1537,7 +1556,7 @@ async function handleSendOutreach(req, res) {
   const { data: prospects, error } = limit > 0
     ? await supabase
       .from("prospects")
-      .select("id, business_name, email, draft_subject, draft_body, preview_url")
+      .select("id, business_name, email, website, draft_subject, draft_body, preview_url")
       .eq("status", "drafted")
       .not("email", "is", null)
       // No page, no email: every send shows the prospect their own page.
@@ -1590,6 +1609,12 @@ async function handleSendOutreach(req, res) {
     if (suppressed) {
       await supabase.from("prospects").update({ status: "invalid_email", updated_at: new Date().toISOString() }).eq("id", prospect.id);
       results.push({ business_name: prospect.business_name, email: prospect.email, sent: false, reason: "suppressed" });
+      continue;
+    }
+    const quality = classifyEmail(prospect.email, websiteHost(prospect.website));
+    if (!quality.ok) {
+      await supabase.from("prospects").update({ status: "invalid_email", updated_at: new Date().toISOString() }).eq("id", prospect.id);
+      results.push({ business_name: prospect.business_name, email: prospect.email, sent: false, reason: `email_${quality.reason}` });
       continue;
     }
     if (!(await hasValidMx(prospect.email))) {
@@ -1672,21 +1697,26 @@ async function handleOutreachRedirect(req, res) {
   if (!isUuid(m)) return res.redirect(302, "https://enoma.io/");
 
   const { data: msg } = await supabase.from("outreach_messages")
-    .select("id, preview_visited_at, prospects(preview_url)")
+    .select("id, sent_at, preview_visited_at, prospects(preview_url)")
     .eq("id", m).maybeSingle();
   const slug = slugFromPreviewUrl(msg?.prospects?.preview_url);
   if (!msg || !slug) return res.redirect(302, "https://enoma.io/");
 
   const links = trackedLinks(msg.id, slug);
   const at = new Date().toISOString();
+  // Corporate mail filters (Microsoft Safe Links and similar) open every link
+  // within seconds of delivery from cloud IPs. All three "clicks" through
+  // Oct 2026 were these. They're logged, flagged, and kept off
+  // preview_visited_at so reporting counts people, not scanners.
+  const scanner = isLikelyLinkScanner({ sentAt: msg.sent_at, now: Date.now(), userAgent: req.headers["user-agent"] });
   try {
-    if (!msg.preview_visited_at) {
+    if (!msg.preview_visited_at && !scanner) {
       await supabase.from("outreach_messages").update({ preview_visited_at: at, updated_at: at }).eq("id", msg.id);
     }
     await supabase.from("page_events").insert({
       slug,
       event: to === "claim" ? "outreach_claim_click" : "outreach_page_click",
-      metadata: { m: msg.id },
+      metadata: { m: msg.id, ...(scanner ? { likely_scanner: true } : {}) },
       referrer: req.headers.referer || null,
       user_agent: req.headers["user-agent"] || null,
       ip: (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || null,
@@ -1755,7 +1785,10 @@ async function handleResendWebhook(req, res) {
   const event = req.body;
   const type = event?.type;
   const data = event?.data || {};
-  const at = data.created_at || event?.created_at || new Date().toISOString();
+  // event.created_at is when this event (delivery, open, click) happened;
+  // data.created_at is when the email itself was created. Using the latter
+  // stamped every open and click with the send time.
+  const at = event?.created_at || new Date().toISOString();
 
   if (type === "email.received") {
     await handleInboundReply(data);

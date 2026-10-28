@@ -37,6 +37,10 @@ html body {
   background: color-mix(in srgb, var(--brand-primary, #1a3a2a) 5%, #f8faf6);
 }
 
+/* The full-bleed hero uses 100vw, which includes the scrollbar width and
+   made every page scroll sideways by a few pixels. */
+html { overflow-x: clip; }
+
 /* ── Hero ── */
 .hero-wrapper {
   /* Palette + texture come from the server (api/p.js getBrandColorStyle):
@@ -1187,7 +1191,7 @@ function truncateText(text, max = 300) {
    The owner gets a Supabase sign-in link that lands on /claim, which claims
    the page with the new session. Fresh instant previews (?new=1) open the
    form straight away; other unclaimed previews open it from the banner. */
-function setupClaimBox(pageSlug) {
+function setupClaimBox(pageSlug, businessName) {
   const banner = getEl('unclaimedBanner'), box = getEl('claimBox'), line = getEl('unclaimedLine');
   const form = getEl('claimForm'), input = getEl('claimEmail'), submit = getEl('claimSubmit'), msg = getEl('claimMsg');
   const cta = getEl('unclaimedCta');
@@ -1196,6 +1200,18 @@ function setupClaimBox(pageSlug) {
   const outreachMsg = qs.get('m') || '';
   const open = () => { box.classList.remove('hidden'); line.classList.add('hidden'); };
   if (qs.get('claim') === '1') { banner.classList.add('is-new'); open(); }
+  // The owner arrived from Jack's email (?m=<message id>): greet them, open
+  // the claim box and say plainly what keeping it costs. Jack's contact only
+  // shows here, never to a customer who finds the page on Google.
+  if (outreachMsg) {
+    banner.classList.add('is-new'); open();
+    const t = getEl('claimTitle'), sub = getEl('claimSub');
+    if (t) t.textContent = `Hi, it's Jack. I built this page for ${businessName || 'your business'}.`;
+    if (sub) sub.textContent = "It's made from your Google listing, and it's yours if you want it: free for the first month, then $19.99/month. No card now, no contract. Want something changed first? Reply to my email or write to jack@enoma.io.";
+    submit.textContent = 'Keep my page';
+    if (window.gtag) try { gtag('event', 'outreach_preview_viewed', { page_slug: pageSlug }); } catch (e) {}
+  }
+  const submitLabel = submit.textContent;
   if (qs.get('new') === '1') {
     banner.classList.add('is-new'); open();
     if (window.gtag) try { gtag('event', 'instant_preview_viewed', { page_slug: pageSlug }); } catch (e) {}
@@ -1223,7 +1239,7 @@ function setupClaimBox(pageSlug) {
       try { fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true, body: JSON.stringify({ event: 'claim_link_requested', metadata: { slug: pageSlug } }) }); } catch (_) {}
       if (window.gtag) try { gtag('event', 'claim_link_requested', { page_slug: pageSlug, transport_type: 'beacon' }); } catch (_) {}
     } catch (err) {
-      submit.disabled = false; submit.textContent = 'Email me my claim link';
+      submit.disabled = false; submit.textContent = submitLabel;
       say(/rate|seconds/i.test(err?.message || '') ? 'We just sent a link. Please wait a minute before asking for another.' : 'Something went wrong sending your link. Try again, or email jack@enoma.io.', true);
     }
   });
@@ -1432,7 +1448,7 @@ async function loadProfile() {
       if (unclaimedText) unclaimedText.textContent = `This is a preview page for ${p.business_name || 'this business'} — not yet claimed by the business owner.`;
       if (unclaimedCta) unclaimedCta.href = `/signup?business=${encodeURIComponent(p.username || slug || '')}`;
       unclaimedBanner.classList.remove('hidden');
-      setupClaimBox(p.username || slug || '');
+      setupClaimBox(p.username || slug || '', p.business_name || '');
       setupPreviewPoll(p.username || slug || '');
       loadClarity();
     }
