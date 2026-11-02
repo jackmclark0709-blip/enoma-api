@@ -1,7 +1,7 @@
 // Run with: node tests/outreach-email.test.js (also wired into `npm test`)
 
 import assert from "node:assert/strict";
-import { buildOutreachEmail, buildOutreachIntro, buildFollowUpEmail, isFollowUpDue, cleanBusinessName, isLikelyLinkScanner, trackedLinks, slugFromPreviewUrl, replyToFor, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "../api/_lib/outreach-email.js";
+import { buildOutreachEmail, buildOutreachIntro, buildFollowUpEmail, isFollowUpDue, cleanBusinessName, isLikelyLinkScanner, buildOwnerVisitAlert, trackedLinks, slugFromPreviewUrl, replyToFor, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "../api/_lib/outreach-email.js";
 import { decisionForStatus, verifyMailbox } from "../api/_lib/mailbox-verify.js";
 
 let passed = 0;
@@ -121,6 +121,33 @@ await test("a click within two minutes of sending is a scanner, later is a perso
   assert.equal(isLikelyLinkScanner({ sentAt: sent, now: Date.parse("2026-10-26T14:10:00Z") }), false);
   assert.equal(isLikelyLinkScanner({ sentAt: sent, now: Date.parse("2026-10-26T14:10:00Z"), userAgent: "Mozilla/5.0 HeadlessChrome/141" }), true);
   assert.equal(isLikelyLinkScanner({ sentAt: null, now: Date.now() }), false);
+});
+await test("scanners that click 2-5 minutes after delivery are caught (Nov 1: 2 m 49 s)", () => {
+  assert.equal(isLikelyLinkScanner({ sentAt: "2026-11-01T11:11:31Z", now: Date.parse("2026-11-01T11:14:20Z") }), true);
+  assert.equal(isLikelyLinkScanner({ sentAt: "2026-11-01T11:11:37Z", now: Date.parse("2026-11-01T14:12:11Z") }), false);
+});
+await test("a click right after the follow-up lands is a scanner (Oct 30: 32 s)", () => {
+  const sent = "2026-10-26T11:42:14Z", followup = "2026-10-30T11:11:25Z";
+  assert.equal(isLikelyLinkScanner({ sentAt: sent, followupSentAt: followup, now: Date.parse("2026-10-30T11:11:57Z") }), true);
+  assert.equal(isLikelyLinkScanner({ sentAt: sent, followupSentAt: followup, now: Date.parse("2026-10-30T15:00:00Z") }), false);
+});
+await test("two links of one email opened within 3 s is a scanner burst", () => {
+  const sent = "2026-10-20T11:42:13Z";
+  assert.equal(isLikelyLinkScanner({ sentAt: sent, lastClickAt: "2026-10-26T15:45:01.780Z", now: Date.parse("2026-10-26T15:45:03.557Z") }), true);
+  assert.equal(isLikelyLinkScanner({ sentAt: sent, lastClickAt: "2026-10-26T15:45:01Z", now: Date.parse("2026-10-26T15:46:30Z") }), false);
+});
+
+console.log("buildOwnerVisitAlert");
+await test("leads with the business, the action and a tappable phone number", () => {
+  const a = buildOwnerVisitAlert({ businessName: "bluefrog Plumbing", city: "Gilbert", state: "AZ", phone: "(480) 555-0123", previewUrl: "https://enoma.io/bluefrog", to: "page", emailSentAt: "2026-11-01T11:11:37Z", now: Date.parse("2026-11-01T14:12:11Z") });
+  assert.equal(a.subject, "bluefrog Plumbing is looking at their page");
+  assert.match(a.text, /Gilbert, AZ/);
+  assert.match(a.text, /3 h after the email/);
+  assert.match(a.html, /href="tel:4805550123"/);
+  const c = buildOwnerVisitAlert({ businessName: "Acme <Roofing>", to: "claim" });
+  assert.equal(c.subject, "Acme <Roofing> clicked claim on their page");
+  assert.match(c.html, /Acme &lt;Roofing&gt;/);
+  assert.match(c.text, /Phone: not on file/);
 });
 
 console.log("reply routing");
