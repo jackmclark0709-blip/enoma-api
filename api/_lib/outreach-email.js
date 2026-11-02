@@ -188,13 +188,49 @@ export function buildFollowUpEmail({ businessName, originalSubject, messageId, s
   return { subject, text, html, links };
 }
 
-// A click within two minutes of sending is a mail filter checking the link,
-// not a person (people open the email later; scanners hit it on arrival).
-export const SCANNER_WINDOW_MS = 2 * 60 * 1000;
-export function isLikelyLinkScanner({ sentAt, now = Date.now(), userAgent } = {}) {
+// A click soon after an email lands is a mail filter checking the link, not a
+// person (people open the email later; scanners hit it on arrival). This
+// applies to the follow-up too: in Oct 2026 scanners re-clicked every link
+// 24-32 s after each follow-up landed, and one hit at 2 m 49 s, so the window
+// is five minutes from whichever send is most recent.
+export const SCANNER_WINDOW_MS = 5 * 60 * 1000;
+// Two links of the same email opened within a few seconds of each other is a
+// scanner expanding every link (Oct 26: page + claim, 0.5 s apart, repeated).
+export const SCANNER_BURST_MS = 3 * 1000;
+export function isLikelyLinkScanner({ sentAt, followupSentAt, lastClickAt, now = Date.now(), userAgent } = {}) {
   if (/bot|crawler|spider|preview|scanner|python|curl|wget|headless/i.test(String(userAgent || ""))) return true;
-  const sent = sentAt ? new Date(sentAt).getTime() : NaN;
-  return Number.isFinite(sent) && now - sent >= 0 && now - sent < SCANNER_WINDOW_MS;
+  const within = (t, ms) => {
+    const ts = t ? new Date(t).getTime() : NaN;
+    return Number.isFinite(ts) && now - ts >= 0 && now - ts < ms;
+  };
+  return within(sentAt, SCANNER_WINDOW_MS) || within(followupSentAt, SCANNER_WINDOW_MS) || within(lastClickAt, SCANNER_BURST_MS);
+}
+
+// The note Jack gets the first time a real person (not a scanner) opens their
+// preview from a cold email, or whenever one clicks "claim". The point is to
+// call or text while they're still looking, so the phone number leads.
+export function buildOwnerVisitAlert({ businessName, city, state, phone, previewUrl, to = "page", emailSentAt, now = Date.now() } = {}) {
+  const name = String(businessName || "A business").trim();
+  const where = [city, state].filter(Boolean).join(", ");
+  const action = to === "claim" ? "clicked claim on their page" : "is looking at their page";
+  const sent = emailSentAt ? new Date(emailSentAt).getTime() : NaN;
+  let ago = "";
+  if (Number.isFinite(sent) && now >= sent) {
+    const hours = Math.round((now - sent) / 36e5);
+    ago = hours < 1 ? "within an hour of the email" : hours < 48 ? `${hours} h after the email` : `${Math.round(hours / 24)} days after the email`;
+  }
+  const subject = `${name} ${action}`;
+  const lines = [
+    `${name}${where ? ` (${where})` : ""} ${action}${ago ? `, ${ago}` : ""}.`,
+    `Phone: ${phone || "not on file"}`,
+    `Page: ${previewUrl || "unknown"}`,
+    "Best move: call or text now while they're looking."
+  ];
+  const text = lines.join("\n");
+  const html = `<p><strong>${escapeHtml(name)}</strong>${where ? ` (${escapeHtml(where)})` : ""} ${escapeHtml(action)}${ago ? `, ${escapeHtml(ago)}` : ""}.</p>
+<p>Phone: ${phone ? `<a href="tel:${escapeHtml(String(phone).replace(/[^\d+]/g, ""))}">${escapeHtml(phone)}</a>` : "not on file"}<br>Page: ${previewUrl ? `<a href="${escapeHtml(previewUrl)}">${escapeHtml(previewUrl)}</a>` : "unknown"}</p>
+<p>Best move: call or text now while they're looking.</p>`;
+  return { subject, text, html };
 }
 
 // Rough intent of an inbound reply, for sorting only — Jack still sees every

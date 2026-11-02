@@ -17,7 +17,7 @@ import { siteChecks, decideSiteTier } from "./_lib/site-checks.js";
 import { previousMonth, tallyClicks, buildResultsEmail } from "./_lib/results-email.js";
 import { qualifiesForPreview, buildFactsPrompt, validateGenerated, assembleProfile, slugify, stateAbbr, PREVIEW_TRIAL_DAYS, INBOUND_PREVIEW_DAYS, INBOUND_SOURCE, isValidPlaceId, inboundLimitReason, placeToProspect, isValidSessionToken, placeSuggestions } from "./_lib/preview-generator.js";
 import { verifyUnsubscribeToken, appendComplianceFooter, buildUnsubscribeUrl, MAILING_ADDRESS } from "./_lib/outreach-footer.js";
-import { buildOutreachEmail, buildOutreachIntro, buildFollowUpEmail, isFollowUpDue, FOLLOW_UP_AFTER_DAYS, FOLLOW_UP_MAX_AGE_DAYS, isLikelyLinkScanner, trackedLinks, replyToFor, slugFromPreviewUrl, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "./_lib/outreach-email.js";
+import { buildOutreachEmail, buildOutreachIntro, buildFollowUpEmail, isFollowUpDue, FOLLOW_UP_AFTER_DAYS, FOLLOW_UP_MAX_AGE_DAYS, isLikelyLinkScanner, buildOwnerVisitAlert, trackedLinks, replyToFor, slugFromPreviewUrl, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "./_lib/outreach-email.js";
 import { verifyMailbox } from "./_lib/mailbox-verify.js";
 import { plainTextToHtml, wrapEmailHtml } from "./_lib/email-html.js";
 import { rampCapForDate, capWithBounceBrake } from "./_lib/outreach-ramp.js";
@@ -1801,6 +1801,27 @@ async function handleClaimHint(req, res) {
   return res.status(200).json({ email: msg.prospects?.email || null });
 }
 
+// Emails Jack the moment a real owner opens their preview or clicks claim from
+// a cold email, then stamps preview_alerted_at so page views alert once per
+// prospect. A failed send is recorded in notification_failures (the daily
+// health check reports those) and never blocks the owner's redirect.
+async function alertJackOwnerVisit(prospect, to, emailSentAt, at) {
+  if (!resend) {
+    await logNotificationFailure("owner-visit-alert", "jack@enoma.io", new Error("RESEND_API_KEY not set"), { prospect_id: prospect.id, to });
+    return;
+  }
+  try {
+    const alert = buildOwnerVisitAlert({
+      businessName: prospect.business_name, city: prospect.city, state: prospect.state,
+      phone: prospect.phone, previewUrl: prospect.preview_url, to, emailSentAt, now: Date.parse(at)
+    });
+    await resend.emails.send({ from: "Enoma <noreply@enoma.io>", to: "jack@enoma.io", subject: alert.subject, text: alert.text, html: alert.html });
+    await supabase.from("prospects").update({ preview_alerted_at: at }).eq("id", prospect.id);
+  } catch (e) {
+    await logNotificationFailure("owner-visit-alert", "jack@enoma.io", e, { prospect_id: prospect.id, to });
+  }
+}
+
 // Public — the links inside outreach emails. Records the click against the
 // exact email (outreach_messages id), then redirects to the prospect's page
 // or the claim flow. Destinations are built from our own database row, never
@@ -1811,21 +1832,37 @@ async function handleOutreachRedirect(req, res) {
   if (!isUuid(m)) return res.redirect(302, "https://enoma.io/");
 
   const { data: msg } = await supabase.from("outreach_messages")
-    .select("id, sent_at, preview_visited_at, prospects(preview_url)")
+    .select("id, sent_at, followup_sent_at, preview_visited_at, prospects(id, business_name, phone, city, state, preview_url, preview_first_viewed_at, preview_alerted_at)")
     .eq("id", m).maybeSingle();
   const slug = slugFromPreviewUrl(msg?.prospects?.preview_url);
   if (!msg || !slug) return res.redirect(302, "https://enoma.io/");
 
   const links = trackedLinks(msg.id, slug);
   const at = new Date().toISOString();
-  // Corporate mail filters (Microsoft Safe Links and similar) open every link
-  // within seconds of delivery from cloud IPs. All three "clicks" through
-  // Oct 2026 were these. They're logged, flagged, and kept off
-  // preview_visited_at so reporting counts people, not scanners.
-  const scanner = isLikelyLinkScanner({ sentAt: msg.sent_at, now: Date.now(), userAgent: req.headers["user-agent"] });
+  // Corporate mail filters (Microsoft Safe Links, EdgePilot and similar) open
+  // every link within seconds of delivery — of the first email AND the
+  // follow-up — and expand the page and claim links back to back. They're
+  // logged, flagged, and kept off preview_visited_at and Jack's alerts so
+  // reporting counts people, not scanners.
+  const { data: lastClick } = await supabase.from("page_events")
+    .select("created_at").eq("metadata->>m", msg.id)
+    .order("created_at", { ascending: false }).limit(1).maybeSingle();
+  const scanner = isLikelyLinkScanner({
+    sentAt: msg.sent_at, followupSentAt: msg.followup_sent_at, lastClickAt: lastClick?.created_at,
+    now: Date.now(), userAgent: req.headers["user-agent"]
+  });
+  const prospect = msg.prospects;
   try {
     if (!msg.preview_visited_at && !scanner) {
       await supabase.from("outreach_messages").update({ preview_visited_at: at, updated_at: at }).eq("id", msg.id);
+    }
+    if (!scanner && prospect?.id && !prospect.preview_first_viewed_at) {
+      await supabase.from("prospects").update({ preview_first_viewed_at: at }).eq("id", prospect.id);
+    }
+    // Tell Jack while the owner is still looking: once per prospect for a
+    // page view, and every time a real person clicks claim.
+    if (!scanner && prospect?.id && (to === "claim" || !prospect.preview_alerted_at)) {
+      await alertJackOwnerVisit(prospect, to, msg.followup_sent_at || msg.sent_at, at);
     }
     await supabase.from("page_events").insert({
       slug,
