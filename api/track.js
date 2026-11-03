@@ -9,7 +9,8 @@ const supabase = createClient(
 const BLOCKED_IPS = [
   "127.0.0.1",
   "::1",
-  "75.69.76.70"
+  "75.69.76.70",
+  "71.248.173.98" // Jack, Marlborough (added Nov 2026)
 ];
 
 function getClientIP(req) {
@@ -52,7 +53,8 @@ export default async function handler(req, res) {
   const ip = getClientIP(req);
 
   // 🔒 Block internal traffic
-  if (!ip || BLOCKED_IPS.includes(ip)) {
+  // Devices flagged with ?internal=1 (see public/scripts/funnel-track.js)
+  if (!ip || BLOCKED_IPS.includes(ip) || req.body.internal === true) {
     return res.status(204).end();
   }
 

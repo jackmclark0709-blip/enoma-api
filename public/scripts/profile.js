@@ -1,3 +1,9 @@
+// Devices flagged with ?internal=1 (set by the GA snippet) don't count
+// toward a page's views or contact clicks. See api/track.js.
+function enomaIsInternal() {
+  try { return localStorage.getItem('enoma_internal') === '1'; } catch (e) { return false; }
+}
+
 // public/scripts/profile.js
 // Behaviour for Enoma company pages (public/profile.html). The page content
 // itself is rendered on the server (api/p.js + api/_lib/page-ssr.js); this
@@ -172,7 +178,7 @@ function trackContactClick(type) {
   // Mirror to GA4 so calls/quote taps on client pages show up as a key event.
   // Beacon transport: most of these clicks open the dialer or navigate away.
   try { if (typeof window.gtag === 'function') window.gtag('event', 'client_contact_click', { contact_type: type, page_slug: window.profileData.username, transport_type: 'beacon' }); } catch (e) {}
-  fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true, body: JSON.stringify({ slug: window.profileData.username, event: 'contact_click', metadata: { type } }) }).catch(() => {});
+  fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true, body: JSON.stringify({ slug: window.profileData.username, event: 'contact_click', metadata: { type }, internal: enomaIsInternal() || undefined }) }).catch(() => {});
 }
 
 /* ── Brand color extraction from logo ── */
@@ -326,7 +332,7 @@ async function loadProfile() {
     : '26,60,80';
   document.documentElement.style.setProperty('--brand-rgb', defaultRgb);
 
-  fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug, event: 'page_view', metadata: (function () { try { var m = new URLSearchParams(location.search).get('m'); return m ? { m: m } : {}; } catch (e) { return {}; } })() }) }).catch(() => {});
+  fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug, event: 'page_view', internal: enomaIsInternal() || undefined, metadata: (function () { try { var m = new URLSearchParams(location.search).get('m'); return m ? { m: m } : {}; } catch (e) { return {}; } })() }) }).catch(() => {});
 
   /* ── Sticky nav ── */
   const navBrand = getEl('businessName');

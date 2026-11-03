@@ -18,6 +18,12 @@
     }
   }
 
+  function isInternal() {
+    // Set once per device by visiting any enoma.io page with ?internal=1
+    // (undo with ?internal=0). Same flag the GA snippet uses.
+    try { return localStorage.getItem("enoma_internal") === "1"; } catch (e) { return false; }
+  }
+
   window.enomaTrack = function (event, metadata, businessId) {
     // Mirror every funnel event to GA4 too, so the ones that matter
     // (get_your_website_submitted, concierge_requested, create_generation_succeeded)
@@ -32,7 +38,8 @@
           event: event,
           anon_id: getAnonId(),
           business_id: businessId || null,
-          metadata: metadata || {}
+          metadata: metadata || {},
+          internal: isInternal() || undefined
         })
       }).catch(function () {});
     } catch (e) {}
