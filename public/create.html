@@ -489,7 +489,7 @@ body.wizard-mode.wizard-step-4 .wizard-review { display: block; }
   <div id="imagePreview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:0.75rem;"></div>
 
   <div id="existingImages" style="margin-top:1rem;display:none;">
-    <label>Existing photos <span class="label-hint">check to remove</span></label>
+    <label>Existing photos <span class="label-hint">tag each one; only job photos show as your work</span></label>
     <div id="existingImagesGrid" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:0.5rem;"></div>
   </div>
 </div>
@@ -965,7 +965,13 @@ async function loadBusinessForEdit(businessId) {
     existingWrap.style.display = "block";
     attachments.forEach((url) => {
       const card = document.createElement("div"); card.style.width = "90px";
-      card.innerHTML = `<img src="${url}" style="width:90px;height:90px;object-fit:cover;border-radius:10px;border:1.5px solid #d4e2f4;" /><label style="display:flex;gap:5px;align-items:center;margin-top:5px;font-size:.78rem;color:#5a7a9a;cursor:pointer;"><input type="checkbox" class="remove-attachment" value="${url}" />remove</label>`;
+      const kind = (data.attachment_kinds && data.attachment_kinds[url]) || "";
+      const opt = (v, label) => `<option value="${v}"${kind === v ? " selected" : ""}>${label}</option>`;
+      card.style.width = "110px";
+      card.innerHTML = `<img src="${url}" style="width:110px;height:90px;object-fit:cover;border-radius:10px;border:1.5px solid #d4e2f4;" />`
+        + `<select class="attachment-kind" data-url="${url}" aria-label="What is this image?" style="width:100%;margin-top:5px;font-size:.75rem;padding:3px;border-radius:6px;border:1.5px solid #d4e2f4;">`
+        + `${kind ? "" : opt("", "What is this?")}${opt("work", "Job photo")}${opt("flyer", "Flyer or ad")}${opt("logo", "Logo")}${opt("other", "Other (hide)")}</select>`
+        + `<label style="display:flex;gap:5px;align-items:center;margin-top:5px;font-size:.78rem;color:#5a7a9a;cursor:pointer;"><input type="checkbox" class="remove-attachment" value="${url}" />remove</label>`;
       existingGrid.appendChild(card);
     });
   }
@@ -1080,6 +1086,10 @@ form.addEventListener("submit", async (e) => {
   fd.set("trust_badges", JSON.stringify(trustBadges));
   const removeUrls = [...document.querySelectorAll(".remove-attachment:checked")].map(cb => cb.value);
   fd.set("attachments_remove", JSON.stringify(removeUrls));
+  // Photo tags: only job photos show in the hero and "Recent Work".
+  const kinds = {};
+  document.querySelectorAll(".attachment-kind").forEach(sel => { if (sel.value) kinds[sel.dataset.url] = sel.value; });
+  fd.set("attachment_kinds", JSON.stringify(kinds));
   try {
     const res = await fetch("/api/generate-business", { method: "POST", headers: { Authorization: `Bearer ${session.access_token}` }, body: fd });
     let json;

@@ -15,6 +15,8 @@ import fs from "fs";
 import {
   first, safeJSON, mergeUserServicePrices, normalizeServiceAreas
 } from "./_lib/service-utils.js";
+import { lintCopy, scrubCopy, fixInstructions } from "./_lib/copy-lint.js";
+import { mergeKinds } from "./_lib/photo-kinds.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -243,8 +245,12 @@ primary_cta: type="call", value="${phone}", label="Call for a Free Estimate"`;
 
   if (!aiRes.ok) throw new Error(`OpenAI error: ${await aiRes.text()}`);
   const ai = await aiRes.json();
-  const generated = safeJSON(extractJSON(ai?.choices?.[0]?.message?.content), null);
-  if (!generated) throw new Error("AI returned invalid JSON");
+  const generatedRaw = safeJSON(extractJSON(ai?.choices?.[0]?.message?.content), null);
+  if (!generatedRaw) throw new Error("AI returned invalid JSON");
+  // Bulk previews skip the AI retry (cost); the deterministic scrub still runs.
+  const generated = scrubCopy(generatedRaw);
+  const adminIssues = lintCopy(generated, { offers_emergency: false });
+  if (adminIssues.length) console.warn(`copy-lint [${slug}]:`, adminIssues.map(i => i.message).join(" | "));
 
   const finalServices = (Array.isArray(generated.services) ? generated.services : [])
     .filter(s => s?.service_name)
@@ -748,6 +754,45 @@ primary_cta: If phone is provided, set type to "call" and value to the phone num
         .map(f => ({ q: String(f.q || f.question || "").trim(), a: String(f.a || f.answer || "").trim() }))
         .filter(f => f.q && f.a);
 
+      // Copy check (copy-lint.js): one AI retry with the problems listed,
+      // kept only if it parses and has fewer problems, then a scrub.
+      const lintFlags = { offers_emergency: toBool(fields.offers_emergency) };
+      const firstIssues = lintCopy(generated, lintFlags);
+      if (firstIssues.length) {
+        try {
+          const retryRes = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${process.env.OPENAI_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "gpt-4o", temperature: 0.2,
+              messages: [
+                { role: "system", content: "You are a JSON API. You ONLY return valid JSON. No text." },
+                { role: "user", content: prompt + fixInstructions(firstIssues) }
+              ]
+            })
+          });
+          const retried = retryRes.ok ? safeJSON(extractJSON((await retryRes.json())?.choices?.[0]?.message?.content), null) : null;
+          if (retried && typeof retried === "object" && Array.isArray(retried.services)
+              && lintCopy(retried, lintFlags).length < firstIssues.length) {
+            retried.services = retried.services
+              .filter(sv => sv && (sv.service_name || sv.name))
+              .map(sv => ({ service_name: String(sv.service_name || sv.name || "").trim(), service_description: String(sv.service_description || sv.description || "").trim() }))
+              .filter(sv => sv.service_name);
+            retried.faqs = (Array.isArray(retried.faqs) ? retried.faqs : [])
+              .map(f => ({ q: String(f.q || f.question || "").trim(), a: String(f.a || f.answer || "").trim() }))
+              .filter(f => f.q && f.a);
+            if (!Array.isArray(retried.trust_badges)) retried.trust_badges = [];
+            if (!retried.primary_cta || typeof retried.primary_cta !== "object") retried.primary_cta = generated.primary_cta;
+            generated = retried;
+          }
+        } catch (e) {
+          console.warn("copy-lint retry failed:", e?.message);
+        }
+      }
+      generated = scrubCopy(generated);
+      const leftIssues = lintCopy(generated, lintFlags);
+      if (leftIssues.length) console.warn(`copy-lint [${business_name}]:`, leftIssues.map(i => i.message).join(" | "));
+
       primaryCTA = generated.primary_cta || {};
     }
 
@@ -808,6 +853,12 @@ primary_cta: If phone is provided, set type to "call" and value to the phone num
     const keptExistingAttachments = existingAttachmentUrls.filter(u => !attachmentsRemove.includes(u));
     let finalAttachments = [...keptExistingAttachments, ...newAttachments];
     if (finalAttachments.length > 24) finalAttachments = finalAttachments.slice(-24);
+    const finalAttachmentKinds = mergeKinds(
+      existingProfile?.attachment_kinds,
+      safeJSON(first(fields.attachment_kinds), {}),
+      finalAttachments,
+      newAttachments
+    );
 
     /* ---------- TESTIMONIALS (owner-entered, else preserved, else real Google reviews) ---------- */
     const finalGooglePlaceId = first(fields.google_place_id) || existingProfile?.google_place_id || null;
@@ -845,6 +896,7 @@ primary_cta: If phone is provided, set type to "call" and value to the phone num
       service_area: normalizeServiceAreas(fields.service_area),
       testimonials: finalTestimonials,
       attachments: finalAttachments,
+      attachment_kinds: finalAttachmentKinds,
       is_open_now: toBool(fields.is_open_now),
       accepting_clients: toBool(fields.accepting_clients),
       offers_emergency: toBool(fields.offers_emergency),

@@ -10,6 +10,7 @@ import { personaFor, pickPalette, splitWordmark, heroPatternSvg, isStrongRating,
 import { renderSections, faqSchema } from "./_lib/page-ssr.js";
 import { isGrandfathered } from "./_lib/trial-policy.js";
 import { openSchedule, showEmergencyBadge, townsLine, ctaNote } from "./_lib/page-claims.js";
+import { heroPhoto as pickHeroPhoto, visibleAttachments } from "./_lib/photo-kinds.js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -386,10 +387,9 @@ export default async function handler(req, res) {
     const businessName = profile.business_name || slug;
     const seoTitle = profile.seo_title || `${businessName} | Business Website`;
     const seoDescription = profile.seo_description || `Learn about ${businessName}, services, and how to get in touch.`;
-    // OG image: prefer first photo attachment, then logo, then fallback to generated card
-    const firstPhoto = Array.isArray(profile.attachments) && profile.attachments.length
-      ? (typeof profile.attachments[0] === "string" ? profile.attachments[0] : profile.attachments[0]?.url)
-      : null;
+    // OG image: prefer the first job photo, then logo, then the generated card.
+    // Flyers, logos and "other" uploads never become the hero (photo-kinds.js).
+    const firstPhoto = pickHeroPhoto(profile);
     const ogImage = firstPhoto || profile.logo_url || `${baseUrl}/api/p?og=1&slug=${encodeURIComponent(slug)}`;
     // Unclaimed preview pages render normally (visitable, shareable link) but
     // stay out of search results until the business actually claims the page.
@@ -466,8 +466,7 @@ export default async function handler(req, res) {
     // Server-side brand color style — sets --brand-primary from trade on first paint.
     // Prevents flash of wrong color before JS loads.
     // When a logo exists, client-side extractDominantColor() overrides these vars.
-    const isImg = u => typeof u === "string" && /\.(png|jpe?g|webp)(\?.*)?$/i.test(u);
-    const heroPhoto = isImg(firstPhoto) ? firstPhoto : null;
+    const heroPhoto = firstPhoto && !/\.gif(\?.*)?$/i.test(firstPhoto) ? firstPhoto : null;
     const brandColorStyle = getBrandColorStyle(profile, heroPhoto);
     const persona = personaFor(profile.primary_category);
     const faqSchemaObj = faqSchema(normalizedProfile || {}, canonical);
@@ -487,6 +486,7 @@ export default async function handler(req, res) {
       normalizedProfile.open_schedule = openSchedule(profile);
       normalizedProfile.is_open_now = false;
       normalizedProfile.offers_emergency = showEmergencyBadge(profile);
+      normalizedProfile.attachments = visibleAttachments(profile);
     }
     const ctaNoteText = ctaNote(profile);
 
