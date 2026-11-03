@@ -18,13 +18,41 @@ const supabase = createClient(
 // down lead capture entirely.
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
+// Visitor-typed text goes into email HTML: escape it so nobody can plant
+// links or markup in an owner's inbox.
+const esc = v => String(v ?? '')
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+const EMAIL_RE = /^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/;
+
+// Light spam guard: at most 5 submissions per email address and 20 per
+// business in 10 minutes (counted from contact_submissions).
+async function tooManyRecent(email, businessId) {
+  const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  const checks = [];
+  if (email) checks.push(supabase.from('contact_submissions').select('id', { count: 'exact', head: true }).eq('email', email).gte('created_at', since).then(r => (r.count || 0) >= 5));
+  if (businessId) checks.push(supabase.from('contact_submissions').select('id', { count: 'exact', head: true }).eq('business_id', businessId).gte('created_at', since).then(r => (r.count || 0) >= 20));
+  try { return (await Promise.all(checks)).some(Boolean); } catch { return false; }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
+  // `to` is deliberately ignored: lead emails only ever go to the email
+  // stored on the business's profile, never to an address sent by the browser.
   const {
-    name, email, phone, message, subject, business_id, to, slug, source,
-    trade, town
-  } = req.body;
+    name, email, phone, message, subject, business_id, slug, source,
+    trade, town, website
+  } = req.body || {};
+
+  // Honeypot: real visitors never see or fill the hidden "website" field.
+  if (website) return res.status(200).json({ ok: true });
+  if (email && !EMAIL_RE.test(String(email).trim())) {
+    return res.status(400).json({ error: 'Please enter a valid email address.' });
+  }
+  if (await tooManyRecent(email || null, business_id || null)) {
+    return res.status(429).json({ error: 'Too many messages in a short time. Please call instead, or try again in a few minutes.' });
+  }
 
   /* ─────────────────────────────────────────────
      SITE-WIDE FOOTER CTA — zero-friction, email only
@@ -67,11 +95,11 @@ export default async function handler(req, res) {
           <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a;">
             <div style="background:#0f172a;padding:24px 28px;border-radius:12px 12px 0 0;">
               <p style="margin:0;font-size:12px;font-weight:700;color:rgba(220,238,255,0.6);letter-spacing:0.1em;text-transform:uppercase;">Lead — Footer CTA</p>
-              <p style="margin:6px 0 0;font-size:22px;font-weight:800;color:#fff;">${email}</p>
+              <p style="margin:6px 0 0;font-size:22px;font-weight:800;color:#fff;">${esc(email)}</p>
             </div>
             <div style="background:#fff;border:1px solid #e4edf5;border-top:none;border-radius:0 0 12px 12px;padding:24px 28px;">
               <p style="margin:0 0 20px;font-size:13px;color:#6b7280;line-height:1.6;">Left only their email via the site-wide footer CTA — no name, business, or message. Worth a quick personal reach-out.</p>
-              <a href="mailto:${email}" style="display:inline-block;background:#16a34a;color:#fff;padding:11px 22px;border-radius:999px;font-weight:700;font-size:13px;text-decoration:none;">Reach out →</a>
+              <a href="mailto:${esc(email)}" style="display:inline-block;background:#16a34a;color:#fff;padding:11px 22px;border-radius:999px;font-weight:700;font-size:13px;text-decoration:none;">Reach out →</a>
             </div>
           </div>
         `,
@@ -154,17 +182,17 @@ export default async function handler(req, res) {
           <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a;">
             <div style="background:#0f172a;padding:24px 28px;border-radius:12px 12px 0 0;">
               <p style="margin:0;font-size:12px;font-weight:700;color:rgba(220,238,255,0.6);letter-spacing:0.1em;text-transform:uppercase;">New Page Request</p>
-              <p style="margin:6px 0 0;font-size:22px;font-weight:800;color:#fff;">${leadName}</p>
+              <p style="margin:6px 0 0;font-size:22px;font-weight:800;color:#fff;">${esc(leadName)}</p>
             </div>
             <div style="background:#fff;border:1px solid #e4edf5;border-top:none;border-radius:0 0 12px 12px;padding:24px 28px;">
               <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
-                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;width:100px;vertical-align:top;">Business</td><td style="padding:7px 0;font-size:14px;font-weight:700;color:#0f172a;">${leadName}</td></tr>
-                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;vertical-align:top;">Trade</td><td style="padding:7px 0;font-size:14px;color:#0f172a;">${trade || '—'}</td></tr>
-                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;vertical-align:top;">Town</td><td style="padding:7px 0;font-size:14px;color:#0f172a;">${town || '—'}</td></tr>
-                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;vertical-align:top;">Email</td><td style="padding:7px 0;font-size:14px;color:#0f172a;">${email ? `<a href="mailto:${email}" style="color:#3882dc;">${email}</a>` : '—'}</td></tr>
-                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;vertical-align:top;">Phone</td><td style="padding:7px 0;font-size:14px;color:#0f172a;">${phone}</td></tr>
+                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;width:100px;vertical-align:top;">Business</td><td style="padding:7px 0;font-size:14px;font-weight:700;color:#0f172a;">${esc(leadName)}</td></tr>
+                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;vertical-align:top;">Trade</td><td style="padding:7px 0;font-size:14px;color:#0f172a;">${esc(trade || '—')}</td></tr>
+                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;vertical-align:top;">Town</td><td style="padding:7px 0;font-size:14px;color:#0f172a;">${esc(town || '—')}</td></tr>
+                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;vertical-align:top;">Email</td><td style="padding:7px 0;font-size:14px;color:#0f172a;">${email ? `<a href="mailto:${esc(email)}" style="color:#3882dc;">${esc(email)}</a>` : '—'}</td></tr>
+                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;vertical-align:top;">Phone</td><td style="padding:7px 0;font-size:14px;color:#0f172a;">${esc(phone)}</td></tr>
               </table>
-              <a href="${email ? `mailto:${email}?subject=Your Enoma page is ready!` : `tel:${phone}`}" style="display:inline-block;background:#16a34a;color:#fff;padding:11px 22px;border-radius:999px;font-weight:700;font-size:13px;text-decoration:none;margin-right:10px;">${email ? `Reply to ${leadName.split(' ')[0]} →` : `Call ${phone} →`}</a>
+              <a href="${email ? `mailto:${esc(email)}?subject=Your Enoma page is ready!` : `tel:${esc(phone)}`}" style="display:inline-block;background:#16a34a;color:#fff;padding:11px 22px;border-radius:999px;font-weight:700;font-size:13px;text-decoration:none;margin-right:10px;">${email ? `Reply to ${esc(leadName.split(' ')[0])} →` : `Call ${esc(phone)} →`}</a>
               <p style="margin:20px 0 0;font-size:12px;color:#9ca3af;">Submitted via enoma.io/get-your-website → choose-path</p>
             </div>
           </div>
@@ -188,7 +216,7 @@ export default async function handler(req, res) {
             <div style="background:#fff;border:1px solid #e4edf5;border-top:none;border-radius:0 0 12px 12px;padding:28px;">
               <p style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 12px;">Hey, we got your request!</p>
               <p style="font-size:14px;color:#374151;line-height:1.65;margin:0 0 16px;">
-                We're building a free lead page for <strong>${leadName}</strong>. You'll get an email from me with the link within 1 business day.
+                We're building a free lead page for <strong>${esc(leadName)}</strong>. You'll get an email from me with the link within 1 business day.
               </p>
               <p style="font-size:14px;color:#374151;line-height:1.65;margin:0 0 20px;">
                 The page will have your services, your area, and a contact form so customers can reach you directly. It stays live free for 30 days — then it's $19.99/month to keep it running.
@@ -247,16 +275,16 @@ export default async function handler(req, res) {
           <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a;">
             <div style="background:#0f172a;padding:24px 28px;border-radius:12px 12px 0 0;">
               <p style="margin:0;font-size:12px;font-weight:700;color:rgba(220,238,255,0.6);letter-spacing:0.1em;text-transform:uppercase;">Lead — Form Started</p>
-              <p style="margin:6px 0 0;font-size:22px;font-weight:800;color:#fff;">${name}</p>
+              <p style="margin:6px 0 0;font-size:22px;font-weight:800;color:#fff;">${esc(name)}</p>
             </div>
             <div style="background:#fff;border:1px solid #e4edf5;border-top:none;border-radius:0 0 12px 12px;padding:24px 28px;">
               <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
-                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;width:100px;vertical-align:top;">Business</td><td style="padding:7px 0;font-size:14px;font-weight:700;color:#0f172a;">${name}</td></tr>
-                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;vertical-align:top;">Town</td><td style="padding:7px 0;font-size:14px;color:#0f172a;">${town || '—'}</td></tr>
-                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;vertical-align:top;">Email</td><td style="padding:7px 0;font-size:14px;color:#0f172a;"><a href="mailto:${email}" style="color:#3882dc;">${email}</a></td></tr>
+                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;width:100px;vertical-align:top;">Business</td><td style="padding:7px 0;font-size:14px;font-weight:700;color:#0f172a;">${esc(name)}</td></tr>
+                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;vertical-align:top;">Town</td><td style="padding:7px 0;font-size:14px;color:#0f172a;">${esc(town || '—')}</td></tr>
+                <tr><td style="padding:7px 0;font-size:13px;color:#7ab3e0;vertical-align:top;">Email</td><td style="padding:7px 0;font-size:14px;color:#0f172a;"><a href="mailto:${esc(email)}" style="color:#3882dc;">${esc(email)}</a></td></tr>
               </table>
               <p style="margin:0 0 20px;font-size:13px;color:#6b7280;line-height:1.6;">They haven't chosen a build path yet (self-serve or concierge). Worth a personal nudge if they don't finish on their own.</p>
-              <a href="mailto:${email}" style="display:inline-block;background:#16a34a;color:#fff;padding:11px 22px;border-radius:999px;font-weight:700;font-size:13px;text-decoration:none;">Reach out to ${name.split(' ')[0]} →</a>
+              <a href="mailto:${esc(email)}" style="display:inline-block;background:#16a34a;color:#fff;padding:11px 22px;border-radius:999px;font-weight:700;font-size:13px;text-decoration:none;">Reach out to ${esc(name.split(' ')[0])} →</a>
               <p style="margin:20px 0 0;font-size:12px;color:#9ca3af;">Submitted via enoma.io/get-your-website</p>
             </div>
           </div>
@@ -282,7 +310,7 @@ export default async function handler(req, res) {
             <div style="background:#fff;border:1px solid #e4edf5;border-top:none;border-radius:0 0 12px 12px;padding:28px;">
               <p style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 12px;">Thanks for starting your free page!</p>
               <p style="font-size:14px;color:#374151;line-height:1.65;margin:0 0 16px;">
-                We've got <strong>${name}</strong> saved. Last step — choose how you'd like it built:
+                We've got <strong>${esc(name)}</strong> saved. Last step — choose how you'd like it built:
               </p>
               <ul style="font-size:14px;color:#374151;line-height:1.75;margin:0 0 20px;padding-left:20px;">
                 <li><strong>Build it myself</strong> — our AI writes your page copy instantly, live in about 5 minutes.</li>
@@ -306,7 +334,7 @@ export default async function handler(req, res) {
   ───────────────────────────────────────────── */
 
   // ── 1. Look up the business to get owner email + business name ──
-  let ownerEmail = to;
+  let ownerEmail = null;
   let bName = 'your business';
   let resolvedBusinessId = business_id;
   let resolvedSlug = slug;
@@ -321,7 +349,7 @@ export default async function handler(req, res) {
       : await query.eq('username', slug).maybeSingle();
 
     if (profile) {
-      ownerEmail = profile.email || to;
+      ownerEmail = profile.email || null;
       bName = profile.business_name || bName;
       resolvedBusinessId = profile.business_id;
       resolvedSlug = profile.username;
@@ -359,19 +387,19 @@ export default async function handler(req, res) {
           <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a;">
             <div style="background:#0a1628;padding:24px 28px;border-radius:12px 12px 0 0;">
               <p style="margin:0;font-size:13px;font-weight:700;color:rgba(220,238,255,0.7);letter-spacing:0.1em;text-transform:uppercase;">New message</p>
-              <p style="margin:6px 0 0;font-size:20px;font-weight:800;color:#fff;">${bName}</p>
+              <p style="margin:6px 0 0;font-size:20px;font-weight:800;color:#fff;">${esc(bName)}</p>
             </div>
             <div style="background:#fff;border:1px solid #e4edf5;border-top:none;border-radius:0 0 12px 12px;padding:24px 28px;">
               <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
-                <tr><td style="padding:6px 0;font-size:13px;color:#7ab3e0;width:80px;">From</td><td style="padding:6px 0;font-size:13px;font-weight:600;color:#0a1628;">${name}</td></tr>
-                <tr><td style="padding:6px 0;font-size:13px;color:#7ab3e0;">Email</td><td style="padding:6px 0;font-size:13px;color:#0a1628;"><a href="mailto:${email}" style="color:#3882dc;">${email}</a></td></tr>
-                ${phone ? `<tr><td style="padding:6px 0;font-size:13px;color:#7ab3e0;">Phone</td><td style="padding:6px 0;font-size:13px;color:#0a1628;">${phone}</td></tr>` : ''}
-                ${subject ? `<tr><td style="padding:6px 0;font-size:13px;color:#7ab3e0;">Topic</td><td style="padding:6px 0;font-size:13px;color:#0a1628;">${subject}</td></tr>` : ''}
+                <tr><td style="padding:6px 0;font-size:13px;color:#7ab3e0;width:80px;">From</td><td style="padding:6px 0;font-size:13px;font-weight:600;color:#0a1628;">${esc(name)}</td></tr>
+                <tr><td style="padding:6px 0;font-size:13px;color:#7ab3e0;">Email</td><td style="padding:6px 0;font-size:13px;color:#0a1628;"><a href="mailto:${esc(email)}" style="color:#3882dc;">${esc(email)}</a></td></tr>
+                ${phone ? `<tr><td style="padding:6px 0;font-size:13px;color:#7ab3e0;">Phone</td><td style="padding:6px 0;font-size:13px;color:#0a1628;">${esc(phone)}</td></tr>` : ''}
+                ${subject ? `<tr><td style="padding:6px 0;font-size:13px;color:#7ab3e0;">Topic</td><td style="padding:6px 0;font-size:13px;color:#0a1628;">${esc(subject)}</td></tr>` : ''}
               </table>
               <div style="background:#f7faff;border:1px solid #e4edf5;border-radius:10px;padding:16px 18px;margin-bottom:20px;">
-                <p style="margin:0;font-size:14px;line-height:1.65;color:#374151;">${message.replace(/\n/g, '<br>')}</p>
+                <p style="margin:0;font-size:14px;line-height:1.65;color:#374151;">${esc(message).replace(/\n/g, '<br>')}</p>
               </div>
-              <a href="mailto:${email}?subject=Re: Your enquiry to ${bName}" style="display:inline-block;background:#0a1628;color:#fff;padding:10px 20px;border-radius:999px;font-weight:700;font-size:13px;text-decoration:none;">Reply to ${name} →</a>
+              <a href="mailto:${esc(email)}?subject=Re: Your enquiry to ${esc(bName)}" style="display:inline-block;background:#0a1628;color:#fff;padding:10px 20px;border-radius:999px;font-weight:700;font-size:13px;text-decoration:none;">Reply to ${esc(name)} →</a>
               <p style="margin:20px 0 0;font-size:12px;color:#9ca3af;">This message was sent through your Enoma business page. <a href="https://enoma.io/dashboard" style="color:#7ab3e0;">View your dashboard →</a></p>
             </div>
           </div>
@@ -389,7 +417,7 @@ export default async function handler(req, res) {
         from: 'Enoma Platform <noreply@enoma.io>',
         to: 'jack@enoma.io',
         subject: `[Lead] ${name} contacted ${bName}`,
-        html: `<p><b>${name}</b> (${email}) sent a message to <b>${bName}</b> via their Enoma page.</p><p>${message}</p>`,
+        html: `<p><b>${esc(name)}</b> (${esc(email)}) sent a message to <b>${esc(bName)}</b> via their Enoma page.</p><p>${esc(message)}</p>`,
       });
     } catch {}
   }
