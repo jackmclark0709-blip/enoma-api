@@ -16,6 +16,7 @@
     { "source": "/dashboard", "destination": "/dashboard/index.html" },
     { "source": "/website-live", "destination": "/website-live/index.html" },
     { "source": "/create", "destination": "/create.html" },
+    { "source": "/create-spotlight", "destination": "/create-spotlight.html" },
     { "source": "/upgrade", "destination": "/upgrade/index.html" },
     { "source": "/get-your-website", "destination": "/get-your-website.html" },
     { "source": "/widget", "destination": "/widget.html" },

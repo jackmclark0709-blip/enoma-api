@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Create a Service Spotlight | Enoma</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+:root { --navy: #0f2742; --sky: #3a8fd8; --ink: #17263a; --muted: #5a6f86; --line: #d7e3f1; --bg: #f4f8fc; --ok: #067647; --err: #b42318; }
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: Inter, system-ui, sans-serif; background: var(--bg); color: var(--ink); line-height: 1.55; }
+.top { background: var(--navy); color: #fff; }
+.top .in { max-width: 860px; margin: 0 auto; padding: 18px 20px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.top a { color: #cfe4f7; text-decoration: none; font-size: .9rem; }
+.top strong { font-size: 1.05rem; }
+.page { max-width: 860px; margin: 0 auto; padding: 24px 20px 120px; }
+h1 { font-size: clamp(1.5rem, 4vw, 2rem); margin: 0 0 .4rem; }
+.intro { color: var(--muted); margin: 0 0 1.2rem; max-width: 62ch; }
+.card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+.card h2 { font-size: 1.05rem; margin: 0 0 .2rem; display: flex; gap: 10px; align-items: center; }
+.card h2 .n { width: 26px; height: 26px; border-radius: 50%; background: var(--navy); color: #fff; font-size: .8rem; display: grid; place-items: center; flex: none; }
+.card .why { color: var(--muted); font-size: .9rem; margin: 0 0 1rem; }
+.field { margin-bottom: 14px; }
+.field label { display: block; font-weight: 600; font-size: .93rem; margin-bottom: 4px; }
+.field label .req { color: var(--err); }
+.field label .opt { color: var(--muted); font-weight: 400; font-size: .82rem; }
+.field .eg { color: var(--muted); font-size: .82rem; margin: 2px 0 6px; }
+input[type=text], input[type=email], select, textarea { width: 100%; font: inherit; padding: .65rem .75rem; border: 1.5px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); }
+textarea { min-height: 84px; resize: vertical; }
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--sky); outline-offset: 1px; border-color: var(--sky); }
+.row2 { display: grid; gap: 12px; }
+@media (min-width: 640px) { .row2 { grid-template-columns: 1fr 1fr; } }
+.qa { border: 1px dashed var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+.qa input { margin-bottom: 8px; }
+.followup { background: #fff8e1; border: 1.5px solid #f2c94c; border-radius: 10px; padding: 8px 10px; margin-top: 6px; font-size: .88rem; color: #6b4e00; }
+.missing { outline: 2px solid var(--err); }
+.photos { display: flex; flex-wrap: wrap; gap: 10px; }
+.photos label { display: block; cursor: pointer; text-align: center; font-size: .78rem; color: var(--muted); }
+.photos img { width: 110px; height: 80px; object-fit: cover; border-radius: 8px; border: 2px solid transparent; display: block; }
+.photos input:checked + img { border-color: var(--sky); }
+.photos input { position: absolute; opacity: 0; }
+.bar { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 1px solid var(--line); z-index: 10; }
+.bar .in { max-width: 860px; margin: 0 auto; padding: 12px 20px; display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.btn { font: inherit; font-weight: 700; border-radius: 10px; padding: .75rem 1.2rem; border: 0; cursor: pointer; background: var(--sky); color: #fff; }
+.btn.secondary { background: #fff; color: var(--navy); border: 1.5px solid var(--line); }
+.btn:disabled { opacity: .6; cursor: wait; }
+#status { font-size: .9rem; margin: 0; flex: 1 1 260px; }
+.done { background: #ecfdf3; border: 1.5px solid #abefc6; border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+.done a { font-weight: 700; }
+.existing { font-size: .9rem; color: var(--muted); }
+.existing a { margin-right: 10px; }
+.hidden { display: none !important; }
+  </style>
+</head>
+<body>
+<div class="top"><div class="in"><strong>Enoma · Service Spotlight</strong><a href="/dashboard">← Dashboard</a></div></div>
+
+<main class="page">
+  <h1>Create a Service Spotlight page</h1>
+  <p class="intro">One page for one service, with its own link and its own call to action. Answer in plain words, the way you'd explain it on the phone. We write the page only from your answers, then you review the draft before anything goes live. About 10–15 minutes.</p>
+
+  <div class="done hidden" id="doneBox"></div>
+
+  <form id="spotForm" novalidate>
+    <div class="card">
+      <h2><span class="n">0</span>Which business?</h2>
+      <div class="field">
+        <select id="business" required></select>
+        <p class="existing" id="existing"></p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="n">1</span>The service</h2>
+      <p class="why">One service per page. Make another page for each service you want to promote.</p>
+      <div class="field"><label for="service_name">Service name <span class="req">*</span></label>
+        <p class="eg">e.g. "Snow removal" or "Covalent inhibitor kinetics profiling"</p>
+        <input type="text" id="service_name" name="service_name" maxlength="80" /></div>
+      <div class="field"><label for="one_liner">Describe it in one or two sentences, as you would on the phone <span class="req">*</span></label>
+        <textarea id="one_liner" name="one_liner" maxlength="400"></textarea></div>
+      <div class="field"><label for="outcome">What does the customer walk away with? <span class="req">*</span></label>
+        <p class="eg">e.g. "A clear driveway and walkway by 7am after every storm over 2 inches"</p>
+        <textarea id="outcome" name="outcome" maxlength="400"></textarea></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="n">2</span>The buyer</h2>
+      <div class="field"><label for="buyers">Who usually buys this? <span class="req">*</span></label>
+        <p class="eg">Types of customer, job titles or company types</p>
+        <textarea id="buyers" name="buyers" maxlength="400"></textarea></div>
+      <div class="field"><label for="trigger">What's happening when they go looking for this? <span class="req">*</span></label>
+        <p class="eg">e.g. "First storm of the season and they can't shovel it themselves"</p>
+        <textarea id="trigger" name="trigger" maxlength="400"></textarea></div>
+      <div class="field"><label for="decision_makers">Who else has a say in the purchase? <span class="opt">optional</span></label>
+        <input type="text" id="decision_makers" name="decision_makers" maxlength="200" /></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="n">3</span>The problem</h2>
+      <div class="field"><label for="old_way">What do they do today instead of hiring you? <span class="req">*</span></label>
+        <textarea id="old_way" name="old_way" maxlength="400"></textarea></div>
+      <div class="field"><label for="cost_of_old_way">What does that cost them? Time, money, risk, hassle <span class="req">*</span></label>
+        <textarea id="cost_of_old_way" name="cost_of_old_way" maxlength="400"></textarea></div>
+      <div class="field"><label for="switch_reason">What's the most common reason they finally switch? <span class="opt">optional</span></label>
+        <textarea id="switch_reason" name="switch_reason" maxlength="400"></textarea></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="n">4</span>How it works</h2>
+      <div class="field"><label for="steps">Steps from first contact to done, one per line <span class="req">*</span></label>
+        <p class="eg">3–5 steps. e.g. "Call or send the form" / "We walk the property and give a price" / …</p>
+        <textarea id="steps" name="steps" maxlength="900" style="min-height:120px"></textarea></div>
+      <div class="field"><label for="needs_to_start">What do you need from the customer to start? <span class="opt">optional</span></label>
+        <input type="text" id="needs_to_start" name="needs_to_start" maxlength="200" /></div>
+      <div class="field"><label for="turnaround">Typical turnaround or schedule <span class="req">*</span></label>
+        <p class="eg">Be specific: "Within 6 hours of snow stopping", "3 weeks from samples"</p>
+        <input type="text" id="turnaround" name="turnaround" maxlength="200" /></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="n">5</span>What they get, and proof</h2>
+      <div class="field"><label for="deliverables">What do they get? One per line <span class="req">*</span></label>
+        <textarea id="deliverables" name="deliverables" maxlength="900"></textarea></div>
+      <div class="field" id="photoField"><label>Photo for the top of the page <span class="opt">optional, job photos only</span></label>
+        <div class="photos" id="photos"></div></div>
+      <div class="field"><label for="proof_story">A short customer story: who, what problem, what changed <span class="opt">optional, must be shareable</span></label>
+        <textarea id="proof_story" name="proof_story" maxlength="600"></textarea></div>
+      <div class="field"><label for="credentials">Credentials worth naming <span class="opt">optional</span></label>
+        <p class="eg">Licensed and insured, years running, certifications, publications, customers you may name</p>
+        <textarea id="credentials" name="credentials" maxlength="400"></textarea></div>
+      <div class="row2">
+        <div class="field"><label for="quote">A customer quote you have permission to use <span class="opt">optional</span></label>
+          <textarea id="quote" name="quote" maxlength="400"></textarea></div>
+        <div class="field"><label for="quote_author">Who said it <span class="opt">name, title or town</span></label>
+          <input type="text" id="quote_author" name="quote_author" maxlength="120" /></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="n">6</span>Details and objections</h2>
+      <div class="field"><label for="specs">Details a buyer will check, one per line as "Label: value" <span class="opt">optional</span></label>
+        <p class="eg">e.g. "Trigger depth: 2 inches" / "Areas: driveways, walkways, steps"</p>
+        <textarea id="specs" name="specs" maxlength="900"></textarea></div>
+      <div class="field"><label>The questions buyers always ask before saying yes, with your answers <span class="req">*</span></label>
+        <div id="objections"></div></div>
+      <div class="row2">
+        <div class="field"><label for="pricing_mode">Pricing on the page <span class="req">*</span></label>
+          <select id="pricing_mode" name="pricing_mode">
+            <option value="">Choose…</option>
+            <option value="request a quote">Request a quote (no price shown)</option>
+            <option value="starting price">Show a starting price</option>
+            <option value="fixed price">Show a price</option>
+          </select></div>
+        <div class="field"><label for="price">Price <span class="opt">if shown</span></label>
+          <input type="text" id="price" name="price" maxlength="80" placeholder="e.g. $45 per storm" /></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="n">7</span>Call to action</h2>
+      <div class="row2">
+        <div class="field"><label for="cta_type">What should a visitor do? <span class="req">*</span></label>
+          <select id="cta_type" name="cta_type">
+            <option value="">Choose…</option>
+            <option value="call">Call</option>
+            <option value="request a quote">Request a quote (form)</option>
+            <option value="book a call">Book a call (form)</option>
+            <option value="sign up">Sign up for the season (form)</option>
+          </select></div>
+        <div class="field"><label for="cta_label">Button words <span class="opt">optional</span></label>
+          <input type="text" id="cta_label" name="cta_label" maxlength="40" placeholder="e.g. Get on the plow list" /></div>
+      </div>
+      <div class="field"><label for="do_not_say">Words or claims we must never use <span class="opt">optional</span></label>
+        <input type="text" id="do_not_say" name="do_not_say" maxlength="300" placeholder="Separate with commas" /></div>
+      <div class="field"><label for="style_notes">Anything about tone or style <span class="opt">optional</span></label>
+        <input type="text" id="style_notes" name="style_notes" maxlength="300" /></div>
+    </div>
+  </form>
+</main>
+
+<div class="bar"><div class="in">
+  <p id="status" role="status">Your answers save on this device as you type.</p>
+  <span>
+    <button class="btn secondary" type="button" id="checkBtn">Check my answers</button>
+    <button class="btn" type="button" id="genBtn">Write my draft page</button>
+  </span>
+</div></div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+const sb = createClient("https://qhsivcenpnxwmvwznqie.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc");
+const $ = id => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+const statusEl = $("status");
+const say = (t, kind) => { statusEl.textContent = t; statusEl.style.color = kind === "err" ? "var(--err)" : kind === "ok" ? "var(--ok)" : "var(--muted)"; };
+
+const TEXT_FIELDS = ["service_name","one_liner","outcome","buyers","trigger","decision_makers","old_way","cost_of_old_way","switch_reason","steps","needs_to_start","turnaround","deliverables","proof_story","credentials","quote","quote_author","specs","pricing_mode","price","cta_type","cta_label","do_not_say","style_notes"];
+const DRAFT_KEY = () => `enoma-spotlight:${$("business").value || "none"}:${params.get("service") || "new"}`;
+
+// ── Objections: 3 Q&A pairs ──
+function addQA(q = "", a = "") {
+  const box = document.createElement("div"); box.className = "qa";
+  box.innerHTML = `<input type="text" class="obj-q" maxlength="200" placeholder="Question, e.g. Do you do the walkway and steps too?" /><textarea class="obj-a" maxlength="400" placeholder="Your answer"></textarea>`;
+  box.querySelector(".obj-q").value = q; box.querySelector(".obj-a").value = a;
+  $("objections").appendChild(box);
+}
+for (let i = 0; i < 3; i++) addQA();
+
+function collect() {
+  const intake = {};
+  TEXT_FIELDS.forEach(k => { intake[k] = ($(k)?.value || "").trim(); });
+  intake.objections = [...document.querySelectorAll(".qa")].map(b => ({ q: b.querySelector(".obj-q").value.trim(), a: b.querySelector(".obj-a").value.trim() })).filter(o => o.q || o.a);
+  const photo = document.querySelector('input[name="hero_photo"]:checked');
+  intake.hero_photo = photo ? photo.value : "";
+  return intake;
+}
+function fill(intake = {}) {
+  TEXT_FIELDS.forEach(k => { if ($(k) && intake[k] != null) $(k).value = intake[k]; });
+  const objs = Array.isArray(intake.objections) ? intake.objections : [];
+  $("objections").innerHTML = "";
+  for (let i = 0; i < Math.max(3, objs.length); i++) addQA(objs[i]?.q || "", objs[i]?.a || "");
+  if (intake.hero_photo) { const r = document.querySelector(`input[name="hero_photo"][value="${CSS.escape(intake.hero_photo)}"]`); if (r) r.checked = true; }
+}
+
+// Local autosave (best effort only; the server keeps the submitted answers).
+let saveTimer = null;
+document.addEventListener("input", () => {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { try { localStorage.setItem(DRAFT_KEY(), JSON.stringify(collect())); } catch {} }, 400);
+});
+
+async function token() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { location.href = `/login?next=${encodeURIComponent(location.pathname + location.search)}`; return null; }
+  return session.access_token;
+}
+async function api(action, body) {
+  const t = await token(); if (!t) return null;
+  const res = await fetch(`/api/generate-business?kind=spotlight&action=${action}`, {
+    method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` }, body: JSON.stringify(body || {}),
+  });
+  const j = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, ...j };
+}
+
+async function loadBusiness() {
+  const bid = $("business").value; if (!bid) return;
+  const ctx = await api("context", { business_id: bid });
+  if (!ctx?.ok) { say(ctx?.error || "Couldn't load that business.", "err"); return; }
+  const ex = ctx.spotlights || [];
+  $("existing").innerHTML = ex.length ? "Existing spotlights: " + ex.map(s => `<a href="/${ctx.profile.username}/${s.service_slug}" target="_blank">${(s.service_name || s.service_slug).replace(/</g,"&lt;")}</a> <small>(${s.status})</small>`).join(" ") : "";
+  const ph = $("photos"); ph.innerHTML = "";
+  (ctx.photos || []).forEach(u => {
+    const l = document.createElement("label");
+    l.innerHTML = `<input type="radio" name="hero_photo" value="${u.replace(/"/g, "&quot;")}" /><img src="${u.replace(/"/g, "&quot;")}" alt="" />`;
+    ph.appendChild(l);
+  });
+  if (ph.children.length) {
+    const none = document.createElement("label"); none.innerHTML = `<input type="radio" name="hero_photo" value="" checked /><span style="display:grid;place-items:center;width:110px;height:80px;border:1px dashed var(--line);border-radius:8px">No photo</span>`;
+    ph.prepend(none);
+  } else $("photoField").classList.add("hidden");
+
+  // Editing an existing spotlight: load its saved answers; else any local draft.
+  const svc = params.get("service");
+  if (svc) {
+    const got = await api("get", { business_id: bid, service_slug: svc });
+    if (got?.ok) { fill(got.intake); say("Loaded your saved answers."); return; }
+  }
+  try { const local = JSON.parse(localStorage.getItem(DRAFT_KEY()) || "null"); if (local) { fill(local); say("Restored your unsent answers from this device."); } } catch {}
+}
+
+async function init() {
+  if (!(await token())) return;
+  const r = await api("businesses", { slug: params.get("business") || "" });
+  const sel = $("business");
+  const list = r?.businesses || [];
+  if (!list.length) { sel.innerHTML = `<option value="">No business pages on this account</option>`; say("Make your company page first, then add spotlights.", "err"); return; }
+  sel.innerHTML = list.map(b => `<option value="${b.business_id}">${String(b.business_name || b.username).replace(/</g,"&lt;")}</option>`).join("");
+  const want = params.get("business");
+  const match = list.find(b => b.username === want); if (match) sel.value = match.business_id;
+  sel.addEventListener("change", loadBusiness);
+  await loadBusiness();
+}
+
+function showGaps(gap) {
+  document.querySelectorAll(".followup").forEach(n => n.remove());
+  document.querySelectorAll(".missing").forEach(n => n.classList.remove("missing"));
+  const note = (field, text) => {
+    const target = field === "objections" ? $("objections") : $(field);
+    if (!target) return;
+    const p = document.createElement("p"); p.className = "followup"; p.textContent = text;
+    target.insertAdjacentElement("afterend", p);
+  };
+  (gap.missing || []).forEach(m => { const el = m.field === "objections" ? $("objections") : $(m.field); el?.classList.add("missing"); note(m.field, m.question); });
+  (gap.followUps || []).forEach(f => note(f.field, f.question));
+  const first = document.querySelector(".missing, .followup"); first?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+$("checkBtn").addEventListener("click", async () => {
+  say("Checking…");
+  const gap = await api("check", { business_id: $("business").value, intake: collect() });
+  if (!gap) return;
+  showGaps(gap);
+  if (!gap.ready) say(`${gap.missing.length} required answer(s) missing.`, "err");
+  else if (gap.followUps.length) say(`${gap.followUps.length} answer(s) could be more specific. You can still generate.`);
+  else say("Looks complete. Ready to write the page.", "ok");
+});
+
+let skipFollowups = false;
+$("genBtn").addEventListener("click", async () => {
+  const btn = $("genBtn"); btn.disabled = true;
+  say("Writing your page: brief, headlines, copy, then a fact check. This takes about 30–45 seconds…");
+  try {
+    const intake = collect();
+    const r = await api("generate", { business_id: $("business").value, intake, service_slug: params.get("service") || "", skip_followups: skipFollowups });
+    if (!r) return;
+    if (r.needs_followup) {
+      showGaps(r); skipFollowups = true;
+      btn.textContent = "Write it anyway";
+      say("A few answers are vague. Tighten them (highlighted) or click “Write it anyway”.");
+      return;
+    }
+    if (!r.ok) { if (r.missing) showGaps(r); say(r.error || "Something went wrong.", "err"); return; }
+    try { localStorage.removeItem(DRAFT_KEY()); } catch {}
+    const removed = (r.removed || []).length ? `<p>The fact check removed or changed ${r.removed.length} claim(s) not backed by your answers. They're listed on the draft.</p>` : "";
+    $("doneBox").innerHTML = `<strong>Your draft is ready.</strong> ${removed}<p><a href="${r.url}" target="_blank" rel="noopener">Review and publish your draft →</a></p>`;
+    $("doneBox").classList.remove("hidden"); window.scrollTo({ top: 0, behavior: "smooth" });
+    say("Draft created. Review it, pick a headline, then publish.", "ok");
+    btn.textContent = "Rewrite the draft"; skipFollowups = false;
+  } finally { btn.disabled = false; }
+});
+
+init();
+</script>
+</body>
+</html>

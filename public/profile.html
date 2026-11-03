@@ -407,6 +407,8 @@ body.no-logo .wordmark::before {
 .services-cta-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
 .secondary-cta { font-size: 0.88rem; font-weight: 600; color: #5a7a9a; text-decoration: none; padding: 0.65rem 1.25rem; }
 .secondary-cta:hover { color: #0a1628; }
+.spotlight-links { margin: 1rem 0 0; font-size: .95rem; display: flex; flex-wrap: wrap; gap: .4rem 1rem; }
+.spotlight-links a { color: var(--brand-primary, #1a3a2a); font-weight: 700; text-decoration: none; }
 .services-cta-note { font-size: 0.8rem; color: #9ca3af; margin-top: 0.75rem; }
 
 /* ── Mid-page contact nudge ── */
@@ -1067,6 +1069,7 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
   <h2>Our Services</h2>
   <p id="services-intro" class="services-intro">{{SSR_SERVICES_INTRO}}</p>
   <div id="services-grid" class="service-grid">{{SSR_SERVICES}}</div>
+  {{SSR_SPOTLIGHT_LINKS}}
   <div class="services-cta-card">
     <h3>Ready to get started?</h3>
     <div class="services-cta-actions">

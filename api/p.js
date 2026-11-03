@@ -11,6 +11,7 @@ import { renderSections, faqSchema } from "./_lib/page-ssr.js";
 import { isGrandfathered } from "./_lib/trial-policy.js";
 import { openSchedule, showEmergencyBadge, townsLine, ctaNote } from "./_lib/page-claims.js";
 import { heroPhoto as pickHeroPhoto, visibleAttachments } from "./_lib/photo-kinds.js";
+import { renderSpotlight, fillTemplate } from "./_lib/spotlight-render.js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -306,6 +307,41 @@ function generateOgSvg(profile) {
   return `<?xml version="1.0" encoding="UTF-8"?><svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${c.bg}"/><stop offset="100%" stop-color="${c.accent}" stop-opacity="0.3"/></linearGradient><linearGradient id="ab" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${c.light}"/><stop offset="100%" stop-color="${c.accent}"/></linearGradient></defs><rect width="1200" height="630" fill="url(#bg)"/><rect x="0" y="0" width="8" height="630" fill="url(#ab)"/><rect x="60" y="60" width="${c.label.length*9+40}" height="32" rx="16" fill="${c.accent}" opacity="0.7"/><text x="${60+(c.label.length*9+40)/2}" y="81" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="white" text-anchor="middle">${xe(c.label.toUpperCase())}</text><text x="60" y="175" font-family="system-ui,sans-serif" font-size="${name.length>24?52:62}" font-weight="800" fill="white" letter-spacing="-1">${xe(name)}</text>${city?`<text x="60" y="225" font-family="system-ui,sans-serif" font-size="24" font-weight="500" fill="${c.light}">📍 ${xe(city)}</text>`:""}<rect x="60" y="252" width="120" height="4" rx="2" fill="${c.light}" opacity="0.7"/>${tagline?`<text x="60" y="306" font-family="system-ui,sans-serif" font-size="22" fill="rgba(255,255,255,0.7)">${xe(tagline.slice(0,75))}</text>`:""}${phone?`<text x="60" y="400" font-family="system-ui,sans-serif" font-size="26" font-weight="700" fill="${c.light}">📞 ${xe(phone)}</text>`:""}${pills}<rect x="1000" y="578" width="180" height="40" rx="8" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/><text x="1090" y="604" font-family="system-ui,sans-serif" font-size="15" font-weight="700" fill="rgba(255,255,255,0.5)" text-anchor="middle">Powered by Enoma</text><circle cx="1200" cy="0" r="400" fill="${c.light}" opacity="0.05"/></svg>`;
 }
 
+async function serveSpotlight(req, res, bizSlug, serviceSlug) {
+  const { data: profile } = await supabase.from("small_business_profiles").select("*")
+    .eq("username", bizSlug).eq("is_public", true).maybeSingle();
+  if (!profile?.business_id) return res.status(404).send("Not found");
+  const { data: spot } = await supabase.from("service_spotlights").select("*")
+    .eq("business_id", profile.business_id).eq("service_slug", serviceSlug).neq("status", "archived").maybeSingle();
+  if (!spot) {
+    // Unknown service: send people to the company page rather than a dead end.
+    res.setHeader("Cache-Control", "public, max-age=0, s-maxage=60");
+    return res.redirect(302, `/${encodeURIComponent(bizSlug)}`);
+  }
+  if (!(await pageIsLive(profile.business_id))) {
+    res.setHeader("Cache-Control", "public, max-age=0, s-maxage=60");
+    return res.status(200).send(inactivePage(profile.business_name || bizSlug, absoluteBaseUrl(req)));
+  }
+  const { data: others } = await supabase.from("service_spotlights")
+    .select("service_slug,service_name:content->>service_name")
+    .eq("business_id", profile.business_id).eq("status", "published").neq("service_slug", serviceSlug);
+  const chosenPhoto = spot.content?.hero_photo || null;
+  const heroPhoto = chosenPhoto || pickHeroPhoto(profile);
+  const html = fillTemplate(
+    fs.readFileSync(path.join(process.cwd(), "public", "spotlight.html"), "utf8"),
+    renderSpotlight(spot, profile, {
+      baseUrl: absoluteBaseUrl(req),
+      brandStyle: getBrandColorStyle(profile, heroPhoto),
+      heroPhoto,
+      otherSpotlights: others || [],
+    })
+  );
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  // Drafts change while the owner reviews them; published pages cache briefly.
+  res.setHeader("Cache-Control", spot.status === "published" ? "public, max-age=0, s-maxage=300" : "private, no-store");
+  return res.status(200).send(html);
+}
+
 export default async function handler(req, res) {
   // ── OG image route: /api/p?og=1&slug=... ──
   if (req.query.og === "1") {
@@ -334,6 +370,12 @@ export default async function handler(req, res) {
       .toLowerCase().split(",")[0].trim().replace(/:\d+$/, "").replace(/^www\./, "");
     const isEnomaHost = !host || /(^|\.)enoma\.io$|\.vercel\.app$|^localhost$|^127\.0\.0\.1$/.test(host);
     let slug = (req.query.slug || "").toString().trim();
+    // enoma.io/<business>/<service> → that business's Service Spotlight page.
+    if (isEnomaHost && slug.includes("/")) {
+      const [bizSlug, serviceSlug, ...rest] = slug.split("/").filter(Boolean);
+      if (!bizSlug || !serviceSlug || rest.length) return res.status(404).send("Not found");
+      return await serveSpotlight(req, res, bizSlug, serviceSlug);
+    }
 
     let profileQuery = supabase.from("small_business_profiles").select("*").eq("is_public", true);
     if (isEnomaHost) {
@@ -489,6 +531,15 @@ export default async function handler(req, res) {
       normalizedProfile.attachments = visibleAttachments(profile);
     }
     const ctaNoteText = ctaNote(profile);
+    // Published Service Spotlights get a link from the company page.
+    const { data: spotLinks } = profile.business_id
+      ? await supabase.from("service_spotlights").select("service_slug,service_name:content->>service_name")
+          .eq("business_id", profile.business_id).eq("status", "published").order("published_at", { ascending: true })
+      : { data: [] };
+    const spotlightLinksHtml = (spotLinks || []).length
+      ? `<p class="spotlight-links">Learn more: ${(spotLinks || []).map(sl =>
+          `<a href="/${encodeURIComponent(slug)}/${encodeURIComponent(sl.service_slug)}">${escapeHtml(sl.service_name || sl.service_slug)} →</a>`).join(" ")}</p>`
+      : "";
 
     const templatePath = path.join(process.cwd(), "public", "profile.html");
     let html = fs.readFileSync(templatePath, "utf8");
@@ -520,6 +571,7 @@ export default async function handler(req, res) {
       "{{WORDMARK_PLACE}}": escapeHtml(place),
       "{{SSR_TOWNS_SUB}}": escapeHtml(townsLine(profile)),
       "{{SSR_CTA_NOTE}}": escapeHtml(ctaNoteText),
+      "{{SSR_SPOTLIGHT_LINKS}}": spotlightLinksHtml,
       "{{SSR_CTA_NOTE_CLASS}}": ctaNoteText ? "services-cta-note" : "services-cta-note hidden",
     };
 

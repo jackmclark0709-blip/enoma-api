@@ -17,6 +17,7 @@ import {
 } from "./_lib/service-utils.js";
 import { lintCopy, scrubCopy, fixInstructions } from "./_lib/copy-lint.js";
 import { mergeKinds } from "./_lib/photo-kinds.js";
+import { handleSpotlight } from "./_lib/spotlight.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -303,6 +304,11 @@ export default async function handler(req, res) {
   try {
     if (req.method !== "POST") {
       return res.status(405).json({ error: "POST only" });
+    }
+
+    /* ---------- SERVICE SPOTLIGHT PAGES (api/_lib/spotlight.js) ---------- */
+    if (req.query?.kind === "spotlight") {
+      return await handleSpotlight(req, res, { supabaseAdmin, fetchImpl: fetch });
     }
 
     /* ---------- ADMIN SHORTCUT ---------- */
