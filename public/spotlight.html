@@ -261,6 +261,8 @@ body:not(.is-draft) .sp-draft { display: none; }
         {{CTA_PHONE_HTML}}
       </div>
       <form class="sp-form" id="leadForm" novalidate>
+        <!-- Honeypot: hidden from people; bots that fill it are ignored (api/send-contact.js) -->
+    <input name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" />
         <input name="name" placeholder="Your name" autocomplete="name" required />
         <input name="phone" type="tel" placeholder="Phone" autocomplete="tel" />
         <input name="email" type="email" placeholder="Email" autocomplete="email" required />
@@ -315,7 +317,7 @@ body:not(.is-draft) .sp-draft { display: none; }
         body: JSON.stringify({
           name, email, phone: fd.get('phone') || '', message: fd.get('message') || '',
           subject: {{FORM_SUBJECT_JSON}}, source: 'spotlight:' + S.service_slug,
-          business_id: S.business_id, slug: S.username, to: S.email,
+          business_id: S.business_id, slug: S.username, website: fd.get('website') || '',
         }),
       });
       if (!res.ok) throw new Error();
