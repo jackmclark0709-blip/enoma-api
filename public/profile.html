@@ -1091,6 +1091,8 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
     </p>
   </div>
   <form id="contactForm">
+    <!-- Honeypot: hidden from people; bots that fill it are ignored (api/send-contact.js) -->
+    <input name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" />
     <input name="name" placeholder="Your name" required />
     <input name="email" type="email" placeholder="Your email" required />
     <input name="phone" type="tel" placeholder="Your phone (optional)" />
@@ -1883,7 +1885,7 @@ async function loadProfile() {
       try {
         const res = await fetch('/api/send-contact', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...payload, business_id: window.profileData?.business_id, slug: window.profileData?.username, to: window.profileData?.email })
+          body: JSON.stringify({ ...payload, business_id: window.profileData?.business_id, slug: window.profileData?.username })
         });
         if (!res.ok) throw new Error();
         contactStatus.textContent = '✓ Message sent! We\'ll be in touch shortly.';

@@ -354,7 +354,10 @@ export default async function handler(req, res) {
     const business_name = first(fields.business_name);
     const seo_business_name = normalizeSeoBusinessName(business_name);
     const email = first(fields.email);
-    const about_input = first(fields.about);
+    // "ai_notes" are the owner's notes for the AI (edit mode). On a new page
+    // the "about" box is those notes; when editing, "about" is the page's
+    // About text itself, and notes default to it if none are given.
+    const about_input = first(fields.ai_notes) || first(fields.about);
     const tone = first(fields.tone);
     const incomingBusinessId = first(fields.business_id);
     const owner_name = first(fields.owner_name);
@@ -505,7 +508,10 @@ export default async function handler(req, res) {
     }
 
     const isEdit = Boolean(incomingBusinessId);
-    const shouldRegenerate = !isEdit || toBool(fields.regenerate_ai);
+    // mode=suggest (edit only): write new wording with the AI and return it
+    // for the owner to review in the form. Nothing is saved.
+    const suggestOnly = isEdit && first(fields.mode) === "suggest";
+    const shouldRegenerate = !isEdit || toBool(fields.regenerate_ai) || suggestOnly;
 
     /* ---------- LOGO UPLOAD ---------- */
     try {
@@ -807,6 +813,23 @@ primary_cta: If phone is provided, set type to "call" and value to the phone num
       primaryCTA = generated.primary_cta || {};
     }
 
+    if (suggestOnly) {
+      return res.status(200).json({
+        ok: true,
+        suggestions: {
+          hero_headline: generated?.hero_headline || "",
+          hero_tagline: generated?.hero_tagline || "",
+          about: generated?.about || "",
+          why_choose_us: generated?.why_choose_us || "",
+          services_intro: generated?.services_intro || "",
+          services: Array.isArray(generated?.services) ? generated.services : [],
+          faqs: Array.isArray(generated?.faqs) ? generated.faqs : [],
+          seo_title: generated?.seo_title || "",
+          seo_description: generated?.seo_description || "",
+        },
+      });
+    }
+
     /* ---------- FINAL VALUES ---------- */
     const manualSeoTitle = hasField(fields, "seo_title") ? first(fields.seo_title) : existingProfile?.seo_title;
     const manualSeoDescription = hasField(fields, "seo_description") ? first(fields.seo_description) : existingProfile?.seo_description;
@@ -830,7 +853,13 @@ primary_cta: If phone is provided, set type to "call" and value to the phone num
       shouldRegenerate ? (generated?.services ?? []) : (manualServices ?? []),
       rawServices
     );
-    const finalFaqs = shouldRegenerate ? (generated?.faqs ?? []) : (existingProfile?.faqs ?? []);
+    // FAQs: owners can now edit them directly (create.html sends "faqs").
+    const submittedFaqs = hasField(fields, "faqs")
+      ? (safeJSON(first(fields.faqs), []) || [])
+          .map(f => ({ q: String(f?.q || f?.question || "").trim(), a: String(f?.a || f?.answer || "").trim() }))
+          .filter(f => f.q && f.a)
+      : null;
+    const finalFaqs = shouldRegenerate ? (generated?.faqs ?? []) : (submittedFaqs ?? existingProfile?.faqs ?? []);
 
     const manualPrimaryCtaLabel = hasField(fields, "primary_cta_label") ? first(fields.primary_cta_label) : existingProfile?.primary_cta_label;
     const manualPrimaryCtaType = hasField(fields, "primary_cta_type") ? first(fields.primary_cta_type) : existingProfile?.primary_cta_type;
@@ -911,8 +940,9 @@ primary_cta: If phone is provided, set type to "call" and value to the phone num
       is_open_now: toBool(fields.is_open_now),
       accepting_clients: toBool(fields.accepting_clients),
       offers_emergency: toBool(fields.offers_emergency),
-      hero_availability: first(fields.hero_availability) || existingProfile?.hero_availability || null,
-      hero_response_time: first(fields.hero_response_time) || existingProfile?.hero_response_time || null,
+      // Sent as "" when the owner clears the field, so it can be removed.
+      hero_availability: hasField(fields, "hero_availability") ? (first(fields.hero_availability) || null) : (existingProfile?.hero_availability || null),
+      hero_response_time: hasField(fields, "hero_response_time") ? (first(fields.hero_response_time) || null) : (existingProfile?.hero_response_time || null),
       social_links: hasField(fields, "social_links")
         ? safeJSON(first(fields.social_links), null)
         : (existingProfile?.social_links ?? null),
