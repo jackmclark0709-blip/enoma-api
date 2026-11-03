@@ -9,6 +9,7 @@ import { createClient } from "@supabase/supabase-js";
 import { personaFor, pickPalette, splitWordmark, heroPatternSvg, isStrongRating, stripWeakRatingClaims, tidyHeadline } from "./_lib/page-style.js";
 import { renderSections, faqSchema } from "./_lib/page-ssr.js";
 import { isGrandfathered } from "./_lib/trial-policy.js";
+import { openSchedule, showEmergencyBadge, townsLine, ctaNote } from "./_lib/page-claims.js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -479,6 +480,15 @@ export default async function handler(req, res) {
     ].filter(Boolean).join(" ");
     // Only surface a Google rating when it actually helps (see isStrongRating).
     if (normalizedProfile) normalizedProfile.show_rating = isStrongRating(profile.average_rating, profile.review_count);
+    // Badges are derived from the business's own facts, never stored flags
+    // (page-claims.js): "Open now" is checked in the browser against the
+    // parsed hours; the emergency badge yields to an FAQ that denies it.
+    if (normalizedProfile) {
+      normalizedProfile.open_schedule = openSchedule(profile);
+      normalizedProfile.is_open_now = false;
+      normalizedProfile.offers_emergency = showEmergencyBadge(profile);
+    }
+    const ctaNoteText = ctaNote(profile);
 
     const templatePath = path.join(process.cwd(), "public", "profile.html");
     let html = fs.readFileSync(templatePath, "utf8");
@@ -508,6 +518,9 @@ export default async function handler(req, res) {
       "{{WORDMARK_MAIN}}": escapeHtml(wordmark.main),
       "{{WORDMARK_DESCRIPTOR}}": escapeHtml(wordmark.descriptor),
       "{{WORDMARK_PLACE}}": escapeHtml(place),
+      "{{SSR_TOWNS_SUB}}": escapeHtml(townsLine(profile)),
+      "{{SSR_CTA_NOTE}}": escapeHtml(ctaNoteText),
+      "{{SSR_CTA_NOTE_CLASS}}": ctaNoteText ? "services-cta-note" : "services-cta-note hidden",
     };
 
     for (const [needle, value] of Object.entries(replacements)) {

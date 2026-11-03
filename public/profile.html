@@ -1048,7 +1048,7 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 <div class="{{SSR_TOWNS_CLASS}}" id="townsWrap">
   <section class="section" id="towns" style="border-bottom:1px solid #e8f0f8;">
     <h2>Areas We Serve</h2>
-    <p class="towns-sub" id="townsSub">Serving residential and commercial customers across:</p>
+    <p class="towns-sub" id="townsSub">{{SSR_TOWNS_SUB}}</p>
     <div id="townList" style="margin-bottom:1.25rem;">{{SSR_TOWNS}}</div>
     <!-- Map — Google Place ID takes priority, falls back to address -->
     <div id="serviceMapWrap" class="service-map-wrap hidden">
@@ -1073,7 +1073,7 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
       <a id="quickCall" class="primary-cta">Call for a Free Quote</a>
       <a href="#contact" class="secondary-cta">Send a message instead</a>
     </div>
-    <p class="services-cta-note">No obligation · Fast response · Local service</p>
+    <p class="{{SSR_CTA_NOTE_CLASS}}">{{SSR_CTA_NOTE}}</p>
   </div>
 </section>
 </div>
@@ -1598,6 +1598,19 @@ async function loadProfile() {
     primaryAction.classList.remove('hidden');
   }
 
+  // "Open now" from the parsed hours, checked at view time in the business's
+  // time zone. Mirrors isOpenAt in api/_lib/page-claims.js. No hours, no badge.
+  function isOpenNow(s) {
+    if (!s || !Array.isArray(s.days)) return false;
+    try {
+      const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: s.tz, weekday: 'short', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' })
+        .formatToParts(new Date()).map(x => [x.type, x.value]));
+      const day = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(parts.weekday);
+      const mins = Number(parts.hour) * 60 + Number(parts.minute);
+      return s.days.includes(day) && mins >= s.open && mins < s.close;
+    } catch { return false; }
+  }
+
   /* ── Hero meta pills ── */
   const heroMeta = getEl('heroMeta');
   if (heroMeta) {
@@ -1605,7 +1618,7 @@ async function loadProfile() {
     if (p.city) pills.push(`<span>${p.city}${p.state ? ', ' + p.state : ''}</span>`);
     if (p.accepting_clients) pills.push('<span>Accepting clients</span>');
     if (p.offers_emergency) pills.push('<span class="pill-emergency">⚡ Emergency service</span>');
-    if (p.is_open_now) pills.push('<span class="pill-open">● Open now</span>');
+    if (isOpenNow(p.open_schedule)) pills.push('<span class="pill-open">● Open now</span>');
     heroMeta.innerHTML = pills.join('');
     if (!pills.length) heroMeta.style.display = 'none';
   }
