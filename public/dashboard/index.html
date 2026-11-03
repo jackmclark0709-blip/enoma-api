@@ -60,6 +60,9 @@
     .pill.expired { background: rgba(220,38,38,0.1);  color: #dc2626; border: 1px solid rgba(220,38,38,0.2); }
     .pill.none    { background: #f0f6ff; color: #7ab3e0; border: 1px solid #d4e2f4; }
     .renewal-txt  { font-size: 0.82rem; color: #7ab3e0; }
+    .manage-billing-btn { margin-left: auto; font: inherit; font-size: 0.82rem; font-weight: 700; color: #3882dc; background: none; border: 1px solid rgba(56,130,220,0.3); border-radius: 999px; padding: 0.3rem 0.85rem; cursor: pointer; }
+    .manage-billing-btn:hover { background: rgba(56,130,220,0.08); }
+    .manage-billing-btn:disabled { opacity: 0.6; cursor: wait; }
 
     /* ── Trial / upgrade banner ── */
     .upgrade-banner {
@@ -228,6 +231,7 @@
   <div class="status-row">
     <span id="subscription-status" class="pill none">Loading…</span>
     <span id="renewal-date" class="renewal-txt"></span>
+    <button type="button" id="manage-billing" class="manage-billing-btn" style="display:none;">Manage billing →</button>
   </div>
 
   <!-- UPGRADE BANNER (shown during trial / expired) -->
@@ -477,6 +481,27 @@ async function loadDashboard(profile, session) {
   // previously viewed business when switching the dropdown.
   renewalEl.textContent = '';
   bannerEl.style.display = 'none';
+  const billingBtn = document.getElementById('manage-billing');
+  billingBtn.style.display = 'none';
+  billingBtn.onclick = null;
+  upgradeBtn.textContent = 'Keep my website live →';
+  upgradeBtn.onclick = null;
+  // Opens the Stripe customer portal: update card, cancel, invoices.
+  const openBillingPortal = async (e) => {
+    e?.preventDefault?.();
+    billingBtn.disabled = true;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const r = await fetch('/api/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
+        body: JSON.stringify({ business_id: profile.business_id, action: 'portal' }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok && j.url) { location.href = j.url; return; }
+      alert(j.error || "We couldn't open billing just now. Email jack@enoma.io.");
+    } finally { billingBtn.disabled = false; }
+  };
   bannerTxt.innerHTML = '';
 
   const { data: biz } = await supabase
@@ -501,6 +526,11 @@ async function loadDashboard(profile, session) {
       const periodEnd     = sub.current_period_end ? new Date(sub.current_period_end) : null;
       const periodEndFmt  = periodEnd ? periodEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 
+      if (sub.stripe_customer_id && ['active', 'past_due', 'canceled', 'unpaid'].includes(sub.status)) {
+        billingBtn.style.display = 'inline-block';
+        billingBtn.onclick = openBillingPortal;
+      }
+
       if (sub.status === 'active') {
         statusEl.textContent = '● Active'; statusEl.className = 'pill active';
         if (periodEnd) renewalEl.textContent = `Renews ${periodEndFmt}`;
@@ -509,7 +539,11 @@ async function loadDashboard(profile, session) {
         statusEl.textContent = '⚠ Payment due'; statusEl.className = 'pill expired';
         renewalEl.textContent = 'Payment failed — update billing to avoid interruption';
         bannerTxt.innerHTML = `<strong>Your last payment failed.</strong> Your page is still live while we retry, but update your billing details to avoid it going offline.`;
-        upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
+        // Send them to update their card, not to start a second subscription.
+        upgradeBtn.textContent = 'Update my card →';
+        upgradeBtn.href = '#';
+        upgradeBtn.onclick = sub.stripe_customer_id ? openBillingPortal : null;
+        if (!sub.stripe_customer_id) upgradeBtn.href = 'mailto:jack@enoma.io?subject=Update%20my%20billing';
         bannerEl.style.display = 'flex';
 
       } else if (sub.status === 'canceled' && periodEnd && periodEnd > new Date()) {
