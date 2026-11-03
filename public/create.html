@@ -176,6 +176,11 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
 .check-row__label { font-size: 0.88rem; font-weight: 600; color: var(--text); }
 .check-row__desc { font-size: 0.78rem; color: var(--text-faint); margin-top: 1px; }
 
+.suggest-sections { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0.25rem 1rem; margin: 0.75rem 0 0.25rem; }
+.ai-suggested { outline: 2px solid #f2c94c; outline-offset: 1px; background: rgba(242, 201, 76, 0.08) !important; }
+.row2-fields { display: grid; gap: 0.6rem 1rem; }
+@media (min-width: 640px) { .row2-fields { grid-template-columns: 1fr 1fr; } }
+
 /* Dynamic blocks (services, testimonials) */
 .block {
   background: rgba(255,255,255,0.04); border: 1.5px solid var(--card-border);
@@ -521,14 +526,14 @@ body.wizard-mode.wizard-step-4 .wizard-review { display: block; }
       <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
     </div>
     <div>
-      <p class="form-section__title">About your business <span class="label-hint">optional</span></p>
-      <p class="form-section__desc">The AI turns your rough notes into polished copy — don't worry about wording</p>
+      <p class="form-section__title" id="aboutTitle">About your business <span class="label-hint">optional</span></p>
+      <p class="form-section__desc" id="aboutDesc">The AI turns your rough notes into polished copy — don't worry about wording</p>
     </div>
   </div>
 
-  <label>Describe your business</label>
+  <label id="aboutLabel">Describe your business</label>
   <textarea name="about" rows="5" placeholder="Tell us about your business in your own words. How long have you been operating? What makes you different? Who do you typically work for? Rough notes are completely fine — e.g. &quot;family owned since 2019, mostly residential, owner on every job, fair prices&quot;"></textarea>
-  <p class="skip-hint">Optional — the more you tell us, the better your page. Leave it blank and we'll write something general for now.</p>
+  <p class="skip-hint" id="aboutHint">Optional — the more you tell us, the better your page. Leave it blank and we'll write something general for now.</p>
 
   <label>Tone / style</label>
   <select name="tone">
@@ -606,24 +611,29 @@ body.wizard-mode.wizard-step-4 .wizard-review { display: block; }
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
     </div>
     <div>
-      <p class="form-section__title">AI options</p>
-      <p class="form-section__desc">Control how the AI handles your content</p>
+      <p class="form-section__title">Reword with AI</p>
+      <p class="form-section__desc">Get suggestions, review them, then save</p>
     </div>
   </div>
-  <label class="regen-toggle" id="regenToggleLabel">
-    <input type="checkbox" id="regenerate_ai" name="regenerate_ai" />
-    <div class="regen-toggle__text">
-      <span class="regen-toggle__label">Write page copy with AI</span>
-      <span class="regen-toggle__desc">AI generates your headline, about section, services descriptions, and FAQ from your notes. Uncheck to save manual edits without AI overwriting them.</span>
-    </div>
-  </label>
+  <p class="field-hint" style="margin:0 0 0.6rem;">Pick what you'd like reworded. The AI's suggestions fill in the boxes below so you can read and change them. <strong>Nothing goes live until you click Save changes.</strong></p>
+  <label>Notes for the AI <span class="label-hint">optional, never shown on your page</span></label>
+  <textarea name="ai_notes" rows="3" placeholder="Anything the AI should know: years in business, what you're known for, towns, who you work for. Rough notes are fine."></textarea>
+  <div class="suggest-sections" id="suggestSections">
+    <label class="check-row"><input type="checkbox" value="headline" checked /><div><span class="check-row__label">Headline &amp; tagline</span></div></label>
+    <label class="check-row"><input type="checkbox" value="about" /><div><span class="check-row__label">About section</span></div></label>
+    <label class="check-row"><input type="checkbox" value="why" /><div><span class="check-row__label">Why choose us</span></div></label>
+    <label class="check-row"><input type="checkbox" value="services" /><div><span class="check-row__label">Service descriptions</span></div></label>
+    <label class="check-row"><input type="checkbox" value="faqs" /><div><span class="check-row__label">FAQs</span></div></label>
+  </div>
+  <button type="button" class="add-btn" id="suggestBtn">✨ Suggest new wording</button>
+  <p class="field-hint" id="suggestStatus" role="status" style="margin-top:0.5rem;"></p>
 </div>
 
 <!-- ── ADVANCED: Manual copy overrides (collapsed) ── -->
 <div class="form-section">
   <button type="button" class="advanced-toggle" id="advancedToggle" onclick="toggleAdvanced()">
     <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-    Advanced: manually edit page copy
+    <span id="advancedLabel">Advanced: manually edit page copy</span>
   </button>
   <div class="advanced-panel" id="advancedPanel">
     <p class="field-hint" style="margin-bottom:0.5rem;">These fields override what the AI writes. Leave blank to let AI fill them in.</p>
@@ -639,6 +649,41 @@ body.wizard-mode.wizard-step-4 .wizard-review { display: block; }
     <textarea name="why_choose_us" rows="3" placeholder="List your differentiators, one per line&#10;Owner on every job&#10;Licensed &amp; Insured&#10;Same-day response"></textarea>
     <label>Services Intro</label>
     <textarea name="services_intro" rows="2" placeholder="Short intro above your services list"></textarea>
+  </div>
+</div>
+
+<!-- ── Hours, FAQs & links (edit mode; hidden in the create wizard like
+     other sections without data-step) ── -->
+<div class="form-section" id="detailsSection">
+  <div class="form-section__header">
+    <div class="form-section__icon">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    </div>
+    <div>
+      <p class="form-section__title">Hours, FAQs &amp; links</p>
+      <p class="form-section__desc">Shown on your page exactly as you write them</p>
+    </div>
+  </div>
+  <div class="row2-fields">
+    <div>
+      <label>Hours <span class="label-hint">e.g. Mon–Fri 8am–6pm</span></label>
+      <input name="hero_availability" placeholder="Mon–Fri 8am–6pm" />
+      <p class="field-hint">Your page shows "Open now" during these hours.</p>
+    </div>
+    <div>
+      <label>How fast you reply <span class="label-hint">optional</span></label>
+      <input name="hero_response_time" placeholder="Typically responds within a few hours" />
+    </div>
+  </div>
+  <label style="margin-top:1rem;">Frequently asked questions</label>
+  <div id="faqsEditor"></div>
+  <button type="button" class="add-btn" onclick="addFaq()">+ Add a question</button>
+  <label style="margin-top:1rem;">Social &amp; review links <span class="label-hint">optional</span></label>
+  <div class="row2-fields">
+    <input name="social_facebook" placeholder="Facebook page URL" />
+    <input name="social_instagram" placeholder="Instagram URL" />
+    <input name="social_google" placeholder="Google Business / Maps URL" />
+    <input name="social_linkedin" placeholder="LinkedIn URL" />
   </div>
 </div>
 
@@ -860,6 +905,13 @@ if (editBusinessId) {
   document.getElementById("stickySubmitBtn").textContent = "Save changes →";
   document.getElementById("createHero").style.display = "none"; // hide onboarding on edit
   document.getElementById("createGrid").classList.add("edit-mode"); // collapse to single-column form
+  // In edit mode the About box is the live page text, not notes for the AI.
+  document.getElementById("aboutTitle").textContent = "About section";
+  document.getElementById("aboutDesc").textContent = "This text appears on your page exactly as you write it. To have the AI reword it, use \u201cReword with AI\u201d below.";
+  document.getElementById("aboutLabel").textContent = "About text on your page";
+  document.getElementById("aboutHint").style.display = "none";
+  document.getElementById("advancedLabel").textContent = "Headline, tagline, why choose us & SEO text";
+  toggleAdvanced(true);
 } else {
   // First-time creation always regenerates with AI (there's nothing to
   // preserve yet), so the "write with AI" toggle has no effect here —
@@ -994,10 +1046,18 @@ async function loadBusinessForEdit(businessId) {
   form.why_choose_us.value = data.why_choose_us || ""; form.services_intro.value = data.services_intro || "";
   form.trust_badges.value = Array.isArray(data.trust_badges) ? data.trust_badges.join("\n") : (data.trust_badges || "");
   (data.services || []).forEach(s => { addService(); const last = servicesEl.lastElementChild; last.querySelector(".service-name").value = s.service_name || ""; last.querySelector(".service-description").value = s.service_description || ""; last.querySelector(".service-price").value = s.price || ""; });
-  (data.testimonials || []).forEach(t => { addTestimonial(); const last = testimonialsEl.lastElementChild; last.querySelector(".testimonial-quote").value = t.quote || ""; last.querySelector(".testimonial-author").value = t.author || ""; });
+  (data.testimonials || []).forEach(t => { addTestimonial(); const last = testimonialsEl.lastElementChild; last.querySelector(".testimonial-quote").value = t.quote || ""; last.querySelector(".testimonial-author").value = t.author || ""; if (t.rating) last.dataset.rating = t.rating; if (t.source) last.dataset.source = t.source; });
   if (data.logo_url) { logoUrlInput.value = data.logo_url; setLogoPreview(data.logo_url); }
   // If any manual copy is present, open the advanced panel
   if (data.hero_headline || data.seo_title) toggleAdvanced(true);
+  // Hours, FAQs & links
+  form.hero_availability.value = data.hero_availability || "";
+  form.hero_response_time.value = data.hero_response_time || "";
+  document.getElementById("faqsEditor").innerHTML = "";
+  (Array.isArray(data.faqs) ? data.faqs : []).forEach(f => addFaq(f.q || f.question || "", f.a || f.answer || ""));
+  const socials = (data.social_links && typeof data.social_links === "object" && !Array.isArray(data.social_links)) ? data.social_links : {};
+  window.__existingSocials = socials;
+  ["facebook", "instagram", "google", "linkedin"].forEach(k => { if (form["social_" + k]) form["social_" + k].value = socials[k] || ""; });
 }
 
 // addService is now a global function (see plain script)
@@ -1061,6 +1121,55 @@ function stopProgressMessages() {
   progressTimer = null;
 }
 
+// ── "Reword with AI": suggestions fill the form; nothing is saved here ──
+const suggestBtn = document.getElementById("suggestBtn");
+if (suggestBtn) suggestBtn.addEventListener("click", async () => {
+  const statusEl = document.getElementById("suggestStatus");
+  const picked = [...document.querySelectorAll('#suggestSections input:checked')].map(i => i.value);
+  if (!picked.length) { statusEl.textContent = "Pick at least one thing to reword."; return; }
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) { statusEl.textContent = "Please log in again."; return; }
+  suggestBtn.disabled = true;
+  statusEl.textContent = "Writing suggestions… this takes about 20 seconds.";
+  try {
+    const fd = new FormData(form);
+    ["images", "logo"].forEach(k => fd.delete(k));       // no uploads for a suggestion
+    fd.set("mode", "suggest");
+    fd.set("services", JSON.stringify([...servicesEl.querySelectorAll(".block")].map(b => ({ service_name: b.querySelector(".service-name")?.value.trim(), service_description: b.querySelector(".service-description")?.value.trim(), price: b.querySelector(".service-price")?.value.trim() })).filter(x => x.service_name)));
+    const res = await fetch("/api/generate-business", { method: "POST", headers: { Authorization: `Bearer ${session.access_token}` }, body: fd });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !json.suggestions) { statusEl.textContent = json.message || json.error || "Couldn't get suggestions. Try again."; return; }
+    const sg = json.suggestions;
+    const mark = el => { if (el) el.classList.add("ai-suggested"); };
+    document.querySelectorAll(".ai-suggested").forEach(el => el.classList.remove("ai-suggested"));
+    if (picked.includes("headline")) {
+      toggleAdvanced(true);
+      if (sg.hero_headline) { form.hero_headline.value = sg.hero_headline; mark(form.hero_headline); }
+      if (sg.hero_tagline) { form.hero_tagline.value = sg.hero_tagline; mark(form.hero_tagline); }
+    }
+    if (picked.includes("about") && sg.about) { form.about.value = sg.about; mark(form.about); }
+    if (picked.includes("why") && sg.why_choose_us) { toggleAdvanced(true); form.why_choose_us.value = sg.why_choose_us; mark(form.why_choose_us); }
+    if (picked.includes("services")) {
+      const byName = new Map((sg.services || []).map(x => [String(x.service_name || "").toLowerCase(), x.service_description || ""]));
+      servicesEl.querySelectorAll(".block").forEach(b => {
+        const d = byName.get((b.querySelector(".service-name")?.value || "").trim().toLowerCase());
+        if (d) { const ta = b.querySelector(".service-description"); ta.value = d; mark(ta); }
+      });
+    }
+    if (picked.includes("faqs") && (sg.faqs || []).length) {
+      document.getElementById("faqsEditor").innerHTML = "";
+      sg.faqs.forEach(f => addFaq(f.q || f.question || "", f.a || f.answer || ""));
+      document.querySelectorAll("#faqsEditor .faq-block").forEach(mark);
+    }
+    statusEl.innerHTML = "Suggestions are filled in and highlighted in yellow. Read them, change anything you like, then click <strong>Save changes</strong>. Reload the page to discard them.";
+    document.querySelector(".ai-suggested")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  } catch {
+    statusEl.textContent = "Couldn't get suggestions. Try again.";
+  } finally {
+    suggestBtn.disabled = false;
+  }
+});
+
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   const isEdit = Boolean(editBusinessId);
@@ -1080,8 +1189,17 @@ form.addEventListener("submit", async (e) => {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) { alert("You must be logged in"); stopProgressMessages(); setSubmitting(false); return; }
   const servicesData = [...servicesEl.querySelectorAll(".block")].map(b => ({ service_name: b.querySelector(".service-name")?.value.trim(), service_description: b.querySelector(".service-description")?.value.trim(), price: b.querySelector(".service-price")?.value.trim() })).filter(s => s.service_name);
-  const testimonialsData = [...testimonialsEl.querySelectorAll(".block")].map(b => ({ quote: b.querySelector(".testimonial-quote")?.value.trim(), author: b.querySelector(".testimonial-author")?.value.trim() })).filter(t => t.quote);
+  // Keep rating/source (e.g. "via Google") that the form doesn't show.
+  const testimonialsData = [...testimonialsEl.querySelectorAll(".block")].map(b => ({ quote: b.querySelector(".testimonial-quote")?.value.trim(), author: b.querySelector(".testimonial-author")?.value.trim(), ...(b.dataset.rating ? { rating: Number(b.dataset.rating) } : {}), ...(b.dataset.source ? { source: b.dataset.source } : {}) })).filter(t => t.quote);
   fd.set("services", JSON.stringify(servicesData)); fd.set("testimonials", JSON.stringify(testimonialsData));
+  if (isEdit) {
+    fd.set("faqs", JSON.stringify(collectFaqs()));
+    fd.set("social_links", JSON.stringify(collectSocials()));
+  } else {
+    // The create wizard doesn't show these; let the AI and Google fill them.
+    ["hero_availability", "hero_response_time"].forEach(k => fd.delete(k));
+  }
+  ["social_facebook", "social_instagram", "social_google", "social_linkedin", "ai_notes"].forEach(k => { if (!(isEdit && k === "ai_notes")) fd.delete(k); });
   const trustBadges = (form.trust_badges?.value || "").split("\n").map(s => s.trim()).filter(Boolean);
   fd.set("trust_badges", JSON.stringify(trustBadges));
   const removeUrls = [...document.querySelectorAll(".remove-attachment:checked")].map(cb => cb.value);
@@ -1196,6 +1314,37 @@ function addTestimonial() {
     + '<label>Customer name</label>'
     + '<input placeholder="e.g. Sarah M., Boston" class="testimonial-author"/>';
   testimonialsEl.appendChild(div);
+}
+
+function addFaq(q, a) {
+  var wrap = document.getElementById('faqsEditor');
+  if (!wrap) return;
+  var div = document.createElement('div'); div.className = 'block faq-block';
+  div.innerHTML = '<button type="button" class="block-remove" onclick="this.parentElement.remove()" title="Remove">×</button>'
+    + '<label style="margin-top:0">Question</label>'
+    + '<input class="faq-q" placeholder="e.g. Do you offer free estimates?"/>'
+    + '<label>Answer</label>'
+    + '<textarea class="faq-a" rows="2" placeholder="Your answer, in your own words"></textarea>';
+  div.querySelector('.faq-q').value = q || '';
+  div.querySelector('.faq-a').value = a || '';
+  wrap.appendChild(div);
+}
+
+function collectFaqs() {
+  return Array.prototype.map.call(document.querySelectorAll('#faqsEditor .faq-block'), function (b) {
+    return { q: b.querySelector('.faq-q').value.trim(), a: b.querySelector('.faq-a').value.trim() };
+  }).filter(function (f) { return f.q && f.a; });
+}
+
+// Keeps any links the form doesn't show (e.g. twitter) and drops cleared ones.
+function collectSocials() {
+  var out = Object.assign({}, window.__existingSocials || {});
+  ['facebook', 'instagram', 'google', 'linkedin'].forEach(function (k) {
+    var el = document.querySelector('[name="social_' + k + '"]');
+    var v = el ? el.value.trim() : '';
+    if (v) out[k] = v; else delete out[k];
+  });
+  return out;
 }
 
 function toggleAdvanced(forceOpen) {
