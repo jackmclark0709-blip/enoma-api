@@ -3,7 +3,7 @@
 //
 // This is the ONLY renderer for these sections. The server puts the content
 // in the HTML (so crawlers and AI answer engines that don't run JavaScript
-// see it), and public/profile.html's script no longer redraws them — it only
+// see it), and public/scripts/profile.js no longer redraws them — it only
 // adds behaviour (testimonial carousel, FAQ toggles) to this markup. Change a
 // section's markup here, not in profile.html.
 //

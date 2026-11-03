@@ -344,6 +344,12 @@
       <div id="ops-attention-list"></div>
     </div>
 
+    <div class="card" id="copy-audit-card">
+      <h2 class="section-title">Copy check <span class="count" id="copy-audit-count"></span></h2>
+      <p style="font-size:.74rem;color:var(--text-3);margin:0 0 10px;">Filler words, generic service lines and contradictions on live pages (same rules new pages are held to). Claimed pages first.</p>
+      <div id="copy-audit-list" style="font-size:.82rem;">Loading…</div>
+    </div>
+
     <div class="card">
       <h2 class="section-title">Pages &amp; publish status <span class="count" id="ops-pages-count"></span></h2>
       <p style="font-size:.74rem;color:var(--text-3);margin:0 0 10px;">Live per-business page view counts aren't wired to any endpoint yet, so they're deliberately not shown here rather than faked.</p>
@@ -514,6 +520,7 @@
     }
 
     renderOps(ops);
+    renderCopyAudit();
     renderMarketing(marketing);
     renderRevenue(revenue, salesQueue);
     renderMap({ revenue, marketing, ops, salesQueue });
@@ -540,6 +547,21 @@
   }
 
   /* ==================== OPS ==================== */
+  async function renderCopyAudit() {
+    const list = document.getElementById('copy-audit-list');
+    try {
+      const d = await fetchAction('copy_audit');
+      document.getElementById('copy-audit-count').textContent = `${d.pages_with_issues} of ${d.pages_checked} pages`;
+      const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      list.innerHTML = d.pages.slice(0, 25).map(p => `<details style="margin:0 0 6px;">
+        <summary><a href="/${encodeURIComponent(p.username)}" target="_blank" rel="noopener">${esc(p.business_name || p.username)}</a>${p.is_claimed ? ' <strong>(claimed)</strong>' : ''} · ${p.issue_count} issue${p.issue_count === 1 ? '' : 's'}</summary>
+        <ul style="margin:4px 0 0 18px;">${p.issues.map(i => `<li>${esc(i)}</li>`).join('')}</ul>
+      </details>`).join('') || 'No issues found.';
+    } catch (e) {
+      list.textContent = 'Copy check failed to load: ' + e.message;
+    }
+  }
+
   function renderOps(ops) {
     const pillEl = document.getElementById('ops-status-pill');
     const err = errText(ops);

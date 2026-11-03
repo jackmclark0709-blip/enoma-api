@@ -24,6 +24,7 @@ import { rampCapForDate, capWithBounceBrake } from "./_lib/outreach-ramp.js";
 import { townForDate, tradeForDate } from "./_lib/prospect-rotation.js";
 import { Resend } from "resend";
 import { isGrandfathered } from "./_lib/trial-policy.js";
+import { lintCopy } from "./_lib/copy-lint.js";
 import {
   TEXT_DAILY_CAP, TEXT_REMIND_AFTER_DAYS, NEVER_TEXT_STATUSES, normalizeUsPhone, assessPageQuality,
   assessRenderedPage, buildTextMessage, buildTextBatchEmail, verifyTextMarkToken,
@@ -2463,6 +2464,29 @@ async function handleContentPerformance(req, res) {
   return res.status(200).json({ success: true, generated_at: new Date().toISOString(), ...data });
 }
 
+// Copy check over every live page (audit item 9): the same rules new pages
+// are held to (api/_lib/copy-lint.js), applied to pages written before them.
+// Claimed pages first, then by number of problems.
+async function handleCopyAudit(req, res) {
+  const user = await requireAdmin(req);
+  if (!user) return res.status(401).json({ error: "Unauthorized" });
+  const { data, error } = await supabase.from("small_business_profiles")
+    .select("username, business_name, is_claimed, hero_headline, hero_tagline, about, why_choose_us, services_intro, seo_title, seo_description, trust_badges, services, faqs, offers_emergency")
+    .eq("is_public", true);
+  if (error) throw error;
+  const pages = (data || []).map(p => {
+    const issues = lintCopy(p, { offers_emergency: !!p.offers_emergency });
+    const counts = issues.reduce((acc, i) => ({ ...acc, [i.kind]: (acc[i.kind] || 0) + 1 }), {});
+    return { username: p.username, business_name: p.business_name, is_claimed: !!p.is_claimed, issue_count: issues.length, counts, issues: issues.map(i => i.message) };
+  }).filter(p => p.issue_count > 0)
+    .sort((a, b) => (b.is_claimed - a.is_claimed) || (b.issue_count - a.issue_count));
+  const totals = pages.reduce((acc, p) => {
+    for (const [k, v] of Object.entries(p.counts)) acc[k] = (acc[k] || 0) + v;
+    return acc;
+  }, {});
+  return res.status(200).json({ success: true, generated_at: new Date().toISOString(), pages_checked: (data || []).length, pages_with_issues: pages.length, totals, pages });
+}
+
 async function handleBusinessPagesStatus(req, res) {
   const user = await requireAdmin(req);
   if (!user) return res.status(401).json({ error: "Unauthorized" });
@@ -2637,6 +2661,15 @@ export default async function handler(req, res) {
       return await handleContentPerformance(req, res);
     } catch (err) {
       console.error("Content performance failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.query.action === "copy_audit") {
+    try {
+      return await handleCopyAudit(req, res);
+    } catch (err) {
+      console.error("Copy audit failed:", err);
       return res.status(500).json({ success: false, error: err.message });
     }
   }

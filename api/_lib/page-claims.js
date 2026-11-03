@@ -98,7 +98,7 @@ export function openSchedule(profile) {
   return tz && parsed ? { ...parsed, tz } : null;
 }
 
-// Same check the browser runs (kept in sync with isOpenNow in profile.html).
+// Same check the browser runs (kept in sync with isOpenNow in public/scripts/profile.js).
 export function isOpenAt(schedule, date = new Date()) {
   if (!schedule) return false;
   const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US", {
