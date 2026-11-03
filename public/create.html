@@ -574,13 +574,6 @@ body.wizard-mode.wizard-step-4 .wizard-review { display: block; }
         <span class="check-row__desc">Shows an "Emergency service" badge in your hero</span>
       </div>
     </label>
-    <label class="check-row">
-      <input type="checkbox" name="is_open_now" />
-      <div>
-        <span class="check-row__label">Open now</span>
-        <span class="check-row__desc">Shows an "Open now" indicator (update this whenever it changes)</span>
-      </div>
-    </label>
   </div>
 </div>
 
@@ -780,7 +773,7 @@ if (!editBusinessId && session?.user?.email && !form.email.value) form.email.val
 // field values (not files — those can't be serialized) plus which step the
 // person was on, so returning to /create resumes instead of restarting.
 const DRAFT_KEY = "enoma_create_draft_v1";
-const DRAFT_FIELD_NAMES = ["business_name","google_place_id","city","state","primary_category","industry_display","phone","address","service_area","website","about","tone","accepting_clients","offers_emergency","is_open_now"];
+const DRAFT_FIELD_NAMES = ["business_name","google_place_id","city","state","primary_category","industry_display","phone","address","service_area","website","about","tone","accepting_clients","offers_emergency"];
 function saveDraft(step) {
   if (editBusinessId) return;
   try {
@@ -989,7 +982,7 @@ async function loadBusinessForEdit(businessId) {
   form.querySelector('[name="primary_category"]').value = pc;
   if (industrySelect && pc) industrySelect.value = pc;
   form.tone.value = data.tone || "professional";
-  form.is_open_now.checked = !!data.is_open_now; form.accepting_clients.checked = !!data.accepting_clients; form.offers_emergency.checked = !!data.offers_emergency;
+  form.accepting_clients.checked = !!data.accepting_clients; form.offers_emergency.checked = !!data.offers_emergency;
   form.seo_title.value = data.seo_title || ""; form.seo_description.value = data.seo_description || "";
   form.hero_headline.value = data.hero_headline || ""; form.hero_tagline.value = data.hero_tagline || "";
   form.why_choose_us.value = data.why_choose_us || ""; form.services_intro.value = data.services_intro || "";
@@ -1076,7 +1069,6 @@ form.addEventListener("submit", async (e) => {
   startProgressMessages(isEdit);
   if (!isEdit && window.enomaTrack) enomaTrack('create_form_submitted');
   const fd = new FormData(form);
-  fd.set("is_open_now", form.is_open_now.checked ? "true" : "false");
   fd.set("accepting_clients", form.accepting_clients.checked ? "true" : "false");
   fd.set("offers_emergency", form.offers_emergency.checked ? "true" : "false");
   const { data: { session } } = await supabase.auth.getSession();

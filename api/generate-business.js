@@ -274,7 +274,7 @@ primary_cta: type="call", value="${phone}", label="Call for a Free Estimate"`;
       primary_cta_label: generated.primary_cta?.label || "Call for a Free Estimate",
       primary_cta_type: "call", primary_cta_value: phone || "",
       testimonials: [], attachments: [],
-      is_open_now: true, accepting_clients: true, offers_emergency: false,
+      is_open_now: false, accepting_clients: true, offers_emergency: false,
       is_public: true, updated_at: new Date().toISOString()
     }, { onConflict: "business_id" });
   if (profileErr) throw profileErr;
@@ -625,7 +625,6 @@ Owner name: ${owner_name || "not provided"}
 Existing trust badges: ${first(fields.trust_badges) || "none"}
 Existing testimonials: ${first(fields.testimonials) || "none"}
 Operational flags:
-- Open now: ${toBool(fields.is_open_now)}
 - Accepting clients: ${toBool(fields.accepting_clients)}
 - Emergency services: ${toBool(fields.offers_emergency)}
 
@@ -672,6 +671,11 @@ faqs:
 - 5 questions a real customer would actually type into Google before hiring this type of business
 - Include at least one about pricing/estimates, one about service area, one about scheduling/availability
 - Answers should be specific to this business where possible
+- Emergency/after-hours: follow the "Emergency services" flag above exactly. If it is
+  false, never say or imply they offer emergency or after-hours work. If it is true,
+  never say they don't. If you write an FAQ about it, the answer must match the flag.
+- Customer type: only say "commercial" or "residential" if BUSINESS INPUT says so, and
+  never both "residential only" in one place and "commercial" in another.
 
 trust_badges:
 - 3-5 short phrases. Include factual ones first: years in business, licensing, rating if known
