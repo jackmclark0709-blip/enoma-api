@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import {
   gapCheck, slugifyService, normalizeDraft, scrubSpotlight, spotlightIssues, assembleContent, generateSpotlight, buildDraftPrompt,
+  stripUnsupportedSpeed, buildFactCheckPrompt,
 } from "../api/_lib/spotlight.js";
 import { renderSpotlight, fillTemplate, priceLine } from "../api/_lib/spotlight-render.js";
 
@@ -125,6 +126,31 @@ await test("runs draft then fact check, keeps the checked copy and the removed l
   assert.equal(out.content.cta.body, "Call or send the form.");
   assert.deepEqual(out.removed, ["'Spots on the route are limited' — not in the survey"]);
   assert.deepEqual(out.issues, []);
+});
+
+console.log("unsupported speed claims");
+const noTimeIntake = { ...intake, turnaround: "After each storm; timing is set with you when you sign up", outcome: "A cleared driveway after a storm." };
+const conwayDraft = normalizeDraft({
+  headline_options: [
+    { angle: "outcome", headline: "Snow Removal in Agawam", subhead: "Driveway and walkway cleared after a storm." },
+    { angle: "speed", headline: "Quick Snow Removal", subhead: "Have your driveway cleared promptly after a storm." },
+  ],
+  blocks: { ...aiDraft.blocks, cta: { heading: "Book now", body: "We clear it fast. Call or send the form." } },
+}, noTimeIntake);
+await test("speed promises are removed when the survey gives no time", () => {
+  const { draft, notes } = stripUnsupportedSpeed(conwayDraft, noTimeIntake);
+  assert.deepEqual(draft.headline_options.map(h => h.headline), ["Snow Removal in Agawam"]);
+  assert.equal(draft.blocks.cta.body, "Call or send the form.");
+  assert.equal(notes.length, 2);
+});
+await test("speed claims stay when the survey states a time", () => {
+  const { draft, notes } = stripUnsupportedSpeed(conwayDraft, { ...noTimeIntake, turnaround: "Within 6 hours of the snow stopping" });
+  assert.equal(draft.headline_options.length, 2);
+  assert.deepEqual(notes, []);
+});
+await test("prompts keep company facts and require the service name in headlines", () => {
+  assert.match(buildFactCheckPrompt(intake, profile, conwayDraft), /business name, town, areas served, owner name\) are supported/);
+  assert.match(buildDraftPrompt(intake, profile), /Every headline names the service/);
 });
 
 console.log("render");
