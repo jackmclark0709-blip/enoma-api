@@ -53,14 +53,25 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--sky); outli
 .existing { font-size: .9rem; color: var(--muted); }
 .existing a { margin-right: 10px; }
 .hidden { display: none !important; }
+.modes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 16px; }
+.mode { font: inherit; text-align: left; background: #fff; border: 1.5px solid var(--line); border-radius: 12px; padding: 12px 14px; cursor: pointer; font-weight: 700; color: var(--navy); }
+.mode small { display: block; font-weight: 400; color: var(--muted); font-size: .8rem; margin-top: 2px; }
+.mode.on { border-color: var(--sky); box-shadow: 0 0 0 2px rgba(58,143,216,.2); }
+body.quick [data-detailed] { display: none !important; }
+body.quick .lbl-detailed, body:not(.quick) .lbl-quick { display: none; }
   </style>
 </head>
-<body>
+<body class="quick">
 <div class="top"><div class="in"><strong>Enoma · Service Spotlight</strong><a href="/dashboard">← Dashboard</a></div></div>
 
 <main class="page">
   <h1>Create a Service Spotlight page</h1>
   <p class="intro">One page for one service, with its own link and its own call to action. Answer in plain words, the way you'd explain it on the phone. We write the page only from your answers, then you review the draft before anything goes live. About 10–15 minutes.</p>
+
+  <div class="modes" role="tablist" aria-label="Form length">
+    <button type="button" class="mode on" data-mode="quick" role="tab">Quick: 5 questions<small>Best for home and local services</small></button>
+    <button type="button" class="mode" data-mode="detailed" role="tab">Detailed<small>For B2B or complex services</small></button>
+  </div>
 
   <div class="done hidden" id="doneBox"></div>
 
@@ -79,14 +90,14 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--sky); outli
       <div class="field"><label for="service_name">Service name <span class="req">*</span></label>
         <p class="eg">e.g. "Snow removal" or "Covalent inhibitor kinetics profiling"</p>
         <input type="text" id="service_name" name="service_name" maxlength="80" /></div>
-      <div class="field"><label for="one_liner">Describe it in one or two sentences, as you would on the phone <span class="req">*</span></label>
+      <div class="field"><label for="one_liner"><span class="lbl-detailed">Describe it in one or two sentences, as you would on the phone</span><span class="lbl-quick">In a sentence or two, what is it?</span> <span class="req">*</span></label>
         <textarea id="one_liner" name="one_liner" maxlength="400"></textarea></div>
-      <div class="field"><label for="outcome">What does the customer walk away with? <span class="req">*</span></label>
+      <div class="field" data-detailed><label for="outcome">What does the customer walk away with? <span class="req">*</span></label>
         <p class="eg">e.g. "A clear driveway and walkway by 7am after every storm over 2 inches"</p>
         <textarea id="outcome" name="outcome" maxlength="400"></textarea></div>
     </div>
 
-    <div class="card">
+    <div class="card" data-detailed>
       <h2><span class="n">2</span>The buyer</h2>
       <div class="field"><label for="buyers">Who usually buys this? <span class="req">*</span></label>
         <p class="eg">Types of customer, job titles or company types</p>
@@ -94,44 +105,44 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--sky); outli
       <div class="field"><label for="trigger">What's happening when they go looking for this? <span class="req">*</span></label>
         <p class="eg">e.g. "First storm of the season and they can't shovel it themselves"</p>
         <textarea id="trigger" name="trigger" maxlength="400"></textarea></div>
-      <div class="field"><label for="decision_makers">Who else has a say in the purchase? <span class="opt">optional</span></label>
+      <div class="field" data-detailed><label for="decision_makers">Who else has a say in the purchase? <span class="opt">optional</span></label>
         <input type="text" id="decision_makers" name="decision_makers" maxlength="200" /></div>
     </div>
 
-    <div class="card">
+    <div class="card" data-detailed>
       <h2><span class="n">3</span>The problem</h2>
       <div class="field"><label for="old_way">What do they do today instead of hiring you? <span class="req">*</span></label>
         <textarea id="old_way" name="old_way" maxlength="400"></textarea></div>
       <div class="field"><label for="cost_of_old_way">What does that cost them? Time, money, risk, hassle <span class="req">*</span></label>
         <textarea id="cost_of_old_way" name="cost_of_old_way" maxlength="400"></textarea></div>
-      <div class="field"><label for="switch_reason">What's the most common reason they finally switch? <span class="opt">optional</span></label>
+      <div class="field" data-detailed><label for="switch_reason">What's the most common reason they finally switch? <span class="opt">optional</span></label>
         <textarea id="switch_reason" name="switch_reason" maxlength="400"></textarea></div>
     </div>
 
     <div class="card">
       <h2><span class="n">4</span>How it works</h2>
-      <div class="field"><label for="steps">Steps from first contact to done, one per line <span class="req">*</span></label>
+      <div class="field" data-detailed><label for="steps">Steps from first contact to done, one per line <span class="req">*</span></label>
         <p class="eg">3–5 steps. e.g. "Call or send the form" / "We walk the property and give a price" / …</p>
         <textarea id="steps" name="steps" maxlength="900" style="min-height:120px"></textarea></div>
-      <div class="field"><label for="needs_to_start">What do you need from the customer to start? <span class="opt">optional</span></label>
+      <div class="field" data-detailed><label for="needs_to_start">What do you need from the customer to start? <span class="opt">optional</span></label>
         <input type="text" id="needs_to_start" name="needs_to_start" maxlength="200" /></div>
-      <div class="field"><label for="turnaround">Typical turnaround or schedule <span class="req">*</span></label>
+      <div class="field"><label for="turnaround"><span class="lbl-detailed">Typical turnaround or schedule</span><span class="lbl-quick">Where and when? Towns, season, how soon you can do it</span> <span class="req">*</span></label>
         <p class="eg">Be specific: "Within 6 hours of snow stopping", "3 weeks from samples"</p>
         <input type="text" id="turnaround" name="turnaround" maxlength="200" /></div>
     </div>
 
     <div class="card">
       <h2><span class="n">5</span>What they get, and proof</h2>
-      <div class="field"><label for="deliverables">What do they get? One per line <span class="req">*</span></label>
+      <div class="field"><label for="deliverables"><span class="lbl-detailed">What do they get? One per line</span><span class="lbl-quick">What's included? One per line</span> <span class="req">*</span></label>
         <textarea id="deliverables" name="deliverables" maxlength="900"></textarea></div>
       <div class="field" id="photoField"><label>Photo for the top of the page <span class="opt">optional, job photos only</span></label>
         <div class="photos" id="photos"></div></div>
-      <div class="field"><label for="proof_story">A short customer story: who, what problem, what changed <span class="opt">optional, must be shareable</span></label>
+      <div class="field" data-detailed><label for="proof_story">A short customer story: who, what problem, what changed <span class="opt">optional, must be shareable</span></label>
         <textarea id="proof_story" name="proof_story" maxlength="600"></textarea></div>
       <div class="field"><label for="credentials">Credentials worth naming <span class="opt">optional</span></label>
         <p class="eg">Licensed and insured, years running, certifications, publications, customers you may name</p>
         <textarea id="credentials" name="credentials" maxlength="400"></textarea></div>
-      <div class="row2">
+      <div class="row2" data-detailed>
         <div class="field"><label for="quote">A customer quote you have permission to use <span class="opt">optional</span></label>
           <textarea id="quote" name="quote" maxlength="400"></textarea></div>
         <div class="field"><label for="quote_author">Who said it <span class="opt">name, title or town</span></label>
@@ -141,10 +152,10 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--sky); outli
 
     <div class="card">
       <h2><span class="n">6</span>Details and objections</h2>
-      <div class="field"><label for="specs">Details a buyer will check, one per line as "Label: value" <span class="opt">optional</span></label>
+      <div class="field" data-detailed><label for="specs">Details a buyer will check, one per line as "Label: value" <span class="opt">optional</span></label>
         <p class="eg">e.g. "Trigger depth: 2 inches" / "Areas: driveways, walkways, steps"</p>
         <textarea id="specs" name="specs" maxlength="900"></textarea></div>
-      <div class="field"><label>The questions buyers always ask before saying yes, with your answers <span class="req">*</span></label>
+      <div class="field"><label>The questions buyers always ask before saying yes, with your answers <span class="req" data-detailed>*</span><span class="lbl-quick opt">optional</span></label>
         <div id="objections"></div></div>
       <div class="row2">
         <div class="field"><label for="pricing_mode">Pricing on the page <span class="req">*</span></label>
@@ -175,7 +186,7 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--sky); outli
       </div>
       <div class="field"><label for="do_not_say">Words or claims we must never use <span class="opt">optional</span></label>
         <input type="text" id="do_not_say" name="do_not_say" maxlength="300" placeholder="Separate with commas" /></div>
-      <div class="field"><label for="style_notes">Anything about tone or style <span class="opt">optional</span></label>
+      <div class="field" data-detailed><label for="style_notes">Anything about tone or style <span class="opt">optional</span></label>
         <input type="text" id="style_notes" name="style_notes" maxlength="300" /></div>
     </div>
   </form>
@@ -213,11 +224,20 @@ function collect() {
   const intake = {};
   TEXT_FIELDS.forEach(k => { intake[k] = ($(k)?.value || "").trim(); });
   intake.objections = [...document.querySelectorAll(".qa")].map(b => ({ q: b.querySelector(".obj-q").value.trim(), a: b.querySelector(".obj-a").value.trim() })).filter(o => o.q || o.a);
+  intake.mode = document.body.classList.contains("quick") ? "quick" : "detailed";
   const photo = document.querySelector('input[name="hero_photo"]:checked');
   intake.hero_photo = photo ? photo.value : "";
   return intake;
 }
+function setMode(mode) {
+  document.body.classList.toggle("quick", mode !== "detailed");
+  document.querySelectorAll(".mode").forEach(b => b.classList.toggle("on", b.dataset.mode === (mode === "detailed" ? "detailed" : "quick")));
+}
+document.querySelectorAll(".mode").forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
+setMode(params.get("mode") === "detailed" ? "detailed" : "quick");
+
 function fill(intake = {}) {
+  if (intake.mode) setMode(intake.mode);
   TEXT_FIELDS.forEach(k => { if ($(k) && intake[k] != null) $(k).value = intake[k]; });
   const objs = Array.isArray(intake.objections) ? intake.objections : [];
   $("objections").innerHTML = "";

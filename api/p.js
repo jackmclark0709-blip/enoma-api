@@ -12,6 +12,7 @@ import { isGrandfathered } from "./_lib/trial-policy.js";
 import { openSchedule, showEmergencyBadge, townsLine, ctaNote } from "./_lib/page-claims.js";
 import { heroPhoto as pickHeroPhoto, visibleAttachments } from "./_lib/photo-kinds.js";
 import { renderSpotlight, fillTemplate, linkServicesToSpotlights } from "./_lib/spotlight-render.js";
+import { REVIEW_SLUG, googleReviewUrl } from "./_lib/reviews.js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -307,6 +308,24 @@ function generateOgSvg(profile) {
   return `<?xml version="1.0" encoding="UTF-8"?><svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${c.bg}"/><stop offset="100%" stop-color="${c.accent}" stop-opacity="0.3"/></linearGradient><linearGradient id="ab" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${c.light}"/><stop offset="100%" stop-color="${c.accent}"/></linearGradient></defs><rect width="1200" height="630" fill="url(#bg)"/><rect x="0" y="0" width="8" height="630" fill="url(#ab)"/><rect x="60" y="60" width="${c.label.length*9+40}" height="32" rx="16" fill="${c.accent}" opacity="0.7"/><text x="${60+(c.label.length*9+40)/2}" y="81" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="white" text-anchor="middle">${xe(c.label.toUpperCase())}</text><text x="60" y="175" font-family="system-ui,sans-serif" font-size="${name.length>24?52:62}" font-weight="800" fill="white" letter-spacing="-1">${xe(name)}</text>${city?`<text x="60" y="225" font-family="system-ui,sans-serif" font-size="24" font-weight="500" fill="${c.light}">📍 ${xe(city)}</text>`:""}<rect x="60" y="252" width="120" height="4" rx="2" fill="${c.light}" opacity="0.7"/>${tagline?`<text x="60" y="306" font-family="system-ui,sans-serif" font-size="22" fill="rgba(255,255,255,0.7)">${xe(tagline.slice(0,75))}</text>`:""}${phone?`<text x="60" y="400" font-family="system-ui,sans-serif" font-size="26" font-weight="700" fill="${c.light}">📞 ${xe(phone)}</text>`:""}${pills}<rect x="1000" y="578" width="180" height="40" rx="8" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/><text x="1090" y="604" font-family="system-ui,sans-serif" font-size="15" font-weight="700" fill="rgba(255,255,255,0.5)" text-anchor="middle">Powered by Enoma</text><circle cx="1200" cy="0" r="400" fill="${c.light}" opacity="0.05"/></svg>`;
 }
 
+// enoma.io/<business>/review — the link owners text to customers.
+async function serveReviewPage(req, res, bizSlug) {
+  const { data: profile } = await supabase.from("small_business_profiles").select("*")
+    .eq("username", bizSlug).eq("is_public", true).maybeSingle();
+  if (!profile?.business_id) return res.status(404).send("Not found");
+  const esc = v => escapeHtml(v || "");
+  const html = fillTemplate(fs.readFileSync(path.join(process.cwd(), "public", "review.html"), "utf8"), {
+    "{{BUSINESS_NAME}}": esc(profile.business_name || bizSlug),
+    "{{COMPANY_URL}}": esc(`/${encodeURIComponent(profile.username)}`),
+    "{{LOGO_HTML}}": profile.logo_url ? `<img src="${esc(profile.logo_url)}" alt="" class="nav-logo" />` : "",
+    "{{BRAND_STYLE}}": getBrandColorStyle(profile, null),
+    "{{REVIEW_JSON}}": safeJsonForInlineScript({ username: profile.username, google_review_url: googleReviewUrl(profile.google_place_id) }),
+  });
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=0, s-maxage=300");
+  return res.status(200).send(html);
+}
+
 async function serveSpotlight(req, res, bizSlug, serviceSlug) {
   const { data: profile } = await supabase.from("small_business_profiles").select("*")
     .eq("username", bizSlug).eq("is_public", true).maybeSingle();
@@ -374,6 +393,7 @@ export default async function handler(req, res) {
     if (isEnomaHost && slug.includes("/")) {
       const [bizSlug, serviceSlug, ...rest] = slug.split("/").filter(Boolean);
       if (!bizSlug || !serviceSlug || rest.length) return res.status(404).send("Not found");
+      if (serviceSlug === REVIEW_SLUG) return await serveReviewPage(req, res, bizSlug);
       return await serveSpotlight(req, res, bizSlug, serviceSlug);
     }
 

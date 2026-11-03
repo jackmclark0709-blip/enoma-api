@@ -5,6 +5,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
+import { cleanReview, escHtml } from './_lib/reviews.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -326,6 +327,38 @@ export default async function handler(req, res) {
       console.error('started_form confirmation email error:', err.message);
     }
 
+    return res.status(200).json({ ok: true });
+  }
+
+  /* ─────────────────────────────────────────────
+     REVIEW (enoma.io/<business>/review) — waits for owner approval
+  ───────────────────────────────────────────── */
+  if (source === 'review') {
+    const checked = cleanReview(req.body);
+    if (!checked.ok) return res.status(400).json({ error: checked.error });
+    const { data: biz } = await supabase.from('small_business_profiles')
+      .select('business_id, business_name, email, username').eq('username', String(slug || '')).maybeSingle();
+    if (!biz?.business_id) return res.status(404).json({ error: 'Business not found' });
+    const { count: recentReviews } = await supabase.from('review_submissions').select('id', { count: 'exact', head: true })
+      .eq('business_id', biz.business_id).gte('created_at', new Date(Date.now() - 10 * 60 * 1000).toISOString());
+    if ((recentReviews || 0) >= 10) return res.status(429).json({ error: 'Too many reviews in a short time. Please try again later.' });
+    const { error: revErr } = await supabase.from('review_submissions').insert({ business_id: biz.business_id, ...checked.value });
+    if (revErr) { console.error('review insert error:', revErr.message); return res.status(500).json({ error: 'Could not save your review.' }); }
+    if (resend && biz.email) {
+      try {
+        await resend.emails.send({
+          from: 'Enoma <noreply@enoma.io>',
+          to: biz.email,
+          subject: `New ${checked.value.rating}-star review for ${biz.business_name}`,
+          html: `<div style="font-family:sans-serif;max-width:520px;color:#1a1a1a">
+            <p style="font-size:16px;font-weight:700">${escHtml(checked.value.name)} left you ${'★'.repeat(checked.value.rating)}</p>
+            <blockquote style="margin:0 0 16px;padding:12px 16px;background:#f7faff;border-left:3px solid #3882dc">${escHtml(checked.value.quote)}</blockquote>
+            <p>It goes on your page once you approve it.</p>
+            <a href="https://enoma.io/dashboard" style="display:inline-block;background:#0a1628;color:#fff;padding:10px 20px;border-radius:999px;font-weight:700;text-decoration:none">Approve in your dashboard →</a>
+          </div>`,
+        });
+      } catch (e) { console.error('review notify error:', e.message); }
+    }
     return res.status(200).json({ ok: true });
   }
 

@@ -18,6 +18,7 @@ import {
 import { lintCopy, scrubCopy, fixInstructions } from "./_lib/copy-lint.js";
 import { mergeKinds } from "./_lib/photo-kinds.js";
 import { handleSpotlight } from "./_lib/spotlight.js";
+import { handleReviews } from "./_lib/reviews.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -309,6 +310,10 @@ export default async function handler(req, res) {
     /* ---------- SERVICE SPOTLIGHT PAGES (api/_lib/spotlight.js) ---------- */
     if (req.query?.kind === "spotlight") {
       return await handleSpotlight(req, res, { supabaseAdmin, fetchImpl: fetch });
+    }
+    /* ---------- REVIEW REQUESTS: owner list / approve / hide (api/_lib/reviews.js) ---------- */
+    if (req.query?.kind === "review") {
+      return await handleReviews(req, res, { supabaseAdmin });
     }
 
     /* ---------- ADMIN SHORTCUT ---------- */
