@@ -15,6 +15,28 @@ function ctaHref(profile, content) {
   return "#request";
 }
 
+const slug = t => String(t || "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+// Links each service on the company page to its published spotlight.
+// A spotlight matches a service when their slugs are equal or one starts
+// with the other ("snow-removal" ↔ "snow-removal-and-salting").
+// Returns { services (with spotlight_url where matched), unmatched }.
+export function linkServicesToSpotlights(services, spotlights, username) {
+  const list = Array.isArray(services) ? services : [];
+  const spots = (Array.isArray(spotlights) ? spotlights : []).filter(sp => sp && sp.service_slug);
+  const used = new Set();
+  const linked = list.map(sv => {
+    const name = slug(sv?.service_name || sv?.name);
+    if (!name) return sv;
+    const hit = spots.find(sp => !used.has(sp.service_slug) && [sp.service_slug, slug(sp.service_name)]
+      .some(x => x && (x === name || x.startsWith(`${name}-`) || name.startsWith(`${x}-`))));
+    if (!hit) return sv;
+    used.add(hit.service_slug);
+    return { ...sv, spotlight_url: `/${encodeURIComponent(username)}/${encodeURIComponent(hit.service_slug)}` };
+  });
+  return { services: linked, unmatched: spots.filter(sp => !used.has(sp.service_slug)) };
+}
+
 export function priceLine(pricing = {}) {
   const mode = String(pricing.mode || "").toLowerCase();
   if (!pricing.price || /quote/.test(mode)) return "";
@@ -94,8 +116,9 @@ export function renderSpotlight(spot, profile, { baseUrl, brandStyle, heroPhoto,
     "{{SCHEMA}}": `<script type="application/ld+json">${json(serviceSchema)}</script>${faqSchema ? `\n<script type="application/ld+json">${json(faqSchema)}</script>` : ""}`,
     "{{BUSINESS_NAME}}": esc(profile.business_name),
     "{{COMPANY_URL}}": esc(companyUrl),
-    "{{LOGO_HTML}}": profile.logo_url ? `<img src="${esc(profile.logo_url)}" alt="${esc(profile.business_name)} logo" class="sp-logo" />` : "",
-    "{{PHONE_HTML}}": profile.phone ? `<a class="sp-nav__call" href="tel:${esc(profile.phone.replace(/[^\d+]/g, ""))}">Call ${esc(profile.phone)}</a>` : "",
+    "{{LOGO_HTML}}": profile.logo_url ? `<img src="${esc(profile.logo_url)}" alt="${esc(profile.business_name)} logo" class="nav-logo" />` : "",
+    "{{NAV_CALL_HTML}}": profile.phone ? `<a class="contact-pill call" href="tel:${esc(profile.phone.replace(/[^\d+]/g, ""))}">Call</a>` : "",
+    "{{CTA_PHONE_HTML}}": profile.phone ? `<p><a class="sp-cta-phone" href="tel:${esc(profile.phone.replace(/[^\d+]/g, ""))}">Or call ${esc(profile.phone)}</a></p>` : "",
     "{{SERVICE_NAME}}": esc(c.service_name),
     "{{TOWN}}": esc(town),
     "{{HEADLINE}}": esc(hero.headline || c.service_name),
