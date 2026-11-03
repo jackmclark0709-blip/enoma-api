@@ -36,9 +36,14 @@ test("day 7 steps up to 15", () => {
   assert.equal(rampCapForDate(daysAfter(13.9), start), 15);
 });
 
-test("day 14 reaches the steady-state 20", () => {
+test("day 14 steps up to 20", () => {
   assert.equal(rampCapForDate(daysAfter(14), start), 20);
-  assert.equal(rampCapForDate(daysAfter(100), start), 20);
+  assert.equal(rampCapForDate(daysAfter(62.9), start), 20);
+});
+
+test("day 63 (Nov 3 2026) reaches the steady-state 30", () => {
+  assert.equal(rampCapForDate(daysAfter(63), start), 30);
+  assert.equal(rampCapForDate(daysAfter(200), start), 30);
 });
 
 test("before the start date, still capped at the lowest step (never negative/unbounded)", () => {
@@ -54,4 +59,15 @@ import { capWithBounceBrake } from "../api/_lib/outreach-ramp.js";
   assert2.equal(capWithBounceBrake(20, { sends7d: 100, bounces7d: 4 }), 10);
   assert2.equal(capWithBounceBrake(20, { sends7d: 10, bounces7d: 5 }), 20, "too few sends to judge");
   console.log("bounce brake: ok");
+}
+
+import { followUpAllowance } from "../api/_lib/outreach-ramp.js";
+{
+  const assert3 = (await import("node:assert/strict")).default;
+  assert3.equal(followUpAllowance({ dailyCap: 30 }), 10, "follow-ups capped at 10 even with 30 free");
+  assert3.equal(followUpAllowance({ dailyCap: 30, followupsToday: 7 }), 3, "only the rest of today's 10");
+  assert3.equal(followUpAllowance({ dailyCap: 30, sentToday: 25 }), 5, "never past the overall cap");
+  assert3.equal(followUpAllowance({ dailyCap: 10, sentToday: 4, followupsToday: 6 }), 0, "brake cap used up");
+  assert3.equal(followUpAllowance({ dailyCap: 30, followupsToday: 12 }), 0, "never negative");
+  console.log("follow-up allowance: ok");
 }
