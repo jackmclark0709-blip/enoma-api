@@ -206,7 +206,9 @@ await test("company page sections hide themselves server-side when empty", () =>
   assert.equal(full["{{SSR_TESTIMONIALS_COUNT}}"], "1");
 });
 await test("profile.html no longer redraws server-rendered sections", () => {
-  const html = fs.readFileSync(new URL("../public/profile.html", import.meta.url), "utf8");
+  // The page's behaviour script lives in public/scripts/profile.js.
+  const html = fs.readFileSync(new URL("../public/profile.html", import.meta.url), "utf8")
+    + fs.readFileSync(new URL("../public/scripts/profile.js", import.meta.url), "utf8");
   for (const id of ["services-grid", "about-lead", "townList", "why"]) {
     assert.ok(!new RegExp(`getEl\\('${id}'\\)[^\\n]*\\.innerHTML\\s*=|getEl\\('${id}'\\)`).test(html), `script still touches #${id}`);
   }
