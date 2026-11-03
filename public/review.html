@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Review {{BUSINESS_NAME}}</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=DM+Sans:opsz,wght@9..40,600;9..40,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <!-- Shared by every Enoma business page -->
+  <link rel="stylesheet" href="/styles/business-pages.css" />
+  {{BRAND_STYLE}}
+  <style>
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: Inter, system-ui, sans-serif; color: #1c2a22; line-height: 1.55; }
+.hidden { display: none !important; }
+.rv { max-width: 520px; margin: 0 auto; padding: 32px 20px 48px; }
+.rv h1 { font-family: 'Fraunces', Georgia, serif; font-size: clamp(1.6rem, 6vw, 2.1rem); line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 .4rem; color: #0a1628; }
+.rv p.lead { color: #46554d; margin: 0 0 1.4rem; }
+.card { background: #fff; border: 1px solid #e3eae3; border-radius: 16px; padding: 20px; }
+.stars { display: flex; gap: 6px; margin: 0 0 1rem; }
+.stars button { font-size: 2.2rem; line-height: 1; background: none; border: 0; cursor: pointer; color: #d6dcd6; padding: 0 2px; }
+.stars button.on { color: #f2b01e; }
+.stars button:focus-visible { outline: 2px solid var(--brand-primary, #2d6a2d); border-radius: 6px; }
+label { display: block; font-weight: 600; font-size: .92rem; margin: .8rem 0 .3rem; }
+input, textarea { width: 100%; font: inherit; padding: .7rem .8rem; border: 1.5px solid #d6e0d6; border-radius: 10px; }
+textarea { min-height: 110px; resize: vertical; }
+.primary-cta { width: 100%; justify-content: center; margin-top: 1rem; cursor: pointer; }
+.msg { min-height: 1.2em; margin: .6rem 0 0; font-size: .9rem; }
+.thanks h2 { font-family: 'Fraunces', Georgia, serif; margin: 0 0 .4rem; }
+.google { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; width: 100%; margin-top: 1rem; padding: .8rem 1rem; border-radius: 999px; border: 1.5px solid #d6e0d6; background: #fff; font-weight: 700; color: #0a1628; text-decoration: none; }
+  </style>
+</head>
+<body>
+<nav class="contact-strip">
+  <div class="contact-strip-inner">
+    <a class="contact-brand" href="{{COMPANY_URL}}" style="text-decoration:none">{{LOGO_HTML}}<span class="brand-text">{{BUSINESS_NAME}}</span></a>
+  </div>
+</nav>
+<main class="rv">
+  <div id="formStep">
+    <h1>How did we do?</h1>
+    <p class="lead">Thanks for choosing {{BUSINESS_NAME}}. A few words from you helps neighbors decide who to call.</p>
+    <form class="card" id="reviewForm" novalidate>
+      <div class="stars" id="stars" role="radiogroup" aria-label="Star rating">
+        <button type="button" data-v="1" aria-label="1 star">★</button>
+        <button type="button" data-v="2" aria-label="2 stars">★</button>
+        <button type="button" data-v="3" aria-label="3 stars">★</button>
+        <button type="button" data-v="4" aria-label="4 stars">★</button>
+        <button type="button" data-v="5" aria-label="5 stars">★</button>
+      </div>
+      <label for="quote">What was the job, and how did it go?</label>
+      <textarea id="quote" maxlength="800" placeholder="e.g. They cleaned up all the leaves in one afternoon and hauled everything away."></textarea>
+      <label for="name">Your name</label>
+      <input id="name" maxlength="80" autocomplete="name" placeholder="e.g. Sarah M., Agawam" />
+      <input id="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" />
+      <button class="primary-cta" type="submit" id="sendBtn">Send my review</button>
+      <p class="msg" id="msg" role="status"></p>
+    </form>
+  </div>
+  <div id="thanksStep" class="card thanks hidden">
+    <h2>Thank you!</h2>
+    <p>{{BUSINESS_NAME}} will add your review to their page.</p>
+    <div id="googleBox" class="hidden">
+      <p>Would you also post it on Google? It's the single biggest help to a local business.</p>
+      <a class="google" id="googleLink" href="#" target="_blank" rel="noopener">Post it on Google →</a>
+    </div>
+  </div>
+</main>
+<script>window.__REVIEW__ = {{REVIEW_JSON}};</script>
+<script>
+(function () {
+  const R = window.__REVIEW__ || {};
+  let rating = 0;
+  const stars = [...document.querySelectorAll('#stars button')];
+  const paint = v => stars.forEach(b => b.classList.toggle('on', Number(b.dataset.v) <= v));
+  stars.forEach(b => {
+    b.addEventListener('click', () => { rating = Number(b.dataset.v); paint(rating); });
+    b.addEventListener('mouseenter', () => paint(Number(b.dataset.v)));
+    b.addEventListener('mouseleave', () => paint(rating));
+  });
+  const msg = document.getElementById('msg');
+  document.getElementById('reviewForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const quote = document.getElementById('quote').value.trim();
+    const name = document.getElementById('name').value.trim();
+    if (!rating) { msg.textContent = 'Please tap a star rating.'; return; }
+    if (quote.length < 5) { msg.textContent = 'Please write a few words about the job.'; return; }
+    if (!name) { msg.textContent = 'Please add your name.'; return; }
+    const btn = document.getElementById('sendBtn'); btn.disabled = true; msg.textContent = 'Sending…';
+    try {
+      const res = await fetch('/api/send-contact', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source: 'review', slug: R.username, name, quote, rating, website: document.getElementById('website').value }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) { msg.textContent = j.error || 'Something went wrong. Please try again.'; btn.disabled = false; return; }
+      document.getElementById('formStep').classList.add('hidden');
+      document.getElementById('thanksStep').classList.remove('hidden');
+      // Ask happy customers to post on Google too.
+      if (R.google_review_url && rating >= 4) {
+        document.getElementById('googleLink').href = R.google_review_url;
+        document.getElementById('googleBox').classList.remove('hidden');
+      }
+    } catch { msg.textContent = 'Something went wrong. Please try again.'; btn.disabled = false; }
+  });
+})();
+</script>
+</body>
+</html>

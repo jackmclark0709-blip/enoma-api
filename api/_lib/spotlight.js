@@ -16,8 +16,11 @@ import { bannedWordsIn, lintCopy } from "./copy-lint.js";
 
 export const SPOTLIGHT_ADMIN_ID = "b2f87fe4-4d1e-4038-8754-5ab64969e975";
 
-export const slugifyService = text =>
-  String(text || "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 60);
+// "review" is reserved for the review-request page (api/_lib/reviews.js).
+export const slugifyService = text => {
+  const s = String(text || "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 60);
+  return s === "review" ? "review-service" : s;
+};
 
 const str = v => (typeof v === "string" ? v.trim() : v == null ? "" : String(v).trim());
 const lines = v => (Array.isArray(v) ? v : str(v).split(/\n+/)).map(str).filter(Boolean);
@@ -47,8 +50,31 @@ const VAGUE = [
   [/\b(everyone|anyone|all customers)\b/i, n => `${n}: who buys this most often? Name a type of customer.`],
 ];
 
+// The quick form (home and local services) asks five things; the rest of the
+// chain works from those plus the company page.
+export const QUICK_REQUIRED = {
+  service_name: REQUIRED.service_name,
+  one_liner: "What it is, in a sentence or two",
+  deliverables: "What's included",
+  turnaround: "Where and when",
+  pricing_mode: REQUIRED.pricing_mode,
+  cta_type: REQUIRED.cta_type,
+};
+const QUICK_STEPS = "Call or send the form\nWe confirm the details and the price\nWe do the work";
+
+// Quick-form answers become a full intake: neutral steps and the one-liner
+// as the outcome. Nothing about the business is invented.
+export function expandQuickIntake(intake = {}) {
+  if (intake.mode !== "quick") return intake;
+  const out = { ...intake };
+  if (!lines(out.steps).length) out.steps = QUICK_STEPS;
+  if (!str(out.outcome)) out.outcome = str(out.one_liner);
+  return out;
+}
+
 export function gapCheck(intake = {}) {
-  const missing = Object.entries(REQUIRED)
+  const required = intake.mode === "quick" ? QUICK_REQUIRED : REQUIRED;
+  const missing = Object.entries(required)
     .filter(([k]) => {
       const v = intake[k];
       if (k === "objections") return !(Array.isArray(v) && v.some(o => str(o?.q) && str(o?.a)));
@@ -394,7 +420,7 @@ export async function handleSpotlight(req, res, { supabaseAdmin, fetchImpl }) {
   }
 
   if (action === "generate") {
-    const intake = body.intake || {};
+    const intake = expandQuickIntake(body.intake || {});
     const gap = gapCheck(intake);
     if (!gap.ready) return res.status(400).json({ error: "Some required answers are missing.", ...gap });
     if (!body.skip_followups && gap.followUps.length) return res.status(200).json({ needs_followup: true, ...gap });
