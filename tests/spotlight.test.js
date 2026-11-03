@@ -6,7 +6,8 @@ import {
   gapCheck, slugifyService, normalizeDraft, scrubSpotlight, spotlightIssues, assembleContent, generateSpotlight, buildDraftPrompt,
   stripUnsupportedSpeed, buildFactCheckPrompt,
 } from "../api/_lib/spotlight.js";
-import { renderSpotlight, fillTemplate, priceLine } from "../api/_lib/spotlight-render.js";
+import { renderSpotlight, fillTemplate, priceLine, linkServicesToSpotlights } from "../api/_lib/spotlight-render.js";
+import { renderSections } from "../api/_lib/page-ssr.js";
 
 let passed = 0;
 async function test(name, fn) {
@@ -172,6 +173,23 @@ await test("published page is indexable", () => {
   const map = renderSpotlight({ service_slug: "snow-removal", status: "published", content, intake }, profile, { baseUrl: "https://enoma.io" });
   assert.equal(map["{{ROBOTS}}"], "index,follow");
   assert.equal(map["{{CANONICAL}}"], "https://enoma.io/conways-landscaping/snow-removal");
+});
+
+console.log("company page service links");
+await test("service cards link to matching published spotlights", () => {
+  const services = [{ service_name: "Mowing" }, { service_name: "Snow Removal", service_description: "Driveways." }];
+  const { services: out, unmatched } = linkServicesToSpotlights(services,
+    [{ service_slug: "snow-removal-and-salting", service_name: "Snow Removal & Salting" }, { service_slug: "gutter-cleaning", service_name: "Gutter Cleaning" }],
+    "conways-landscaping");
+  assert.equal(out[0].spotlight_url, undefined);
+  assert.equal(out[1].spotlight_url, "/conways-landscaping/snow-removal-and-salting");
+  assert.deepEqual(unmatched.map(u => u.service_slug), ["gutter-cleaning"]);
+});
+await test("server render makes a linked service card an <a> with Details →", () => {
+  const html = renderSections({ services: [{ service_name: "Mowing" }, { service_name: "Snow Removal", spotlight_url: "/conways-landscaping/snow-removal" }] })["{{SSR_SERVICES}}"];
+  assert.match(html, /<div class="service-card service-card--primary">\s*<h3>Mowing/);
+  assert.match(html, /<a class="service-card service-card--linked" href="\/conways-landscaping\/snow-removal">/);
+  assert.match(html, /Details →/);
 });
 
 console.log(`\n${passed} passed`);

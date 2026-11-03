@@ -1,0 +1,90 @@
+/* public/styles/business-pages.css
+   Shared look for every Enoma business page: the company page
+   (public/profile.html) and Service Spotlight pages (public/spotlight.html).
+   Change the shared nav, buttons, type and footer here so the two page
+   types can't drift apart. Brand variables (--brand-primary, --hero-bg, …)
+   are injected per business by api/p.js.
+
+   Type: Fraunces (page and section headings) · DM Sans (names, subheads,
+   buttons) · Inter (body, from enoma.css or the page's own font link). */
+
+/* Page background: a faint tint of the business's brand color. */
+html body {
+  background: color-mix(in srgb, var(--brand-primary, #1a3a2a) 5%, #f8faf6);
+}
+
+/* Headings */
+.bp-h2, .section h2, .sp-section h2 {
+  font-family: 'Fraunces', Georgia, serif; font-optical-sizing: auto;
+  font-weight: 600; letter-spacing: -0.02em; color: #0a1628;
+}
+
+/* Sticky nav: logo + business name + Call / Request a Quote pills */
+.contact-strip {
+  position: sticky; top: 0; z-index: 1000;
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: saturate(180%) blur(10px);
+  border-bottom: 1px solid #e5edf5;
+  height: 62px; display: flex; align-items: center;
+  box-shadow: 0 2px 12px rgba(10,22,40,0.07);
+}
+.contact-strip-inner {
+  width: 100%; max-width: 1040px; margin-inline: auto;
+  display: flex; align-items: center;
+  justify-content: space-between; gap: 0.75rem;
+  padding: 0 1.5rem;
+}
+.contact-brand { min-width: 0; flex: 1 1 auto; display: flex; align-items: center; gap: 0.6rem; }
+.nav-logo { height: 30px; width: auto; max-width: 140px; object-fit: contain; }
+.brand-text {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700; font-size: 1rem;
+  letter-spacing: -0.02em; color: #0a1628;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  display: block;
+}
+.brand-text::after {
+  content: ''; display: block; height: 3px; width: 18px;
+  margin-top: 2px; background: var(--brand-primary, #1a3a2a);
+  border-radius: 999px;
+}
+.contact-actions { flex: 0 0 auto; display: flex; gap: 0.5rem; align-items: center; white-space: nowrap; }
+.contact-pill {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.45rem 1.1rem; height: 38px;
+  border-radius: 999px; font-weight: 600; font-size: 0.88rem;
+  text-decoration: none; border: 1px solid #d4e2f4;
+  background: #fff; color: #0a1628;
+  transition: all 0.15s ease;
+}
+.contact-pill:hover { background: var(--brand-primary, #1a3a2a); color: #fff; border-color: transparent; transform: translateY(-1px); }
+.contact-pill.call { background: var(--brand-primary, #1a3a2a); color: #fff; border-color: transparent; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+.contact-pill.call:hover { filter: brightness(1.1); }
+.contact-pill .icon { width: 15px; height: 15px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 2; }
+
+/* Primary button (brand pill) */
+.primary-cta {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  background: var(--brand-primary, #1a3a2a);
+  color: #ffffff;
+  font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 0.95rem;
+  padding: 0.75rem 1.75rem; height: 44px;
+  border-radius: 999px; border: none; text-decoration: none;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+.primary-cta:hover {
+  color: #ffffff; transform: translateY(-2px);
+  box-shadow: 0 14px 36px rgba(0,0,0,0.4);
+  filter: brightness(1.12);
+}
+
+/* Enoma footer */
+.enoma-footer { background: #0e1c2e; color: rgba(220,235,255,0.7); padding: 1.75rem 1.5rem; margin-top: 3rem; }
+.enoma-footer-inner { max-width: 1040px; margin-inline: auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.enoma-footer-left { display: flex; align-items: center; gap: 0.75rem; font-size: 0.82rem; }
+.enoma-footer-logo img { height: 22px; width: auto; opacity: 0.8; }
+.enoma-description { opacity: 0.65; }
+.enoma-footer-right a { font-size: 0.82rem; font-weight: 600; color: rgba(220,235,255,0.75); background: rgba(255,255,255,0.08); padding: 0.4rem 0.85rem; border-radius: 8px; text-decoration: none; border: 1px solid rgba(255,255,255,0.12); transition: background 0.15s; }
+.enoma-footer-right a:hover { background: rgba(255,255,255,0.14); color: #fff; }
+@media (max-width: 640px) { .contact-pill.quote { display: none; } }

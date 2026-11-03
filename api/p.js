@@ -11,7 +11,7 @@ import { renderSections, faqSchema } from "./_lib/page-ssr.js";
 import { isGrandfathered } from "./_lib/trial-policy.js";
 import { openSchedule, showEmergencyBadge, townsLine, ctaNote } from "./_lib/page-claims.js";
 import { heroPhoto as pickHeroPhoto, visibleAttachments } from "./_lib/photo-kinds.js";
-import { renderSpotlight, fillTemplate } from "./_lib/spotlight-render.js";
+import { renderSpotlight, fillTemplate, linkServicesToSpotlights } from "./_lib/spotlight-render.js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -536,8 +536,13 @@ export default async function handler(req, res) {
       ? await supabase.from("service_spotlights").select("service_slug,service_name:content->>service_name")
           .eq("business_id", profile.business_id).eq("status", "published").order("published_at", { ascending: true })
       : { data: [] };
-    const spotlightLinksHtml = (spotLinks || []).length
-      ? `<p class="spotlight-links">Learn more: ${(spotLinks || []).map(sl =>
+    // Each service card links to its spotlight (the card is the link); any
+    // spotlight with no matching service gets a "Learn more" link instead.
+    const { services: linkedServices, unmatched: unmatchedSpots } =
+      linkServicesToSpotlights(normalizedProfile?.services, spotLinks || [], slug);
+    if (normalizedProfile && Array.isArray(normalizedProfile.services)) normalizedProfile.services = linkedServices;
+    const spotlightLinksHtml = unmatchedSpots.length
+      ? `<p class="spotlight-links">Learn more: ${unmatchedSpots.map(sl =>
           `<a href="/${encodeURIComponent(slug)}/${encodeURIComponent(sl.service_slug)}">${escapeHtml(sl.service_name || sl.service_slug)} →</a>`).join(" ")}</p>`
       : "";
 

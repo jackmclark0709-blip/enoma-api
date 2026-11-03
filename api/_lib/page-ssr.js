@@ -59,12 +59,20 @@ export function renderSections(p) {
 
   const services = (parseMaybeJson(p.services) || []).filter(s => s && (s.service_name || s.name));
   out["{{SSR_SERVICES_INTRO}}"] = esc(p.services_intro || "");
-  out["{{SSR_SERVICES}}"] = services.map((s, i) => `
-      <div class="service-card${i === 0 ? " service-card--primary" : ""}">
+  // A service with a published spotlight page renders as a link to it.
+  out["{{SSR_SERVICES}}"] = services.map((s, i) => {
+    const tag = s.spotlight_url ? "a" : "div";
+    const href = s.spotlight_url ? ` href="${esc(s.spotlight_url)}"` : "";
+    const side = s.spotlight_url
+      ? `<div class="service-price">${s.price ? `${esc(s.price)} ` : ""}<span class="service-more">Details →</span></div>`
+      : (s.price ? `<div class="service-price">${esc(s.price)}</div>` : "");
+    return `
+      <${tag} class="service-card${i === 0 ? " service-card--primary" : ""}${s.spotlight_url ? " service-card--linked" : ""}"${href}>
         <h3>${esc(s.service_name || s.name)}</h3>
         ${s.service_description ? `<p>${esc(s.service_description)}</p>` : ""}
-        ${s.price ? `<div class="service-price">${esc(s.price)}</div>` : ""}
-      </div>`).join("");
+        ${side}
+      </${tag}>`;
+  }).join("");
 
   const towns = (parseMaybeJson(p.service_area) || []).filter(Boolean);
   out["{{SSR_TOWNS}}"] = towns.map(t => `<span class="town">${esc(t)}</span>`).join("");
