@@ -140,6 +140,8 @@ export function renderSpotlight(spot, profile, { baseUrl, brandStyle, heroPhoto,
       status: spot.status, email: profile.email || null,
       headline_options: c.headline_options || [], chosen_headline: c.chosen_headline || 0,
       removed: spot.removed_claims || [],
+      generation_status: spot.generation_status || "ready",
+      versions: (Array.isArray(spot.versions) ? spot.versions : []).map((v, i) => ({ index: i, saved_at: v.saved_at, headline: v.headline })),
     }),
     ...blocks,
   };

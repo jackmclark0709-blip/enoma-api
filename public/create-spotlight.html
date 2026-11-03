@@ -344,6 +344,19 @@ $("genBtn").addEventListener("click", async () => {
       return;
     }
     if (!r.ok) { if (r.missing) showGaps(r); say(r.error || "Something went wrong.", "err"); return; }
+    if (r.generating) {
+      // Written in the background: check back until it's ready.
+      say("Writing your page: brief, headlines, copy, then a fact check. About 30–45 seconds…");
+      let state = null;
+      for (let i = 0; i < 40; i++) {
+        await new Promise(res => setTimeout(res, 3000));
+        state = await api("get", { business_id: $("business").value, service_slug: r.service_slug });
+        if (state?.generation_status && state.generation_status !== "generating") break;
+      }
+      if (!state || state.generation_status === "generating") { say("Still writing. Your answers are saved; check your dashboard in a minute.", "err"); return; }
+      if (state.generation_status === "failed") { say(state.generation_error || "We couldn't write the page just now. Try again in a minute.", "err"); return; }
+      r.removed = state.removed || [];
+    }
     try { localStorage.removeItem(DRAFT_KEY()); } catch {}
     const removed = (r.removed || []).length ? `<p>The fact check removed or changed ${r.removed.length} claim(s) not backed by your answers. They're listed on the draft.</p>` : "";
     $("doneBox").innerHTML = `<strong>Your draft is ready.</strong> ${removed}<p><a href="${r.url}" target="_blank" rel="noopener">Review and publish your draft →</a></p>`;
