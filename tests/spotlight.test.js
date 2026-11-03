@@ -192,4 +192,25 @@ await test("server render makes a linked service card an <a> with Details →", 
   assert.match(html, /Details →/);
 });
 
+await test("company page sections hide themselves server-side when empty", () => {
+  const empty = renderSections({ about: "One paragraph only.", services: [], why_choose_us: "", testimonials: [] });
+  assert.equal(empty["{{SSR_ABOUT_BODY_HIDDEN}}"], " hidden");
+  assert.equal(empty["{{SSR_SERVICES_SECTION_HIDDEN}}"], " hidden");
+  assert.equal(empty["{{SSR_SERVICES_INTRO_HIDDEN}}"], " hidden");
+  assert.equal(empty["{{SSR_WHY_HIDDEN}}"], " hidden");
+  assert.equal(empty["{{SSR_TESTIMONIALS_COUNT}}"], "0");
+  const full = renderSections({ about: "A.\n\nB.", services: [{ service_name: "Mowing" }], services_intro: "Intro", why_choose_us: "Owner-operated", testimonials: [{ quote: "Great" }] });
+  assert.equal(full["{{SSR_ABOUT_BODY_HIDDEN}}"], "");
+  assert.equal(full["{{SSR_SERVICES_SECTION_HIDDEN}}"], "");
+  assert.equal(full["{{SSR_WHY_HIDDEN}}"], "");
+  assert.equal(full["{{SSR_TESTIMONIALS_COUNT}}"], "1");
+});
+await test("profile.html no longer redraws server-rendered sections", () => {
+  const html = fs.readFileSync(new URL("../public/profile.html", import.meta.url), "utf8");
+  for (const id of ["services-grid", "about-lead", "townList", "why"]) {
+    assert.ok(!new RegExp(`getEl\\('${id}'\\)[^\\n]*\\.innerHTML\\s*=|getEl\\('${id}'\\)`).test(html), `script still touches #${id}`);
+  }
+  assert.ok(!/faqList\.innerHTML\s*=/.test(html), "script still redraws FAQs");
+});
+
 console.log(`\n${passed} passed`);
