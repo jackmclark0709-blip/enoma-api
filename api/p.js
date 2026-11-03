@@ -341,6 +341,15 @@ async function serveSpotlight(req, res, bizSlug, serviceSlug) {
     res.setHeader("Cache-Control", "public, max-age=0, s-maxage=60");
     return res.status(200).send(inactivePage(profile.business_name || bizSlug, absoluteBaseUrl(req)));
   }
+  // First version still being written (or it failed): a holding page.
+  if (!spot.content?.hero) {
+    const msg = spot.generation_status === "failed"
+      ? "We couldn't write this page. The owner can try again from their dashboard."
+      : "This page is being written. It'll be ready in about a minute.";
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.status(200).send(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>${escapeHtml(profile.business_name || "")}</title>${spot.generation_status === "generating" ? '<meta http-equiv="refresh" content="10">' : ""}<link rel="stylesheet" href="/styles/business-pages.css"></head><body style="font-family:Inter,system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;margin:0;padding:24px;text-align:center"><div><p style="font-weight:700;font-size:1.1rem">${escapeHtml(profile.business_name || "")}</p><p>${msg}</p><p><a href="/${encodeURIComponent(profile.username)}">See the main page →</a></p></div></body></html>`);
+  }
   const { data: others } = await supabase.from("service_spotlights")
     .select("service_slug,service_name:content->>service_name")
     .eq("business_id", profile.business_id).eq("status", "published").neq("service_slug", serviceSlug);

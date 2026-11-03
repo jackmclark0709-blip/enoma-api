@@ -156,6 +156,11 @@ body:not(.is-draft) .sp-draft { display: none; }
       <summary>Try a different headline</summary>
       <div id="headlineOptions"></div>
     </details>
+    <details id="versionsBox" class="hidden">
+      <summary>Earlier versions</summary>
+      <ul id="versionsList"></ul>
+    </details>
+    <p class="sp-draft__msg hidden" id="generatingMsg">A new version is being written. This page will refresh when it's ready.</p>
     <details id="removedBox" class="hidden">
       <summary>What the fact check removed</summary>
       <ul id="removedList"></ul>
@@ -341,6 +346,24 @@ body:not(.is-draft) .sp-draft { display: none; }
     document.getElementById('removedBox').classList.remove('hidden');
     const ul = document.getElementById('removedList');
     S.removed.forEach(r => { const li = document.createElement('li'); li.textContent = r; ul.appendChild(li); });
+  }
+
+  // Earlier versions (kept after each rewrite) with Restore.
+  if ((S.versions || []).length) {
+    document.getElementById('versionsBox').classList.remove('hidden');
+    const ul = document.getElementById('versionsList');
+    S.versions.forEach(v => {
+      const li = document.createElement('li');
+      const when = v.saved_at ? new Date(v.saved_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'Earlier';
+      li.textContent = `${when}: ${v.headline || 'untitled'} `;
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Restore';
+      b.addEventListener('click', async () => { msg.textContent = 'Restoring…'; if (await act('restore', { index: v.index })) location.reload(); });
+      li.appendChild(b); ul.appendChild(li);
+    });
+  }
+  if (S.generation_status === 'generating') {
+    document.getElementById('generatingMsg').classList.remove('hidden');
+    setTimeout(() => location.reload(), 10000);
   }
 
   let sb = null;

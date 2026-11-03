@@ -13,6 +13,19 @@
 // the number of functions, so this rides an existing one).
 
 import { bannedWordsIn, lintCopy } from "./copy-lint.js";
+import { waitUntil } from "@vercel/functions";
+
+// Keep the last few versions so an owner can go back after a rewrite.
+export const MAX_VERSIONS = 8;
+export function pushVersion(versions, spot) {
+  if (!spot?.content || !Object.keys(spot.content).length) return Array.isArray(versions) ? versions : [];
+  const entry = {
+    saved_at: spot.updated_at || new Date().toISOString(),
+    headline: spot.content?.hero?.headline || "",
+    intake: spot.intake || {}, brief: spot.brief || {}, content: spot.content, removed_claims: spot.removed_claims || [],
+  };
+  return [entry, ...(Array.isArray(versions) ? versions : [])].slice(0, MAX_VERSIONS);
+}
 
 export const SPOTLIGHT_ADMIN_ID = "b2f87fe4-4d1e-4038-8754-5ab64969e975";
 
@@ -431,25 +444,30 @@ export async function handleSpotlight(req, res, { supabaseAdmin, fetchImpl }) {
     if (intake.hero_photo && !(ownPhotos.includes(intake.hero_photo) && (!kinds[intake.hero_photo] || kinds[intake.hero_photo] === "work"))) intake.hero_photo = "";
     const serviceSlug = slugifyService(body.service_slug || intake.service_name);
     if (!serviceSlug) return res.status(400).json({ error: "Service name required" });
-    let result;
-    try {
-      result = await generateSpotlight(intake, profile, { fetchImpl });
-    } catch (e) {
-      console.error("spotlight generation failed:", e);
-      return res.status(502).json({ error: "We couldn't write the page just now. Your answers are saved in this form — try again in a minute." });
+    // Save the answers now and write the page in the background, so the
+    // owner isn't waiting on a request that can time out. The form polls
+    // action=get until generation_status is "ready" or "failed".
+    const { data: existing } = await supabaseAdmin.from("service_spotlights")
+      .select("id,status,generation_status,generation_started_at").eq("business_id", businessId).eq("service_slug", serviceSlug).maybeSingle();
+    const startedMs = existing?.generation_started_at ? Date.parse(existing.generation_started_at) : 0;
+    if (existing?.generation_status === "generating" && Date.now() - startedMs < 90 * 1000) {
+      return res.status(409).json({ error: "This page is already being written. Give it a minute." });
     }
-    const row = {
-      business_id: businessId, service_slug: serviceSlug, status: "draft",
-      intake, brief: result.brief, content: result.content, removed_claims: result.removed,
-      created_by: user.id, updated_at: new Date().toISOString(),
+    const now = new Date().toISOString();
+    const pending = {
+      business_id: businessId, service_slug: serviceSlug, intake, created_by: user.id,
+      generation_status: "generating", generation_error: null, generation_started_at: now,
+      status: "draft", // a rewrite goes back to draft until the owner approves it again
     };
     const { data: saved, error } = await supabaseAdmin.from("service_spotlights")
-      .upsert(row, { onConflict: "business_id,service_slug" }).select("id,service_slug,status").single();
-    if (error) { console.error("spotlight save failed:", error); return res.status(500).json({ error: "Couldn't save the draft." }); }
-    return res.status(200).json({
-      ok: true, id: saved.id, status: saved.status,
+      .upsert(pending, { onConflict: "business_id,service_slug" }).select("id,service_slug,status").single();
+    if (error) { console.error("spotlight save failed:", error); return res.status(500).json({ error: "Couldn't save your answers." }); }
+
+    const job = runGeneration({ supabaseAdmin, fetchImpl, id: saved.id, intake, profile });
+    try { waitUntil(job); } catch { await job; } // outside Vercel (tests), just wait
+    return res.status(202).json({
+      ok: true, generating: true, id: saved.id, status: saved.status, service_slug: saved.service_slug,
       url: `/${profile.username}/${saved.service_slug}`,
-      removed: result.removed, issues: result.issues, headline_options: result.content.headline_options,
     });
   }
 
@@ -459,7 +477,26 @@ export async function handleSpotlight(req, res, { supabaseAdmin, fetchImpl }) {
   if (!spot) return res.status(404).json({ error: "Spotlight not found" });
 
   if (action === "get") {
-    return res.status(200).json({ intake: spot.intake || {}, status: spot.status, service_slug: spot.service_slug });
+    return res.status(200).json({
+      intake: spot.intake || {}, status: spot.status, service_slug: spot.service_slug,
+      generation_status: spot.generation_status || "ready", generation_error: spot.generation_error || null,
+      removed: spot.removed_claims || [],
+      versions: (spot.versions || []).map((v, i) => ({ index: i, saved_at: v.saved_at, headline: v.headline })),
+    });
+  }
+  if (action === "restore") {
+    const versions = Array.isArray(spot.versions) ? spot.versions : [];
+    const i = Number(body.index);
+    if (!Number.isInteger(i) || !versions[i]) return res.status(400).json({ error: "That version no longer exists." });
+    const chosen = versions[i];
+    // The current page becomes a version too, so restoring can be undone.
+    const rest = versions.filter((_, k) => k !== i);
+    const nextVersions = pushVersion(rest, spot);
+    await supabaseAdmin.from("service_spotlights").update({
+      intake: chosen.intake, brief: chosen.brief, content: chosen.content, removed_claims: chosen.removed_claims || [],
+      versions: nextVersions, updated_at: new Date().toISOString(),
+    }).eq("id", spot.id);
+    return res.status(200).json({ ok: true });
   }
   if (action === "choose_headline") {
     const opts = spot.content?.headline_options || [];
@@ -483,3 +520,23 @@ export async function handleSpotlight(req, res, { supabaseAdmin, fetchImpl }) {
 
 // Used by tests: the lint used for company pages also applies here.
 export { lintCopy };
+
+// Background job: writes the page, keeps the previous version, records failure.
+export async function runGeneration({ supabaseAdmin, fetchImpl, id, intake, profile }) {
+  try {
+    const result = await generateSpotlight(intake, profile, { fetchImpl });
+    const { data: before } = await supabaseAdmin.from("service_spotlights")
+      .select("intake,brief,content,removed_claims,versions,updated_at").eq("id", id).maybeSingle();
+    await supabaseAdmin.from("service_spotlights").update({
+      brief: result.brief, content: result.content, removed_claims: result.removed,
+      versions: pushVersion(before?.versions, before),
+      generation_status: "ready", generation_error: null, updated_at: new Date().toISOString(),
+    }).eq("id", id);
+  } catch (e) {
+    console.error("spotlight generation failed:", e);
+    await supabaseAdmin.from("service_spotlights").update({
+      generation_status: "failed",
+      generation_error: "We couldn't write the page just now. Your answers are saved; try again in a minute.",
+    }).eq("id", id);
+  }
+}
