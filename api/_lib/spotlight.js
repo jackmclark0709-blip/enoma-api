@@ -114,7 +114,9 @@ ${intakeForPrompt(intake, profile)}
 WORK IN THIS ORDER:
 1. "brief": the positioning brief. Every value ends with the [qN] tags it came from.
 2. "headline_options": 3 hero headline + subhead pairs from different angles: "outcome", "pain", "speed".
-   Headline under 70 characters, include the town if one was given. Subhead one sentence under 140 characters.
+   Every headline names the service in plain words (e.g. "Snow Removal") and the town if one was given; under 70 characters.
+   Subhead one sentence under 140 characters. The "speed" angle may only promise a time the survey states in [q12];
+   if [q12] gives no time, make the third angle "trust" (the owner, the area, the credentials) instead.
 3. "blocks": the page copy, written ONLY from the brief.
 
 SCHEMA:
@@ -155,9 +157,11 @@ HARD RULES:
 // ── Step 5: fact check ────────────────────────────────────────────
 export function buildFactCheckPrompt(intake, profile, draft) {
   return `You are a fact checker for a landing page. Compare the PAGE COPY against the SURVEY ANSWERS.
-Remove or rewrite any number, name, time frame, guarantee, credential, quote, customer type, town or claim that the survey does not state.
+Remove or rewrite any number, time frame, speed claim (quick, fast, prompt, same-day), guarantee, credential, quote, customer type, town or claim that the survey does not state.
+The COMPANY facts (business name, town, areas served, owner name) are supported: keep them.
 Keep everything that is supported. Keep the same JSON shape. Do not add new claims.
-Return ONLY JSON: { "headline_options": [...], "blocks": {...}, "removed": ["short description of each thing you removed or changed"] }
+"removed" lists ONLY changes you actually made in the JSON you return, one short line each; [] if none.
+Return ONLY JSON: { "headline_options": [...], "blocks": {...}, "removed": [...] }
 
 ${intakeForPrompt(intake, profile)}
 
@@ -205,6 +209,37 @@ export function spotlightIssues(draft, intake) {
   };
   walk({ headline_options: draft.headline_options, blocks: draft.blocks }, "");
   return issues;
+}
+
+// Speed promises the owner never made ("quick", "promptly", "same-day",
+// "within 2 hours") are the most common invented claim. If no survey answer
+// mentions speed or a time, they're removed here even if the fact check missed them.
+const SPEED_RE = /\b(quick(ly)?|fast(est)?|prompt(ly)?|speedy|same[- ]day|next[- ]day|immediate(ly)?|right away|in no time|asap|within \d+\s*(minutes?|hours?|days?))\b/i;
+function intakeText(intake) {
+  return Object.values(intake || {}).map(v => (typeof v === "string" ? v : JSON.stringify(v))).join(" ");
+}
+export function stripUnsupportedSpeed(draft, intake) {
+  if (SPEED_RE.test(intakeText(intake))) return { draft, notes: [] };
+  const notes = [];
+  const out = JSON.parse(JSON.stringify(draft));
+  const before = out.headline_options.length;
+  out.headline_options = out.headline_options.filter(h => !SPEED_RE.test(`${h.headline} ${h.subhead}`));
+  if (out.headline_options.length < before) notes.push(`Dropped ${before - out.headline_options.length} headline(s) promising speed your answers don't state.`);
+  const dropSentences = (text, where) => {
+    if (typeof text !== "string" || !SPEED_RE.test(text)) return text;
+    const kept = text.split(/(?<=[.!?])\s+/).filter(sn => !SPEED_RE.test(sn)).join(" ");
+    notes.push(`Removed a speed claim from ${where}.`);
+    return kept;
+  };
+  const b = out.blocks;
+  b.who.intro = dropSentences(b.who.intro, "who it's for");
+  b.who.buyers = b.who.buyers.map(x => ({ ...x, situation: dropSentences(x.situation, "who it's for") })).filter(x => x.situation);
+  b.problem.body = dropSentences(b.problem.body, "the problem");
+  b.steps = b.steps.map(x => ({ ...x, detail: dropSentences(x.detail, "how it works") }));
+  b.deliverables.items = b.deliverables.items.filter(i => !SPEED_RE.test(i));
+  b.faqs = b.faqs.map(f => ({ ...f, a: dropSentences(f.a, "the FAQ") })).filter(f => f.a);
+  b.cta.body = dropSentences(b.cta.body, "the call to action");
+  return { draft: out, notes: [...new Set(notes)] };
 }
 
 // Last-resort cleanup: drop strings that still contain an owner-banned phrase.
@@ -285,6 +320,9 @@ export async function generateSpotlight(intake, profile, { fetchImpl }) {
     removed = ["Fact check didn't run — review every claim before publishing."];
   }
   draft = scrubSpotlight(draft, intake);
+  const speed = stripUnsupportedSpeed(draft, intake);
+  draft = speed.draft;
+  removed = [...removed, ...speed.notes];
   const issues = spotlightIssues(draft, intake);
   return { brief: draft.brief, content: assembleContent(draft, intake, profile, 0), removed, issues };
 }
