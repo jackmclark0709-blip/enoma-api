@@ -977,7 +977,7 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
   <div class="about-main">
     <h2>About</h2>
     <p id="about-lead" class="about-lead">{{SSR_ABOUT_LEAD}}</p>
-    <p id="about-body" class="about-body">{{SSR_ABOUT_BODY}}</p>
+    <p id="about-body" class="about-body{{SSR_ABOUT_BODY_HIDDEN}}">{{SSR_ABOUT_BODY}}</p>
   </div>
   <aside class="about-sidebar hidden" id="socialSectionWrap">
     <h3 class="social-section__heading">Follow Us</h3>
@@ -1005,9 +1005,9 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 
 <!-- SERVICES — tinted band for visual rhythm -->
 <div class="band">
-<section class="section" id="servicesSection" style="border:none;">
+<section class="section{{SSR_SERVICES_SECTION_HIDDEN}}" id="servicesSection" style="border:none;">
   <h2>Our Services</h2>
-  <p id="services-intro" class="services-intro">{{SSR_SERVICES_INTRO}}</p>
+  <p id="services-intro" class="services-intro{{SSR_SERVICES_INTRO_HIDDEN}}">{{SSR_SERVICES_INTRO}}</p>
   <div id="services-grid" class="service-grid">{{SSR_SERVICES}}</div>
   {{SSR_SPOTLIGHT_LINKS}}
   <div class="services-cta-card">
@@ -1046,14 +1046,14 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 
 <!-- WHY CHOOSE US + TESTIMONIALS SIDEBAR — 2-col layout -->
 <section class="section why-with-testimonials" id="whyOuterSection">
-  <div class="why-main" id="whySection">
+  <div class="why-main{{SSR_WHY_HIDDEN}}" id="whySection">
     <h2>Why Choose Us</h2>
     <ul class="why-list" id="why">{{SSR_WHY}}</ul>
   </div>
   <aside class="{{SSR_TESTIMONIALS_CLASS}}" id="testimonialsWrap">
     <h2>What Clients Say</h2>
     <div class="testimonial-carousel" id="testimonialCarousel">
-      <div class="testimonial-carousel-track" id="testimonialList">{{SSR_TESTIMONIALS}}</div>
+      <div class="testimonial-carousel-track" id="testimonialList" data-count="{{SSR_TESTIMONIALS_COUNT}}">{{SSR_TESTIMONIALS}}</div>
       <div class="carousel-nav" id="carouselNav" style="display:none;">
         <div class="carousel-dots" id="carouselDots"></div>
         <div class="carousel-arrows">
@@ -1490,11 +1490,9 @@ async function loadProfile() {
     document.body.classList.add('has-mobile-call-bar');
   }
 
-  /* ── Hero headline / tagline ── */
-  const heroHeadline = getEl('heroHeadline');
-  if (heroHeadline && p.hero_headline) heroHeadline.textContent = p.hero_headline;
-  const tagline = getEl('tagline');
-  if (tagline) tagline.textContent = p.hero_tagline || '';
+  /* Hero headline/tagline, About, Services, Areas, Why, Testimonials and
+     FAQs are rendered on the server (api/_lib/page-ssr.js + api/p.js). This
+     script only adds behaviour to that markup — don't redraw them here. */
 
   /* ── Hero logo + brand color ── */
   const heroLogoWrap = getEl('heroLogo');
@@ -1595,24 +1593,6 @@ async function loadProfile() {
       items.unshift(`<span class="hero-trust-item"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor" stroke="none"/></svg>${Number(p.average_rating).toFixed(1)}★ from ${p.review_count} Google reviews</span>`);
     }
     if (items.length) { heroTrust.innerHTML = items.join(''); heroTrust.classList.remove('hidden'); }
-  }
-
-  /* ── About section ── */
-  const aboutLead = getEl('about-lead');
-  const aboutBody = getEl('about-body');
-  if (p.about) {
-    // Split on double newline (paragraph break) first, fall back to single newline
-    let paragraphs = p.about.split(/\n\n+/).map(s => s.trim()).filter(Boolean);
-    if (paragraphs.length <= 1) {
-      paragraphs = p.about.split('\n').map(s => s.trim()).filter(Boolean);
-    }
-    if (paragraphs.length >= 2) {
-      if (aboutLead) aboutLead.textContent = paragraphs[0];
-      if (aboutBody) aboutBody.innerHTML = paragraphs.slice(1).map(pp => `${pp}`).join('<br><br>');
-    } else {
-      if (aboutLead) aboutLead.textContent = p.about;
-      if (aboutBody) aboutBody.style.display = 'none';
-    }
   }
 
   /* ── Social links — with section header and CTA ── */
@@ -1720,35 +1700,7 @@ async function loadProfile() {
 
   /* ── Service area map — handled in location section below ── */
 
-  /* ── Services ── */
-  const servicesGrid = getEl('services-grid');
-  const services = safeParse(p.services) || [];
-  if (servicesGrid && services.length) {
-    // Same markup as the server render (api/_lib/page-ssr.js): a service with
-    // a published spotlight page is a link to it.
-    const escAttr = v => String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-    servicesGrid.innerHTML = services.map((s, i) => {
-      const linked = typeof s.spotlight_url === 'string' && s.spotlight_url.startsWith('/');
-      const tag = linked ? 'a' : 'div';
-      const side = linked
-        ? `<div class="service-price">${s.price ? `${s.price} ` : ''}<span class="service-more">Details →</span></div>`
-        : (s.price ? `<div class="service-price">${s.price}</div>` : '');
-      return `
-      <${tag} class="service-card${i === 0 ? ' service-card--primary' : ''}${linked ? ' service-card--linked' : ''}"${linked ? ` href="${escAttr(s.spotlight_url)}"` : ''}>
-        <h3>${s.service_name || s.name || ''}</h3>
-        ${s.service_description ? `<p>${s.service_description}</p>` : ''}
-        ${side}
-      </${tag}>`;
-    }).join('');
-  } else if (servicesGrid) {
-    getEl('servicesSection')?.classList.add('hidden');
-  }
-  const servicesIntroEl = getEl('services-intro');
-  if (servicesIntroEl && p.services_intro?.trim()) {
-    servicesIntroEl.textContent = p.services_intro;
-  } else if (servicesIntroEl) {
-    servicesIntroEl.style.display = 'none';
-  }
+  /* ── Services (server-rendered) — wire up the call button ── */
   const quickCall = getEl('quickCall');
   if (quickCall) {
     if (p.phone) { quickCall.href = `tel:${p.phone}`; quickCall.onclick = () => trackContactClick('services_cta_call'); }
@@ -1761,30 +1713,46 @@ async function loadProfile() {
   if (contactIntro && p.business_name) {
     contactIntro.textContent = `Ready to work with ${p.business_name}? Send a message and we'll get back to you quickly.`;
   }
-  const whyEl = getEl('why');
-  const whySection = getEl('whySection');
-  if (whyEl && p.why_choose_us) {
-    // Try newline split first, fall back to period/dash split
-    let items = p.why_choose_us.split('\n').map(s => s.trim()).filter(Boolean);
-    if (items.length <= 1) {
-      // Single blob — split on ". " or " — " or "—"
-      items = p.why_choose_us
-        .split(/\. |—|\. |;/)
-        .map(s => s.trim().replace(/^[-•·]\s*/, '').replace(/\.\s*$/, '').trim())
-        .filter(s => s.length > 4);
-    }
-    if (items.length) {
-      items = items.map(item => item.replace(/^[-•·]\s*/, ''));
-      whyEl.innerHTML = items.map(item => `<li>${item}</li>`).join('');
-      whySection?.classList.remove('hidden');
-    }
-  } else {
-    whySection?.classList.add('hidden');
-  }
-
   /* ── Testimonials — carousel ── */
-  // Owner-entered testimonials first; if there are none, real Google reviews
-  // fill the slot once they load (see Google data below).
+  // The business's own testimonials are rendered on the server. This adds the
+  // carousel to whatever is in the list; renderTestimonials() only writes
+  // markup for the Google-review fallback (see Google data below).
+  let carouselTimer = null;
+  const setupCarousel = () => {
+    const testimonialList = getEl('testimonialList');
+    if (!testimonialList) return 0;
+    const count = testimonialList.querySelectorAll('.testimonial').length;
+    const carouselNav = getEl('carouselNav');
+    const carouselDots = getEl('carouselDots');
+    const prevBtn = getEl('carouselPrev');
+    const nextBtn = getEl('carouselNext');
+    let currentIdx = 0;
+    const showSlide = (idx) => {
+      const cards = testimonialList.querySelectorAll('.testimonial');
+      const dots = carouselDots?.querySelectorAll('.carousel-dot');
+      cards.forEach((c, i) => c.classList.toggle('active', i === idx));
+      dots?.forEach((d, i) => d.classList.toggle('active', i === idx));
+      currentIdx = idx;
+    };
+    if (carouselTimer) { clearInterval(carouselTimer); carouselTimer = null; }
+    if (count > 1) {
+      if (carouselDots) {
+        carouselDots.innerHTML = Array.from({ length: count }, (_, i) =>
+          `<button class="carousel-dot${i === 0 ? ' active' : ''}" data-i="${i}" aria-label="Review ${i+1}"></button>`
+        ).join('');
+        carouselDots.querySelectorAll('.carousel-dot').forEach(dot => {
+          dot.addEventListener('click', () => showSlide(Number(dot.dataset.i)));
+        });
+      }
+      if (prevBtn) prevBtn.onclick = () => showSlide((currentIdx - 1 + count) % count);
+      if (nextBtn) nextBtn.onclick = () => showSlide((currentIdx + 1) % count);
+      carouselTimer = setInterval(() => showSlide((currentIdx + 1) % count), 6000);
+      if (carouselNav) carouselNav.style.display = 'flex';
+    } else if (carouselNav) {
+      carouselNav.style.display = 'none';
+    }
+    return count;
+  };
   const renderTestimonials = (testimonials) => {
     const testimonialList = getEl('testimonialList');
     const testimonialsWrap = getEl('testimonialsWrap');
@@ -1805,71 +1773,17 @@ async function loadProfile() {
         </div>
       </div>`;
     }).join('');
-
-    const carouselNav = getEl('carouselNav');
-    const carouselDots = getEl('carouselDots');
-    const prevBtn = getEl('carouselPrev');
-    const nextBtn = getEl('carouselNext');
-    let currentIdx = 0;
-    const showSlide = (idx) => {
-      const cards = testimonialList.querySelectorAll('.testimonial');
-      const dots = carouselDots?.querySelectorAll('.carousel-dot');
-      cards.forEach((c, i) => c.classList.toggle('active', i === idx));
-      dots?.forEach((d, i) => d.classList.toggle('active', i === idx));
-      currentIdx = idx;
-    };
-    if (testimonials.length > 1) {
-      if (carouselDots) {
-        carouselDots.innerHTML = testimonials.map((_, i) =>
-          `<button class="carousel-dot${i === 0 ? ' active' : ''}" data-i="${i}" aria-label="Review ${i+1}"></button>`
-        ).join('');
-        carouselDots.querySelectorAll('.carousel-dot').forEach(dot => {
-          dot.addEventListener('click', () => showSlide(Number(dot.dataset.i)));
-        });
-      }
-      if (prevBtn) prevBtn.addEventListener('click', () =>
-        showSlide((currentIdx - 1 + testimonials.length) % testimonials.length));
-      if (nextBtn) nextBtn.addEventListener('click', () =>
-        showSlide((currentIdx + 1) % testimonials.length));
-      setInterval(() => showSlide((currentIdx + 1) % testimonials.length), 6000);
-      if (carouselNav) carouselNav.style.display = 'flex';
-    }
+    setupCarousel();
     testimonialsWrap?.classList.remove('hidden');
     getEl('whyOuterSection')?.classList.remove('hidden');
     return true;
   };
-  const hasOwnTestimonials = renderTestimonials(p.testimonials);
+  const hasOwnTestimonials = setupCarousel() > 0;
 
-  /* ── Towns ── */
-  const townsWrap = getEl('townsWrap');
-  const townList = getEl('townList');
-  if (Array.isArray(p.service_area) && p.service_area.length && townList) {
-    townList.innerHTML = p.service_area.map(t => `<span class="town">${t}</span>`).join('');
-    townsWrap?.classList.remove('hidden');
-  }
-
-  /* ── FAQs ── */
-  const faqsEl = getEl('faqs');
-  const faqList = getEl('faqList');
-  const faqs = safeParse(p.faqs) || [];
-  if (faqList && faqs.length) {
-    faqList.innerHTML = faqs.map(f => `
-      <div class="faq-item-wrapper">
-        <button class="faq-item" type="button">
-          <span class="faq-question">${f.q || f.question || ''}</span>
-          <span class="faq-icon">+</span>
-        </button>
-        <div class="faq-answer"><p>${f.a || f.answer || ''}</p></div>
-      </div>`).join('');
-    faqsEl?.classList.remove('hidden');
-    getEl('faqsBand')?.classList.remove('hidden');
-    faqList.querySelectorAll('.faq-item').forEach(btn => {
-      btn.addEventListener('click', () => btn.classList.toggle('active'));
-    });
-  } else if (faqsEl) {
-    faqsEl.classList.add('hidden');
-    getEl('faqsBand')?.classList.add('hidden');
-  }
+  /* ── FAQs (server-rendered) — open/close on click ── */
+  getEl('faqList')?.querySelectorAll('.faq-item').forEach(btn => {
+    btn.addEventListener('click', () => btn.classList.toggle('active'));
+  });
 
   /* ── Google data ── */
   const locationBand = getEl('locationBand');

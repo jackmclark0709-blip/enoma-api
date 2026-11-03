@@ -1,13 +1,14 @@
 // api/_lib/page-ssr.js
 // Server-side HTML for the content sections of a business page.
 //
-// Why: public/profile.html fills About / Services / Areas / Why / FAQs /
-// Testimonials with client-side JS. Google usually runs that JS; most AI
-// crawlers (ChatGPT, Perplexity, Claude) don't — they saw a headline and empty
-// sections. This renders the same markup on the server so the content is in
-// the HTML itself. The client script still runs and re-renders the same
-// content (carousel, FAQ toggles), so both paths must stay in sync with
-// loadProfile() in public/profile.html.
+// This is the ONLY renderer for these sections. The server puts the content
+// in the HTML (so crawlers and AI answer engines that don't run JavaScript
+// see it), and public/profile.html's script no longer redraws them — it only
+// adds behaviour (testimonial carousel, FAQ toggles) to this markup. Change a
+// section's markup here, not in profile.html.
+//
+// One exception: when a business has no testimonials of its own, the browser
+// may fill that slot with Google reviews after the page loads.
 
 const esc = s => String(s == null ? "" : s)
   .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -56,9 +57,12 @@ export function renderSections(p) {
   const about = splitAbout(p.about);
   out["{{SSR_ABOUT_LEAD}}"] = esc(about.lead);
   out["{{SSR_ABOUT_BODY}}"] = about.body.split(/\n\n+/).map(esc).join("<br><br>");
+  out["{{SSR_ABOUT_BODY_HIDDEN}}"] = about.body ? "" : " hidden";
 
   const services = (parseMaybeJson(p.services) || []).filter(s => s && (s.service_name || s.name));
   out["{{SSR_SERVICES_INTRO}}"] = esc(p.services_intro || "");
+  out["{{SSR_SERVICES_INTRO_HIDDEN}}"] = String(p.services_intro || "").trim() ? "" : " hidden";
+  out["{{SSR_SERVICES_SECTION_HIDDEN}}"] = services.length ? "" : " hidden";
   // A service with a published spotlight page renders as a link to it.
   out["{{SSR_SERVICES}}"] = services.map((s, i) => {
     const tag = s.spotlight_url ? "a" : "div";
@@ -78,7 +82,9 @@ export function renderSections(p) {
   out["{{SSR_TOWNS}}"] = towns.map(t => `<span class="town">${esc(t)}</span>`).join("");
   out["{{SSR_TOWNS_CLASS}}"] = towns.length ? "" : "hidden";
 
-  out["{{SSR_WHY}}"] = splitWhy(p.why_choose_us).map(i => `<li>${esc(i)}</li>`).join("");
+  const why = splitWhy(p.why_choose_us);
+  out["{{SSR_WHY}}"] = why.map(i => `<li>${esc(i)}</li>`).join("");
+  out["{{SSR_WHY_HIDDEN}}"] = why.length ? "" : " hidden";
 
   const faqs = normalizeFaqs(p.faqs);
   out["{{SSR_FAQS}}"] = faqs.map(f => `
@@ -106,6 +112,7 @@ export function renderSections(p) {
       </div>`;
   }).join("");
   out["{{SSR_TESTIMONIALS_CLASS}}"] = testimonials.length ? "why-sidebar" : "why-sidebar hidden";
+  out["{{SSR_TESTIMONIALS_COUNT}}"] = String(testimonials.length);
 
   return out;
 }
