@@ -4,17 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Enoma — Get Found Online. Get More Calls.</title>
-  <meta name="description" content="Enoma builds one-page websites for landscapers, plumbers, HVAC and other local trades — made to show up when homeowners search, and to turn that search into a call. We can build it for you. First month free." />
+  <meta name="description" content="Get your business found online. Enoma gives landscapers, plumbers, HVAC and other local trades a page made to show up when homeowners search and send the call straight to you. See yours in 30 seconds, free to start." />
   <link rel="canonical" href="https://enoma.io/" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Enoma" />
   <meta property="og:title" content="Enoma — Get Found Online. Get More Calls." />
-  <meta property="og:description" content="A one-page website for your trade and your town, built to make your phone ring. We build it for you. First month free." />
+  <meta property="og:description" content="Get your business found online. A page for your trade and your town, built to make your phone ring. See yours in 30 seconds, free to start." />
   <meta property="og:image" content="https://enoma.io/assets/og/enoma-default-v2.png" />
   <meta property="og:url" content="https://enoma.io/" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Enoma — Get Found Online. Get More Calls." />
-  <meta name="twitter:description" content="A one-page website for your trade and your town, built to make your phone ring. First month free." />
+  <meta name="twitter:description" content="Get your business found online. See your page in 30 seconds, free to start." />
   <meta name="twitter:image" content="https://enoma.io/assets/og/enoma-default-v2.png" />
   <link rel="stylesheet" href="/styles/enoma.css" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -183,6 +183,46 @@
     @keyframes chartGrow{to{transform:scaleY(1);}}
     .preview-caption{font-size:.7rem;color:var(--text-3);margin-top:.6rem;}
 
+    /* ---------- the math: cost anchor ---------- */
+    .costgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:2.5rem;text-align:left;}
+    .costcard{background:var(--panel);border:1px solid var(--panel-border);border-radius:16px;padding:1.4rem 1.4rem 1.5rem;}
+    .costcard__name{font-size:.8rem;font-weight:600;color:var(--text-3);letter-spacing:.02em;}
+    .costcard__price{font-family:'Fraunces',serif;font-weight:700;font-size:1.45rem;color:var(--text-1);margin:.35rem 0 .6rem;}
+    .costcard p{font-size:.88rem;color:var(--text-2);line-height:1.55;}
+    .costcard--us{border:2px solid var(--sky);box-shadow:0 20px 50px -28px rgba(31,95,191,.45);}
+    .costcard--us .costcard__price{color:var(--sky);}
+    @media(max-width:820px){.costgrid{grid-template-columns:1fr;}}
+
+    /* ---------- dashboard preview ---------- */
+    .dash{display:grid;grid-template-columns:1.15fr 1fr;gap:1rem;background:#F6F8FB;}
+    .dash__col{display:flex;flex-direction:column;gap:1rem;min-width:0;}
+    .dash__card{background:#fff;border:1px solid var(--panel-border);border-radius:12px;padding:1rem 1.1rem;}
+    .dash__title{display:flex;align-items:center;justify-content:space-between;gap:.5rem;font-weight:700;font-size:.85rem;color:var(--text-1);margin-bottom:.75rem;}
+    .dash__badge{font-size:.66rem;font-weight:700;color:#1e5ca8;background:rgba(56,130,220,.1);border:1px solid rgba(56,130,220,.2);padding:.15rem .55rem;border-radius:999px;}
+    .dash__muted{font-size:.7rem;font-weight:400;color:var(--text-3);}
+    .dash__msg{border-top:1px solid var(--panel-border);padding:.7rem 0 .2rem;}
+    .dash__msg:first-of-type{border-top:none;padding-top:0;}
+    .dash__msg-top{display:flex;justify-content:space-between;gap:.5rem;font-size:.78rem;color:var(--text-1);}
+    .dash__msg-top span{color:var(--text-3);font-size:.7rem;}
+    .dash__msg p{font-size:.78rem;color:var(--text-2);line-height:1.5;margin-top:.25rem;}
+    .dash__hint{font-size:.78rem;color:var(--text-2);line-height:1.5;}
+    .dash__metrics{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.9rem;}
+    .dash__metrics>div{background:#F6F8FB;border:1px solid var(--panel-border);border-radius:10px;padding:.7rem;}
+    .dash__label{font-size:.68rem;color:var(--text-3);}
+    .dash__value{font-family:'Fraunces',serif;font-weight:700;font-size:1.4rem;color:var(--text-1);}
+    .dash__sub{font-size:.62rem;color:var(--text-3);}
+    .dash__sources{list-style:none;display:flex;flex-direction:column;gap:.55rem;}
+    .dash__sources li{display:flex;align-items:center;gap:.6rem;font-size:.76rem;}
+    .dash__sources span{color:var(--text-2);width:9.5rem;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .dash__sources i{flex:1;height:5px;border-radius:999px;background:linear-gradient(90deg,var(--sky) var(--w),#E8F0F8 var(--w));}
+    .dash__sources strong{color:var(--text-1);width:2rem;text-align:right;}
+    @media(max-width:760px){.dash{grid-template-columns:1fr;}.dash__sources span{width:7.5rem;}}
+
+    /* ---------- founder ---------- */
+    .founder__photo{width:112px;height:112px;border-radius:50%;object-fit:cover;margin:0 auto 1.5rem;display:block;border:3px solid #fff;box-shadow:0 12px 30px -12px rgba(11,27,51,.3);}
+    .founder__photo--initials{display:flex;align-items:center;justify-content:center;background:var(--sky-dim);color:var(--sky);font-family:'Fraunces',serif;font-weight:700;font-size:2.2rem;}
+    .howcar__note{text-align:center;font-size:.7rem;color:var(--text-3);margin-top:.5rem;}
+
     /* ---------- final cta ---------- */
     .finale h2{font-size:clamp(2rem,4.6vw,3rem);}
     .finale .hero__actions{margin-top:2rem;}
@@ -222,20 +262,20 @@
   <!-- ============ HERO — states the bottleneck immediately ============ -->
   <section class="hero">
     <p class="hero__eyebrow">For local service businesses</p>
-    <h1>Someone is searching for a<br><em>business like yours</em> right now.</h1>
+    <h1>Get your business <em>found online.</em><br>Get the call, not a shared lead.</h1>
 
     <div class="query-bar">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
       <span class="query-bar__text" id="queryText">"landscaper near me"</span><span class="query-bar__cursor"></span>
     </div>
 
-    <p class="hero__sub">Enoma gives your business a one-page website built for your trade and your town — made to show up when homeowners search, and to send that call straight to you, not to five other pros. We'll build it for you.</p>
+    <p class="hero__sub">Someone is searching for a business like yours right now. Enoma gives you a page built for your trade and your town, made to show up in that search and send the call straight to you. See yours in 30 seconds, free. Not techy? We'll set it up with you.</p>
 
     <div class="hero__actions">
       <a href="/get-your-website" class="btn-primary">See your page in 30 seconds →</a>
-      <a href="/case-studies/conways-landscaping" class="btn-secondary">See one that's working</a>
+      <a href="/examples" class="btn-secondary">See live examples</a>
     </div>
-    <p class="hero__proof">First month free &nbsp;·&nbsp; $19.99/mo flat, no per-lead fees &nbsp;·&nbsp; No contract</p>
+    <p class="hero__proof">Free to start &nbsp;·&nbsp; First month free, then $19.99/mo flat &nbsp;·&nbsp; No per-lead fees &nbsp;·&nbsp; No contract</p>
   </section>
 
   <!-- ============ THE GAP — the bottleneck, explained ============ -->
@@ -245,20 +285,27 @@
     <p class="lead">A homeowner who needs a plumber doesn't ask around first anymore — they search. If your business doesn't show up with a real page, a phone number and a clear answer, you don't lose that job to a better company down the street. You lose it to whoever showed up in the search.</p>
   </section>
 
-  <!-- ============ PROOF — real numbers, straight after the problem ============ -->
-  <!-- Numbers pulled from Enoma's own tracking for enoma.io/conways-landscaping (contact_submissions + page_events), Jan–Sep 2026.
-       TODO(Jack): once Conway confirms, add booked-jobs / revenue figure and a one-line quote from him here. -->
-  <section class="scene reveal">
-    <p class="eyebrow">A real page, real numbers</p>
-    <h2>One page. Zero ad spend.<br>Customers calling.</h2>
-    <p class="lead">Conway's Landscaping in Agawam, MA had no website. Since his Enoma page went live, homeowners have found it, tapped to call, and asked for quotes — without a dollar spent on ads.</p>
-    <div class="statline">
-      <div class="statline__item"><div class="statline__num">36</div><div class="statline__label">taps to call or email</div></div>
-      <div class="statline__item"><div class="statline__num">6</div><div class="statline__label">quote requests</div></div>
-      <div class="statline__item"><div class="statline__num">$0</div><div class="statline__label">spent on ads</div></div>
-    </div>
-    <div class="proof-card__cta">
-      <a href="/case-studies/conways-landscaping" class="btn-secondary">See his page and the numbers →</a>
+  <!-- ============ THE MATH — what getting found usually costs ============
+       (Conway's results block removed Nov 2026: Operating Doc rule #5, no naming Conway's in public content without written permission.) -->
+  <section class="scene scene--wide reveal">
+    <p class="eyebrow">The math</p>
+    <h2>Getting found shouldn't cost you<br>per lead, or thousands up front.</h2>
+    <div class="costgrid">
+      <div class="costcard">
+        <div class="costcard__name">A custom website</div>
+        <div class="costcard__price">Big bill up front</div>
+        <p>Plus hosting and updates, and most were never built to get found or to make the phone ring.</p>
+      </div>
+      <div class="costcard">
+        <div class="costcard__name">Lead sites (Angi, Thumbtack, Yelp)</div>
+        <div class="costcard__price">Pay per lead</div>
+        <p>Often the same lead sold to several pros, with competitors right next to you, whether you win the job or not.</p>
+      </div>
+      <div class="costcard costcard--us">
+        <div class="costcard__name">Enoma</div>
+        <div class="costcard__price">$19.99/mo flat</div>
+        <p>Free to start, first month free. Your page, your calls, no per-lead fees, no contract.</p>
+      </div>
     </div>
   </section>
 
@@ -268,8 +315,9 @@
     <h2>One page, built for one job:<br>making your phone ring.</h2>
     <p class="lead">You don't need ten pages nobody reads. You need one that says what you do, where you do it, and how to reach you — written so Google understands it and a homeowner calls. Your services, your towns, your number. No competitors on the page, no shared leads.</p>
     <div class="statline">
-      <div class="statline__item"><div class="statline__num">1 day</div><div class="statline__label">if we build it for you</div></div>
-      <div class="statline__item"><div class="statline__num">$0</div><div class="statline__label">first month</div></div>
+      <div class="statline__item"><div class="statline__num">30 sec</div><div class="statline__label">to see your page</div></div>
+      <div class="statline__item"><div class="statline__num">$0</div><div class="statline__label">to start</div></div>
+      <div class="statline__item"><div class="statline__num">$0</div><div class="statline__label">per lead, ever</div></div>
       <div class="statline__item"><div class="statline__num">0</div><div class="statline__label">competitors on your page</div></div>
     </div>
   </section>
@@ -277,16 +325,16 @@
   <!-- ============ HOW IT WORKS ============ -->
   <section class="scene scene--wide reveal">
     <p class="eyebrow">How it works</p>
-    <h2>Three steps. We can do most of them.</h2>
+    <h2>Three steps. Do it yourself, or let us.</h2>
     <div class="how-grid">
       <div class="steps2" id="howSteps">
         <div class="step2" data-slide="0">
           <div class="step2__num">01</div>
-          <div><div class="step2__title">Tell us about your business</div><div class="step2__desc">A 10-minute call with Jack, or a 5-minute form if you'd rather do it yourself. No credit card.</div></div>
+          <div><div class="step2__title">Find your business</div><div class="step2__desc">Enter your business name and town and see your page in about 30 seconds. Rather not? Book a 10-minute call and we'll set it up with you. No credit card.</div></div>
         </div>
         <div class="step2" data-slide="1">
           <div class="step2__num">02</div>
-          <div><div class="step2__title">We build it, you approve it</div><div class="step2__desc">Your services, your towns, your words — written up into a page you can check and change before anyone sees it.</div></div>
+          <div><div class="step2__title">Make it yours, then go live</div><div class="step2__desc">Your services, your towns, your words. Check it, change anything, and go live when you're happy.</div></div>
         </div>
         <div class="step2" data-slide="2">
           <div class="step2__num">03</div>
@@ -294,7 +342,7 @@
         </div>
       </div>
 
-      <!-- Live walkthrough, synced to the steps above — real screens, real example business -->
+      <!-- Live walkthrough, synced to the steps above — real screens, fictional sample business (not a customer) -->
       <div class="howcar" id="howcar">
         <div class="howcar__frame">
           <div class="howcar__bar">
@@ -310,7 +358,7 @@
                 <h3 class="hc-h">Create your account</h3>
                 <p class="hc-p">First month free — no credit card required.</p>
                 <label class="hc-label">Email address</label>
-                <div class="hc-field">jack@conwayslandscaping.com</div>
+                <div class="hc-field">owner@mapleridgelawn.com</div>
                 <label class="hc-label">Password</label>
                 <div class="hc-field">••••••••••</div>
                 <button class="hc-btn">Create free account →</button>
@@ -321,10 +369,10 @@
               <div class="hc-progress-label"><span>Step <strong>1</strong> of 4</span><span>Let's find your business</span></div>
               <div class="hc-progress-track"><div class="hc-progress-fill" style="width:25%"></div></div>
               <label class="hc-label" style="margin-top:0">Business name</label>
-              <div class="hc-field">Conway's Landscaping</div>
+              <div class="hc-field">Maple Ridge Lawn Care</div>
               <div class="hc-row2">
                 <div><label class="hc-label">Trade</label><div class="hc-field">Landscaping / Lawn Care</div></div>
-                <div><label class="hc-label">Location</label><div class="hc-field">Agawam, MA</div></div>
+                <div><label class="hc-label">Location</label><div class="hc-field">Springfield, OH</div></div>
               </div>
               <label class="hc-label">Services</label>
               <div class="hc-field">Weekly Mowing, Seasonal Cleanup</div>
@@ -337,7 +385,7 @@
                 <p class="hc-eyebrow">Live</p>
                 <h3 class="hc-h">Your website is live 🎉</h3>
                 <p class="hc-p">Share this link anywhere your business name appears.</p>
-                <div class="hc-url-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#7ab3e0" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/></svg>enoma.io/conways-landscaping</div>
+                <div class="hc-url-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#7ab3e0" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/></svg>enoma.io/maple-ridge-lawn-care</div>
                 <br>
                 <button class="hc-btn">View my website →</button>
               </div>
@@ -346,14 +394,14 @@
             <div class="howcar__slide">
               <div class="hc-biz-hero">
                 <div class="hc-biz-top">
-                  <div class="hc-biz-wordmark">CONWAY'S<small>LANDSCAPING</small></div>
+                  <div class="hc-biz-wordmark">MAPLE RIDGE<small>LAWN CARE</small></div>
                   <div class="hc-biz-call">Call Us Today</div>
                 </div>
                 <div class="hc-biz-main">
-                  <h3>Reliable Lawn Care in Agawam &amp; West Springfield</h3>
+                  <h3>Reliable Lawn Care in Springfield &amp; Urbana</h3>
                   <p>Weekly mowing, trimming, mulching, and seasonal cleanups for residential properties.</p>
                   <div class="hc-biz-badges">
-                    <span class="hc-biz-badge">Agawam, MA</span>
+                    <span class="hc-biz-badge">Springfield, OH</span>
                     <span class="hc-biz-badge">Accepting clients</span>
                     <span class="hc-biz-badge live">● Open now</span>
                   </div>
@@ -364,6 +412,7 @@
           </div>
         </div>
         <div class="howcar__dots" id="howcarDots"></div>
+        <p class="howcar__note">Sample business shown.</p>
       </div>
     </div>
     <div class="hero__actions" style="margin-top:2.5rem;">
@@ -372,34 +421,62 @@
     </div>
   </section>
 
-  <!-- ============ WHAT YOU GET — product preview ============ -->
-  <section class="scene reveal">
+  <!-- ============ ONCE YOU'RE LIVE — dashboard preview (mirrors real dashboard cards: messages, traffic sources, reviews) ============ -->
+  <section class="scene scene--wide reveal">
     <p class="eyebrow">Once you're live</p>
-    <h2>You'll know exactly what it's bringing in.</h2>
-    <p class="lead">Every tap to call, every quote request, counted in your dashboard. No guessing whether it's working. (Example data shown.)</p>
+    <h2>Every call, message and review,<br>in one place.</h2>
+    <p class="lead">See who reached out, where they found you, and which new reviews are waiting for your OK. No guessing whether it's working.</p>
     <div class="preview-panel">
       <div class="preview-panel__bar">
         <div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#ffbd2e"></div><div class="dot" style="background:#27c93f"></div>
-        <div class="url">dashboard.enoma.io</div>
+        <div class="url">enoma.io/dashboard</div>
       </div>
-      <div class="preview-panel__body">
-        <div class="preview-kpis">
-          <div class="preview-kpi" data-tip="+18% vs. last month"><div class="preview-kpi__value">214</div><div class="preview-kpi__label">Page views</div></div>
-          <div class="preview-kpi" data-tip="Direct calls from your page"><div class="preview-kpi__value">38</div><div class="preview-kpi__label">Call clicks</div></div>
-          <div class="preview-kpi" data-tip="Sent straight to your inbox"><div class="preview-kpi__value">17</div><div class="preview-kpi__label">Quote requests</div></div>
-          <div class="preview-kpi" data-tip="Customers getting directions"><div class="preview-kpi__value">9</div><div class="preview-kpi__label">Map clicks</div></div>
+      <div class="preview-panel__body dash">
+        <div class="dash__col">
+          <div class="dash__card">
+            <div class="dash__title">Recent messages <span class="dash__badge">2 new</span></div>
+            <div class="dash__msg">
+              <div class="dash__msg-top"><strong>Dana R.</strong><span>Today, 7:42 am</span></div>
+              <p>Looking for a quote on a fall cleanup and leaf removal, about a half acre. Can someone come by this week?</p>
+            </div>
+            <div class="dash__msg">
+              <div class="dash__msg-top"><strong>Mike T.</strong><span>Yesterday</span></div>
+              <p>Do you do weekly mowing in Urbana? Starting in April.</p>
+            </div>
+          </div>
+          <div class="dash__card">
+            <div class="dash__title">Get more reviews <span class="dash__badge">2 waiting</span></div>
+            <p class="dash__hint">Text your review link after a job. New reviews wait for your OK before they show on your page.</p>
+          </div>
         </div>
-        <div class="preview-chart" id="previewChart"></div>
-        <p class="preview-caption">Customer actions — last 30 days</p>
+        <div class="dash__col">
+          <div class="dash__card">
+            <div class="dash__title">Traffic sources <span class="dash__muted">last 30 days</span></div>
+            <div class="dash__metrics">
+              <div><div class="dash__label">Page views</div><div class="dash__value">214</div></div>
+              <div><div class="dash__label">Contact clicks</div><div class="dash__value">38</div><div class="dash__sub">calls, emails, forms</div></div>
+            </div>
+            <ul class="dash__sources">
+              <li><span>Google search</span><i style="--w:72%"></i><strong>118</strong></li>
+              <li><span>Facebook</span><i style="--w:30%"></i><strong>49</strong></li>
+              <li><span>Direct (truck, cards)</span><i style="--w:22%"></i><strong>36</strong></li>
+              <li><span>Other</span><i style="--w:7%"></i><strong>11</strong></li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
+    <p class="preview-caption" style="text-align:center;margin-top:.9rem;">Example data shown.</p>
   </section>
 
   <!-- ============ WHO'S BEHIND IT ============ -->
   <section class="scene reveal">
     <p class="eyebrow">Who's behind Enoma</p>
-    <h2>A real person, in Massachusetts.</h2>
-    <p class="lead">I'm Jack Clark. I live in Attleboro, and I build these pages for trades businesses in Massachusetts, Rhode Island and Connecticut. If you'd rather talk than fill out a form, email me at <a href="mailto:jack@enoma.io" style="color:var(--sky-light)">jack@enoma.io</a> and I'll call you back.</p>
+    <!-- TODO(Jack): drop a square headshot at /assets/jack-headshot.jpg, then replace the initials div with:
+         <img class="founder__photo" src="/assets/jack-headshot.jpg" alt="Jack Clark, founder of Enoma" width="112" height="112"> -->
+    <div class="founder__photo founder__photo--initials" aria-hidden="true">JC</div>
+    <h2>A real person, not a call center.</h2>
+    <p class="lead">I'm Jack Clark. I build Enoma pages for plumbers, landscapers, HVAC techs and other trades across the country, from Attleboro, Massachusetts. If you'd rather talk than fill out a form, email me at <a href="mailto:jack@enoma.io" style="color:var(--sky-light)">jack@enoma.io</a> and I'll call you back.</p>
   </section>
 
   <!-- ============ FAQ — objection handling right before the ask ============ -->
@@ -438,7 +515,7 @@
   <section class="scene finale reveal">
     <p class="eyebrow">Get started</p>
     <h2>Stop losing jobs to whoever shows up first.</h2>
-    <p class="lead">Tell us about your business and we'll have your page live within a day. First month free, no contract — see it working before you pay anything.</p>
+    <p class="lead">See your page in 30 seconds, or let us set it up with you, usually within a day. First month free, then $19.99/mo flat. No contract, no per-lead fees.</p>
     <div class="hero__actions">
       <a href="/get-your-website" class="btn-primary">See your page in 30 seconds →</a>
       <a href="/examples" class="btn-secondary">See live examples</a>
@@ -458,9 +535,9 @@
   (function(){
     var queries = [
       '"landscaper near me"',
-      '"best plumber in Boston"',
+      '"best plumber in Columbus"',
       '"who can fix my heater tonight"',
-      '"electrician near Cambridge MA"',
+      '"electrician near me open now"',
       '"lawn care company near me"'
     ];
     var el = document.getElementById('queryText');
@@ -504,7 +581,7 @@
     var dotsWrap = document.getElementById('howcarDots');
     var urlEl = document.getElementById('howcarUrl');
     var timeEl = document.getElementById('howcarTime');
-    var urls = ['enoma.io/signup', 'enoma.io/create', 'enoma.io/website-live', 'enoma.io/conways-landscaping'];
+    var urls = ['enoma.io/signup', 'enoma.io/create', 'enoma.io/website-live', 'enoma.io/maple-ridge-lawn-care'];
     var times = ['0:00', '0:45', '3:40', '4:50'];
     var current = 0;
     var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
