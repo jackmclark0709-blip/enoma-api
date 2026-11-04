@@ -15,9 +15,9 @@
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());function enomaGaConfig(c){try{var m=location.search.match(/[?&]internal=([01])(?:&|$)/);if(m)localStorage.setItem('enoma_internal',m[1]);if(localStorage.getItem('enoma_internal')==='1')c.traffic_type='internal'}catch(e){}if(navigator.webdriver)window['ga-disable-G-S8XTG72Y2Y']=true;return c};gtag('config','G-S8XTG72Y2Y',enomaGaConfig({}));</script>
   <style>
     :root{
-      --void:#070d18; --panel:rgba(255,255,255,0.045); --panel-border:rgba(255,255,255,0.10);
-      --sky:#3882dc; --sky-light:#5aa8f0; --sky-dim:rgba(56,130,220,0.16);
-      --text-1:#f0f6ff; --text-2:rgba(240,246,255,0.68); --text-3:rgba(240,246,255,0.42);
+      --void:#F6F8FB; --panel:#FFFFFF; --panel-border:#DCE3ED;
+      --sky:#1F5FBF; --sky-light:#1F5FBF; --sky-dim:rgba(31,95,191,0.10);
+      --text-1:#0B1B33; --text-2:#3B4A63; --text-3:#55647D;
     }
     body { background: var(--void); color: var(--text-1); min-height: 100vh; display: flex; flex-direction: column; font-family: 'Instrument Sans', -apple-system, sans-serif; -webkit-font-smoothing:antialiased; position:relative; overflow-x:hidden; }
     body::before{
@@ -32,19 +32,19 @@
     .contact-page .section-label { font-family:'IBM Plex Mono',monospace; font-size: 0.72rem; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--sky-light); display: block; margin-bottom: 0.5rem; opacity:.9; }
     .contact-page h1 { font-family: 'Fraunces', serif; font-optical-sizing:auto; font-size: clamp(1.8rem, 4vw, 2.2rem); font-weight: 600; color: var(--text-1); letter-spacing: -0.02em; margin: 0 0 0.6rem; }
     .contact-page > p { color: var(--text-2); font-size: 0.95rem; line-height: 1.65; margin: 0 0 2rem; }
-    .contact-card { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 20px; padding: 2rem; box-shadow: 0 20px 60px rgba(0,0,0,.3); margin-bottom: 1.5rem; backdrop-filter: blur(6px); }
+    .contact-card { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 20px; padding: 2rem; box-shadow: 0 20px 60px rgba(11,27,51,.12); margin-bottom: 1.5rem; backdrop-filter: blur(6px); }
     .field { margin-bottom: 1rem; }
     .field label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-2); margin-bottom: 0.35rem; }
     .field input, .field select, .field textarea {
       width: 100%; padding: 0.75rem 1rem; box-sizing: border-box;
       border: 1px solid var(--panel-border); border-radius: 10px;
       font-size: 0.95rem; font-family: inherit; color: var(--text-1);
-      background: rgba(255,255,255,.06);
+      background: rgba(11,27,51,.06);
       transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
     }
     .field input::placeholder, .field textarea::placeholder { color: var(--text-3); }
-    .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--sky-light); box-shadow: 0 0 0 3px rgba(56,130,220,0.2); background: rgba(255,255,255,.09); }
-    .field select option { background: #0a1628; color: var(--text-1); }
+    .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--sky-light); box-shadow: 0 0 0 3px rgba(56,130,220,0.2); background: rgba(11,27,51,.09); }
+    .field select option { background: #FFFFFF; color: var(--text-1); }
     .field textarea { min-height: 120px; resize: vertical; }
     .submit-btn {
       width: 100%; padding: 0.9rem; margin-top: 0.25rem;
@@ -63,7 +63,14 @@
     .ql-label { display: block; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--sky-light); margin-bottom: 0.2rem; }
     .ql-title { display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-1); }
     #site-footer { position:relative; z-index:1; margin-top: auto; }
-  </style>
+  
+    /* ---------- light theme (Nov 2026): no grain, glow or particle field ---------- */
+    body::before{display:none}
+    .glow,#bgcanvas{display:none}
+    a.btn-primary:hover,.pricing-cta-btn:hover{background:#163F7F}
+    .btn-secondary{color:#22314A;border-color:#C9D3E0;background:#FFFFFF}
+    .btn-secondary:hover{color:#0B1B33;border-color:#1F5FBF;background:#EEF4FD}
+</style>
 </head>
 <body>
 <script src="/scripts/ref-capture.js"></script>
@@ -97,7 +104,7 @@
     </div>
     <div id="success-view" style="display:none; text-align:center; padding: 1.5rem 0;">
       <div style="width:52px;height:52px;background:rgba(74,222,128,0.12);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1F7A4D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
       <h3 style="font-family:'Fraunces',serif;color:var(--text-1);margin:0 0 0.5rem;font-size:1.3rem;">Message sent!</h3>
       <p style="color:var(--text-2);font-size:0.9rem;line-height:1.6;margin:0;">We'll get back to you within one business day.</p>

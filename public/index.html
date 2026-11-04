@@ -28,9 +28,9 @@
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
     :root{
-      --void:#070d18; --panel:rgba(255,255,255,0.045); --panel-border:rgba(255,255,255,0.10);
-      --sky:#3882dc; --sky-light:#5aa8f0; --sky-dim:rgba(56,130,220,0.16);
-      --text-1:#f0f6ff; --text-2:rgba(240,246,255,0.68); --text-3:rgba(240,246,255,0.42);
+      --void:#F6F8FB; --panel:#FFFFFF; --panel-border:#DCE3ED;
+      --sky:#1F5FBF; --sky-light:#1F5FBF; --sky-dim:rgba(31,95,191,0.10);
+      --text-1:#0B1B33; --text-2:#3B4A63; --text-3:#55647D;
     }
 
     html{scroll-behavior:smooth}
@@ -67,7 +67,7 @@
 
     .query-bar{
       margin:2.25rem auto 0; max-width:560px; display:flex; align-items:center; gap:.7rem;
-      background:rgba(255,255,255,0.05); border:1px solid var(--panel-border); border-radius:999px;
+      background:rgba(11,27,51,0.05); border:1px solid var(--panel-border); border-radius:999px;
       padding:.9rem 1.4rem; backdrop-filter:blur(6px);
     }
     .query-bar svg{width:17px;height:17px;stroke:var(--text-3);fill:none;stroke-width:2;flex-shrink:0;}
@@ -82,7 +82,7 @@
     /* ---------- faq (namespaced faq-accordion/faq-row — enoma.css already owns .faq-list/.faq-item for a light-theme component) ---------- */
     .faq-accordion{max-width:640px;margin:2.5rem auto 0;text-align:left;display:flex;flex-direction:column;gap:1px;background:var(--panel-border);border-radius:16px;overflow:hidden;border:1px solid var(--panel-border);}
     .faq-row{background:var(--void);padding:1.35rem 1.5rem;transition:background .18s ease;}
-    .faq-row:hover{background:rgba(255,255,255,.045);}
+    .faq-row:hover{background:rgba(11,27,51,.045);}
     .faq-row summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:1rem;font-weight:600;font-size:.98rem;color:var(--text-1);}
     .faq-row summary::-webkit-details-marker{display:none;}
     .faq-chevron{width:14px;height:14px;flex-shrink:0;stroke:var(--sky-light);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s ease;}
@@ -118,8 +118,8 @@
 
     /* ---------- how it works: live carousel ---------- */
     .howcar{position:relative;}
-    .howcar__frame{background:#0d1420;border:1px solid var(--panel-border);border-radius:16px;overflow:hidden;box-shadow:0 30px 70px -30px rgba(0,0,0,.6);}
-    .howcar__bar{display:flex;align-items:center;gap:6px;padding:10px 14px;background:rgba(255,255,255,.04);}
+    .howcar__frame{background:#FFFFFF;border:1px solid var(--panel-border);border-radius:16px;overflow:hidden;box-shadow:0 30px 70px -30px rgba(11,27,51,.12);}
+    .howcar__bar{display:flex;align-items:center;gap:6px;padding:10px 14px;background:rgba(11,27,51,.04);}
     .howcar__bar .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
     .howcar__bar .url{flex:1;margin-left:6px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .howcar__time{flex-shrink:0;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;color:var(--sky-light);background:rgba(56,130,220,.14);border:1px solid rgba(56,130,220,.3);padding:2px 8px;border-radius:999px;}
@@ -127,7 +127,7 @@
     .howcar__slide{position:absolute;inset:0;opacity:0;transform:translateY(8px);transition:opacity .4s ease,transform .4s ease;pointer-events:none;padding:1.25rem 1.35rem 1.4rem;}
     .howcar__slide[data-active]{opacity:1;transform:translateY(0);pointer-events:auto;}
     .howcar__dots{display:flex;justify-content:center;gap:.5rem;margin-top:1.1rem;}
-    .howcar__dots button{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.16);border:none;padding:0;cursor:pointer;transition:background .2s,width .2s,border-radius .2s;}
+    .howcar__dots button{width:7px;height:7px;border-radius:50%;background:rgba(11,27,51,.16);border:none;padding:0;cursor:pointer;transition:background .2s,width .2s,border-radius .2s;}
     .howcar__dots button[data-active]{background:var(--sky-light);width:20px;border-radius:999px;}
     @media (prefers-reduced-motion: reduce){ .howcar__slide{transition:opacity .15s ease;transform:none !important;} }
 
@@ -136,17 +136,17 @@
     .hc-h{font-family:'Fraunces',serif;font-size:1.2rem;font-weight:700;letter-spacing:-.02em;margin:0 0 .5rem;color:var(--text-1);}
     .hc-p{font-size:.8rem;color:var(--text-2);line-height:1.5;margin:0 0 .9rem;}
     .hc-label{font-size:.62rem;font-weight:700;color:var(--text-2);letter-spacing:.03em;text-transform:uppercase;display:block;margin:.6rem 0 .25rem;}
-    .hc-field{width:100%;padding:.5rem .65rem;border-radius:8px;font-size:.78rem;border:1.5px solid var(--panel-border);background:rgba(255,255,255,.05);color:var(--text-1);}
+    .hc-field{width:100%;padding:.5rem .65rem;border-radius:8px;font-size:.78rem;border:1.5px solid var(--panel-border);background:rgba(11,27,51,.05);color:var(--text-1);}
     .hc-row2{display:grid;grid-template-columns:1fr 1fr;gap:0 .7rem;}
     .hc-progress-label{display:flex;justify-content:space-between;font-size:.68rem;font-weight:600;color:var(--text-2);margin-bottom:.35rem;}
     .hc-progress-label strong{color:var(--text-1);}
-    .hc-progress-track{height:4px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-bottom:1rem;}
+    .hc-progress-track{height:4px;border-radius:999px;background:rgba(11,27,51,.08);overflow:hidden;margin-bottom:1rem;}
     .hc-progress-fill{height:100%;border-radius:999px;background:var(--sky);}
     .hc-btn{display:inline-flex;align-items:center;gap:.4rem;background:var(--sky);color:#fff;font-weight:700;font-size:.8rem;border:none;border-radius:999px;padding:.6rem 1.2rem;margin-top:1rem;font-family:'Instrument Sans',sans-serif;}
-    .hc-card{max-width:280px;margin:.3rem auto 0;background:rgba(255,255,255,.035);border:1px solid var(--panel-border);border-radius:12px;padding:1.15rem 1.25rem;}
+    .hc-card{max-width:280px;margin:.3rem auto 0;background:rgba(11,27,51,.035);border:1px solid var(--panel-border);border-radius:12px;padding:1.15rem 1.25rem;}
     .hc-center{text-align:center;}
     .hc-check{width:40px;height:40px;background:rgba(56,130,220,.15);border:1px solid rgba(56,130,220,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto .7rem;}
-    .hc-url-pill{display:inline-flex;align-items:center;gap:.4rem;background:rgba(255,255,255,.06);border:1.5px solid var(--panel-border);border-radius:9px;padding:.4rem .7rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;margin:.6rem 0;}
+    .hc-url-pill{display:inline-flex;align-items:center;gap:.4rem;background:rgba(11,27,51,.06);border:1.5px solid var(--panel-border);border-radius:9px;padding:.4rem .7rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;margin:.6rem 0;}
     .hc-biz-hero{border-radius:12px;overflow:hidden;border:1px solid var(--panel-border);}
     .hc-biz-top{background:#fff;padding:.55rem .8rem;display:flex;align-items:center;justify-content:space-between;}
     .hc-biz-wordmark{font-family:'Fraunces',serif;font-weight:800;font-size:.72rem;color:#1f5c2c;line-height:1;}
@@ -161,20 +161,20 @@
 
     /* ---------- interactive: product preview ---------- */
     .preview-panel{
-      margin-top:2.5rem;text-align:left;background:#0d1420;border:1px solid var(--panel-border);
-      border-radius:16px;overflow:hidden;box-shadow:0 30px 70px -30px rgba(0,0,0,.6);
+      margin-top:2.5rem;text-align:left;background:#FFFFFF;border:1px solid var(--panel-border);
+      border-radius:16px;overflow:hidden;box-shadow:0 30px 70px -30px rgba(11,27,51,.12);
     }
-    .preview-panel__bar{display:flex;align-items:center;gap:6px;padding:10px 14px;background:rgba(255,255,255,.04);}
+    .preview-panel__bar{display:flex;align-items:center;gap:6px;padding:10px 14px;background:rgba(11,27,51,.04);}
     .preview-panel__bar .dot{width:7px;height:7px;border-radius:50%;}
     .preview-panel__bar .url{margin-left:6px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-3);}
     .preview-panel__body{padding:1.5rem;}
     .preview-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1.25rem;}
-    .preview-kpi{background:rgba(255,255,255,.03);border:1px solid var(--panel-border);border-radius:10px;padding:.85rem;position:relative;cursor:default;}
+    .preview-kpi{background:rgba(11,27,51,.03);border:1px solid var(--panel-border);border-radius:10px;padding:.85rem;position:relative;cursor:default;}
     .preview-kpi__value{font-family:'Fraunces',serif;font-weight:700;font-size:1.35rem;color:var(--text-1);}
     .preview-kpi__label{font-size:.68rem;color:var(--text-3);margin-top:.15rem;line-height:1.3;}
     .preview-kpi[data-tip]::after{
       content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%) translateY(4px);
-      background:#0a1628;color:var(--text-1);font-size:.68rem;padding:5px 9px;border-radius:6px;white-space:nowrap;
+      background:#0B1B33;color:#FFFFFF;font-size:.68rem;padding:5px 9px;border-radius:6px;white-space:nowrap;
       opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;border:1px solid var(--panel-border);
     }
     .preview-kpi:hover[data-tip]::after{opacity:1;transform:translateX(-50%) translateY(0);}
@@ -196,7 +196,14 @@
       html{scroll-behavior:auto;}
       .query-bar__cursor,.preview-chart-col{animation:none;}
     }
-  </style>
+  
+    /* ---------- light theme (Nov 2026): no grain, glow or particle field ---------- */
+    body::before{display:none}
+    .glow,#bgcanvas{display:none}
+    a.btn-primary:hover,.pricing-cta-btn:hover{background:#163F7F}
+    .btn-secondary{color:#22314A;border-color:#C9D3E0;background:#FFFFFF}
+    .btn-secondary:hover{color:#0B1B33;border-color:#1F5FBF;background:#EEF4FD}
+</style>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Enoma","applicationCategory":"BusinessApplication","description":"Enoma builds one-page websites for local service businesses — landscapers, plumbers, HVAC, contractors — built to show up in local search and send customer calls and quote requests directly to the business. First month free.","operatingSystem":"Web","url":"https://enoma.io","offers":{"@type":"Offer","price":"19.99","priceCurrency":"USD"},"audience":{"@type":"Audience","audienceType":"Local Service Businesses"}}</script>
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Will this actually get me on Google?", "acceptedAnswer": {"@type": "Answer", "text": "No one can honestly promise you a ranking. What we can do is give Google exactly what it looks for from a local business — your trade, your towns, your services and your number, on a page built the way search engines read it. That's why the first month is free: you see real results before you pay."}}, {"@type": "Question", "name": "What does it cost?", "acceptedAnswer": {"@type": "Answer", "text": "The first month is free, with no credit card. After that it's $19.99/month to keep your page live, and that includes personalized support from our team. Month-to-month, cancel anytime."}}, {"@type": "Question", "name": "I already have a Google Business Profile. Isn't that enough?", "acceptedAnswer": {"@type": "Answer", "text": "It's a great start, and you should keep it. But a Business Profile shows competitors right next to you, and it gives Google very little to go on. A page of your own gives Google (and AI assistants like ChatGPT) more to understand about what you do and where — and gives homeowners one place to call you from."}}, {"@type": "Question", "name": "I already have a website. Why do I need this too?", "acceptedAnswer": {"@type": "Answer", "text": "If your current site is already sending you calls every week, you're ahead of most local businesses — you probably don't need Enoma. If it isn't, the problem usually isn't the design; it's that it was never built to be found or to get someone to call. That's the part Enoma does."}}, {"@type": "Question", "name": "How is this different from Yelp or Angi?", "acceptedAnswer": {"@type": "Answer", "text": "Directory listings put competitors right next to you and often sell the same lead to several businesses, and you pay per lead or per click whether you win the job or not. Your Enoma page is only about you — no competitor ads, no shared leads, one flat monthly price. The customer calls you directly."}}, {"@type": "Question", "name": "Do I have to write the page myself?", "acceptedAnswer": {"@type": "Answer", "text": "No. If we build it for you, it takes a 10-minute call. If you build it yourself, you fill in your services and area and AI writes the first draft. Either way you can change anything, anytime."}}]}</script>
 </head>
