@@ -20,7 +20,7 @@ import { verifyUnsubscribeToken, appendComplianceFooter, buildUnsubscribeUrl, MA
 import { buildOutreachEmail, buildOutreachIntro, buildFollowUpEmail, isFollowUpDue, FOLLOW_UP_AFTER_DAYS, FOLLOW_UP_MAX_AGE_DAYS, isLikelyLinkScanner, buildOwnerVisitAlert, trackedLinks, replyToFor, slugFromPreviewUrl, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "./_lib/outreach-email.js";
 import { verifyMailbox } from "./_lib/mailbox-verify.js";
 import { plainTextToHtml, wrapEmailHtml } from "./_lib/email-html.js";
-import { rampCapForDate, capWithBounceBrake } from "./_lib/outreach-ramp.js";
+import { rampCapForDate, capWithBounceBrake, followUpAllowance } from "./_lib/outreach-ramp.js";
 import { townForDate, tradeForDate } from "./_lib/prospect-rotation.js";
 import { Resend } from "resend";
 import { isGrandfathered } from "./_lib/trial-policy.js";
@@ -1549,9 +1549,9 @@ async function handleDailyPipeline(req, res) {
 const SEND_OUTREACH_FROM = "Jack at Enoma <outreach@mail.enoma.io>";
 // Hard ceiling on cold emails per day (first emails + follow-ups together),
 // whatever the cron or a caller asks for. Raised 10 -> 20 on 2026-10-28 after
-// two months of warm-up; capWithBounceBrake drops it back to 10 if the last
-// 7 days bounce more than 3%.
-const OUTREACH_DAILY_CAP = 20;
+// two months of warm-up, then 20 -> 30 on 2026-11-03; capWithBounceBrake drops
+// it back to 10 if the last 7 days bounce more than 3%.
+const OUTREACH_DAILY_CAP = 30;
 
 // One follow-up per cold email, 3-10 days after it went out, only while the
 // owner hasn't replied, bounced, opted out or claimed, and the page is still
@@ -1643,7 +1643,7 @@ async function handleSendOutreach(req, res) {
   // Follow-ups go first: they're time-boxed (days 3-10) and to people who
   // already got one email. Both kinds count toward the same daily cap.
   const followUps = req.query.dry_run === "1" ? { sent: 0, results: [] }
-    : await sendFollowUpsOnce({ maxSends: Math.max(0, dailyCap - (sentToday || 0) - (followupsToday || 0)), captureReplies });
+    : await sendFollowUpsOnce({ maxSends: followUpAllowance({ dailyCap, sentToday, followupsToday }), captureReplies });
   const usedSoFar = (sentToday || 0) + (followupsToday || 0) + followUps.sent;
   const remaining = Math.max(0, dailyCap - usedSoFar);
   const limit = Math.min(parseInt(req.query.limit, 10) || OUTREACH_DAILY_CAP, remaining);
