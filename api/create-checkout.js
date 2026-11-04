@@ -1,17 +1,22 @@
 // api/create-checkout.js
-// Creates a Stripe Checkout session for the monthly subscription ($19.99/mo:
-// keeps the page live after the free month, with personalized support).
-// The amount lives on the Stripe Price referenced by STRIPE_MONTHLY_PRICE_ID.
-// Until that env var is set, checkout is refused so nobody is charged an old
-// price (STRIPE_PRICE_ID was the $49 price).
+// Creates a Stripe Checkout session for the monthly lead-page subscription.
+// Prices come from Stripe by lookup key (data/plans.mjs): enoma_page_monthly
+// ($19.99), or enoma_page_partner_monthly ($9.99) when the business was
+// referred by a partner with partner_pricing on. STRIPE_MONTHLY_PRICE_ID is
+// only a fallback if the lookup key isn't found.
 // Called from dashboard when user clicks "Subscribe".
 //
 // action: "portal" (body) opens the Stripe customer portal instead, so an
 // owner can update their card, cancel, or download invoices. The portal has
 // to be enabled once in Stripe (Settings → Billing → Customer portal).
+//
+// GET ?action=plans (public, no auth) returns the live amounts for the plans
+// on the pricing page, so changing a price in Stripe updates the page.
+// It lives here because the Vercel Hobby plan is at its 12-function limit.
 
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
+import { PLANS, LOOKUP_KEYS, pageLookupKeyFor } from '../data/plans.mjs';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const supabase = createClient(
@@ -19,7 +24,55 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Live prices by lookup key, cached per warm instance for 10 minutes.
+let priceCache = { at: 0, byKey: null };
+async function pricesByLookupKey() {
+  if (priceCache.byKey && Date.now() - priceCache.at < 10 * 60 * 1000) return priceCache.byKey;
+  const { data } = await stripe.prices.list({ lookup_keys: LOOKUP_KEYS, active: true, limit: 10 });
+  const byKey = {};
+  for (const price of data || []) if (price.lookup_key) byKey[price.lookup_key] = price;
+  priceCache = { at: Date.now(), byKey };
+  return byKey;
+}
+
+async function handlePlans(req, res) {
+  try {
+    const byKey = await pricesByLookupKey();
+    const plans = PLANS.filter((p) => p.public).map((p) => {
+      const live = byKey[p.lookupKey];
+      return {
+        id: p.id,
+        lookup_key: p.lookupKey,
+        amount: live?.unit_amount ?? p.fallbackAmount,
+        interval: live?.recurring?.interval || p.interval,
+        live: !!live,
+      };
+    });
+    res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=3600');
+    return res.status(200).json({ plans });
+  } catch (e) {
+    console.error('plans lookup failed:', e?.message);
+    return res.status(200).json({ plans: [], error: 'unavailable' });
+  }
+}
+
+// The partner price applies only when the business was referred by an active
+// partner with partner_pricing on. Missing column or row -> standard price.
+async function referrerFor(business_id) {
+  try {
+    const { data: biz } = await supabase.from('businesses').select('referred_by').eq('id', business_id).maybeSingle();
+    if (!biz?.referred_by) return null;
+    const { data: ref, error } = await supabase.from('referrers')
+      .select('code, active, partner_pricing').eq('code', biz.referred_by).maybeSingle();
+    if (error) return null;
+    return ref || null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function handler(req, res) {
+  if (req.method === 'GET' && req.query?.action === 'plans') return handlePlans(req, res);
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
   // Auth — require valid session
@@ -35,9 +88,6 @@ export default async function handler(req, res) {
 
   if (action === 'portal') return openPortal(req, res, user, business_id);
 
-  if (!process.env.STRIPE_MONTHLY_PRICE_ID) {
-    return res.status(503).json({ error: 'Subscriptions are opening shortly. Email jack@enoma.io and we\'ll keep your page live in the meantime.' });
-  }
 
   // Verify the user owns this business
   const { data: membership } = await supabase
@@ -93,6 +143,19 @@ export default async function handler(req, res) {
       }, { onConflict: 'business_id' });
   }
 
+  // Pick the price: partner or standard, by lookup key.
+  const lookupKey = pageLookupKeyFor(await referrerFor(business_id));
+  let priceId = null;
+  try {
+    priceId = (await pricesByLookupKey())[lookupKey]?.id || null;
+  } catch (e) {
+    console.error('price lookup failed:', e?.message);
+  }
+  if (!priceId && lookupKey === 'enoma_page_monthly') priceId = process.env.STRIPE_MONTHLY_PRICE_ID || null;
+  if (!priceId) {
+    return res.status(503).json({ error: 'Subscriptions are opening shortly. Email jack@enoma.io and we\'ll keep your page live in the meantime.' });
+  }
+
   // Create Checkout session
   const session = await stripe.checkout.sessions.create({
     customer: stripeCustomerId,
@@ -100,7 +163,7 @@ export default async function handler(req, res) {
     payment_method_types: ['card'],
     line_items: [
       {
-        price: process.env.STRIPE_MONTHLY_PRICE_ID,
+        price: priceId,
         quantity: 1,
       },
     ],
@@ -108,6 +171,7 @@ export default async function handler(req, res) {
       metadata: {
         business_id,
         supabase_user_id: user.id,
+        lookup_key: lookupKey,
       },
     },
     success_url: `https://enoma.io/dashboard?subscribed=1&business_id=${business_id}`,
