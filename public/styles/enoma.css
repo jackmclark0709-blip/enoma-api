@@ -217,6 +217,11 @@ p { color: var(--text-secondary); line-height: 1.7; }
   transition: color var(--transition), background var(--transition);
 }
 
+/* The nav's CTA is a .btn-primary inside .site-nav__links: keep its text
+   white (the link color above would otherwise win and turn it dark). */
+.site-nav__links a.btn-primary,
+.site-nav__links a.btn-primary:hover { color: #ffffff; background: var(--sky); }
+
 .site-nav__links a:hover {
   color: #0a1628;
   background: rgba(10,22,40,0.06);
