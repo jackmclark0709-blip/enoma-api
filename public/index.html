@@ -220,7 +220,6 @@
 
     /* ---------- founder ---------- */
     .founder__photo{width:112px;height:112px;border-radius:50%;object-fit:cover;margin:0 auto 1.5rem;display:block;border:3px solid #fff;box-shadow:0 12px 30px -12px rgba(11,27,51,.3);}
-    .founder__photo--initials{display:flex;align-items:center;justify-content:center;background:var(--sky-dim);color:var(--sky);font-family:'Fraunces',serif;font-weight:700;font-size:2.2rem;}
     .howcar__note{text-align:center;font-size:.7rem;color:var(--text-3);margin-top:.5rem;}
 
     /* ---------- final cta ---------- */
@@ -472,9 +471,7 @@
   <!-- ============ WHO'S BEHIND IT ============ -->
   <section class="scene reveal">
     <p class="eyebrow">Who's behind Enoma</p>
-    <!-- TODO(Jack): drop a square headshot at /assets/jack-headshot.jpg, then replace the initials div with:
-         <img class="founder__photo" src="/assets/jack-headshot.jpg" alt="Jack Clark, founder of Enoma" width="112" height="112"> -->
-    <div class="founder__photo founder__photo--initials" aria-hidden="true">JC</div>
+    <img class="founder__photo" src="/assets/jack-headshot.jpg" alt="Jack Clark, founder of Enoma" width="112" height="112" loading="lazy">
     <h2>A real person, not a call center.</h2>
     <p class="lead">I'm Jack Clark. I build Enoma pages for plumbers, landscapers, HVAC techs and other trades across the country, from Attleboro, Massachusetts. If you'd rather talk than fill out a form, email me at <a href="mailto:jack@enoma.io" style="color:var(--sky-light)">jack@enoma.io</a> and I'll call you back.</p>
   </section>
