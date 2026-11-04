@@ -30,9 +30,9 @@
 
   <style>
     :root{
-      --void:#070d18; --panel:rgba(255,255,255,0.045); --panel-border:rgba(255,255,255,0.10);
-      --sky:#3882dc; --sky-light:#5aa8f0; --sky-dim:rgba(56,130,220,0.16);
-      --text-1:#f0f6ff; --text-2:rgba(240,246,255,0.68); --text-3:rgba(240,246,255,0.42);
+      --void:#F6F8FB; --panel:#FFFFFF; --panel-border:#DCE3ED;
+      --sky:#1F5FBF; --sky-light:#1F5FBF; --sky-dim:rgba(31,95,191,0.10);
+      --text-1:#0B1B33; --text-2:#3B4A63; --text-3:#55647D;
     }
     body{background:var(--void);color:var(--text-1);font-family:'Instrument Sans',-apple-system,sans-serif;-webkit-font-smoothing:antialiased;position:relative;overflow-x:hidden;}
     body::before{
@@ -50,7 +50,7 @@
     .pricing-wrap{position:relative;z-index:1;max-width:940px;margin:2.5rem auto 0;padding:0 1.5rem}
     .pricing-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.75rem;align-items:start}
     @media (max-width:760px){.pricing-grid{grid-template-columns:1fr;max-width:460px;margin-inline:auto}}
-    .pricing-card{background:var(--panel);border:1px solid var(--panel-border);border-radius:20px;padding:2.5rem;box-shadow:0 20px 60px rgba(0,0,0,.35);text-align:center;position:relative;backdrop-filter:blur(6px);display:flex;flex-direction:column;height:100%}
+    .pricing-card{background:var(--panel);border:1px solid var(--panel-border);border-radius:20px;padding:2.5rem;box-shadow:0 20px 60px rgba(11,27,51,.12);text-align:center;position:relative;backdrop-filter:blur(6px);display:flex;flex-direction:column;height:100%}
     .pricing-card--growth{border-color:rgba(56,130,220,0.45);box-shadow:0 20px 60px rgba(56,130,220,0.2)}
     .pricing-includes--flex{flex:1}
     .pricing-badge{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:var(--sky);color:white;font-size:0.75rem;font-weight:700;padding:0.3rem 1rem;border-radius:999px;letter-spacing:0.06em;text-transform:uppercase;white-space:nowrap}
@@ -62,11 +62,11 @@
     .price-after strong{color:var(--text-1);font-weight:700}
     .pricing-includes{list-style:none;padding:0;margin:1.75rem 0;text-align:left;display:grid;gap:0.6rem}
     .pricing-includes li{font-size:0.92rem;color:var(--text-2);display:flex;align-items:flex-start;gap:0.6rem;line-height:1.4}
-    .pricing-includes li::before{content:"✓";color:#4ade80;font-weight:700;flex-shrink:0;margin-top:1px}
+    .pricing-includes li::before{content:"✓";color:#1F7A4D;font-weight:700;flex-shrink:0;margin-top:1px}
     .pricing-cta-btn{display:block;width:100%;padding:0.9rem;background:var(--sky);color:white;border:none;border-radius:999px;font-weight:700;font-size:1rem;cursor:pointer;text-decoration:none;text-align:center;transition:transform 0.15s ease,box-shadow 0.15s ease,background 0.15s ease}
     .pricing-cta-btn:hover{background:var(--sky-light);transform:translateY(-1px);box-shadow:0 16px 40px rgba(56,130,220,0.35);color:white}
-    .pricing-cta-btn--ghost{background:transparent;border:1.5px solid rgba(240,246,255,0.3);color:var(--text-1)}
-    .pricing-cta-btn--ghost:hover{background:rgba(255,255,255,0.06);color:var(--text-1);box-shadow:none}
+    .pricing-cta-btn--ghost{background:transparent;border:1.5px solid rgba(11,27,51,0.3);color:var(--text-1)}
+    .pricing-cta-btn--ghost:hover{background:rgba(11,27,51,0.06);color:var(--text-1);box-shadow:none}
     .pricing-cta-note{margin-top:0.6rem;font-size:0.82rem;color:var(--text-3);text-align:center}
     .pricing-cta-note a{color:var(--sky-light);font-weight:600;text-decoration:none}
     .price-addon{font-family:'Fraunces',serif;font-size:2.4rem;font-weight:800;color:var(--text-1);letter-spacing:-0.03em;display:block}
@@ -80,7 +80,12 @@
     .faq h4{font-size:0.95rem;font-weight:700;color:var(--text-1);margin:0 0 0.4rem}
     .faq p{font-size:0.92rem;color:var(--text-2);margin:0;line-height:1.6}
     .faq p a{color:var(--sky-light);font-weight:600;text-decoration:none}
-  </style>
+  
+    /* ---------- light theme (Nov 2026): no grain, glow or particle field ---------- */
+    body::before{display:none}
+    .glow,#bgcanvas{display:none}
+    a.btn-primary:hover,.pricing-cta-btn:hover{background:#163F7F}
+</style>
 </head>
 
 <body>
