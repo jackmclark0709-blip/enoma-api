@@ -19,6 +19,7 @@ import { qualifiesForPreview, buildFactsPrompt, validateGenerated, assembleProfi
 import { verifyUnsubscribeToken, appendComplianceFooter, buildUnsubscribeUrl, MAILING_ADDRESS } from "./_lib/outreach-footer.js";
 import { buildOutreachEmail, buildOutreachIntro, buildFollowUpEmail, isFollowUpDue, FOLLOW_UP_AFTER_DAYS, FOLLOW_UP_MAX_AGE_DAYS, isLikelyLinkScanner, buildOwnerVisitAlert, trackedLinks, replyToFor, slugFromPreviewUrl, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "./_lib/outreach-email.js";
 import { verifyMailbox } from "./_lib/mailbox-verify.js";
+import { validateContactRequest, buildContactAlert } from "./_lib/preview-landing.js";
 import { followupBlockReason, followupSendAt, followupExpired, buildVisitFollowupEmail, buildAlertFollowupSection, verifyFollowupToken } from "./_lib/visit-followup.js";
 import { plainTextToHtml, wrapEmailHtml } from "./_lib/email-html.js";
 import { rampCapForDate, capWithBounceBrake, followUpAllowance } from "./_lib/outreach-ramp.js";
@@ -1881,6 +1882,51 @@ async function createVisitFollowup(prospect, msg, slug, at) {
   return { internal: false, section: buildAlertFollowupSection({ followupId: row.id, blockReason, email }) };
 }
 
+// Public — the Email me / Text me / Book 10 minutes buttons on the preview
+// landing page (api/_lib/preview-landing.js). Each tap is logged in
+// page_events and alerts Jack, at most once per kind per page every 10 min so
+// a double tap doesn't double-alert. Internal businesses are logged only.
+const LANDING_ALERT_COOLDOWN_MS = 10 * 60 * 1000;
+async function handleLandingContact(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ success: false, error: "POST only" });
+  const r = validateContactRequest(req.body || {});
+  if (!r.ok) return res.status(400).json({ success: false, error: r.error });
+
+  const { data: profile } = await supabase.from("small_business_profiles")
+    .select("username, business_name, city, state, business_id, is_public")
+    .eq("username", r.slug).eq("is_public", true).maybeSingle();
+  if (!profile) return res.status(404).json({ success: false, error: "not_found" });
+  const { data: biz } = profile.business_id
+    ? await supabase.from("businesses").select("is_internal").eq("id", profile.business_id).maybeSingle()
+    : { data: null };
+  const internal = biz?.is_internal === true;
+  const event = `landing_${r.kind}`;
+
+  const since = new Date(Date.now() - LANDING_ALERT_COOLDOWN_MS).toISOString();
+  const { count: recent } = await supabase.from("page_events")
+    .select("id", { count: "exact", head: true }).eq("slug", r.slug).eq("event", event).gte("created_at", since);
+
+  await supabase.from("page_events").insert({
+    slug: r.slug, event,
+    metadata: { ...(r.m ? { m: r.m } : {}), ...(r.phone ? { phone: r.phone } : {}), ...(r.day ? { day: r.day, window: r.window } : {}), ...(r.note ? { note: r.note } : {}) },
+    referrer: req.headers.referer || null,
+    user_agent: req.headers["user-agent"] || null,
+    ip: (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || null,
+    is_internal: internal
+  });
+
+  if (!internal && !recent) {
+    const alert = buildContactAlert({ ...r, businessName: profile.business_name, city: profile.city, state: profile.state });
+    try {
+      if (!resend) throw new Error("RESEND_API_KEY not set");
+      await resend.emails.send({ from: "Enoma <noreply@enoma.io>", to: "jack@enoma.io", subject: alert.subject, text: alert.text, html: alert.html });
+    } catch (e) {
+      await logNotificationFailure("landing-contact-alert", "jack@enoma.io", e, { slug: r.slug, kind: r.kind });
+    }
+  }
+  return res.status(200).json({ success: true });
+}
+
 // Public — the signed Approve / Skip links in Jack's visit alert. GET only
 // shows a confirm button (mail scanners on Jack's inbox follow GET links);
 // the POST does the work.
@@ -2712,6 +2758,16 @@ export default async function handler(req, res) {
     } catch (err) {
       console.error("Unsubscribe failed:", err);
       return res.status(500).send("Something went wrong processing your request.");
+    }
+  }
+
+  // Public: the contact buttons on the preview landing page.
+  if (req.query.action === "landing_contact") {
+    try {
+      return await handleLandingContact(req, res);
+    } catch (err) {
+      console.error("Landing contact failed:", err);
+      return res.status(500).json({ success: false, error: "failed" });
     }
   }
 

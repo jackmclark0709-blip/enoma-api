@@ -13,6 +13,7 @@ import { openSchedule, showEmergencyBadge, townsLine, ctaNote } from "./_lib/pag
 import { heroPhoto as pickHeroPhoto, visibleAttachments } from "./_lib/photo-kinds.js";
 import { renderSpotlight, fillTemplate, linkServicesToSpotlights } from "./_lib/spotlight-render.js";
 import { REVIEW_SLUG, googleReviewUrl } from "./_lib/reviews.js";
+import { LANDING_SLUG, detectCallouts, workingPoints, renderLanding } from "./_lib/preview-landing.js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -326,6 +327,32 @@ async function serveReviewPage(req, res, bizSlug) {
   return res.status(200).send(html);
 }
 
+// enoma.io/<business>/preview — where the cold email sends an owner: their
+// page, what works, what we'd add, the price, and ways to reach Jack.
+// A page that's already claimed has no pitch to make, so it goes to the page.
+async function serveLanding(req, res, bizSlug) {
+  const { data: profile } = await supabase.from("small_business_profiles").select("*")
+    .eq("username", bizSlug).eq("is_public", true).maybeSingle();
+  if (!profile?.business_id) return res.status(404).send("Not found");
+  const m = /^[0-9a-f-]{36}$/i.test(String(req.query.m || "")) ? String(req.query.m) : null;
+  res.setHeader("Cache-Control", "private, no-store");
+  if (profile.is_claimed !== false) return res.redirect(302, `/${encodeURIComponent(bizSlug)}`);
+  if (!(await pageIsLive(profile.business_id))) {
+    return res.status(200).send(inactivePage(profile.business_name || bizSlug, absoluteBaseUrl(req)));
+  }
+  Object.assign(profile, stripWeakRatingClaims(profile));
+  const { count: spotlightCount } = await supabase.from("service_spotlights")
+    .select("id", { count: "exact", head: true }).eq("business_id", profile.business_id).eq("status", "published");
+  const html = renderLanding(profile, {
+    slug: profile.username, m,
+    callouts: detectCallouts(profile, { spotlightCount: spotlightCount || 0 }),
+    working: workingPoints(profile),
+  });
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader("X-Robots-Tag", "noindex");
+  return res.status(200).send(html);
+}
+
 async function serveSpotlight(req, res, bizSlug, serviceSlug) {
   const { data: profile } = await supabase.from("small_business_profiles").select("*")
     .eq("username", bizSlug).eq("is_public", true).maybeSingle();
@@ -403,6 +430,7 @@ export default async function handler(req, res) {
       const [bizSlug, serviceSlug, ...rest] = slug.split("/").filter(Boolean);
       if (!bizSlug || !serviceSlug || rest.length) return res.status(404).send("Not found");
       if (serviceSlug === REVIEW_SLUG) return await serveReviewPage(req, res, bizSlug);
+      if (serviceSlug === LANDING_SLUG) return await serveLanding(req, res, bizSlug);
       return await serveSpotlight(req, res, bizSlug, serviceSlug);
     }
 

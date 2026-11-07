@@ -36,7 +36,7 @@ await test("links go through the go redirect with the message id", () => {
   assert.equal(l.page, `https://enoma.io/api/ga-metrics?action=go&m=${ID}&to=page`);
   assert.equal(l.claim, `https://enoma.io/api/ga-metrics?action=go&m=${ID}&to=claim`);
   assert.equal(l.claimDest, `https://enoma.io/cb-landscaping?claim=1&m=${ID}`);
-  assert.equal(l.pageDest, `https://enoma.io/cb-landscaping?m=${ID}`);
+  assert.equal(l.pageDest, `https://enoma.io/cb-landscaping/preview?m=${ID}`);
 });
 
 console.log("buildOutreachEmail");
