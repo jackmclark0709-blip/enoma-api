@@ -1908,7 +1908,7 @@ async function handleLandingContact(req, res) {
 
   await supabase.from("page_events").insert({
     slug: r.slug, event,
-    metadata: { ...(r.m ? { m: r.m } : {}), ...(r.phone ? { phone: r.phone } : {}), ...(r.day ? { day: r.day, window: r.window } : {}), ...(r.note ? { note: r.note } : {}) },
+    metadata: { ...(r.m ? { m: r.m } : {}), ...(r.src ? { src: r.src } : {}), ...(r.phone ? { phone: r.phone } : {}), ...(r.day ? { day: r.day, window: r.window } : {}), ...(r.note ? { note: r.note } : {}) },
     referrer: req.headers.referer || null,
     user_agent: req.headers["user-agent"] || null,
     ip: (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || null,
@@ -2453,7 +2453,9 @@ async function handleVoiceQuery(req, res) {
 
 const FUNNEL_STEP_ORDER = [
   "instant_preview_started",
+  "place_search_used",
   "instant_preview_generated",
+  "instant_preview_viewed",
   "instant_preview_failed",
   "claim_link_requested",
   "business_claimed",

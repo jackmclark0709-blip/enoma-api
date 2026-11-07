@@ -3,6 +3,8 @@
 // we'd add with them (each one from what's actually missing on THEIR page,
 // never a fixed list), the price with no catch, and one-tap ways to reach
 // Jack. Every tap alerts Jack (api/ga-metrics.js action=landing_contact).
+// Self-serve visitors from /get-your-website land here too (?src=instant),
+// with the headline in their voice instead of Jack's cold-email greeting.
 
 import { workPhotos } from "./photo-kinds.js";
 import { isStrongRating } from "./page-style.js";
@@ -14,6 +16,22 @@ export const BOOK_WINDOWS = ["morning", "afternoon", "evening"];
 const DAY_LABEL = { today: "Today", tomorrow: "Tomorrow", this_week: "Later this week", next_week: "Next week" };
 const WINDOW_LABEL = { morning: "Morning", afternoon: "Afternoon", evening: "Evening" };
 export const MAX_CALLOUTS = 6;
+export const LANDING_SOURCES = ["instant"];
+
+/** Where /get-your-website sends a visitor once their instant preview is built. */
+export function instantPreviewPath(slug) {
+  return `/${encodeURIComponent(slug)}/${LANDING_SLUG}?src=instant`;
+}
+
+/**
+ * The landing's source: "instant" for a self-serve visitor. A valid `m`
+ * (the cold-email message id) always wins, so cold-email owners keep their
+ * own attribution even if a src param tags along.
+ */
+export function landingSource({ src, m } = {}) {
+  const hasM = /^[0-9a-f-]{36}$/i.test(String(m || ""));
+  return !hasM && LANDING_SOURCES.includes(String(src || "")) ? String(src) : null;
+}
 
 const arr = v => (Array.isArray(v) ? v : []);
 const esc = (s = "") => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
@@ -54,7 +72,7 @@ export function detectCallouts(profile, { spotlightCount = 0 } = {}) {
       body: `We only found ${services.length === 1 ? "one service" : services.length ? `${services.length} services` : "no services"} to list. Tell us what else you do and it goes on the page.` });
   } else {
     out.push({ key: "services", where: "Services", title: "Confirm your services",
-      body: "We wrote these from your Google listing and website. Tell us what's wrong, what's missing, and what you want more of." });
+      body: "We wrote these up for you. Tell us what's wrong, what's missing, and what you want more of." });
   }
   if (services.length >= 2 && !spotlightCount) {
     out.push({ key: "service_pages", where: "Each service", title: "Give each service its own page",
@@ -88,7 +106,7 @@ export function workingPoints(profile) {
   const pts = [];
   if (p.phone) pts.push("A tap-to-call button with your number");
   const n = arr(p.services).length;
-  if (n) pts.push(`Your ${n === 1 ? "service" : `${n} services`}, written up from your own Google listing${p.website ? " and website" : ""}`);
+  if (n) pts.push(`Your ${n === 1 ? "service" : `${n} services`}, written up and ready to edit`);
   if (isStrongRating(p.average_rating, p.review_count)) pts.push(`Your ${Number(p.average_rating)}★ rating from ${p.review_count} Google reviews`);
   const towns = arr(p.service_area);
   if (towns.length > 1) pts.push(`The ${towns.length} towns you serve`);
@@ -102,7 +120,8 @@ export function validateContactRequest(body = {}) {
   const slug = String(body.slug || "").trim();
   if (!/^[a-z0-9][a-z0-9-]{0,99}$/.test(slug)) return { ok: false, error: "bad_slug" };
   const m = /^[0-9a-f-]{36}$/i.test(String(body.m || "")) ? String(body.m) : null;
-  const out = { ok: true, kind, slug, m, phone: null, day: null, window: null, note: null };
+  const src = landingSource({ src: body.src, m });
+  const out = { ok: true, kind, slug, m, src, phone: null, day: null, window: null, note: null };
   if (kind === "text" || kind === "book") {
     const digits = String(body.phone || "").replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "");
     if (digits.length !== 10) return { ok: false, error: "bad_phone" };
@@ -118,7 +137,7 @@ export function validateContactRequest(body = {}) {
   return out;
 }
 
-export function buildContactAlert({ kind, businessName, city, state, phone, day, window: win, note, slug }) {
+export function buildContactAlert({ kind, businessName, city, state, phone, day, window: win, note, slug, src = null }) {
   const name = String(businessName || slug || "A business").trim();
   const where = [city, state].filter(Boolean).join(", ");
   const what = kind === "text" ? `wants a text at ${phone}`
@@ -129,15 +148,17 @@ export function buildContactAlert({ kind, businessName, city, state, phone, day,
   const next = kind === "email" ? "Their email app just opened to you. Watch your inbox."
     : kind === "text" ? "They asked for it, so texting them back is fine."
     : "Call them in that window. A quick text to confirm the time is fine too.";
-  const lines = [`${name}${where ? ` (${where})` : ""} ${what}.`, note ? `Their note: "${note}"` : "", `Page: ${page}`, next].filter(Boolean);
+  const from = src === "instant" ? "From: a self-serve instant preview they built on /get-your-website (src=instant)." : "";
+  const lines = [`${name}${where ? ` (${where})` : ""} ${what}.`, note ? `Their note: "${note}"` : "", from, `Page: ${page}`, next].filter(Boolean);
   const html = lines.map(l => `<p>${esc(l)}</p>`).join("\n").replace(esc(page), `<a href="${esc(page)}">${esc(page)}</a>`);
   return { subject, text: lines.join("\n"), html };
 }
 
 /** The full landing page HTML. */
-export function renderLanding(profile, { callouts = [], working = [], slug, m = null } = {}) {
+export function renderLanding(profile, { callouts = [], working = [], slug, m = null, src = null } = {}) {
   const p = profile || {};
   const name = p.business_name || slug;
+  const instant = landingSource({ src, m }) === "instant";
   const q = m ? `?m=${encodeURIComponent(m)}` : "";
   const pageUrl = `/${encodeURIComponent(slug)}`;
   const claimUrl = `/${encodeURIComponent(slug)}?claim=1${m ? `&m=${encodeURIComponent(m)}` : ""}`;
@@ -150,7 +171,12 @@ export function renderLanding(profile, { callouts = [], working = [], slug, m = 
         </li>`).join("");
   const dayOpts = BOOK_DAYS.map(d => `<option value="${d}">${DAY_LABEL[d]}</option>`).join("");
   const winOpts = BOOK_WINDOWS.map(w => `<option value="${w}">${WINDOW_LABEL[w]}</option>`).join("");
-  const data = JSON.stringify({ slug, m }).replace(/</g, "\\u003c");
+  const data = JSON.stringify({ slug, m, src: instant ? "instant" : null }).replace(/</g, "\\u003c");
+  const eyebrow = instant ? "Live as a preview" : "Ready to go live";
+  const headline = instant ? `Here's your page, ${esc(name)}` : `Here's a preview of your page, ${esc(name)}`;
+  const lede = instant
+    ? "It's live as a preview. Keep it free for a month, then $19.99/month. Here's what's already on it:"
+    : "It's ready to go. Here's what's already on it:";
 
   return `<!doctype html>
 <html lang="en">
@@ -237,9 +263,9 @@ export function renderLanding(profile, { callouts = [], working = [], slug, m = 
 
 <main class="wrap">
   <section class="hero">
-    <span class="eyebrow">Ready to go live</span>
-    <h1>Here's a preview of your page, ${esc(name)}</h1>
-    <p class="lede">I built this from your Google listing${p.website ? " and your website" : ""}. It already works, and here's what's on it:</p>
+    <span class="eyebrow">${eyebrow}</span>
+    <h1>${headline}</h1>
+    <p class="lede">${lede}</p>
     <ul class="working">${working.map(w => `<li>${esc(w)}</li>`).join("")}</ul>
 
     <div class="values">
@@ -324,7 +350,7 @@ export function renderLanding(profile, { callouts = [], working = [], slug, m = 
       .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok && j.success, error: j.error }; }); })
       .catch(function () { return { ok: false }; });
   }
-  try { fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug: ctx.slug, event: "landing_view", metadata: ctx.m ? { m: ctx.m } : {} }), keepalive: true }); } catch (e) {}
+  try { fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug: ctx.slug, event: "landing_view", metadata: ctx.m ? { m: ctx.m } : ctx.src ? { src: ctx.src } : {} }), keepalive: true }); } catch (e) {}
 
   document.getElementById("btn-email").addEventListener("click", function () { send({ kind: "email" }); });
   document.querySelectorAll("[data-panel]").forEach(function (b) {

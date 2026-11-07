@@ -782,6 +782,8 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 .claim-box__form button:disabled { opacity: 0.6; cursor: wait; }
 .claim-box__msg { margin: 0.6rem 0 0; font-size: 0.88rem; color: #7a5a10; line-height: 1.5; }
 .claim-box__msg.is-error { color: #d94040 !important; }
+.claim-box__help { margin: 0.5rem 0 0; font-size: 0.82rem; }
+.claim-box__help a { color: inherit; opacity: 0.85; text-decoration: underline; }
 /* Owner view (opened from Jack's email): price, page progress, what's next */
 .owner-extras { margin-top: 0.7rem; color: rgba(240,246,255,0.8); font-size: 0.85rem; line-height: 1.5; }
 .unclaimed-banner .owner-extras .owner-extras__price { margin: 0 0 0.75rem; font-weight: 700; color: #f0f6ff; }
@@ -884,13 +886,14 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
   <p id="unclaimedLine"><span id="unclaimedText"></span><a id="unclaimedCta" class="unclaimed-cta" href="#">Claim this page →</a></p>
   <div class="claim-box hidden" id="claimBox">
     <p class="claim-box__title" id="claimTitle">This is your page. Claim it to keep it live.</p>
-    <p class="claim-box__sub" id="claimSub">Free for your first month, no credit card. We'll email you a link: tap it and the page is yours to edit.</p>
+    <p class="claim-box__sub" id="claimSub">Free for your first month, then $19.99/month, cancel anytime. No credit card. We'll email you a link: tap it and the page is yours to edit.</p>
     <form class="claim-box__form" id="claimForm" novalidate>
       <label class="claim-box__label" for="claimEmail">Your email</label>
       <input id="claimEmail" type="email" autocomplete="email" placeholder="you@yourbusiness.com" required />
       <button type="submit" id="claimSubmit">Email me my claim link</button>
     </form>
     <p class="claim-box__msg hidden" id="claimMsg" role="status"></p>
+    <p class="claim-box__help"><a id="claimHelp" href="#">Questions? Talk to Jack</a></p>
     <div class="owner-extras hidden" id="ownerExtras">
       <p class="owner-extras__price">Free for the first month, then $19.99/month. No card now, no contract.</p>
       <div class="owner-progress">

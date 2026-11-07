@@ -1,7 +1,8 @@
 // Run with: node tests/preview-landing.test.js (also wired into `npm test`)
 
 import assert from "node:assert/strict";
-import { detectCallouts, workingPoints, validateContactRequest, buildContactAlert, renderLanding, MAX_CALLOUTS } from "../api/_lib/preview-landing.js";
+import { readFileSync } from "node:fs";
+import { detectCallouts, workingPoints, validateContactRequest, buildContactAlert, renderLanding, MAX_CALLOUTS, instantPreviewPath, landingSource } from "../api/_lib/preview-landing.js";
 import { bannedWordsIn } from "../api/_lib/copy-lint.js";
 
 let passed = 0;
@@ -136,6 +137,93 @@ await test("escapes the business name and stays out of search", () => {
 await test("page copy follows the house copy rules", () => {
   const text = html.replace(/<style>[\s\S]*?<\/style>|<script>[\s\S]*?<\/script>/g, "").replace(/<[^>]+>/g, " ");
   assert.deepEqual(bannedWordsIn(text), []);
+});
+
+await test("no copy says the page was built from the Google listing", () => {
+  assert.doesNotMatch(html, /Google listing/);
+  assert.doesNotMatch(html, /I built this/);
+  for (const c of detectCallouts(thin)) assert.doesNotMatch(c.body, /Google listing/, c.key);
+  for (const w of workingPoints({ ...thin, website: "https://x" })) assert.doesNotMatch(w, /Google listing/);
+});
+
+console.log("renderLanding src=instant");
+const instant = renderLanding(thin, { slug: "robbins-plumbing", src: "instant", callouts: detectCallouts(thin), working: workingPoints(thin) });
+const visible = h => h.replace(/<style>[\s\S]*?<\/style>|<script>[\s\S]*?<\/script>/g, "").replace(/<[^>]+>/g, " ");
+await test("headline is in the visitor's voice, not Jack's greeting", () => {
+  assert.match(instant, /<h1>Here's your page, Robbins Plumbing<\/h1>/);
+  assert.match(instant, /live as a preview/);
+  assert.doesNotMatch(visible(instant), /Hi, it&#039;s Jack|Hi, it's Jack|I built/);
+});
+await test("never mentions the Google listing", () => {
+  assert.doesNotMatch(instant, /Google listing/);
+});
+await test("price sits with every 'free' (lede and the catch)", () => {
+  assert.match(instant, /Keep it free for a month, then \$19\.99\/month/);
+  assert.match(instant, /\$19\.99<\/b><span>a month after the free month/);
+});
+await test("keeps the callouts, the catch and all three contact buttons", () => {
+  assert.match(instant, /class="note"/);
+  assert.match(instant, /What's the catch\?/);
+  for (const b of ["Email me", "Text me", "Book 10 minutes"]) assert.ok(instant.includes(b), b);
+});
+await test("Keep this page claims without m; contact taps carry src=instant", () => {
+  assert.match(instant, /href="\/robbins-plumbing\?claim=1"/);
+  assert.match(instant, /var ctx = \{"slug":"robbins-plumbing","m":null,"src":"instant"\}/);
+});
+await test("a cold-email visit with m stays a cold-email visit", () => {
+  const cold = renderLanding(thin, { slug: "robbins-plumbing", m: M, src: "instant", callouts: [], working: [] });
+  assert.match(cold, /Here's a preview of your page/);
+  assert.match(cold, /"src":null/);
+});
+await test("instant copy follows the house copy rules", () => {
+  assert.deepEqual(bannedWordsIn(visible(instant)), []);
+});
+
+console.log("landingSource / instantPreviewPath");
+await test("only 'instant' without a valid m counts", () => {
+  assert.equal(landingSource({ src: "instant" }), "instant");
+  assert.equal(landingSource({ src: "instant", m: M }), null);
+  assert.equal(landingSource({ src: "instant", m: "junk" }), "instant");
+  assert.equal(landingSource({ src: "<script>" }), null);
+  assert.equal(landingSource({}), null);
+});
+await test("redirect target is the preview landing with src=instant", () => {
+  assert.equal(instantPreviewPath("robbins-plumbing"), "/robbins-plumbing/preview?src=instant");
+});
+await test("contact requests keep src=instant only without m, and the alert says so", () => {
+  const r = validateContactRequest({ kind: "email", slug: "robbins-plumbing", src: "instant" });
+  assert.equal(r.ok, true);
+  assert.equal(r.m, null);
+  assert.equal(r.src, "instant");
+  assert.equal(validateContactRequest({ kind: "email", slug: "a", m: M, src: "instant" }).src, null);
+  const a = buildContactAlert({ ...r, businessName: "Robbins Plumbing" });
+  assert.match(a.text, /src=instant/);
+  assert.doesNotMatch(buildContactAlert({ kind: "email", slug: "r" }).text, /src=instant/);
+});
+
+console.log("/get-your-website copy");
+const gyw = readFileSync(new URL("../public/get-your-website.html", import.meta.url), "utf8");
+await test("sends a built instant preview to the landing, using the same path", () => {
+  assert.ok(gyw.includes("'/' + encodeURIComponent(data.slug) + '/preview?src=instant'"));
+  assert.ok(!gyw.includes("'?new=1'"));
+  assert.equal(instantPreviewPath("x"), "/" + "x" + "/preview?src=instant");
+});
+await test("names no customer and has no example iframe", () => {
+  assert.doesNotMatch(gyw, /conway/i);
+  assert.doesNotMatch(gyw, /browser-mini/);
+});
+await test("no 'from your listing' copy, one speed claim", () => {
+  assert.doesNotMatch(gyw, /from your (Google )?listing/i);
+  assert.doesNotMatch(gyw, /under 5 minutes|20 seconds/);
+  assert.match(gyw, /Type in your business name and see your page in about 30 seconds/);
+  assert.match(gyw, /Not on Google yet, or your info is out of date\? I'll build it with you\./);
+});
+await test("price shows next to the free month in the form header", () => {
+  assert.match(gyw, /Free for a month — no credit card · \$19\.99\/month after the free month/);
+});
+await test("logs place_search_used once per page", () => {
+  assert.equal((gyw.match(/enomaTrack\('place_search_used'/g) || []).length, 1);
+  assert.match(gyw, /if \(!searchLogged\) \{ searchLogged = true;/);
 });
 
 console.log(`\n${passed} passed`);
