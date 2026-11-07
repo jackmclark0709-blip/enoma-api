@@ -7,8 +7,8 @@
 // Writing rules (keep these so the guides stay useful, not scaled filler):
 //  - Answer the searcher's actual question first; Enoma comes in once, where it fits.
 //  - Position Enoma as a way to get calls and quote requests, not "a free website".
-//  - No invented statistics. The only numbers we cite are Conway's real results
-//    and Enoma's own pricing.
+//  - No invented statistics, and no customer names or results (Operating Doc
+//    rule #5). The only numbers we cite are Enoma's own pricing and timing.
 //  - Every FAQ answer must stand alone (it's what AI answer engines quote).
 
 export const GUIDES = [
@@ -44,7 +44,7 @@ export const GUIDES = [
 
 <h2>5. There's no website behind the listing</h2>
 <p>A profile with no website, or a link to a Facebook page, gives Google very little to work with. Google reads your website to understand what you do and where. A simple page that lists each service, each town and your phone number helps you show up for more searches, and it gives customers a reason to call you instead of the next listing.</p>
-<div class="lp-callout">That's what an Enoma page is built for: your services, your towns, a tap-to-call button and a quote form that sends requests straight to you. <a href="/get-your-website" data-cta="inline">See yours in 30 seconds</a>, built from your Google listing.</div>
+<div class="lp-callout">That's what an Enoma page is built for: your services, your towns, a tap-to-call button and a quote form that sends requests straight to you. <a href="/get-your-website" data-cta="inline">Type in your business name and see your page in about 30 seconds</a>. Not on Google yet, or your info is out of date? I'll build it with you.</div>
 
 <h2>6. You have few or no recent reviews</h2>
 <p>Review count, rating and how recent your reviews are all affect where you rank in the map results, and they affect who gets the call even when you do show up. The fix is unglamorous: ask every happy customer, every time, with a direct link. Our guide on <a href="/for/how-to-get-more-google-reviews-for-contractors">getting more Google reviews</a> has the exact steps and a message you can copy.</p>
@@ -113,7 +113,7 @@ export const GUIDES = [
 
 <h3>3. A page that turns searches into calls</h3>
 <p>When someone finds you, they want to know three things fast: do you do this job, do you cover my town, and how do I reach you. A simple page with your services, towns, a tap-to-call button and a quote form answers all three. Quote requests come straight to you. You don't pay per lead, and you don't compete with four other pros for the same homeowner.</p>
-<div class="lp-callout">That's what an Enoma page does. It's built from your Google listing, sends calls and quote requests straight to you, and costs $19.99/mo after a free first month: less than many single marketplace leads. <a href="/get-your-website" data-cta="inline">See your page in 30 seconds</a>.</div>
+<div class="lp-callout">That's what an Enoma page does. It sends calls and quote requests straight to you, and costs less than many single marketplace leads: first month free, then $19.99/month. Cancel anytime. <a href="/get-your-website" data-cta="inline">Type in your business name and see your page in about 30 seconds</a>. Not on Google yet, or your info is out of date? I'll build it with you.</div>
 
 <h2>A sensible way to switch</h2>
 <p>Don't cancel everything on day one. Most contractors who move away from shared leads do it in stages:</p>
@@ -248,7 +248,7 @@ export const GUIDES = [
 
 <h2>Make your reviews do more work</h2>
 <p>Reviews on Google help you get found. Showing them on your own page helps you get chosen, because the customer sees them right next to your phone number. Your page should also link back to your Google profile so happy customers can add theirs.</p>
-<div class="lp-callout">An Enoma page pulls in your Google rating, lists your services and towns, and puts your number one tap away. <a href="/get-your-website" data-cta="inline">See your page in 30 seconds</a>, built from your Google listing.</div>
+<div class="lp-callout">An Enoma page pulls in your Google rating, lists your services and towns, and puts your number one tap away. <a href="/get-your-website" data-cta="inline">Type in your business name and see your page in about 30 seconds</a>. Not on Google yet, or your info is out of date? I'll build it with you.</div>
 `,
     faqs: [
       { q: "How do I get a link for customers to leave a Google review?", a: "Search your business name on Google while signed in to the account that manages your Business Profile and use the \"Ask for reviews\" option to copy a direct review link or get a QR code. Text or email that link to customers so they land right on the review form." },
@@ -285,7 +285,7 @@ export const GUIDES = [
   <li>Do you bring your own supplies? Are you insured?</li>
   <li>How do I get a quote?</li>
 </ul>
-<div class="lp-callout">An Enoma page answers those in one screen, with a quote form that sends requests straight to you and a tap-to-call button. <a href="/get-your-website" data-cta="inline">See your page in 30 seconds</a>, built from your Google listing.</div>
+<div class="lp-callout">An Enoma page answers those in one screen, with a quote form that sends requests straight to you and a tap-to-call button. <a href="/get-your-website" data-cta="inline">Type in your business name and see your page in about 30 seconds</a>. Not on Google yet, or your info is out of date? I'll build it with you.</div>
 
 <h2>2. Build clusters, not a scattered map</h2>
 <p>Drive time eats cleaning margins. A client next door to an existing client is worth more than one across town. When you finish at a home, leave a card or door hanger with two or three neighbors. Ask regulars if anyone on their street has asked about a cleaner. Clusters let you fit more homes into a day.</p>
@@ -342,7 +342,7 @@ export const GUIDES = [
 
 <h2>3. Catch the calls you can't answer</h2>
 <p>Many HVAC searches happen at night and on weekends. If no one answers, the homeowner calls the next company. Give them a second way to reach you: a short quote or service request form, and a text-back from your phone system, so you can call them first thing in the morning.</p>
-<div class="lp-callout">An Enoma page lists your services and towns, puts your number one tap away, and has a request form that sends after-hours leads straight to you. <a href="/get-your-website" data-cta="inline">See your page in 30 seconds</a>, built from your Google listing.</div>
+<div class="lp-callout">An Enoma page lists your services and towns, puts your number one tap away, and has a request form that sends after-hours leads straight to you. <a href="/get-your-website" data-cta="inline">Type in your business name and see your page in about 30 seconds</a>. Not on Google yet, or your info is out of date? I'll build it with you.</div>
 
 <h2>4. Turn repair calls into maintenance plans</h2>
 <p>A maintenance plan (an annual or twice-yearly tune-up with a member perk like priority scheduling) turns a one-time repair customer into a recurring one. It also fills your schedule in the shoulder seasons and gives you a natural reason to be the company they call when it's time to replace the system. Offer it on every service call.</p>
@@ -428,7 +428,7 @@ export const GUIDES = [
 <p>Non-negotiable. It's free and it's where most local searches start. Fill in every field, pick the right primary category, list your towns and ask every customer for a review.</p>
 <h3>Enoma</h3>
 <p>For owners who want calls they don't share and don't have time to build a website. Your page names your services and towns so Google and AI assistants understand what you do, your Business Profile links to it, and every call and quote request goes straight to you.</p>
-<div class="lp-callout">Want to see yours? We build it from your Google listing in about 30 seconds, and you see it live before you pay anything. <a href="/get-your-website" data-cta="inline">See your page</a>.</div>
+<div class="lp-callout">Want to see yours? <a href="/get-your-website" data-cta="inline">Type in your business name and see your page in about 30 seconds</a>. Not on Google yet, or your info is out of date? I'll build it with you. You see it live before you pay anything.</div>
 
 <h2>A sensible setup for most trades</h2>
 <ol>
@@ -481,7 +481,7 @@ export const GUIDES = [
   <li>A tap-to-call button and a quote form for people who search after hours.</li>
   <li>Your name, phone and address exactly as they appear on your profile.</li>
 </ul>
-<div class="lp-callout">That's exactly what an Enoma page is: one page built from your Google listing, with your services, your towns, tap-to-call and a quote form that sends requests straight to you. <a href="/get-your-website" data-cta="inline">See yours in 30 seconds</a>.</div>
+<div class="lp-callout">That's exactly what an Enoma page is: one page with your services, your towns, tap-to-call and a quote form that sends requests straight to you. <a href="/get-your-website" data-cta="inline">Type in your business name and see your page in about 30 seconds</a>. Not on Google yet, or your info is out of date? I'll build it with you.</div>
 
 <h2>How to make them work together</h2>
 <ol>
@@ -610,7 +610,7 @@ export const GUIDES = [
 <p>Our <a href="/for/enoma-vs-angi-thumbtack-yelp">comparison page</a> has a quick calculator for cost per booked job.</p>
 
 <h2>The part Yelp can't give you</h2>
-<p>Your Yelp page is Yelp's page: other businesses can advertise on it unless you pay to remove them, and it lives on Yelp's site. A page of your own, linked from your Google listing, shows only your business and sends every call straight to you.</p>
+<p>Your Yelp page is Yelp's page: other businesses can advertise on it unless you pay to remove them, and it lives on Yelp's site. A page of your own, linked from your Google Business Profile, shows only your business and sends every call straight to you.</p>
 <div class="lp-callout">That's what an Enoma page is: your services, your towns, tap-to-call and a quote form, with no competitor ads. $19.99/mo after a free first month. <a href="/get-your-website" data-cta="inline">See your page in 30 seconds</a>.</div>
 `,
     faqs: [
