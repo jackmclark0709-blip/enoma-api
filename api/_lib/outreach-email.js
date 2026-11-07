@@ -33,7 +33,9 @@ export function trackedLinks(messageId, slug) {
     image: `${BASE}/api/p?og=1&slug=${encodeURIComponent(slug)}`,
     // Where action=go finally sends people (kept here so the redirect
     // handler and the email agree on the destinations).
-    pageDest: `${BASE}/${slug}?m=${encodeURIComponent(messageId)}`,
+    // The preview landing page: their page, what we'd add, and ways to reach
+    // Jack (api/_lib/preview-landing.js).
+    pageDest: `${BASE}/${slug}/preview?m=${encodeURIComponent(messageId)}`,
     // The page itself, with its claim box open: the owner enters an email and
     // claims by sign-in link (no password), and m= carries through to /claim.
     claimDest: `${BASE}/${slug}?claim=1&m=${encodeURIComponent(messageId)}`
