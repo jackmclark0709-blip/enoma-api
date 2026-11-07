@@ -24,6 +24,8 @@
     try { return localStorage.getItem("enoma_internal") === "1"; } catch (e) { return false; }
   }
 
+  window.enomaAnonId = getAnonId;
+
   window.enomaTrack = function (event, metadata, businessId) {
     // Mirror every funnel event to GA4 too, so the ones that matter
     // (get_your_website_submitted, concierge_requested, create_generation_succeeded)

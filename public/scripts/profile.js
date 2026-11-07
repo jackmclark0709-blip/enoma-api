@@ -31,6 +31,12 @@ function truncateText(text, max = 300) {
    The owner gets a Supabase sign-in link that lands on /claim, which claims
    the page with the new session. Fresh instant previews (?new=1) open the
    form straight away; other unclaimed previews open it from the banner. */
+// The funnel's anonymous browser id (public/scripts/funnel-track.js), so a
+// claim request joins up with the instant-preview events before it.
+function anonId() {
+  if (typeof window.enomaAnonId === 'function') { const id = window.enomaAnonId(); if (id) return id; }
+  try { return localStorage.getItem('enoma_anon_id') || null; } catch (_) { return null; }
+}
 function setupClaimBox(pageSlug, businessName) {
   const banner = getEl('unclaimedBanner'), box = getEl('claimBox'), line = getEl('unclaimedLine');
   const form = getEl('claimForm'), input = getEl('claimEmail'), submit = getEl('claimSubmit'), msg = getEl('claimMsg');
@@ -39,6 +45,10 @@ function setupClaimBox(pageSlug, businessName) {
   const qs = new URLSearchParams(window.location.search);
   const outreachMsg = qs.get('m') || '';
   const open = () => { box.classList.remove('hidden'); line.classList.add('hidden'); };
+  // "Questions? Talk to Jack" goes to the preview landing (email, text or book
+  // 10 minutes). Cold-email owners keep their message id for attribution.
+  const help = getEl('claimHelp');
+  if (help) help.href = '/' + encodeURIComponent(pageSlug) + '/preview' + (outreachMsg ? '?m=' + encodeURIComponent(outreachMsg) : '');
   if (qs.get('claim') === '1') { banner.classList.add('is-new'); open(); }
   // The owner arrived from Jack's email (?m=<message id>): greet them, open
   // the claim box and say plainly what keeping it costs. Jack's contact only
@@ -46,8 +56,8 @@ function setupClaimBox(pageSlug, businessName) {
   if (outreachMsg) {
     banner.classList.add('is-new'); open();
     const t = getEl('claimTitle'), sub = getEl('claimSub');
-    if (t) t.textContent = `Hi, it's Jack. This is a first draft of ${businessName ? businessName + "'s" : 'your'} page.`;
-    if (sub) sub.textContent = "I built it in a minute from your Google listing. Keep it and I'll make it better with you.";
+    if (t) t.textContent = `Hi, it's Jack. This page is for ${businessName || 'you'}.`;
+    if (sub) sub.textContent = "Here's a first draft of your page. Keep it and I'll make it better with you.";
     submit.textContent = 'Keep my page';
     // What's done and what's still missing, from this page's own data, so
     // $19.99 reads as "it keeps getting better", not just "it stays up".
@@ -104,7 +114,7 @@ function setupClaimBox(pageSlug, businessName) {
       if (error) throw error;
       form.classList.add('hidden');
       say(`Check your inbox at ${email}. Tap the link in the email and the page is yours. (It can take a minute; check spam if you don't see it.)`);
-      try { fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true, body: JSON.stringify({ event: 'claim_link_requested', metadata: { slug: pageSlug } }) }); } catch (_) {}
+      try { fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true, body: JSON.stringify({ event: 'claim_link_requested', anon_id: anonId(), business_id: (window.__PROFILE__ || {}).business_id || null, metadata: { slug: pageSlug } }) }); } catch (_) {}
       if (window.gtag) try { gtag('event', 'claim_link_requested', { page_slug: pageSlug, transport_type: 'beacon' }); } catch (_) {}
     } catch (err) {
       submit.disabled = false; submit.textContent = submitLabel;

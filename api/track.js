@@ -33,6 +33,7 @@ const FUNNEL_EVENTS = new Set([
   "create_form_submitted",
   "create_generation_succeeded",
   "create_generation_failed",
+  "place_search_used",
   "instant_preview_started",
   "instant_preview_failed",
   "claim_link_requested",

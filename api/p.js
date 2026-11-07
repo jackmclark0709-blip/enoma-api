@@ -13,7 +13,7 @@ import { openSchedule, showEmergencyBadge, townsLine, ctaNote } from "./_lib/pag
 import { heroPhoto as pickHeroPhoto, visibleAttachments } from "./_lib/photo-kinds.js";
 import { renderSpotlight, fillTemplate, linkServicesToSpotlights } from "./_lib/spotlight-render.js";
 import { REVIEW_SLUG, googleReviewUrl } from "./_lib/reviews.js";
-import { LANDING_SLUG, detectCallouts, workingPoints, renderLanding } from "./_lib/preview-landing.js";
+import { LANDING_SLUG, detectCallouts, workingPoints, renderLanding, landingSource } from "./_lib/preview-landing.js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -330,11 +330,13 @@ async function serveReviewPage(req, res, bizSlug) {
 // enoma.io/<business>/preview — where the cold email sends an owner: their
 // page, what works, what we'd add, the price, and ways to reach Jack.
 // A page that's already claimed has no pitch to make, so it goes to the page.
+// Self-serve visitors arrive from /get-your-website with ?src=instant (no m).
 async function serveLanding(req, res, bizSlug) {
   const { data: profile } = await supabase.from("small_business_profiles").select("*")
     .eq("username", bizSlug).eq("is_public", true).maybeSingle();
   if (!profile?.business_id) return res.status(404).send("Not found");
   const m = /^[0-9a-f-]{36}$/i.test(String(req.query.m || "")) ? String(req.query.m) : null;
+  const src = landingSource({ src: req.query.src, m });
   res.setHeader("Cache-Control", "private, no-store");
   if (profile.is_claimed !== false) return res.redirect(302, `/${encodeURIComponent(bizSlug)}`);
   if (!(await pageIsLive(profile.business_id))) {
@@ -343,8 +345,12 @@ async function serveLanding(req, res, bizSlug) {
   Object.assign(profile, stripWeakRatingClaims(profile));
   const { count: spotlightCount } = await supabase.from("service_spotlights")
     .select("id", { count: "exact", head: true }).eq("business_id", profile.business_id).eq("status", "published");
+  if (src === "instant") {
+    await supabase.from("funnel_events").insert({ event: "instant_preview_viewed", business_id: null, metadata: { slug: profile.username, business_id: profile.business_id } })
+      .then(({ error }) => { if (error) console.warn("funnel_events insert failed:", error.message); });
+  }
   const html = renderLanding(profile, {
-    slug: profile.username, m,
+    slug: profile.username, m, src,
     callouts: detectCallouts(profile, { spotlightCount: spotlightCount || 0 }),
     working: workingPoints(profile),
   });
