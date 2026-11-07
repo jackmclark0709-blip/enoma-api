@@ -1,4 +1,4 @@
-// Referral link capture. A referrer's link looks like https://enoma.io/?ref=conways.
+// Referral link capture. A referrer's link looks like https://enoma.io/?ref=smith-plumbing.
 // The code is kept in a first-party cookie for 90 days so it survives the
 // visitor browsing around before signing up or claiming their page; the API
 // (api/_lib/referral.js) reads it and only credits codes registered in the

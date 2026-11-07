@@ -7,8 +7,8 @@
 // Writing rules (keep these so the guides stay useful, not scaled filler):
 //  - Answer the searcher's actual question first; Enoma comes in once, where it fits.
 //  - Position Enoma as a way to get calls and quote requests, not "a free website".
-//  - No invented statistics. The only numbers we cite are Conway's real results
-//    and Enoma's own pricing.
+//  - No invented statistics, and no customer names or results (Operating Doc
+//    rule #5). The only numbers we cite are Enoma's own pricing and timing.
 //  - Every FAQ answer must stand alone (it's what AI answer engines quote).
 
 export const GUIDES = [

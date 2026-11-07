@@ -36,7 +36,6 @@
     { "source": "/for/facebook-vs-website-local-business", "destination": "/for/facebook-vs-website-local-business.html" },
     { "source": "/for/free-website-for-local-service-business", "destination": "/for/free-website-for-local-service-business.html" },
     { "source": "/for/website-builder-for-contractors", "destination": "/for/website-builder-for-contractors.html" },
-    { "source": "/case-studies/conways-landscaping", "destination": "/case-studies/conways-landscaping.html" },
     { "source": "/for/:slug", "destination": "/for/:slug.html" },
     {
       "source": "/((?!favicon|(?:assets|api|dashboard|styles|scripts|partials|website-live|pricing|examples|contact|request|privacy|terms|index|upgrade|for|case-studies|feedback)(?:/|\\.|$)).*)",
@@ -145,7 +144,8 @@
     { "source": "/for/website-builder-for-contractors.html", "destination": "/for/website-builder-for-contractors", "permanent": true },
     { "source": "/get-your-website.html", "destination": "/get-your-website", "permanent": true },
     { "source": "/widget.html", "destination": "/widget", "permanent": true },
-    { "source": "/case-studies/conways-landscaping.html", "destination": "/case-studies/conways-landscaping", "permanent": true },
+    { "source": "/case-studies/conways-landscaping", "destination": "/examples", "permanent": false },
+    { "source": "/case-studies/conways-landscaping.html", "destination": "/examples", "permanent": false },
     { "source": "/get-started.html", "destination": "/get-your-website?ref=get-started", "permanent": true },
     { "source": "/get-started", "destination": "/get-your-website?ref=get-started", "permanent": true },
     { "source": "/claim.html", "destination": "/claim", "permanent": true },
