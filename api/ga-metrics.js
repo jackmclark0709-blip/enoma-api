@@ -1859,6 +1859,12 @@ async function visitFollowupContext(prospect, slug, messageId) {
 // the section for Jack's alert. A later visit finds the row and adds nothing.
 async function createVisitFollowup(prospect, msg, slug, at) {
   const ctx = await visitFollowupContext(prospect, slug, msg.id);
+  if (ctx.isInternal) {
+    await supabase.from("visit_followups").upsert({
+      prospect_id: prospect.id, outreach_message_id: msg.id, visited_at: at, status: "blocked", block_reason: "internal_business"
+    }, { onConflict: "prospect_id", ignoreDuplicates: true });
+    return { internal: true, section: null };
+  }
   const blockReason = followupBlockReason({ prospect, ...ctx });
   const { data: row, error } = await supabase.from("visit_followups")
     .upsert({
@@ -1867,12 +1873,12 @@ async function createVisitFollowup(prospect, msg, slug, at) {
     }, { onConflict: "prospect_id", ignoreDuplicates: true })
     .select("id").maybeSingle();
   if (error) throw error;
-  if (!row) return null; // already triggered for this prospect
+  if (!row) return { internal: false, section: null }; // already triggered for this prospect
   const email = blockReason ? null : buildVisitFollowupEmail({
     businessName: prospect.business_name, originalSubject: ctx.draftSubject || msg.draft_subject,
     unsubscribeUrl: buildUnsubscribeUrl(prospect.email), mailingAddress: MAILING_ADDRESS
   });
-  return buildAlertFollowupSection({ followupId: row.id, blockReason, email });
+  return { internal: false, section: buildAlertFollowupSection({ followupId: row.id, blockReason, email }) };
 }
 
 // Public — the signed Approve / Skip links in Jack's visit alert. GET only
@@ -2001,13 +2007,16 @@ async function handleOutreachRedirect(req, res) {
     // Tell Jack while the owner is still looking: once per prospect for a
     // page view, and every time a real person clicks claim.
     if (!scanner && prospect?.id && (to === "claim" || !prospect.preview_alerted_at)) {
-      let followupSection = null;
+      let followup = null;
       try {
-        followupSection = await createVisitFollowup(prospect, msg, slug, at);
+        followup = await createVisitFollowup(prospect, msg, slug, at);
       } catch (e) {
         await logNotificationFailure("visit-followup-create", "jack@enoma.io", e, { prospect_id: prospect.id });
       }
-      await alertJackOwnerVisit(prospect, to, msg.followup_sent_at || msg.sent_at, at, followupSection);
+      // Internal and test businesses are logged but never alert anyone.
+      if (!followup?.internal) {
+        await alertJackOwnerVisit(prospect, to, msg.followup_sent_at || msg.sent_at, at, followup?.section || null);
+      }
     }
     await supabase.from("page_events").insert({
       slug,

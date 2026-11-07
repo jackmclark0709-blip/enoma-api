@@ -30,7 +30,7 @@ export function buildFollowupToken(followupId, mark) {
 }
 
 export function verifyFollowupToken(followupId, mark, token) {
-  if (!followupId || !FOLLOWUP_MARKS.includes(mark) || !token) return false;
+  if (!followupId || !FOLLOWUP_MARKS.includes(mark) || !token || !process.env.UNSUBSCRIBE_SECRET) return false;
   const a = Buffer.from(buildFollowupToken(followupId, mark));
   const b = Buffer.from(String(token));
   return a.length === b.length && crypto.timingSafeEqual(a, b);
