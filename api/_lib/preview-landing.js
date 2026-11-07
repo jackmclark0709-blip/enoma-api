@@ -88,7 +88,7 @@ export function workingPoints(profile) {
   const pts = [];
   if (p.phone) pts.push("A tap-to-call button with your number");
   const n = arr(p.services).length;
-  if (n) pts.push(`Your ${n === 1 ? "service" : `${n} services`}, written up from your own listing and site`);
+  if (n) pts.push(`Your ${n === 1 ? "service" : `${n} services`}, written up from your own Google listing${p.website ? " and website" : ""}`);
   if (isStrongRating(p.average_rating, p.review_count)) pts.push(`Your ${Number(p.average_rating)}★ rating from ${p.review_count} Google reviews`);
   const towns = arr(p.service_area);
   if (towns.length > 1) pts.push(`The ${towns.length} towns you serve`);
