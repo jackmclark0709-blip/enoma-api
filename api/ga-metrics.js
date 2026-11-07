@@ -19,6 +19,7 @@ import { qualifiesForPreview, buildFactsPrompt, validateGenerated, assembleProfi
 import { verifyUnsubscribeToken, appendComplianceFooter, buildUnsubscribeUrl, MAILING_ADDRESS } from "./_lib/outreach-footer.js";
 import { buildOutreachEmail, buildOutreachIntro, buildFollowUpEmail, isFollowUpDue, FOLLOW_UP_AFTER_DAYS, FOLLOW_UP_MAX_AGE_DAYS, isLikelyLinkScanner, buildOwnerVisitAlert, trackedLinks, replyToFor, slugFromPreviewUrl, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "./_lib/outreach-email.js";
 import { verifyMailbox } from "./_lib/mailbox-verify.js";
+import { followupBlockReason, followupSendAt, followupExpired, buildVisitFollowupEmail, buildAlertFollowupSection, verifyFollowupToken } from "./_lib/visit-followup.js";
 import { plainTextToHtml, wrapEmailHtml } from "./_lib/email-html.js";
 import { rampCapForDate, capWithBounceBrake, followUpAllowance } from "./_lib/outreach-ramp.js";
 import { townForDate, tradeForDate } from "./_lib/prospect-rotation.js";
@@ -1585,6 +1586,10 @@ async function sendFollowUpsOnce({ maxSends, captureReplies }) {
     const { data: page } = await supabase.from("small_business_profiles")
       .select("is_public, is_claimed").eq("username", slug).maybeSingle();
     if (!page?.is_public || page.is_claimed !== false) { skip("page_not_live_or_claimed"); continue; }
+    // Jack already wrote to them personally after they opened the page.
+    const { data: visitNote } = await supabase.from("visit_followups")
+      .select("id").eq("prospect_id", p.id).in("status", ["sending", "sent"]).maybeSingle();
+    if (visitNote) { skip("visit_followup_sent"); continue; }
 
     const stamp = new Date().toISOString();
     const { data: reserved } = await supabase.from("outreach_messages")
@@ -1806,7 +1811,7 @@ async function handleClaimHint(req, res) {
 // a cold email, then stamps preview_alerted_at so page views alert once per
 // prospect. A failed send is recorded in notification_failures (the daily
 // health check reports those) and never blocks the owner's redirect.
-async function alertJackOwnerVisit(prospect, to, emailSentAt, at) {
+async function alertJackOwnerVisit(prospect, to, emailSentAt, at, followupSection = null) {
   if (!resend) {
     await logNotificationFailure("owner-visit-alert", "jack@enoma.io", new Error("RESEND_API_KEY not set"), { prospect_id: prospect.id, to });
     return;
@@ -1816,11 +1821,150 @@ async function alertJackOwnerVisit(prospect, to, emailSentAt, at) {
       businessName: prospect.business_name, city: prospect.city, state: prospect.state,
       phone: prospect.phone, previewUrl: prospect.preview_url, to, emailSentAt, now: Date.parse(at)
     });
-    await resend.emails.send({ from: "Enoma <noreply@enoma.io>", to: "jack@enoma.io", subject: alert.subject, text: alert.text, html: alert.html });
+    const text = followupSection ? `${alert.text}\n${followupSection.text}` : alert.text;
+    const html = followupSection ? `${alert.html}\n${followupSection.html}` : alert.html;
+    await resend.emails.send({ from: "Enoma <noreply@enoma.io>", to: "jack@enoma.io", subject: alert.subject, text, html });
     await supabase.from("prospects").update({ preview_alerted_at: at }).eq("id", prospect.id);
   } catch (e) {
     await logNotificationFailure("owner-visit-alert", "jack@enoma.io", e, { prospect_id: prospect.id, to });
   }
+}
+
+// Guardrail inputs for one prospect, read fresh each time (visit and approval).
+async function visitFollowupContext(prospect, slug, messageId) {
+  const [biz, supp, page, msg] = await Promise.all([
+    prospect.preview_business_id
+      ? supabase.from("businesses").select("is_internal").eq("id", prospect.preview_business_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    prospect.email
+      ? supabase.from("suppression_list").select("id").eq("email", prospect.email).maybeSingle()
+      : Promise.resolve({ data: null }),
+    slug
+      ? supabase.from("small_business_profiles").select("is_claimed").eq("username", slug).maybeSingle()
+      : Promise.resolve({ data: null }),
+    messageId
+      ? supabase.from("outreach_messages").select("response_status, draft_subject").eq("id", messageId).maybeSingle()
+      : Promise.resolve({ data: null })
+  ]);
+  return {
+    isInternal: biz.data?.is_internal === true,
+    suppressed: !!supp.data,
+    pageClaimed: page.data?.is_claimed === true,
+    responseStatus: msg.data?.response_status || null,
+    draftSubject: msg.data?.draft_subject || null
+  };
+}
+
+// First real visit: log the trigger (one row per prospect, ever) and return
+// the section for Jack's alert. A later visit finds the row and adds nothing.
+async function createVisitFollowup(prospect, msg, slug, at) {
+  const ctx = await visitFollowupContext(prospect, slug, msg.id);
+  if (ctx.isInternal) {
+    await supabase.from("visit_followups").upsert({
+      prospect_id: prospect.id, outreach_message_id: msg.id, visited_at: at, status: "blocked", block_reason: "internal_business"
+    }, { onConflict: "prospect_id", ignoreDuplicates: true });
+    return { internal: true, section: null };
+  }
+  const blockReason = followupBlockReason({ prospect, ...ctx });
+  const { data: row, error } = await supabase.from("visit_followups")
+    .upsert({
+      prospect_id: prospect.id, outreach_message_id: msg.id, visited_at: at,
+      status: blockReason ? "blocked" : "pending", block_reason: blockReason
+    }, { onConflict: "prospect_id", ignoreDuplicates: true })
+    .select("id").maybeSingle();
+  if (error) throw error;
+  if (!row) return { internal: false, section: null }; // already triggered for this prospect
+  const email = blockReason ? null : buildVisitFollowupEmail({
+    businessName: prospect.business_name, originalSubject: ctx.draftSubject || msg.draft_subject,
+    unsubscribeUrl: buildUnsubscribeUrl(prospect.email), mailingAddress: MAILING_ADDRESS
+  });
+  return { internal: false, section: buildAlertFollowupSection({ followupId: row.id, blockReason, email }) };
+}
+
+// Public — the signed Approve / Skip links in Jack's visit alert. GET only
+// shows a confirm button (mail scanners on Jack's inbox follow GET links);
+// the POST does the work.
+async function handleVisitFollowup(req, res) {
+  const id = String(req.query.id || "");
+  const mark = String(req.query.mark || "");
+  const token = String(req.query.token || "");
+  const esc = s => String(s).replace(/[<>&"]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]));
+  const page = (title, msg, form = "") => `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title></head><body style="font-family:Inter,Arial,sans-serif;background:#f0f6ff;display:flex;align-items:center;justify-content:center;min-height:90vh;margin:0;padding:24px;"><div style="background:#fff;border:1px solid #d4e2f4;border-radius:16px;padding:28px;max-width:420px;text-align:center;"><h1 style="font-size:20px;color:#0a1628;margin:0 0 8px;">${esc(title)}</h1><p style="color:#2a4060;margin:0;">${esc(msg)}</p>${form}</div></body></html>`;
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  if (!isUuid(id) || !verifyFollowupToken(id, mark, token)) return res.status(400).send(page("Link not valid", "This link is broken or expired."));
+
+  const { data: f } = await supabase.from("visit_followups")
+    .select("id, status, block_reason, visited_at, scheduled_for, outreach_message_id, prospects(id, business_name, email, status, preview_url, preview_business_id)")
+    .eq("id", id).maybeSingle();
+  if (!f) return res.status(404).send(page("Not found", "This follow-up no longer exists."));
+  const name = f.prospects?.business_name || "This business";
+
+  if (f.status !== "pending") {
+    const done = { sent: `Already sent to ${name}${f.scheduled_for ? `, scheduled for ${new Date(f.scheduled_for).toUTCString()}` : ""}.`,
+      sending: `Already being sent to ${name}.`, skipped: `Skipped. Nothing was sent to ${name}.`,
+      blocked: `Not sent to ${name} (${f.block_reason || "blocked"}).`, expired: `Expired. Nothing was sent to ${name}.` };
+    return res.status(200).send(page("Nothing to do", done[f.status] || f.status));
+  }
+
+  if (req.method !== "POST") {
+    const label = mark === "approve" ? "Send the follow-up" : "Skip it";
+    const what = mark === "approve" ? `Send your follow-up email to ${name}? It goes out 10-20 minutes after their visit, or in a minute if that's passed.` : `Skip the follow-up to ${name}? Nothing will be sent, and no other automatic one will be.`;
+    const form = `<form method="POST" style="margin-top:20px;"><button type="submit" style="background:#1a73e8;color:#fff;border:none;border-radius:8px;padding:12px 20px;font-size:16px;font-weight:bold;cursor:pointer;">${esc(label)}</button></form>`;
+    return res.status(200).send(page(mark === "approve" ? "Send follow-up?" : "Skip follow-up?", what, form));
+  }
+
+  const now = new Date().toISOString();
+  if (mark === "skip") {
+    await supabase.from("visit_followups").update({ status: "skipped", decided_at: now, updated_at: now }).eq("id", id).eq("status", "pending");
+    return res.status(200).send(page("Skipped", `Nothing will be sent to ${name}.`));
+  }
+
+  if (followupExpired({ visitedAt: f.visited_at })) {
+    await supabase.from("visit_followups").update({ status: "expired", decided_at: now, updated_at: now }).eq("id", id).eq("status", "pending");
+    return res.status(200).send(page("Too late for this one", `${name} visited more than 3 days ago, so "saw you had a look" won't read right. Nothing was sent.`));
+  }
+
+  const prospect = f.prospects;
+  const slug = slugFromPreviewUrl(prospect?.preview_url);
+  const ctx = await visitFollowupContext(prospect || {}, slug, f.outreach_message_id);
+  const blockReason = followupBlockReason({ prospect, ...ctx });
+  if (blockReason) {
+    await supabase.from("visit_followups").update({ status: "blocked", block_reason: blockReason, decided_at: now, updated_at: now }).eq("id", id).eq("status", "pending");
+    return res.status(200).send(page("Not sent", `Nothing went to ${name}: ${blockReason}.`));
+  }
+  if (!resend) return res.status(500).send(page("Not sent", "Email isn't configured (RESEND_API_KEY)."));
+
+  // Reserve it, so a double tap can never send twice.
+  const { data: reserved } = await supabase.from("visit_followups")
+    .update({ status: "sending", decided_at: now, updated_at: now }).eq("id", id).eq("status", "pending").select("id");
+  if (!reserved?.length) return res.status(200).send(page("Nothing to do", `This follow-up to ${name} was already handled.`));
+
+  const sendAt = followupSendAt({ visitedAt: f.visited_at, followupId: id });
+  const email = buildVisitFollowupEmail({
+    businessName: prospect.business_name, originalSubject: ctx.draftSubject,
+    unsubscribeUrl: buildUnsubscribeUrl(prospect.email), mailingAddress: MAILING_ADDRESS
+  });
+  try {
+    const { data: sendData, error: sendErr } = await resend.emails.send({
+      from: SEND_OUTREACH_FROM,
+      to: prospect.email,
+      replyTo: replyToFor(f.outreach_message_id, { captureReplies: process.env.OUTREACH_REPLY_CAPTURE === "1" }),
+      subject: email.subject,
+      text: email.text,
+      html: email.html,
+      scheduledAt: sendAt.toISOString(),
+      headers: { "List-Unsubscribe": `<${buildUnsubscribeUrl(prospect.email)}>` },
+      tags: [{ name: "outreach_message_id", value: f.outreach_message_id }, { name: "kind", value: "visit_followup" }]
+    });
+    if (sendErr) throw new Error(sendErr.message || "Resend send failed");
+    await supabase.from("visit_followups").update({ status: "sent", scheduled_for: sendAt.toISOString(), resend_email_id: sendData?.id || null, updated_at: new Date().toISOString() }).eq("id", id);
+  } catch (err) {
+    await supabase.from("visit_followups").update({ status: "pending", decided_at: null, updated_at: new Date().toISOString() }).eq("id", id);
+    await logNotificationFailure("visit-followup-send", prospect.email, err, { prospect_id: prospect.id, followup_id: id });
+    return res.status(500).send(page("Not sent", `Sending failed (${err.message}). The approve link still works, so try again.`));
+  }
+  const mins = Math.max(1, Math.round((sendAt.getTime() - Date.now()) / 60000));
+  return res.status(200).send(page("Scheduled", `Your note to ${name} goes out in about ${mins} min. Replies come to you as usual.`));
 }
 
 // Public — the links inside outreach emails. Records the click against the
@@ -1833,7 +1977,7 @@ async function handleOutreachRedirect(req, res) {
   if (!isUuid(m)) return res.redirect(302, "https://enoma.io/");
 
   const { data: msg } = await supabase.from("outreach_messages")
-    .select("id, sent_at, followup_sent_at, preview_visited_at, prospects(id, business_name, phone, city, state, preview_url, preview_first_viewed_at, preview_alerted_at)")
+    .select("id, sent_at, followup_sent_at, preview_visited_at, draft_subject, response_status, prospects(id, business_name, email, status, phone, city, state, preview_url, preview_business_id, preview_first_viewed_at, preview_alerted_at)")
     .eq("id", m).maybeSingle();
   const slug = slugFromPreviewUrl(msg?.prospects?.preview_url);
   if (!msg || !slug) return res.redirect(302, "https://enoma.io/");
@@ -1863,7 +2007,16 @@ async function handleOutreachRedirect(req, res) {
     // Tell Jack while the owner is still looking: once per prospect for a
     // page view, and every time a real person clicks claim.
     if (!scanner && prospect?.id && (to === "claim" || !prospect.preview_alerted_at)) {
-      await alertJackOwnerVisit(prospect, to, msg.followup_sent_at || msg.sent_at, at);
+      let followup = null;
+      try {
+        followup = await createVisitFollowup(prospect, msg, slug, at);
+      } catch (e) {
+        await logNotificationFailure("visit-followup-create", "jack@enoma.io", e, { prospect_id: prospect.id });
+      }
+      // Internal and test businesses are logged but never alert anyone.
+      if (!followup?.internal) {
+        await alertJackOwnerVisit(prospect, to, msg.followup_sent_at || msg.sent_at, at, followup?.section || null);
+      }
     }
     await supabase.from("page_events").insert({
       slug,
@@ -2559,6 +2712,16 @@ export default async function handler(req, res) {
     } catch (err) {
       console.error("Unsubscribe failed:", err);
       return res.status(500).send("Something went wrong processing your request.");
+    }
+  }
+
+  // Public: the signed Approve / Skip buttons in Jack's preview-visit alert.
+  if (req.query.action === "visit_followup") {
+    try {
+      return await handleVisitFollowup(req, res);
+    } catch (err) {
+      console.error("Visit follow-up failed:", err);
+      return res.status(500).send("Something went wrong.");
     }
   }
 
