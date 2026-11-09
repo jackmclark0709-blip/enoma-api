@@ -259,6 +259,10 @@
       "schedule": "0 14 1 * *"
     },
     {
+      "path": "/api/ga-metrics?action=trial_reminders",
+      "schedule": "30 14 * * *"
+    },
+    {
       "path": "/api/ga-metrics?action=prepare_texts&limit=2",
       "schedule": "35 13 * * *"
     },
