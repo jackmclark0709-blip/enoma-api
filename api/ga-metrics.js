@@ -27,6 +27,11 @@ import { townForDate, tradeForDate } from "./_lib/prospect-rotation.js";
 import { Resend } from "resend";
 import { isGrandfathered } from "./_lib/trial-policy.js";
 import { hasLiveStripeSubscription } from "./_lib/billing.js";
+import {
+  planTrialReminders, buildTrialReminderEmail, buildSubscribeUrl, formatEndsOn, buildJackSummary,
+  JACK_USER_ID, LOOKBACK_MS, LOOKAHEAD_MS,
+} from "./_lib/trial-reminders.js";
+import { pageLookupKeyFor, planByLookupKey, formatAmount } from "../data/plans.mjs";
 import { lintCopy } from "./_lib/copy-lint.js";
 import {
   TEXT_DAILY_CAP, TEXT_REMIND_AFTER_DAYS, NEVER_TEXT_STATUSES, normalizeUsPhone, assessPageQuality,
@@ -784,6 +789,153 @@ async function handleResultsEmail(req, res) {
     results.push({ business: p.business_name, to, sent: true, subject: email.subject });
   }
   return res.status(200).json({ success: true, month: label, dry_run: dryRun, test_to: testTo, results });
+}
+
+// Free-month reminders (api/_lib/trial-reminders.js), daily at 14:30 UTC.
+// Only claimed pages with a real (non-Jack) owner who isn't paying yet; the
+// rules for who and when live in planTrialReminders so they're unit-tested.
+// ?dry_run=1 returns what would go out without inserting or sending.
+async function loadTrialReminderCandidates(now) {
+  const { data: subs, error } = await supabase
+    .from("subscriptions")
+    .select("business_id, provider, status, stripe_subscription_id, is_trial, trial_expires_at, businesses(slug, name, is_internal, created_at, referred_by)")
+    .eq("is_trial", true)
+    .gte("trial_expires_at", new Date(now - LOOKBACK_MS).toISOString())
+    .lte("trial_expires_at", new Date(now + LOOKAHEAD_MS).toISOString());
+  if (error) throw error;
+  if (!subs?.length) return [];
+  const ids = [...new Set(subs.map((s) => s.business_id))];
+
+  const [profilesRes, membersRes, sentRes] = await Promise.all([
+    supabase.from("small_business_profiles")
+      .select("business_id, username, business_name, owner_name, email, custom_domain, is_claimed").in("business_id", ids),
+    supabase.from("business_members").select("business_id, user_id").eq("role", "owner").in("business_id", ids),
+    supabase.from("trial_reminders").select("business_id, kind").in("business_id", ids),
+  ]);
+  for (const r of [profilesRes, membersRes, sentRes]) if (r.error) throw r.error;
+  const profileBy = new Map((profilesRes.data || []).map((p) => [p.business_id, p]));
+  const ownersBy = new Map();
+  for (const m of membersRes.data || []) ownersBy.set(m.business_id, [...(ownersBy.get(m.business_id) || []), m.user_id]);
+  const sentBy = new Map();
+  for (const r of sentRes.data || []) sentBy.set(r.business_id, [...(sentBy.get(r.business_id) || []), r.kind]);
+
+  // The owner's sign-in email is who claimed the page. Jack's own account is
+  // never looked up or emailed.
+  const emailByUser = new Map();
+  for (const uid of new Set([...ownersBy.values()].flat().filter((id) => id !== JACK_USER_ID))) {
+    const { data } = await supabase.auth.admin.getUserById(uid);
+    if (data?.user?.email) emailByUser.set(uid, data.user.email);
+  }
+
+  const emails = [...new Set([...emailByUser.values()].flatMap((e) => [e, e.toLowerCase()]))];
+  const { data: suppressedRows, error: supErr } = emails.length
+    ? await supabase.from("suppression_list").select("email").in("email", emails)
+    : { data: [] };
+  if (supErr) throw supErr;
+  const suppressed = new Set((suppressedRows || []).map((r) => String(r.email).toLowerCase()));
+
+  const codes = [...new Set(subs.map((s) => s.businesses?.referred_by).filter(Boolean))];
+  const { data: refs } = codes.length
+    ? await supabase.from("referrers").select("code, active, partner_pricing").in("code", codes)
+    : { data: [] };
+  const referrerBy = new Map((refs || []).map((r) => [r.code, r]));
+
+  return subs.map((s) => {
+    const p = profileBy.get(s.business_id) || {};
+    const owners = ownersBy.get(s.business_id) || [];
+    const owner = owners.find((id) => id !== JACK_USER_ID);
+    const ownerEmail = owner ? emailByUser.get(owner) || null : null;
+    return {
+      businessId: s.business_id,
+      slug: s.businesses?.slug || p.username,
+      businessName: p.business_name || s.businesses?.name,
+      username: p.username,
+      customDomain: p.custom_domain,
+      ownerName: p.owner_name,
+      isInternal: s.businesses?.is_internal === true,
+      isClaimed: p.is_claimed === true,
+      createdAt: s.businesses?.created_at,
+      referrer: referrerBy.get(s.businesses?.referred_by) || null,
+      ownerUserIds: owners,
+      ownerEmail,
+      profileEmail: p.email || null,
+      sub: s,
+      suppressed: !!ownerEmail && suppressed.has(ownerEmail.toLowerCase()),
+      sent: sentBy.get(s.business_id) || [],
+    };
+  });
+}
+
+function trialReminderPrices(referrer) {
+  // Plan amounts from data/plans.mjs (kept in step with Stripe by
+  // tests/plans.test.js). The partner price is monthly-only.
+  const monthlyKey = pageLookupKeyFor(referrer, "month");
+  const yearlyKey = pageLookupKeyFor(referrer, "year");
+  return {
+    monthlyPrice: formatAmount(planByLookupKey(monthlyKey)?.fallbackAmount),
+    yearlyPrice: yearlyKey === monthlyKey ? null : formatAmount(planByLookupKey(yearlyKey)?.fallbackAmount),
+  };
+}
+
+async function handleTrialReminders(req, res) {
+  const dryRun = req.query.dry_run === "1";
+  const now = Date.now();
+  const candidates = await loadTrialReminderCandidates(now);
+  const { due, skipped } = planTrialReminders(candidates, { now });
+
+  const sent = [];
+  const failed = [];
+  const preview = [];
+  for (const c of due) {
+    const pageUrl = c.customDomain ? `https://${c.customDomain}/` : `https://enoma.io/${c.username || c.slug}`;
+    const email = buildTrialReminderEmail({
+      kind: c.kind, businessName: c.businessName, ownerFirstName: (c.ownerName || "").trim().split(/\s+/)[0] || null,
+      pageUrl, endsOn: formatEndsOn(c.sub.trial_expires_at), turnsOff: c.turnsOff,
+      ...trialReminderPrices(c.referrer),
+      subscribeUrl: buildSubscribeUrl(c.businessId, c.kind), unsubscribeUrl: buildUnsubscribeUrl(c.ownerEmail),
+    });
+    if (!email) { skipped.push({ slug: c.slug, reason: "no_email_for_kind" }); continue; }
+    if (dryRun) { preview.push({ business: c.businessName, kind: c.kind, turns_off: c.turnsOff, to: c.ownerEmail, subject: email.subject, text: email.text }); continue; }
+    if (!resend) throw new Error("RESEND_API_KEY not configured");
+
+    // Claim the (business, kind) slot first; the unique constraint stops a
+    // second run (or an overlapping one) from sending it again.
+    const { data: row, error: insErr } = await supabase.from("trial_reminders")
+      .insert({ business_id: c.businessId, kind: c.kind }).select("id").single();
+    if (insErr) {
+      if (insErr.code === "23505") skipped.push({ slug: c.slug, reason: "already_sent" });
+      else failed.push({ business: c.businessName, kind: c.kind, error: insErr.message });
+      continue;
+    }
+
+    const { data: sendData, error: sendErr } = await resend.emails.send({
+      from: "Jack at Enoma <jack@enoma.io>", to: c.ownerEmail, replyTo: "jack@enoma.io",
+      subject: email.subject, text: email.text, html: email.html,
+      headers: { "List-Unsubscribe": `<${buildUnsubscribeUrl(c.ownerEmail)}>` },
+    });
+    if (sendErr) {
+      // Free the slot so tomorrow's run can try again.
+      await supabase.from("trial_reminders").delete().eq("id", row.id);
+      failed.push({ business: c.businessName, kind: c.kind, error: sendErr.message });
+      await logNotificationFailure("trial_reminders", c.ownerEmail, sendErr, { business_id: c.businessId, kind: c.kind });
+      continue;
+    }
+    await supabase.from("trial_reminders").update({ resend_id: sendData?.id || null }).eq("id", row.id);
+    sent.push({ businessName: c.businessName, kind: c.kind });
+  }
+
+  const summary = buildJackSummary(sent);
+  if (summary && !dryRun) {
+    const { error: jackErr } = await resend.emails.send({
+      from: "Enoma <noreply@enoma.io>", to: "jack@enoma.io", subject: summary.subject, text: summary.text,
+    });
+    if (jackErr) await logNotificationFailure("trial_reminders_summary", "jack@enoma.io", jackErr, { sent: sent.length });
+  }
+
+  return res.status(200).json({
+    success: true, dry_run: dryRun, candidates: candidates.length,
+    sent, failed, skipped, ...(dryRun ? { preview } : {}),
+  });
 }
 
 async function handleGeneratePreview(req, res) {
@@ -2982,6 +3134,15 @@ export default async function handler(req, res) {
       return await handleResultsEmail(req, res);
     } catch (err) {
       console.error("Results email failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.query.action === "trial_reminders") {
+    try {
+      return await handleTrialReminders(req, res);
+    } catch (err) {
+      console.error("Trial reminders failed:", err);
       return res.status(500).json({ success: false, error: err.message });
     }
   }
