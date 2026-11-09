@@ -19,6 +19,7 @@ import {
 import { lintCopy, scrubCopy, fixInstructions } from "./_lib/copy-lint.js";
 import { mergeKinds } from "./_lib/photo-kinds.js";
 import { handleSpotlight } from "./_lib/spotlight.js";
+import Stripe from "stripe";
 import { handleReviews } from "./_lib/reviews.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -310,7 +311,10 @@ export default async function handler(req, res) {
 
     /* ---------- SERVICE SPOTLIGHT PAGES (api/_lib/spotlight.js) ---------- */
     if (req.query?.kind === "spotlight") {
-      return await handleSpotlight(req, res, { supabaseAdmin, fetchImpl: fetch });
+      // Stripe: publishing / unpublishing changes the service-page add-on
+      // quantity on the owner's subscription (api/_lib/spotlight-billing.js).
+      const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
+      return await handleSpotlight(req, res, { supabaseAdmin, fetchImpl: fetch, stripe });
     }
     /* ---------- REVIEW REQUESTS: owner list / approve / hide (api/_lib/reviews.js) ---------- */
     if (req.query?.kind === "review") {

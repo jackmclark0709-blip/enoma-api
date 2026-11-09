@@ -12,10 +12,19 @@
 // store that status as-is (with is_trial false: our own free month is
 // superseded) and website_is_active treats "trialing" + a Stripe
 // subscription id as live (supabase/migrations/20261110_billing_interval.sql).
+//
+// Service pages: the subscription can carry a second item, the $9.99/month
+// add-on (enoma_spotlight_monthly), quantity = published service pages. Our
+// database is the source of truth: after checkout, and whenever Stripe
+// reports the subscription changed (someone edited the quantity in the Stripe
+// dashboard, or a page was published while the checkout was open), the
+// quantity is set back to the published count (api/_lib/spotlight-billing.js).
+// Comped businesses are never billed for them.
 
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { subscriptionFieldsFromStripe } from './_lib/billing.js';
+import { syncSpotlightQuantity, spotlightItemOf } from './_lib/spotlight-billing.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const supabase = createClient(
@@ -36,6 +45,24 @@ async function writeSubscription(fields, write) {
 }
 
 export const config = { api: { bodyParser: false } };
+
+// Puts the service-page quantity back in line with service_spotlights. Never
+// fails the webhook: a mismatch is logged and fixed on the next sync.
+async function keepSpotlightQuantityInSync(business_id, stripeSub, why) {
+  if (!['active', 'trialing', 'past_due'].includes(stripeSub?.status)) return;
+  try {
+    const r = await syncSpotlightQuantity({ stripe, supabase, businessId: business_id });
+    if (r.stripeSub && r.stripeSub.id !== stripeSub.id) {
+      console.warn(`[spotlight-billing] ${why}: business ${business_id} has another subscription on file (${r.stripeSub.id}); synced that one`);
+    }
+    if (r.op !== 'none') {
+      const had = spotlightItemOf(stripeSub)?.quantity || 0;
+      console.log(`[spotlight-billing] ${why}: business ${business_id} service pages ${had} -> ${r.quantity} (published: ${r.published})`);
+    }
+  } catch (e) {
+    console.error(`[spotlight-billing] ${why}: quantity sync failed for business ${business_id}:`, e?.message || e);
+  }
+}
 
 async function getRawBody(req) {
   return new Promise((resolve, reject) => {
@@ -103,6 +130,8 @@ export default async function handler(req, res) {
           .update({ is_published: true })
           .eq('id', business_id);
 
+        await keepSpotlightQuantityInSync(business_id, subscription, 'checkout.session.completed');
+
         console.log(`✓ Subscription activated for business ${business_id}`);
         break;
       }
@@ -128,6 +157,8 @@ export default async function handler(req, res) {
             .update({ is_published: false })
             .eq('id', business_id);
         }
+
+        await keepSpotlightQuantityInSync(business_id, sub, 'customer.subscription.updated');
 
         console.log(`✓ Subscription updated for business ${business_id}: ${sub.status}`);
         break;

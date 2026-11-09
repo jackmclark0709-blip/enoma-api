@@ -14,6 +14,19 @@
 // (api/_lib/billing.js trialEndFor). Otherwise they're charged at checkout.
 // Called from the dashboard, /upgrade and /website-live (public/scripts/plan-picker.js).
 //
+// Service pages: each PUBLISHED service page (service_spotlights) is a
+// $9.99/month add-on (lookup key enoma_spotlight_monthly). Checkout adds them
+// as a second line item, quantity = published service pages, on the same
+// subscription (same trial_end). Comped and internal businesses are never
+// billed for them. See api/_lib/spotlight-billing.js.
+//
+// action: "spotlight_quantity" (body) recomputes the published count from
+// service_spotlights and sets the add-on quantity on the owner's Stripe
+// subscription (with proration). The publish/unpublish code path calls the
+// same function server-side; this action is for re-syncs and, with
+// dry_run: true, returns the billing summary the dashboard shows (page plan +
+// service pages = monthly total) without changing anything.
+//
 // action: "portal" (body) opens the Stripe customer portal instead, so an
 // owner can update their card, cancel, or download invoices. The portal has
 // to be enabled once in Stripe (Settings → Billing → Customer portal).
@@ -25,7 +38,11 @@
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { PLANS, LOOKUP_KEYS } from '../data/plans.mjs';
-import { normalizeInterval, checkoutPlanFor, hasLiveStripeSubscription } from './_lib/billing.js';
+import { normalizeInterval, checkoutPlanFor, hasLiveStripeSubscription, pageItemOf, SPOTLIGHT_LOOKUP_KEY } from './_lib/billing.js';
+import {
+  loadSpotlightBillingState, spotlightBilling, syncSpotlightQuantity, checkoutSubscriptionParams,
+  billingSummary, spotlightItemOf, SPOTLIGHT_FALLBACK_AMOUNT, YEARLY_MESSAGE,
+} from './_lib/spotlight-billing.js';
 import { utmMetadata } from './_lib/attribution.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -109,6 +126,7 @@ export default async function handler(req, res) {
   if (!business_id) return res.status(400).json({ error: 'business_id required' });
 
   if (action === 'portal') return openPortal(req, res, user, business_id);
+  if (action === 'spotlight_quantity') return spotlightQuantity(req, res, user, business_id);
 
   const interval = normalizeInterval(req.body?.interval);
   if (!interval) return res.status(400).json({ error: 'interval must be "month" or "year"' });
@@ -195,27 +213,88 @@ export default async function handler(req, res) {
     ...utm,
   };
 
+  // Service pages published before subscribing (free month, grandfathered,
+  // or never subscribed) become the second line item. Comped -> none.
+  const spotState = await loadSpotlightBillingState(supabase, business_id);
+  let spotlightPriceId = null;
+  if (spotState.published) {
+    try { spotlightPriceId = (await pricesByLookupKey())[SPOTLIGHT_LOOKUP_KEY]?.id || null; } catch { /* handled below */ }
+  }
+  const params = checkoutSubscriptionParams({
+    pagePriceId: priceId,
+    published: spotState.published,
+    billing: spotlightBilling({ sub: spotState.sub, business: spotState.business }),
+    interval: billedInterval,
+    spotlightPriceId,
+    trialEnd,
+    metadata,
+  });
+  if (params.error === 'yearly') {
+    const n = spotState.published;
+    return res.status(409).json({
+      error: `You have ${n} published service page${n === 1 ? '' : 's'}, billed monthly at $9.99 each, so they can't go on the yearly plan. Choose monthly, or email jack@enoma.io and we'll set it up.`,
+      code: 'yearly',
+    });
+  }
+  if (params.error) {
+    return res.status(503).json({ error: 'Subscriptions are opening shortly. Email jack@enoma.io and we\'ll keep your page live in the meantime.' });
+  }
+
   // Create Checkout session
   const session = await stripe.checkout.sessions.create({
     customer: stripeCustomerId,
     mode: 'subscription',
     payment_method_types: ['card'],
-    line_items: [
-      {
-        price: priceId,
-        quantity: 1,
-      },
-    ],
-    subscription_data: {
-      metadata,
-      ...(trialEnd ? { trial_end: trialEnd } : {}),
-    },
+    line_items: params.line_items,
+    subscription_data: params.subscription_data,
     success_url: `https://enoma.io/dashboard?subscribed=1&business_id=${business_id}`,
     cancel_url: `https://enoma.io/dashboard?business_id=${business_id}`,
     metadata,
   });
 
   return res.status(200).json({ url: session.url });
+}
+
+// Service-page add-on: recompute the published count and set the Stripe
+// quantity (or, with dry_run, just report it). Members of the business only.
+async function spotlightQuantity(req, res, user, business_id) {
+  const { data: membership } = await supabase
+    .from('business_members').select('role')
+    .eq('business_id', business_id).eq('user_id', user.id).maybeSingle();
+  if (!membership) return res.status(403).json({ error: 'Not your business' });
+
+  const dryRun = req.body?.dry_run === true;
+  try {
+    const state = await loadSpotlightBillingState(supabase, business_id);
+    const billing = spotlightBilling({ sub: state.sub, business: state.business });
+    const sync = dryRun ? null : await syncSpotlightQuantity({ stripe, supabase, businessId: business_id, state });
+
+    const byKey = await pricesByLookupKey().catch(() => ({}));
+    let spotlightAmount = byKey[SPOTLIGHT_LOOKUP_KEY]?.unit_amount ?? SPOTLIGHT_FALLBACK_AMOUNT;
+    let pageAmount = null, pageInterval = 'month', billedQuantity = 0;
+    if (billing.billing === 'never') {
+      pageAmount = 0;
+    } else if (billing.billing === 'subscription' || billing.billing === 'yearly') {
+      const stripeSub = sync?.stripeSub || await stripe.subscriptions.retrieve(state.sub.stripe_subscription_id);
+      const pageItem = pageItemOf(stripeSub);
+      pageAmount = pageItem?.price?.unit_amount ?? null;
+      pageInterval = pageItem?.price?.recurring?.interval || pageInterval;
+      const spotItem = spotlightItemOf(stripeSub);
+      billedQuantity = sync ? sync.quantity : (spotItem?.quantity || 0);
+      if (spotItem?.price?.unit_amount != null) spotlightAmount = spotItem.price.unit_amount;
+    } else {
+      // Not subscribed yet: what the monthly checkout would charge.
+      const { lookupKey } = checkoutPlanFor({ referrer: await referrerFor(business_id), interval: 'month' });
+      pageAmount = byKey[lookupKey]?.unit_amount ?? null;
+    }
+    return res.status(200).json(billingSummary({
+      published: state.published, billing, sub: state.sub, pageAmount, pageInterval, spotlightAmount, billedQuantity,
+    }));
+  } catch (e) {
+    console.error('[spotlight-billing] spotlight_quantity failed:', business_id, e?.message);
+    if (e?.code === 'yearly') return res.status(409).json({ error: YEARLY_MESSAGE, code: 'yearly' });
+    return res.status(502).json({ error: "We couldn't check your service page billing just now. Email jack@enoma.io." });
+  }
 }
 
 // Stripe customer portal: update card, cancel, invoices. Members of the
