@@ -5,15 +5,35 @@
 //   customer.subscription.updated → status changes (active, past_due, etc.)
 //   customer.subscription.deleted → canceled
 //   invoice.payment_failed      → mark past_due
+//
+// Monthly and yearly subscriptions are stored the same way; billing_interval
+// records which. A subscription started during the free month has a
+// trial_end, so Stripe reports it as "trialing" until the first charge. We
+// store that status as-is (with is_trial false: our own free month is
+// superseded) and website_is_active treats "trialing" + a Stripe
+// subscription id as live (supabase/migrations/20261110_billing_interval.sql).
 
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
+import { subscriptionFieldsFromStripe } from './_lib/billing.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// Writes a subscriptions row. If the billing_interval column isn't there yet
+// (migration not applied), retry without it rather than lose the event.
+async function writeSubscription(fields, write) {
+  let { error } = await write(fields);
+  if (error && /billing_interval/.test(error.message || '')) {
+    console.warn('subscriptions.billing_interval missing; apply 20261110_billing_interval.sql');
+    const { billing_interval, ...rest } = fields;
+    ({ error } = await write(rest));
+  }
+  if (error) throw error;
+}
 
 export const config = { api: { bodyParser: false } };
 
@@ -62,22 +82,20 @@ export default async function handler(req, res) {
         }
 
         const subscription = await stripe.subscriptions.retrieve(session.subscription);
+        const fields = subscriptionFieldsFromStripe(subscription);
 
-        await supabase
-          .from('subscriptions')
-          .upsert({
-            business_id,
-            provider: 'stripe',
-            stripe_customer_id: session.customer,
-            stripe_subscription_id: subscription.id,
-            plan_code: 'starter',
-            status: 'active',
-            is_trial: false,
-            current_period_start: subscription.current_period_start ? new Date(subscription.current_period_start * 1000).toISOString() : null,
-            current_period_end: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
-            cancel_at_period_end: subscription.cancel_at_period_end,
-            updated_at: new Date().toISOString(),
-          }, { onConflict: 'business_id' });
+        await writeSubscription({
+          business_id,
+          provider: 'stripe',
+          stripe_customer_id: session.customer,
+          plan_code: 'starter',
+          ...fields,
+          // "active", or "trialing" when the first charge waits for the end
+          // of the free month. Either keeps the page live.
+          status: fields.status === 'trialing' ? 'trialing' : 'active',
+          is_trial: false,
+          updated_at: new Date().toISOString(),
+        }, (row) => supabase.from('subscriptions').upsert(row, { onConflict: 'business_id' }));
 
         // Make business page public
         await supabase
@@ -95,27 +113,13 @@ export default async function handler(req, res) {
         const business_id = sub.metadata?.business_id;
         if (!business_id) break;
 
-        const statusMap = {
-          active: 'active',
-          past_due: 'past_due',
-          unpaid: 'unpaid',
-          canceled: 'canceled',
-          incomplete: 'incomplete',
-          trialing: 'trialing',
-        };
-
-        await supabase
-          .from('subscriptions')
-          .update({
-            status: statusMap[sub.status] || sub.status,
-            stripe_subscription_id: sub.id,
-            current_period_start: sub.current_period_start ? new Date(sub.current_period_start * 1000).toISOString() : null,
-            current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
-            cancel_at_period_end: sub.cancel_at_period_end,
-            is_trial: false,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('business_id', business_id);
+        // Stripe's status is stored as-is (active, trialing, past_due,
+        // unpaid, canceled, incomplete), with the interval and period dates.
+        await writeSubscription({
+          ...subscriptionFieldsFromStripe(sub),
+          is_trial: false,
+          updated_at: new Date().toISOString(),
+        }, (row) => supabase.from('subscriptions').update(row).eq('business_id', business_id));
 
         // If canceled or unpaid, unpublish the page
         if (['canceled', 'unpaid'].includes(sub.status)) {

@@ -26,6 +26,7 @@ import { rampCapForDate, capWithBounceBrake, followUpAllowance } from "./_lib/ou
 import { townForDate, tradeForDate } from "./_lib/prospect-rotation.js";
 import { Resend } from "resend";
 import { isGrandfathered } from "./_lib/trial-policy.js";
+import { hasLiveStripeSubscription } from "./_lib/billing.js";
 import { lintCopy } from "./_lib/copy-lint.js";
 import {
   TEXT_DAILY_CAP, TEXT_REMIND_AFTER_DAYS, NEVER_TEXT_STATUSES, normalizeUsPhone, assessPageQuality,
@@ -1107,7 +1108,8 @@ async function requireAdmin(req) {
 async function toolGetRevenueStatus() {
   const { data: subs, error } = await supabase
     .from("subscriptions")
-    .select("provider, status, is_trial, trial_expires_at, plan_code, businesses(name, is_internal)");
+    // "*" so this keeps working before billing_interval exists.
+    .select("*, businesses(name, is_internal)");
   if (error) throw error;
 
   const rows = (subs || []).filter(s => !s.businesses?.is_internal);
@@ -1116,15 +1118,21 @@ async function toolGetRevenueStatus() {
   const comped = rows.filter(s => s.provider === "comped");
   const activeTrials = rows.filter(s => s.is_trial && s.trial_expires_at && new Date(s.trial_expires_at) > now);
   const stalledTrials = rows.filter(s =>
-    s.is_trial && s.trial_expires_at && new Date(s.trial_expires_at) <= now && s.status !== "active"
+    s.is_trial && s.trial_expires_at && new Date(s.trial_expires_at) <= now && !hasLiveStripeSubscription(s)
   );
-  // One plan: $19.99/month after the free first month.
+  // Subscribed during the free month: card on file, first charge pending.
+  const subscribedInFreeMonth = rows.filter(s => s.provider === "stripe" && s.status === "trialing" && s.stripe_subscription_id);
+  // $19.99/month, or $199/year (counted as $199/12 a month) after the free month.
   const PRICE = 19.99;
+  const monthlyValue = (s) => (s.billing_interval === "year" ? 199 / 12 : PRICE);
 
   return {
-    mrr: Math.round(paying.length * PRICE * 100) / 100,
+    mrr: Math.round(paying.reduce((sum, s) => sum + monthlyValue(s), 0) * 100) / 100,
     paying_count: paying.length,
+    paying_yearly_count: paying.filter(s => s.billing_interval === "year").length,
     paying_businesses: paying.map(s => s.businesses?.name),
+    subscribed_first_charge_pending_count: subscribedInFreeMonth.length,
+    subscribed_first_charge_pending_businesses: subscribedInFreeMonth.map(s => s.businesses?.name),
     comped_count: comped.length,
     comped_businesses: comped.map(s => s.businesses?.name),
     active_trial_count: activeTrials.length,

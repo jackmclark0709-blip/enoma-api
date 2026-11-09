@@ -17,6 +17,14 @@ export const PLANS = [
     public: true,
   },
   {
+    id: "page_annual",
+    lookupKey: "enoma_page_annual",
+    name: "Your Enoma page (yearly)",
+    fallbackAmount: 19900,
+    interval: "year",
+    public: true,
+  },
+  {
     id: "page_partner",
     lookupKey: "enoma_page_partner_monthly",
     name: "Your Enoma page (partner price)",
@@ -42,17 +50,24 @@ export function planById(id) {
   return PLANS.find((p) => p.id === id) || null;
 }
 
-// Which lead-page price a business pays: the partner price only when the
-// business was referred by an active partner whose referrer row has
-// partner_pricing on. Everything else gets the standard price.
-export function pageLookupKeyFor(referrer) {
-  return referrer && referrer.active === true && referrer.partner_pricing === true
-    ? "enoma_page_partner_monthly"
-    : "enoma_page_monthly";
+// Which lead-page price a business pays. The partner price applies only when
+// the business was referred by an active partner whose referrer row has
+// partner_pricing on, and it is monthly-only (there is no partner yearly
+// price). Otherwise the owner's chosen interval picks the price: "year" ->
+// $199/year, anything else -> $19.99/month.
+export function pageLookupKeyFor(referrer, interval = "month") {
+  if (referrer && referrer.active === true && referrer.partner_pricing === true) {
+    return "enoma_page_partner_monthly";
+  }
+  return interval === "year" ? "enoma_page_annual" : "enoma_page_monthly";
 }
 
-// 1999 -> "$19.99"
+export function planByLookupKey(lookupKey) {
+  return PLANS.find((p) => p.lookupKey === lookupKey) || null;
+}
+
+// 1999 -> "$19.99", 19900 -> "$199" (whole dollars drop the cents).
 export function formatAmount(cents) {
   if (!Number.isInteger(cents) || cents < 0) return null;
-  return `$${(cents / 100).toFixed(2)}`;
+  return cents % 100 === 0 ? `$${cents / 100}` : `$${(cents / 100).toFixed(2)}`;
 }

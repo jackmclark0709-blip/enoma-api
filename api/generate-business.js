@@ -11,6 +11,7 @@ import { createClient } from "@supabase/supabase-js";
 import formidable from "formidable";
 import { Resend } from "resend";
 import { attributeReferral } from "./_lib/referral.js";
+import { hasLiveStripeSubscription } from "./_lib/billing.js";
 import fs from "fs";
 import {
   first, safeJSON, mergeUserServicePrices, normalizeServiceAreas
@@ -385,11 +386,12 @@ export default async function handler(req, res) {
 
         const { data: sub } = await supabaseAdmin
           .from("subscriptions")
-          .select("status, is_trial, trial_expires_at")
+          .select("status, is_trial, trial_expires_at, stripe_subscription_id")
           .eq("business_id", firstBizId)
           .maybeSingle();
 
-        const isPaid = sub?.status === "active";
+        // Subscribed (active, or Stripe-trialing with a card on file).
+        const isPaid = hasLiveStripeSubscription(sub);
 
         if (!isPaid) {
           return res.status(403).json({

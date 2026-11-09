@@ -347,7 +347,7 @@
   <div class="trial-card">
     <div class="trial-header">
       <h2>Keep your website live</h2>
-      <span class="trial-badge">$19.99/month</span>
+      <span class="trial-badge">$19.99/month or $199/year</span>
     </div>
     <p>Subscribe to keep your website online, get found in Google, and have your site continuously improved as your business grows.</p>
     <ul class="trial-includes">
@@ -357,8 +357,8 @@
       <li>Monthly performance report straight to your inbox</li>
       <li>Cancel anytime — no contracts</li>
     </ul>
-    <button class="subscribe-btn" id="subscribe-btn">Subscribe and keep my website live →</button>
-    <p class="subscribe-note">You won't be charged until your trial ends on <span id="trial-end-date-2"></span></p>
+    <!-- Monthly / Yearly choice + subscribe (public/scripts/plan-picker.js) -->
+    <div id="plan-picker"></div>
   </div>
 
   <!-- What's next -->
@@ -386,6 +386,7 @@
 
 </div>
 
+<script src="/scripts/plan-picker.js"></script>
 <script>
 var SUPABASE_URL = 'https://qhsivcenpnxwmvwznqie.supabase.co';
 var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc';
@@ -418,10 +419,23 @@ function initSupabase() {
   try {
     var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Load trial expiry date
+    // Monthly / Yearly choice + subscribe. The subscription row sets the trial
+    // end date shown above and whether the first charge waits for it.
+    var mountPicker = function (sub) {
+      window.EnomaPlanPicker.mount(document.getElementById('plan-picker'), {
+        businessId: businessId,
+        sub: sub,
+        theme: 'light',
+        getToken: async function () {
+          var res = await sb.auth.getSession();
+          return (res.data && res.data.session && res.data.session.access_token) || null;
+        },
+        onSignedOut: function () { window.location.href = '/login'; }
+      });
+    };
     if (businessId) {
       sb.from('subscriptions')
-        .select('trial_expires_at')
+        .select('is_trial, trial_expires_at')
         .eq('business_id', businessId)
         .maybeSingle()
         .then(function(res) {
@@ -429,44 +443,10 @@ function initSupabase() {
           if (sub && sub.trial_expires_at) {
             var d = new Date(sub.trial_expires_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
             document.getElementById('trial-end-date').textContent = d;
-            document.getElementById('trial-end-date-2').textContent = d;
           }
-        });
+          mountPicker(sub || null);
+        }, function () { mountPicker(null); });
     }
-
-    // Subscribe button
-    document.getElementById('subscribe-btn').addEventListener('click', async function() {
-      var res = await sb.auth.getSession();
-      var session = res.data && res.data.session;
-      if (!session) { window.location.href = '/login'; return; }
-
-      var btn = document.getElementById('subscribe-btn');
-      btn.textContent = 'Loading checkout…';
-      btn.disabled = true;
-
-      try {
-        var r = await fetch('/api/create-checkout', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + session.access_token
-          },
-          body: JSON.stringify({ business_id: businessId })
-        });
-        var data = await r.json();
-        if (data.url) {
-          window.location.href = data.url;
-        } else {
-          alert(data.error || 'Could not start checkout. Please try again.');
-          btn.textContent = 'Subscribe and keep my website live →';
-          btn.disabled = false;
-        }
-      } catch(err) {
-        alert('Something went wrong. Please try again.');
-        btn.textContent = 'Subscribe and keep my website live →';
-        btn.disabled = false;
-      }
-    });
 
   } catch(e) {
     console.error('Supabase init failed:', e);
