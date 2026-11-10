@@ -15,14 +15,15 @@ import { extractEmails, pickBestEmail, classifyEmail, htmlToText, isPrivateOrRes
 import { hasValidMx } from "./_lib/email-verify.js";
 import { siteChecks, decideSiteTier } from "./_lib/site-checks.js";
 import { previousMonth, tallyClicks, buildResultsEmail } from "./_lib/results-email.js";
-import { qualifiesForPreview, buildFactsPrompt, validateGenerated, assembleProfile, slugify, stateAbbr, PREVIEW_TRIAL_DAYS, INBOUND_PREVIEW_DAYS, INBOUND_SOURCE, isValidPlaceId, inboundLimitReason, placeToProspect, isValidSessionToken, placeSuggestions } from "./_lib/preview-generator.js";
+import { qualifiesForPreview, cheapPreviewGate, isWeakEnoughSite, buildFactsPrompt, validateGenerated, assembleProfile, slugify, stateAbbr, PREVIEW_TRIAL_DAYS, INBOUND_PREVIEW_DAYS, INBOUND_SOURCE, isValidPlaceId, inboundLimitReason, placeToProspect, isValidSessionToken, placeSuggestions } from "./_lib/preview-generator.js";
 import { verifyUnsubscribeToken, appendComplianceFooter, buildUnsubscribeUrl, MAILING_ADDRESS } from "./_lib/outreach-footer.js";
-import { buildOutreachEmail, buildOutreachIntro, buildFollowUpEmail, isFollowUpDue, FOLLOW_UP_AFTER_DAYS, FOLLOW_UP_MAX_AGE_DAYS, isLikelyLinkScanner, buildOwnerVisitAlert, trackedLinks, replyToFor, slugFromPreviewUrl, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "./_lib/outreach-email.js";
-import { verifyMailbox } from "./_lib/mailbox-verify.js";
+import { buildOutreachEmail, buildOutreachIntro, buildFollowUpEmail, isFollowUpDue, FOLLOW_UP_AFTER_DAYS, FOLLOW_UP_MAX_AGE_DAYS, buildSecondFollowUpEmail, isSecondFollowUpDue, FOLLOW_UP_2_AFTER_FIRST_FOLLOW_UP_DAYS, FOLLOW_UP_2_MIN_AGE_DAYS, FOLLOW_UP_2_MAX_AGE_DAYS, FOLLOW_UP_2_SKIP_PROSPECT_STATUSES, isLikelyLinkScanner, buildOwnerVisitAlert, trackedLinks, replyToFor, slugFromPreviewUrl, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "./_lib/outreach-email.js";
+import { verifyMailbox, checkZeroBounceAccount, mapWithConcurrency } from "./_lib/mailbox-verify.js";
+import { ALERT_TO, ALERT_FROM, ALERT_KEYS, utcDay, alertDueToday, shouldAlertVerifyRetrySpike, buildZeroBounceAlert, buildVerifyRetrySpikeAlert } from "./_lib/system-alerts.js";
 import { validateContactRequest, buildContactAlert } from "./_lib/preview-landing.js";
 import { followupBlockReason, followupSendAt, followupExpired, buildVisitFollowupEmail, buildAlertFollowupSection, verifyFollowupToken } from "./_lib/visit-followup.js";
 import { plainTextToHtml, wrapEmailHtml } from "./_lib/email-html.js";
-import { rampCapForDate, capWithBounceBrake, followUpAllowance } from "./_lib/outreach-ramp.js";
+import { rampCapForDate, capWithBounceBrake, followUpAllowance, secondFollowUpAllowance } from "./_lib/outreach-ramp.js";
 import { townForDate, tradeForDate } from "./_lib/prospect-rotation.js";
 import { Resend } from "resend";
 import { isGrandfathered } from "./_lib/trial-policy.js";
@@ -627,12 +628,22 @@ async function fetchPlaceDetails(placeId, { withAddressComponents = false, sessi
 
 // Homepage + up to two same-site pages that look like services / service
 // area / about, so the generator sees what they actually offer and where.
+// The homepage URL a listing's website points at. Some Google listings store
+// "site.com/%3Futm_source%3D..." — that and any query string are dropped.
+function homepageUrl(website) {
+  const cleaned = String(website || "").replace(/%3F.*$/i, "");
+  try {
+    const base = new URL(cleaned.match(/^https?:\/\//) ? cleaned : `https://${cleaned}`);
+    base.search = ""; // strip GBP utm params baked into some listings
+    return base;
+  } catch {
+    return null;
+  }
+}
+
 async function gatherSiteText(website, homeHtmlHint) {
-  let base;
-  // Some Google listings store "site.com/%3Futm_source%3D..." — drop that.
-  const cleaned = String(website).replace(/%3F.*$/i, "");
-  try { base = new URL(cleaned.match(/^https?:\/\//) ? cleaned : `https://${cleaned}`); } catch { return { text: "", homeHtml: null, homeUrl: null }; }
-  base.search = ""; // strip GBP utm params baked into some listings
+  const base = homepageUrl(website);
+  if (!base) return { text: "", homeHtml: null, homeUrl: null };
   const home = homeHtmlHint ? { ok: true, html: homeHtmlHint } : await fetchPageText(base.toString(), 6000);
   if (!home.ok || !home.html) return { text: "", homeHtml: null, homeUrl: base.toString() };
   const links = [...home.html.matchAll(/href=["']([^"'#]+)["']/gi)].map(m => m[1])
@@ -1524,110 +1535,295 @@ async function draftAllOnce({ limit = 8, force = false, deadline } = {}) {
   };
 }
 
-// ── Outreach prep: verify mailbox → build preview page → draft ─────────────
+// ── Outreach prep: free checks → ZeroBounce → build preview page → draft ───
 // Takes prospects the crawler queued as needs_preview (weak site + found
-// email) and gets each one fully ready to send, cheapest check first:
-//   1. Mailbox check — ZeroBounce if ZEROBOUNCE_API_KEY is set (invalid/
-//      spamtrap/etc. dropped, temporary failures retried after 3 days),
-//      otherwise just an MX lookup on the domain.
-//   2. Preview page (generatePreviewForProspect). Prospects that don't pass
-//      the page-quality gate (no phone, thin rating) are set aside as
-//      no_preview: every email has to show a real page.
-//   3. Draft the intro copy around that page.
-// Each prospect costs ~15-25s (two OpenAI calls + site/Places fetches), so
-// this runs on its own crons several times a day under the shared deadline.
+// email) and gets each one ready to send. Cheapest checks first, so the paid
+// and slow steps only run on prospects that can actually be emailed:
+//   1. Free checks, per prospect: suppression_list, classifyEmail (mis-parsed,
+//      off-site or role addresses), then a phone number and a strong Google
+//      rating (isStrongRating) from the Outscraper listing, or one Places
+//      details call when the listing is missing or fails (the details are
+//      reused by the page build, so Places is never called twice), then the
+//      site check: one free homepage fetch, and a site without enough
+//      verified problems (site_not_weak_enough) or that won't load has
+//      nothing to pitch. The HTML is reused by the build. Failing any of
+//      these -> no_preview, with no ZeroBounce credit spent.
+//   2. ZeroBounce for the batch's survivors, 4 at a time (ZEROBOUNCE_API_KEY;
+//      without it, only an MX lookup). invalid/spamtrap/etc. -> invalid_email;
+//      a temporary per-address failure -> verify_retry, retried after 3 days.
+//      An account-level failure (no credits, bad key, 401/403) stops the run,
+//      leaves the prospect's status alone and emails Jack (once a day max).
+//      A send verdict is saved on the prospect (mailbox_status), so a prospect
+//      verified in a run that runs out of time isn't paid for twice.
+//   3. Preview page (generatePreviewForProspect), up to 3 at a time. Its own
+//      quality gate re-runs on the same data as a backstop.
+//   4. Draft the intro copy around that page.
+// A build + draft costs ~15-25 s (two OpenAI calls + site fetches), so a run
+// starts new work only until 20 s before its 45 s budget and takes at most
+// PREPARE_MAX_PER_RUN prospects. It runs on its own crons (vercel.json).
 const VERIFY_RETRY_AFTER_MS = 3 * 24 * 60 * 60 * 1000;
+const PREPARE_MAX_PER_RUN = 10;
+const PREPARE_STOP_BEFORE_DEADLINE_MS = 20000;
+// Free checks are mostly waiting on other hosts (Supabase, Places, the
+// prospect's homepage, up to 6 s), so the whole batch runs at once.
+const FREE_CHECK_CONCURRENCY = PREPARE_MAX_PER_RUN;
+const ZEROBOUNCE_CONCURRENCY = 4;
+const BUILD_CONCURRENCY = 3;
+// A saved send verdict is reused for this long.
+const MAILBOX_VERDICT_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
-async function prepareOutreachOnce({ limit = 4, deadline } = {}) {
+// Emails Jack about the pipeline itself, at most once per UTC day per key
+// (system_alerts.last_sent_on). The row is claimed with a conditional update
+// first, so two overlapping runs can't both send; a failed send releases it.
+async function sendDailySystemAlert(key, { subject, text }, reason) {
+  const today = utcDay();
+  await supabase.from("system_alerts").upsert({ key }, { onConflict: "key", ignoreDuplicates: true });
+  const { data: row } = await supabase.from("system_alerts").select("last_sent_on").eq("key", key).maybeSingle();
+  if (!alertDueToday(row?.last_sent_on)) return { sent: false, reason: "already_alerted_today" };
+  const { data: claimed } = await supabase.from("system_alerts")
+    .update({ last_sent_on: today, last_reason: reason || null, updated_at: new Date().toISOString() })
+    .eq("key", key).or(`last_sent_on.is.null,last_sent_on.lt.${today}`).select("key");
+  if (!claimed?.length) return { sent: false, reason: "already_alerted_today" };
+  try {
+    if (!resend) throw new Error("RESEND_API_KEY not configured");
+    const { error } = await resend.emails.send({ from: ALERT_FROM, to: ALERT_TO, subject, text });
+    if (error) throw new Error(error.message || "Resend send failed");
+    return { sent: true };
+  } catch (err) {
+    await supabase.from("system_alerts").update({ last_sent_on: row?.last_sent_on || null }).eq("key", key);
+    await logNotificationFailure(`system-alert:${key}`, ALERT_TO, err, { reason });
+    return { sent: false, reason: err.message };
+  }
+}
+
+async function reportZeroBounceServiceError(reason) {
+  await logNotificationFailure("zerobounce", "api.zerobounce.net", new Error(reason), { kind: "service_error" });
+  return sendDailySystemAlert(ALERT_KEYS.zerobounceServiceError, buildZeroBounceAlert(reason), reason);
+}
+
+// Even without a clear account error, a pile of verify_retry means
+// ZeroBounce isn't working for us.
+async function checkVerifyRetrySpike() {
+  const { count } = await supabase.from("prospects").select("id", { count: "exact", head: true })
+    .eq("status", "verify_retry").gte("updated_at", new Date(Date.now() - 864e5).toISOString());
+  if (!shouldAlertVerifyRetrySpike(count || 0)) return { count: count || 0, alerted: false };
+  const alert = await sendDailySystemAlert(ALERT_KEYS.verifyRetrySpike, buildVerifyRetrySpikeAlert(count), `${count} verify_retry in 24h`);
+  return { count, alerted: alert.sent };
+}
+
+async function prepareOutreachOnce({ limit = PREPARE_MAX_PER_RUN, deadline = Date.now() + DAILY_PIPELINE_BUDGET_MS } = {}) {
+  const stamp = () => new Date().toISOString();
+  const timings = { account_check: 0, free_checks: 0, verify: 0, build_and_draft: 0 };
+  const results = [];
+  const zbOn = !!process.env.ZEROBOUNCE_API_KEY;
+  const finish = (extra = {}) => {
+    const drafted = results.filter(r => r.ready).length;
+    return {
+      tried: results.length,
+      verified: results.filter(r => r.verified).length,
+      built: results.filter(r => r.preview_url).length,
+      drafted,
+      // Older names, kept for anything reading them.
+      attempted: results.length, ready: drafted,
+      timings_ms: timings, ...extra, results
+    };
+  };
+
+  // 0. Free account check: an empty or broken ZeroBounce account stops the
+  // run before any prospect is touched.
+  let t = Date.now();
+  if (zbOn) {
+    const account = await checkZeroBounceAccount();
+    timings.account_check = Date.now() - t;
+    if (!account.ok) {
+      const alert = await reportZeroBounceServiceError(account.reason);
+      return finish({ stopped: "zerobounce_service_error", reason: account.reason, alert });
+    }
+  }
+
   const retryBefore = new Date(Date.now() - VERIFY_RETRY_AFTER_MS).toISOString();
   const { data: prospects, error } = await supabase
     .from("prospects")
-    .select("id, business_name, trade, city, state, phone, address, email, website, site_gaps, preview_url, google_place_id, raw, status, draft_subject, draft_body")
+    .select("id, business_name, trade, city, state, phone, address, email, website, site_gaps, preview_url, google_place_id, raw, status, draft_subject, draft_body, mailbox_status, mailbox_verified_at")
     .not("email", "is", null)
     .or(`status.eq.needs_preview,and(status.eq.verify_retry,updated_at.lt.${retryBefore})`)
     .order("updated_at", { ascending: true })
-    .limit(Math.min(limit || 4, 10));
+    .limit(Math.min(limit || PREPARE_MAX_PER_RUN, PREPARE_MAX_PER_RUN));
   if (error) throw error;
 
-  const results = [];
-  for (const prospect of prospects || []) {
-    if (deadline && Date.now() > deadline - 20000) break;
-    const now = () => new Date().toISOString();
+  const timeLeft = () => Date.now() < deadline - PREPARE_STOP_BEFORE_DEADLINE_MS;
+  const fail = async (p, status, reason, extra = {}) => {
+    if (status) await supabase.from("prospects").update({ status, updated_at: stamp() }).eq("id", p.id);
+    results.push({ business_name: p.business_name, email: p.email, ready: false, reason, ...extra });
+    return null;
+  };
+  const errored = async (p, err, extra = {}) => {
+    // Left at its current status so the next run retries it.
+    await supabase.from("prospects").update({ updated_at: stamp() }).eq("id", p.id);
+    results.push({ business_name: p.business_name, email: p.email, ready: false, error: err.message, ...extra });
+    return null;
+  };
+
+  // 1. Free checks.
+  t = Date.now();
+  const free = await mapWithConcurrency(prospects || [], FREE_CHECK_CONCURRENCY, async (prospect) => {
     try {
       const { data: suppressed } = await supabase
         .from("suppression_list").select("id").eq("email", prospect.email).maybeSingle();
-      if (suppressed) {
-        await supabase.from("prospects").update({ status: "invalid_email", updated_at: now() }).eq("id", prospect.id);
-        results.push({ business_name: prospect.business_name, ready: false, reason: "suppressed" });
-        continue;
-      }
+      if (suppressed) return fail(prospect, "invalid_email", "suppressed");
 
       // Addresses found before the crawler's quality filter (classifyEmail)
       // existed may be mis-parsed, off-site or role mailboxes: skip, don't guess.
       const quality = classifyEmail(prospect.email, websiteHost(prospect.website), prospect.business_name);
-      if (!quality.ok) {
-        await supabase.from("prospects").update({ status: "invalid_email", updated_at: now() }).eq("id", prospect.id);
-        results.push({ business_name: prospect.business_name, email: prospect.email, ready: false, reason: `email_${quality.reason}` });
-        continue;
-      }
+      if (!quality.ok) return fail(prospect, "invalid_email", `email_${quality.reason}`);
 
-      // ZeroBounce when ZEROBOUNCE_API_KEY is set; otherwise only the free
-      // MX check (domain accepts mail), with real bounces caught afterwards
-      // by the Resend webhook -> suppression_list.
-      let v = await verifyMailbox(prospect.email);
+      // Already has a page (built on an earlier run): it passed the gate then.
+      if (prospect.preview_url) return { prospect, quality, place: undefined };
+      const gateArgs = { prospectPhone: prospect.phone, raw: prospect.raw };
+      let gate = cheapPreviewGate(gateArgs);
+      let place;
+      if (!gate.ok && gate.needsPlaces) {
+        place = prospect.google_place_id ? await fetchPlaceDetails(prospect.google_place_id) : null;
+        gate = cheapPreviewGate({ ...gateArgs, place: place || {} });
+        if (!place) place = undefined; // the build may try Places again
+      }
+      if (!gate.ok) return fail(prospect, "no_preview", `no_preview_${gate.reason}`);
+
+      // Site check: one free homepage fetch. A site without enough verified
+      // problems has nothing honest to pitch. An unreachable homepage fails
+      // too (the page build used to reject these the same way, after the
+      // credit). The HTML is handed to the build so it isn't fetched twice.
+      let homeHtml;
+      if (prospect.website) {
+        const url = homepageUrl(prospect.website);
+        const home = url ? await fetchPageText(url.toString(), 6000) : { ok: false, html: null, reason: "bad_url" };
+        if (!home.ok || !home.html) return fail(prospect, "no_preview", "no_preview_site_unreachable", { site_fetch: home.reason || null });
+        const checks = siteChecks(home.html, url.toString());
+        if (!isWeakEnoughSite(checks.score)) return fail(prospect, "no_preview", "no_preview_site_not_weak_enough", { site_score: checks.score });
+        homeHtml = home.html;
+      }
+      return { prospect, quality, place, homeHtml };
+    } catch (err) {
+      return errored(prospect, err);
+    }
+  }, { shouldStart: timeLeft });
+  timings.free_checks = Date.now() - t;
+  const survivors = free.filter(Boolean);
+
+  // 2. ZeroBounce, in parallel, only for prospects that passed the free
+  // checks. Without ZEROBOUNCE_API_KEY, only the free MX check (domain
+  // accepts mail), with real bounces caught afterwards by the Resend webhook.
+  t = Date.now();
+  let serviceError = null;
+  const verified = await mapWithConcurrency(survivors, ZEROBOUNCE_CONCURRENCY, async (item) => {
+    const { prospect, quality } = item;
+    try {
+      const cached = !!prospect.mailbox_status && !!prospect.mailbox_verified_at
+        && Date.now() - new Date(prospect.mailbox_verified_at).getTime() < MAILBOX_VERDICT_TTL_MS;
+      let v = cached
+        ? { decision: prospect.mailbox_status === "catch-all" ? "send_catch_all" : "send", status: prospect.mailbox_status, cached: true }
+        : await verifyMailbox(prospect.email);
+      if (v.decision === "service_error") {
+        // Our account, not this address: leave the prospect exactly as it is.
+        serviceError = serviceError || v.reason;
+        results.push({ business_name: prospect.business_name, email: prospect.email, ready: false, reason: "zerobounce_service_error" });
+        return null;
+      }
       if (v.decision === "unverified") {
         v = (await hasValidMx(prospect.email))
           ? { decision: "send", status: "mx_only", sub_status: null }
           : { decision: "drop", status: "no_mx", sub_status: null };
       }
-      if (v.decision === "drop") {
-        await supabase.from("prospects").update({ status: "invalid_email", updated_at: now() }).eq("id", prospect.id);
-        results.push({ business_name: prospect.business_name, email: prospect.email, ready: false, reason: `mailbox_${v.status}` });
-        continue;
-      }
+      if (v.decision === "drop") return fail(prospect, "invalid_email", `mailbox_${v.status}`);
       if (v.decision !== "send" && v.decision !== "send_catch_all") {
-        await supabase.from("prospects").update({ status: "verify_retry", updated_at: now() }).eq("id", prospect.id);
-        results.push({ business_name: prospect.business_name, email: prospect.email, ready: false, reason: `verify_${v.sub_status || v.decision}` });
-        continue;
+        return fail(prospect, "verify_retry", `verify_${v.sub_status || v.decision}`);
       }
       // An address on a related-but-different domain goes out only when
       // ZeroBounce confirms that exact mailbox (not catch-all, not MX-only).
       if (quality.needsVerification && v.status !== "valid") {
-        await supabase.from("prospects").update({ status: "invalid_email", updated_at: now() }).eq("id", prospect.id);
-        results.push({ business_name: prospect.business_name, email: prospect.email, ready: false, reason: `related_domain_${v.status || "unverified"}` });
-        continue;
+        return fail(prospect, "invalid_email", `related_domain_${v.status || "unverified"}`);
       }
+      if (!v.cached) {
+        // Saved without touching updated_at, so the prospect keeps its place
+        // at the front of the queue if this run runs out of time to build it.
+        await supabase.from("prospects").update({ mailbox_status: v.status, mailbox_verified_at: stamp() }).eq("id", prospect.id);
+      }
+      return { ...item, mailbox: v.status };
+    } catch (err) {
+      return errored(prospect, err);
+    }
+  }, { shouldStart: () => !serviceError && timeLeft() });
+  timings.verify = Date.now() - t;
+  const toBuild = verified.filter(Boolean);
 
+  // 3-4. Page + draft, only for verified prospects, while there's time.
+  t = Date.now();
+  const built = await mapWithConcurrency(toBuild, BUILD_CONCURRENCY, async ({ prospect, place, homeHtml, mailbox }) => {
+    try {
       let preview_url = prospect.preview_url;
       if (!preview_url) {
-        const gen = await generatePreviewForProspect(prospect);
+        const gen = await generatePreviewForProspect(prospect, { place, homeHtml });
         preview_url = gen.preview_url || null;
-        if (!preview_url) {
-          await supabase.from("prospects").update({ status: "no_preview", updated_at: now() }).eq("id", prospect.id);
-          results.push({ business_name: prospect.business_name, ready: false, reason: `no_preview_${gen.skipped || "failed"}` });
-          continue;
-        }
+        if (!preview_url) return fail(prospect, "no_preview", `no_preview_${gen.skipped || "failed"}`, { verified: true });
       }
-
       const draft = await generateDraftCopy({ ...prospect, preview_url, draft_body: null, draft_subject: null }, null);
       await supabase.from("prospects")
-        .update({ draft_subject: draft.subject, draft_body: draft.body, status: "drafted", updated_at: now() })
+        .update({ draft_subject: draft.subject, draft_body: draft.body, status: "drafted", updated_at: stamp() })
         .eq("id", prospect.id);
-      results.push({ business_name: prospect.business_name, email: prospect.email, mailbox: v.status, preview_url, subject: draft.subject, ready: true });
+      results.push({ business_name: prospect.business_name, email: prospect.email, mailbox, preview_url, subject: draft.subject, verified: true, ready: true });
+      return true;
     } catch (err) {
-      // Left at its current status so the next run retries it.
-      await supabase.from("prospects").update({ updated_at: now() }).eq("id", prospect.id);
-      results.push({ business_name: prospect.business_name, ready: false, error: err.message });
+      return errored(prospect, err, { verified: true });
     }
-  }
+  }, { shouldStart: timeLeft });
+  timings.build_and_draft = Date.now() - t;
+  // Verified but not started before the deadline: still needs_preview, with
+  // the verdict saved, so the next run builds it without paying again.
+  toBuild.forEach(({ prospect, mailbox }, i) => {
+    if (built[i] === undefined) results.push({ business_name: prospect.business_name, email: prospect.email, mailbox, ready: false, verified: true, reason: "out_of_time_verified" });
+  });
 
-  return { attempted: results.length, ready: results.filter(r => r.ready).length, results };
+  const extra = {};
+  if (serviceError) Object.assign(extra, { stopped: "zerobounce_service_error", reason: serviceError, alert: await reportZeroBounceServiceError(serviceError) });
+  if (zbOn) extra.verify_retry_24h = await checkVerifyRetrySpike();
+  return finish(extra);
 }
 
 async function handlePrepareOutreach(req, res) {
-  const limit = parseInt(req.query.limit, 10) || 4;
+  const limit = parseInt(req.query.limit, 10) || PREPARE_MAX_PER_RUN;
   const result = await prepareOutreachOnce({ limit, deadline: Date.now() + DAILY_PIPELINE_BUDGET_MS });
   return res.status(200).json({ success: true, ...result });
+}
+
+// One-time cleanup after the Nov 7-9 2026 ZeroBounce outage: every prospect
+// that went to verify_retry since ?since= (YYYY-MM-DD) goes back to
+// needs_preview so the next prepare run verifies it again. Dry run unless
+// &apply=1. Run it after topping up ZeroBounce credits.
+async function handleRequeueVerifyRetry(req, res) {
+  const since = String(req.query.since || "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(since) || Number.isNaN(Date.parse(`${since}T00:00:00Z`))) {
+    return res.status(400).json({ success: false, error: "since must be YYYY-MM-DD" });
+  }
+  const apply = req.query.apply === "1";
+  const { data: rows, error } = await supabase.from("prospects")
+    .select("id, business_name, updated_at")
+    .eq("status", "verify_retry").gte("updated_at", `${since}T00:00:00Z`)
+    .order("updated_at", { ascending: true });
+  if (error) throw error;
+  const ids = (rows || []).map(r => r.id);
+  let moved = 0;
+  if (apply && ids.length) {
+    const { data: updated, error: updErr } = await supabase.from("prospects")
+      .update({ status: "needs_preview", updated_at: new Date().toISOString() })
+      .in("id", ids).eq("status", "verify_retry").select("id");
+    if (updErr) throw updErr;
+    moved = updated?.length || 0;
+  }
+  return res.status(200).json({
+    success: true, dry_run: !apply, since, matched: ids.length, moved,
+    sample: (rows || []).slice(0, 20).map(r => ({ business_name: r.business_name, updated_at: r.updated_at })),
+    ...(apply ? {} : { note: "Dry run. Add &apply=1 to move these back to needs_preview." })
+  });
 }
 
 async function handleDraftAll(req, res) {
@@ -1701,15 +1897,20 @@ async function handleDailyPipeline(req, res) {
 // 'approved': historically Jack used 'approved' to mean "I already sent this
 // myself" (marked *after* copy/pasting into his own email client), not
 // "reviewed and ready" — treating it as a send queue would re-send prospects
-// who already got a real email. Capped per run (`limit`, default 20) to keep
-// a fresh sending subdomain's volume ramping slowly rather than spiking.
+// who already got a real email.
+// Order within one run, all under OUTREACH_DAILY_CAP (30/day, ramp + bounce
+// brake applied):
+//   1. First follow-ups (day 3-10 after the first email), then
+//   2. second, last follow-ups (first email 10-21 days old, first follow-up
+//      7+ days old), out of one shared FOLLOWUP_DAILY_CAP (10/day) allowance;
+//   3. first emails to 'drafted' prospects get whatever the cap has left.
 // Every send goes through hasValidMx first — not a live mailbox probe (that
 // gets a serverless IP flagged fast), just a cheap check that the domain has
 // a mail server at all, catching typo'd/dead domains before they ever cost a
 // send attempt. Real mailbox-level bounces are handled after the fact by the
 // Resend webhook (handleResendWebhook, below) feeding suppression_list.
 const SEND_OUTREACH_FROM = "Jack at Enoma <outreach@mail.enoma.io>";
-// Hard ceiling on cold emails per day (first emails + follow-ups together),
+// Hard ceiling on cold emails per day (first emails + both follow-ups together),
 // whatever the cron or a caller asks for. Raised 10 -> 20 on 2026-10-28 after
 // two months of warm-up, then 20 -> 30 on 2026-11-03; capWithBounceBrake drops
 // it back to 10 if the last 7 days bounce more than 3%.
@@ -1787,6 +1988,83 @@ async function sendFollowUpsOnce({ maxSends, captureReplies }) {
   return { sent, results };
 }
 
+// Second and last follow-up (outreach-email.js isSecondFollowUpDue): first
+// follow-up at least 7 days ago, first email 10-21 days ago, no response of
+// any kind, page never opened from an email, page still up and unclaimed,
+// address not suppressed, prospect not opted_out/invalid_email/claimed.
+// Reserved by stamping followup2_sent_at first, like the first follow-up.
+async function sendSecondFollowUpsOnce({ maxSends, captureReplies }) {
+  const results = [];
+  if (!maxSends) return { sent: 0, results };
+  const now = Date.now();
+  const { data: rows, error } = await supabase.from("outreach_messages")
+    .select("id, sent_at, draft_subject, followup_sent_at, followup2_sent_at, response_status, preview_visited_at, prospects(id, business_name, email, preview_url, status)")
+    .eq("channel", "email").eq("status", "sent")
+    .not("followup_sent_at", "is", null).is("followup2_sent_at", null)
+    .is("response_status", null).is("preview_visited_at", null)
+    .lte("followup_sent_at", new Date(now - FOLLOW_UP_2_AFTER_FIRST_FOLLOW_UP_DAYS * 864e5).toISOString())
+    .gte("sent_at", new Date(now - FOLLOW_UP_2_MAX_AGE_DAYS * 864e5).toISOString())
+    .lte("sent_at", new Date(now - FOLLOW_UP_2_MIN_AGE_DAYS * 864e5).toISOString())
+    .order("sent_at", { ascending: true })
+    .limit(Math.min(maxSends * 3, 30));
+  if (error) throw error;
+
+  let sent = 0;
+  for (const row of rows || []) {
+    if (sent >= maxSends) break;
+    const p = row.prospects;
+    const slug = slugFromPreviewUrl(p?.preview_url);
+    const skip = (reason) => results.push({ business_name: p?.business_name, sent: false, reason });
+    if (!isSecondFollowUpDue({
+      sentAt: row.sent_at, followupSentAt: row.followup_sent_at, followup2SentAt: row.followup2_sent_at,
+      responseStatus: row.response_status, previewVisited: !!row.preview_visited_at, now
+    })) continue;
+    if (!p?.email || !slug) { skip("no_email_or_page"); continue; }
+    if (FOLLOW_UP_2_SKIP_PROSPECT_STATUSES.includes(p.status) || p.status !== "sent") { skip(`prospect_${p.status}`); continue; }
+    const { data: suppressed } = await supabase.from("suppression_list").select("id").eq("email", p.email).maybeSingle();
+    if (suppressed) { skip("suppressed"); continue; }
+    const { data: page } = await supabase.from("small_business_profiles")
+      .select("is_public, is_claimed").eq("username", slug).maybeSingle();
+    if (!page?.is_public || page.is_claimed !== false) { skip("page_not_live_or_claimed"); continue; }
+    const { data: visitNote } = await supabase.from("visit_followups")
+      .select("id").eq("prospect_id", p.id).in("status", ["sending", "sent"]).maybeSingle();
+    if (visitNote) { skip("visit_followup_sent"); continue; }
+
+    const stamp = new Date().toISOString();
+    const { data: reserved } = await supabase.from("outreach_messages")
+      .update({ followup2_sent_at: stamp, updated_at: stamp })
+      .eq("id", row.id).is("followup2_sent_at", null).select("id");
+    if (!reserved?.length) continue;
+
+    try {
+      if (!resend) throw new Error("RESEND_API_KEY not configured");
+      const email = buildSecondFollowUpEmail({
+        businessName: p.business_name, originalSubject: row.draft_subject, messageId: row.id, slug,
+        unsubscribeUrl: buildUnsubscribeUrl(p.email), mailingAddress: MAILING_ADDRESS
+      });
+      const { data: sendData, error: sendErr } = await resend.emails.send({
+        from: SEND_OUTREACH_FROM,
+        to: p.email,
+        replyTo: replyToFor(row.id, { captureReplies }),
+        subject: email.subject,
+        text: email.text,
+        html: email.html,
+        headers: { "List-Unsubscribe": `<${buildUnsubscribeUrl(p.email)}>` },
+        tags: [{ name: "outreach_message_id", value: row.id }, { name: "kind", value: "cold_outreach_followup2" }]
+      });
+      if (sendErr) throw new Error(sendErr.message || "Resend send failed");
+      await supabase.from("outreach_messages").update({ followup2_message_id: sendData?.id || null }).eq("id", row.id);
+      sent++;
+      results.push({ business_name: p.business_name, email: p.email, sent: true, message_id: row.id });
+    } catch (err) {
+      await supabase.from("outreach_messages").update({ followup2_sent_at: null }).eq("id", row.id);
+      await logNotificationFailure("send-followup2", p.email, err, { prospect_id: p.id, business_name: p.business_name });
+      results.push({ business_name: p.business_name, email: p.email, sent: false, reason: err.message });
+    }
+  }
+  return { sent, results };
+}
+
 async function handleSendOutreach(req, res) {
   const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString();
   const [{ count: sends7d }, { count: bounces7d }] = await Promise.all([
@@ -1801,16 +2079,27 @@ async function handleSendOutreach(req, res) {
   const { count: sentToday } = await supabase.from("outreach_messages")
     .select("id", { count: "exact", head: true })
     .eq("channel", "email").eq("status", "sent").gte("sent_at", startOfDay.toISOString());
-  const { count: followupsToday } = await supabase.from("outreach_messages")
-    .select("id", { count: "exact", head: true })
-    .eq("channel", "email").gte("followup_sent_at", startOfDay.toISOString());
+  // Both follow-ups count toward the follow-up allowance and the daily cap.
+  const [{ count: followups1Today }, { count: followups2Today }] = await Promise.all([
+    supabase.from("outreach_messages").select("id", { count: "exact", head: true })
+      .eq("channel", "email").gte("followup_sent_at", startOfDay.toISOString()),
+    supabase.from("outreach_messages").select("id", { count: "exact", head: true })
+      .eq("channel", "email").gte("followup2_sent_at", startOfDay.toISOString()),
+  ]);
+  const followupsToday = (followups1Today || 0) + (followups2Today || 0);
   const captureReplies = process.env.OUTREACH_REPLY_CAPTURE === "1";
   const dailyCap = Math.min(OUTREACH_DAILY_CAP, rampCap);
-  // Follow-ups go first: they're time-boxed (days 3-10) and to people who
-  // already got one email. Both kinds count toward the same daily cap.
-  const followUps = req.query.dry_run === "1" ? { sent: 0, results: [] }
-    : await sendFollowUpsOnce({ maxSends: followUpAllowance({ dailyCap, sentToday, followupsToday }), captureReplies });
-  const usedSoFar = (sentToday || 0) + (followupsToday || 0) + followUps.sent;
+  // Follow-ups go first: they're time-boxed and to people who already got
+  // one email. First follow-ups, then second follow-ups, out of one shared
+  // allowance (FOLLOWUP_DAILY_CAP); everything counts toward the daily cap.
+  const dryRun = req.query.dry_run === "1";
+  const followUpSlots = followUpAllowance({ dailyCap, sentToday, followupsToday });
+  const followUps = dryRun ? { sent: 0, results: [] }
+    : await sendFollowUpsOnce({ maxSends: followUpSlots, captureReplies });
+  const secondFollowUps = dryRun ? { sent: 0, results: [] }
+    : await sendSecondFollowUpsOnce({ maxSends: secondFollowUpAllowance({ allowance: followUpSlots, firstFollowUpsSent: followUps.sent }), captureReplies });
+  const followUpsSentNow = followUps.sent + secondFollowUps.sent;
+  const usedSoFar = (sentToday || 0) + (followupsToday || 0) + followUpsSentNow;
   const remaining = Math.max(0, dailyCap - usedSoFar);
   const limit = Math.min(parseInt(req.query.limit, 10) || OUTREACH_DAILY_CAP, remaining);
 
@@ -1846,7 +2135,7 @@ async function handleSendOutreach(req, res) {
     const { count } = await supabase.from("outreach_messages")
       .select("id", { count: "exact", head: true })
       .eq("channel", "email").in("status", ["sent", "drafted"]).gte("created_at", startOfDay.toISOString());
-    return (count || 0) + (followupsToday || 0) + followUps.sent;
+    return (count || 0) + (followupsToday || 0) + followUpsSentNow;
   };
 
   const results = [];
@@ -1945,6 +2234,7 @@ async function handleSendOutreach(req, res) {
     bounce_rate_7d: sends7d ? Math.round(((bounces7d || 0) / sends7d) * 1000) / 10 : null,
     sent_earlier_today: (sentToday || 0) + (followupsToday || 0),
     follow_ups: followUps,
+    second_follow_ups: secondFollowUps,
     attempted: results.length,
     sent: results.filter(r => r.sent).length,
     skipped: results.filter(r => !r.sent).length,
@@ -2183,12 +2473,17 @@ async function handleOutreachRedirect(req, res) {
   if (!isUuid(m)) return res.redirect(302, "https://enoma.io/");
 
   const { data: msg } = await supabase.from("outreach_messages")
-    .select("id, sent_at, followup_sent_at, preview_visited_at, draft_subject, response_status, prospects(id, business_name, email, status, phone, city, state, preview_url, preview_business_id, preview_first_viewed_at, preview_alerted_at)")
+    .select("id, sent_at, followup_sent_at, followup2_sent_at, preview_visited_at, draft_subject, response_status, prospects(id, business_name, email, status, phone, city, state, preview_url, preview_business_id, preview_first_viewed_at, preview_alerted_at)")
     .eq("id", m).maybeSingle();
   const slug = slugFromPreviewUrl(msg?.prospects?.preview_url);
   if (!msg || !slug) return res.redirect(302, "https://enoma.io/");
 
   const links = trackedLinks(msg.id, slug);
+  const utm = {};
+  for (const k of ["utm_source", "utm_medium", "utm_campaign"]) {
+    const v = String(req.query[k] || "");
+    if (/^[a-z0-9_-]{1,40}$/i.test(v)) utm[k] = v;
+  }
   const at = new Date().toISOString();
   // Corporate mail filters (Microsoft Safe Links, EdgePilot and similar) open
   // every link within seconds of delivery — of the first email AND the
@@ -2199,7 +2494,7 @@ async function handleOutreachRedirect(req, res) {
     .select("created_at").eq("metadata->>m", msg.id)
     .order("created_at", { ascending: false }).limit(1).maybeSingle();
   const scanner = isLikelyLinkScanner({
-    sentAt: msg.sent_at, followupSentAt: msg.followup_sent_at, lastClickAt: lastClick?.created_at,
+    sentAt: msg.sent_at, followupSentAt: msg.followup_sent_at, followup2SentAt: msg.followup2_sent_at, lastClickAt: lastClick?.created_at,
     now: Date.now(), userAgent: req.headers["user-agent"]
   });
   const prospect = msg.prospects;
@@ -2221,13 +2516,13 @@ async function handleOutreachRedirect(req, res) {
       }
       // Internal and test businesses are logged but never alert anyone.
       if (!followup?.internal) {
-        await alertJackOwnerVisit(prospect, to, msg.followup_sent_at || msg.sent_at, at, followup?.section || null);
+        await alertJackOwnerVisit(prospect, to, msg.followup2_sent_at || msg.followup_sent_at || msg.sent_at, at, followup?.section || null);
       }
     }
     await supabase.from("page_events").insert({
       slug,
       event: to === "claim" ? "outreach_claim_click" : "outreach_page_click",
-      metadata: { m: msg.id, ...(scanner ? { likely_scanner: true } : {}) },
+      metadata: { m: msg.id, ...(utm.utm_campaign ? { utm_campaign: utm.utm_campaign } : {}), ...(scanner ? { likely_scanner: true } : {}) },
       referrer: req.headers.referer || null,
       user_agent: req.headers["user-agent"] || null,
       ip: (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || null,
@@ -2236,7 +2531,10 @@ async function handleOutreachRedirect(req, res) {
   } catch (e) {
     console.error("Outreach click logging failed:", e);
   }
-  return res.redirect(302, to === "claim" ? links.claimDest : links.pageDest);
+  // UTM tags on the email link (second follow-up) carry through to the page.
+  const dest = new URL(to === "claim" ? links.claimDest : links.pageDest);
+  for (const [k, v] of Object.entries(utm)) dest.searchParams.set(k, v);
+  return res.redirect(302, dest.toString());
 }
 
 // Public — Resend's servers call this, they can't send ADMIN_SECRET/
@@ -3161,6 +3459,15 @@ export default async function handler(req, res) {
       return await handlePrepareOutreach(req, res);
     } catch (err) {
       console.error("Prepare outreach failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.query.action === "requeue_verify_retry") {
+    try {
+      return await handleRequeueVerifyRetry(req, res);
+    } catch (err) {
+      console.error("Requeue verify_retry failed:", err);
       return res.status(500).json({ success: false, error: err.message });
     }
   }

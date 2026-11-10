@@ -31,11 +31,37 @@ export function slugify(text) {
  * that has to hide a 3.8★ rating or an empty review section isn't a pitch.
  * For prospects with a website, the site must objectively fail 2+ checks.
  */
+// A prospect with a website only gets a page when the site has at least this
+// many verified problems (site-checks.js score): otherwise there's nothing
+// honest to pitch.
+export const SITE_WEAK_MIN_SCORE = 2;
+export function isWeakEnoughSite(siteCheckScore) {
+  return Number(siteCheckScore) >= SITE_WEAK_MIN_SCORE;
+}
+
 export function qualifiesForPreview({ rating, reviewCount, hasWebsite, siteCheckScore, phone }) {
   if (!phone) return { ok: false, reason: "no_phone" };
   if (!isStrongRating(rating, reviewCount)) return { ok: false, reason: "weak_or_thin_rating" };
-  if (hasWebsite && !(siteCheckScore >= 2)) return { ok: false, reason: "site_not_weak_enough" };
+  if (hasWebsite && !isWeakEnoughSite(siteCheckScore)) return { ok: false, reason: "site_not_weak_enough" };
   return { ok: true };
+}
+
+// The free part of the quality gate (phone + strong rating), run before any
+// paid check (ZeroBounce) so prospects that can't get a page don't cost a
+// credit. Judges on the Outscraper listing (raw) first; when raw is missing
+// or fails, the caller fetches Places details once and asks again with
+// `place` (Places is fresher: in Nov 2026, 31 of 247 sent prospects had a raw
+// rating that fails but a Places rating that passed). Pass place = {} when
+// Places isn't available, to get a final verdict on raw alone.
+export function cheapPreviewGate({ prospectPhone, raw, place } = {}) {
+  const r = raw || {};
+  const rating = place ? (place.rating ?? r.rating) : r.rating;
+  const reviews = place ? (place.userRatingCount ?? r.reviews) : r.reviews;
+  const phone = place?.nationalPhoneNumber || prospectPhone || r.phone || null;
+  if (phone && isStrongRating(rating, reviews)) return { ok: true };
+  if (!place) return { ok: false, needsPlaces: true };
+  if (!phone) return { ok: false, reason: "no_phone" };
+  return { ok: false, reason: "weak_or_thin_rating" };
 }
 
 export function buildFactsPrompt({ name, trade, city, state, phone, address, siteText, googleTypes, hours }) {

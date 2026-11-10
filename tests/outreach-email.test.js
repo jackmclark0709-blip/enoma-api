@@ -185,9 +185,11 @@ await test("ZeroBounce statuses map to send / drop / retry", () => {
 await test("no API key means unverified, never a silent pass", async () => {
   assert.equal((await verifyMailbox("a@b.com", { apiKey: "" })).decision, "unverified");
 });
-await test("API errors and timeouts become retry", async () => {
+await test("account errors are service_error; other API errors and timeouts become retry", async () => {
   const bad = async () => ({ ok: true, json: async () => ({ error: "Invalid API key" }) });
-  assert.equal((await verifyMailbox("a@b.com", { apiKey: "k", fetchImpl: bad })).decision, "retry");
+  assert.equal((await verifyMailbox("a@b.com", { apiKey: "k", fetchImpl: bad })).decision, "service_error");
+  const flaky = async () => ({ ok: false, status: 502, json: async () => ({}) });
+  assert.equal((await verifyMailbox("a@b.com", { apiKey: "k", fetchImpl: flaky })).decision, "retry");
   const boom = async () => { throw Object.assign(new Error("t"), { name: "TimeoutError" }); };
   assert.equal((await verifyMailbox("a@b.com", { apiKey: "k", fetchImpl: boom })).sub_status, "timeout");
 });
