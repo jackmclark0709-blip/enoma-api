@@ -31,10 +31,18 @@ export function slugify(text) {
  * that has to hide a 3.8★ rating or an empty review section isn't a pitch.
  * For prospects with a website, the site must objectively fail 2+ checks.
  */
+// A prospect with a website only gets a page when the site has at least this
+// many verified problems (site-checks.js score): otherwise there's nothing
+// honest to pitch.
+export const SITE_WEAK_MIN_SCORE = 2;
+export function isWeakEnoughSite(siteCheckScore) {
+  return Number(siteCheckScore) >= SITE_WEAK_MIN_SCORE;
+}
+
 export function qualifiesForPreview({ rating, reviewCount, hasWebsite, siteCheckScore, phone }) {
   if (!phone) return { ok: false, reason: "no_phone" };
   if (!isStrongRating(rating, reviewCount)) return { ok: false, reason: "weak_or_thin_rating" };
-  if (hasWebsite && !(siteCheckScore >= 2)) return { ok: false, reason: "site_not_weak_enough" };
+  if (hasWebsite && !isWeakEnoughSite(siteCheckScore)) return { ok: false, reason: "site_not_weak_enough" };
   return { ok: true };
 }
 

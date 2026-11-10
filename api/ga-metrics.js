@@ -15,7 +15,7 @@ import { extractEmails, pickBestEmail, classifyEmail, htmlToText, isPrivateOrRes
 import { hasValidMx } from "./_lib/email-verify.js";
 import { siteChecks, decideSiteTier } from "./_lib/site-checks.js";
 import { previousMonth, tallyClicks, buildResultsEmail } from "./_lib/results-email.js";
-import { qualifiesForPreview, cheapPreviewGate, buildFactsPrompt, validateGenerated, assembleProfile, slugify, stateAbbr, PREVIEW_TRIAL_DAYS, INBOUND_PREVIEW_DAYS, INBOUND_SOURCE, isValidPlaceId, inboundLimitReason, placeToProspect, isValidSessionToken, placeSuggestions } from "./_lib/preview-generator.js";
+import { qualifiesForPreview, cheapPreviewGate, isWeakEnoughSite, buildFactsPrompt, validateGenerated, assembleProfile, slugify, stateAbbr, PREVIEW_TRIAL_DAYS, INBOUND_PREVIEW_DAYS, INBOUND_SOURCE, isValidPlaceId, inboundLimitReason, placeToProspect, isValidSessionToken, placeSuggestions } from "./_lib/preview-generator.js";
 import { verifyUnsubscribeToken, appendComplianceFooter, buildUnsubscribeUrl, MAILING_ADDRESS } from "./_lib/outreach-footer.js";
 import { buildOutreachEmail, buildOutreachIntro, buildFollowUpEmail, isFollowUpDue, FOLLOW_UP_AFTER_DAYS, FOLLOW_UP_MAX_AGE_DAYS, buildSecondFollowUpEmail, isSecondFollowUpDue, FOLLOW_UP_2_AFTER_FIRST_FOLLOW_UP_DAYS, FOLLOW_UP_2_MIN_AGE_DAYS, FOLLOW_UP_2_MAX_AGE_DAYS, FOLLOW_UP_2_SKIP_PROSPECT_STATUSES, isLikelyLinkScanner, buildOwnerVisitAlert, trackedLinks, replyToFor, slugFromPreviewUrl, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "./_lib/outreach-email.js";
 import { verifyMailbox, checkZeroBounceAccount, mapWithConcurrency } from "./_lib/mailbox-verify.js";
@@ -628,12 +628,22 @@ async function fetchPlaceDetails(placeId, { withAddressComponents = false, sessi
 
 // Homepage + up to two same-site pages that look like services / service
 // area / about, so the generator sees what they actually offer and where.
+// The homepage URL a listing's website points at. Some Google listings store
+// "site.com/%3Futm_source%3D..." — that and any query string are dropped.
+function homepageUrl(website) {
+  const cleaned = String(website || "").replace(/%3F.*$/i, "");
+  try {
+    const base = new URL(cleaned.match(/^https?:\/\//) ? cleaned : `https://${cleaned}`);
+    base.search = ""; // strip GBP utm params baked into some listings
+    return base;
+  } catch {
+    return null;
+  }
+}
+
 async function gatherSiteText(website, homeHtmlHint) {
-  let base;
-  // Some Google listings store "site.com/%3Futm_source%3D..." — drop that.
-  const cleaned = String(website).replace(/%3F.*$/i, "");
-  try { base = new URL(cleaned.match(/^https?:\/\//) ? cleaned : `https://${cleaned}`); } catch { return { text: "", homeHtml: null, homeUrl: null }; }
-  base.search = ""; // strip GBP utm params baked into some listings
+  const base = homepageUrl(website);
+  if (!base) return { text: "", homeHtml: null, homeUrl: null };
   const home = homeHtmlHint ? { ok: true, html: homeHtmlHint } : await fetchPageText(base.toString(), 6000);
   if (!home.ok || !home.html) return { text: "", homeHtml: null, homeUrl: base.toString() };
   const links = [...home.html.matchAll(/href=["']([^"'#]+)["']/gi)].map(m => m[1])
@@ -1533,8 +1543,11 @@ async function draftAllOnce({ limit = 8, force = false, deadline } = {}) {
 //      off-site or role addresses), then a phone number and a strong Google
 //      rating (isStrongRating) from the Outscraper listing, or one Places
 //      details call when the listing is missing or fails (the details are
-//      reused by the page build, so Places is never called twice). Failing
-//      the rating/phone gate -> no_preview, with no ZeroBounce credit spent.
+//      reused by the page build, so Places is never called twice), then the
+//      site check: one free homepage fetch, and a site without enough
+//      verified problems (site_not_weak_enough) or that won't load has
+//      nothing to pitch. The HTML is reused by the build. Failing any of
+//      these -> no_preview, with no ZeroBounce credit spent.
 //   2. ZeroBounce for the batch's survivors, 4 at a time (ZEROBOUNCE_API_KEY;
 //      without it, only an MX lookup). invalid/spamtrap/etc. -> invalid_email;
 //      a temporary per-address failure -> verify_retry, retried after 3 days.
@@ -1542,8 +1555,8 @@ async function draftAllOnce({ limit = 8, force = false, deadline } = {}) {
 //      leaves the prospect's status alone and emails Jack (once a day max).
 //      A send verdict is saved on the prospect (mailbox_status), so a prospect
 //      verified in a run that runs out of time isn't paid for twice.
-//   3. Preview page (generatePreviewForProspect), up to 3 at a time. The
-//      site_not_weak_enough check stays here because it needs the site's HTML.
+//   3. Preview page (generatePreviewForProspect), up to 3 at a time. Its own
+//      quality gate re-runs on the same data as a backstop.
 //   4. Draft the intro copy around that page.
 // A build + draft costs ~15-25 s (two OpenAI calls + site fetches), so a run
 // starts new work only until 20 s before its 45 s budget and takes at most
@@ -1551,6 +1564,9 @@ async function draftAllOnce({ limit = 8, force = false, deadline } = {}) {
 const VERIFY_RETRY_AFTER_MS = 3 * 24 * 60 * 60 * 1000;
 const PREPARE_MAX_PER_RUN = 10;
 const PREPARE_STOP_BEFORE_DEADLINE_MS = 20000;
+// Free checks are mostly waiting on other hosts (Supabase, Places, the
+// prospect's homepage, up to 6 s), so the whole batch runs at once.
+const FREE_CHECK_CONCURRENCY = PREPARE_MAX_PER_RUN;
 const ZEROBOUNCE_CONCURRENCY = 4;
 const BUILD_CONCURRENCY = 3;
 // A saved send verdict is reused for this long.
@@ -1650,7 +1666,7 @@ async function prepareOutreachOnce({ limit = PREPARE_MAX_PER_RUN, deadline = Dat
 
   // 1. Free checks.
   t = Date.now();
-  const free = await mapWithConcurrency(prospects || [], 4, async (prospect) => {
+  const free = await mapWithConcurrency(prospects || [], FREE_CHECK_CONCURRENCY, async (prospect) => {
     try {
       const { data: suppressed } = await supabase
         .from("suppression_list").select("id").eq("email", prospect.email).maybeSingle();
@@ -1672,7 +1688,21 @@ async function prepareOutreachOnce({ limit = PREPARE_MAX_PER_RUN, deadline = Dat
         if (!place) place = undefined; // the build may try Places again
       }
       if (!gate.ok) return fail(prospect, "no_preview", `no_preview_${gate.reason}`);
-      return { prospect, quality, place };
+
+      // Site check: one free homepage fetch. A site without enough verified
+      // problems has nothing honest to pitch. An unreachable homepage fails
+      // too (the page build used to reject these the same way, after the
+      // credit). The HTML is handed to the build so it isn't fetched twice.
+      let homeHtml;
+      if (prospect.website) {
+        const url = homepageUrl(prospect.website);
+        const home = url ? await fetchPageText(url.toString(), 6000) : { ok: false, html: null, reason: "bad_url" };
+        if (!home.ok || !home.html) return fail(prospect, "no_preview", "no_preview_site_unreachable", { site_fetch: home.reason || null });
+        const checks = siteChecks(home.html, url.toString());
+        if (!isWeakEnoughSite(checks.score)) return fail(prospect, "no_preview", "no_preview_site_not_weak_enough", { site_score: checks.score });
+        homeHtml = home.html;
+      }
+      return { prospect, quality, place, homeHtml };
     } catch (err) {
       return errored(prospect, err);
     }
@@ -1728,11 +1758,11 @@ async function prepareOutreachOnce({ limit = PREPARE_MAX_PER_RUN, deadline = Dat
 
   // 3-4. Page + draft, only for verified prospects, while there's time.
   t = Date.now();
-  const built = await mapWithConcurrency(toBuild, BUILD_CONCURRENCY, async ({ prospect, place, mailbox }) => {
+  const built = await mapWithConcurrency(toBuild, BUILD_CONCURRENCY, async ({ prospect, place, homeHtml, mailbox }) => {
     try {
       let preview_url = prospect.preview_url;
       if (!preview_url) {
-        const gen = await generatePreviewForProspect(prospect, { place });
+        const gen = await generatePreviewForProspect(prospect, { place, homeHtml });
         preview_url = gen.preview_url || null;
         if (!preview_url) return fail(prospect, "no_preview", `no_preview_${gen.skipped || "failed"}`, { verified: true });
       }

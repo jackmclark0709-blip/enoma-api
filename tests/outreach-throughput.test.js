@@ -4,7 +4,7 @@
 
 import assert from "node:assert/strict";
 import { verifyMailbox, checkZeroBounceAccount, accountErrorReason, mapWithConcurrency } from "../api/_lib/mailbox-verify.js";
-import { cheapPreviewGate } from "../api/_lib/preview-generator.js";
+import { cheapPreviewGate, isWeakEnoughSite, qualifiesForPreview, SITE_WEAK_MIN_SCORE } from "../api/_lib/preview-generator.js";
 import { alertDueToday, shouldAlertVerifyRetrySpike, buildZeroBounceAlert, buildVerifyRetrySpikeAlert, utcDay, VERIFY_RETRY_ALERT_THRESHOLD } from "../api/_lib/system-alerts.js";
 import { isSecondFollowUpDue, buildSecondFollowUpEmail, buildFollowUpEmail, isLikelyLinkScanner, withUtm } from "../api/_lib/outreach-email.js";
 import { followUpAllowance, secondFollowUpAllowance, FOLLOWUP_DAILY_CAP } from "../api/_lib/outreach-ramp.js";
@@ -95,6 +95,14 @@ await test("no phone anywhere fails as no_phone; place = {} falls back to raw", 
   assert.equal(cheapPreviewGate({ raw: { rating: 5, reviews: 50 }, place: {} }).reason, "no_phone");
   assert.equal(cheapPreviewGate({ raw: { rating: 5, reviews: 50, phone: "x" }, place: {} }).ok, true);
   assert.equal(cheapPreviewGate({ raw: { rating: 5, reviews: 50 }, place: { nationalPhoneNumber: "(508) 555-0100" } }).ok, true);
+});
+
+await test("site check: the free pre-ZeroBounce rule is the same one the build uses", () => {
+  assert.equal(SITE_WEAK_MIN_SCORE, 2);
+  for (const score of [0, 1, 2, 3, undefined]) {
+    const build = qualifiesForPreview({ rating: 5, reviewCount: 50, hasWebsite: true, siteCheckScore: score, phone: "x" });
+    assert.equal(isWeakEnoughSite(score), build.ok, `score ${score}`);
+  }
 });
 
 console.log("system alerts");
