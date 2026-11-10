@@ -190,22 +190,85 @@ export function buildFollowUpEmail({ businessName, originalSubject, messageId, s
   return { subject, text, html, links };
 }
 
+// Second (last) follow-up: at least 7 days after the first follow-up, while
+// the first email is 10-21 days old. Never to anyone who replied, bounced,
+// unsubscribed or complained (any response_status), and never to anyone who
+// already opened their page from an email: Jack's visit note
+// (visit-followup.js) is the follow-up for them. The caller also skips claimed
+// pages, suppressed addresses and prospects at opted_out/invalid_email/claimed.
+export const FOLLOW_UP_2_AFTER_FIRST_FOLLOW_UP_DAYS = 7;
+export const FOLLOW_UP_2_MIN_AGE_DAYS = 10;
+export const FOLLOW_UP_2_MAX_AGE_DAYS = 21;
+export const FOLLOW_UP_2_SKIP_PROSPECT_STATUSES = ["opted_out", "invalid_email", "claimed"];
+
+export function isSecondFollowUpDue({ sentAt, followupSentAt, followup2SentAt, responseStatus, previewVisited, now = Date.now() } = {}) {
+  if (!sentAt || !followupSentAt || followup2SentAt || responseStatus || previewVisited) return false;
+  const sent = new Date(sentAt).getTime();
+  const fu1 = new Date(followupSentAt).getTime();
+  if (!Number.isFinite(sent) || !Number.isFinite(fu1)) return false;
+  const age = now - sent;
+  return now - fu1 >= FOLLOW_UP_2_AFTER_FIRST_FOLLOW_UP_DAYS * 864e5
+    && age >= FOLLOW_UP_2_MIN_AGE_DAYS * 864e5
+    && age <= FOLLOW_UP_2_MAX_AGE_DAYS * 864e5;
+}
+
+// UTM-tagged copy of a link, so a second-follow-up visit shows up as its own
+// campaign in GA (the action=go redirect passes query params it doesn't use
+// through untouched; see handleOutreachRedirect).
+export const FOLLOW_UP_2_UTM = { utm_source: "enoma", utm_medium: "email", utm_campaign: "cold_followup2" };
+export function withUtm(url, utm = FOLLOW_UP_2_UTM) {
+  const u = new URL(url);
+  for (const [k, v] of Object.entries(utm)) u.searchParams.set(k, v);
+  return u.toString();
+}
+
+// The last note: short, a different angle from the first follow-up (keeping
+// it costs nothing the first month, and this is the last email), threaded the
+// same way as buildFollowUpEmail ("Re:" on the original subject).
+export function buildSecondFollowUpEmail({ businessName, originalSubject, messageId, slug, unsubscribeUrl, mailingAddress }) {
+  const base = trackedLinks(messageId, slug);
+  const links = { ...base, page: withUtm(base.page), claim: withUtm(base.claim), unsubscribe: withUtm(unsubscribeUrl) };
+  const name = cleanBusinessName(businessName) || "your business";
+  const subjectBase = String(originalSubject || `I built ${name} a new page`).replace(/^\s*re:\s*/i, "");
+  const subject = `Re: ${subjectBase}`;
+  const p1 = `Last note from me about ${name}'s page:`;
+  const p2 = `It's yours to keep: first month free, then $19.99/month or $199/year. If now's not the time, no problem, I won't email again.`;
+  const text = [
+    "Hi there,", `${p1} ${links.page}`, p2, "Jack",
+    `---\n${mailingAddress}\nDon't want these emails? ${links.unsubscribe}`
+  ].join("\n\n");
+  const html = `<!doctype html>
+<html>
+<body style="margin:0;padding:0;background:#ffffff;">
+<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#222222;max-width:560px;margin:0 auto;padding:24px 16px;">
+<p style="margin:0 0 16px;">Hi there,</p>
+<p style="margin:0 0 16px;">${escapeHtml(p1)} <a href="${escapeHtml(links.page)}" style="color:#1a73e8;">${escapeHtml(name)} on Enoma</a></p>
+<p style="margin:0 0 16px;">${escapeHtml(p2)}</p>
+<p style="margin:0 0 24px;">Jack</p>
+<p style="margin:0;font-size:12px;color:#888888;border-top:1px solid #eeeeee;padding-top:12px;">${escapeHtml(mailingAddress)}<br><a href="${escapeHtml(links.unsubscribe)}" style="color:#888888;">Unsubscribe</a></p>
+</div>
+</body>
+</html>`;
+  return { subject, text, html, links };
+}
+
 // A click soon after an email lands is a mail filter checking the link, not a
 // person (people open the email later; scanners hit it on arrival). This
-// applies to the follow-up too: in Oct 2026 scanners re-clicked every link
+// applies to both follow-ups too: in Oct 2026 scanners re-clicked every link
 // 24-32 s after each follow-up landed, and one hit at 2 m 49 s, so the window
 // is five minutes from whichever send is most recent.
 export const SCANNER_WINDOW_MS = 5 * 60 * 1000;
 // Two links of the same email opened within a few seconds of each other is a
 // scanner expanding every link (Oct 26: page + claim, 0.5 s apart, repeated).
 export const SCANNER_BURST_MS = 3 * 1000;
-export function isLikelyLinkScanner({ sentAt, followupSentAt, lastClickAt, now = Date.now(), userAgent } = {}) {
+export function isLikelyLinkScanner({ sentAt, followupSentAt, followup2SentAt, lastClickAt, now = Date.now(), userAgent } = {}) {
   if (/bot|crawler|spider|preview|scanner|python|curl|wget|headless/i.test(String(userAgent || ""))) return true;
   const within = (t, ms) => {
     const ts = t ? new Date(t).getTime() : NaN;
     return Number.isFinite(ts) && now - ts >= 0 && now - ts < ms;
   };
-  return within(sentAt, SCANNER_WINDOW_MS) || within(followupSentAt, SCANNER_WINDOW_MS) || within(lastClickAt, SCANNER_BURST_MS);
+  return within(sentAt, SCANNER_WINDOW_MS) || within(followupSentAt, SCANNER_WINDOW_MS)
+    || within(followup2SentAt, SCANNER_WINDOW_MS) || within(lastClickAt, SCANNER_BURST_MS);
 }
 
 // The note Jack gets the first time a real person (not a scanner) opens their

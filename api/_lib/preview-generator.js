@@ -38,6 +38,24 @@ export function qualifiesForPreview({ rating, reviewCount, hasWebsite, siteCheck
   return { ok: true };
 }
 
+// The free part of the quality gate (phone + strong rating), run before any
+// paid check (ZeroBounce) so prospects that can't get a page don't cost a
+// credit. Judges on the Outscraper listing (raw) first; when raw is missing
+// or fails, the caller fetches Places details once and asks again with
+// `place` (Places is fresher: in Nov 2026, 31 of 247 sent prospects had a raw
+// rating that fails but a Places rating that passed). Pass place = {} when
+// Places isn't available, to get a final verdict on raw alone.
+export function cheapPreviewGate({ prospectPhone, raw, place } = {}) {
+  const r = raw || {};
+  const rating = place ? (place.rating ?? r.rating) : r.rating;
+  const reviews = place ? (place.userRatingCount ?? r.reviews) : r.reviews;
+  const phone = place?.nationalPhoneNumber || prospectPhone || r.phone || null;
+  if (phone && isStrongRating(rating, reviews)) return { ok: true };
+  if (!place) return { ok: false, needsPlaces: true };
+  if (!phone) return { ok: false, reason: "no_phone" };
+  return { ok: false, reason: "weak_or_thin_rating" };
+}
+
 export function buildFactsPrompt({ name, trade, city, state, phone, address, siteText, googleTypes, hours }) {
   return `You are writing a one-page website for a real local business. Use ONLY the facts in SOURCE below.
 

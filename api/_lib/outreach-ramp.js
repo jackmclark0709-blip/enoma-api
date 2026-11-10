@@ -51,3 +51,9 @@ export function followUpAllowance({ dailyCap, sentToday = 0, followupsToday = 0,
   const followUpLeft = followUpCap - (followupsToday || 0);
   return Math.max(0, Math.min(totalLeft, followUpLeft));
 }
+
+// Second follow-ups share the follow-up allowance above and go after first
+// follow-ups: whatever first follow-ups leave of today's allowance.
+export function secondFollowUpAllowance({ allowance, firstFollowUpsSent = 0 }) {
+  return Math.max(0, (allowance || 0) - (firstFollowUpsSent || 0));
+}
