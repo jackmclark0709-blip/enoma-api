@@ -418,7 +418,12 @@ function timeAgo(dateStr) {
 
 async function main() {
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session) { window.location.href = '/login'; return; }
+  // Keep ?business_id= and #upgrade-banner (e.g. from a reminder email) through sign-in.
+  if (!session) {
+    const back = window.location.pathname + window.location.search + window.location.hash;
+    window.location.href = back === '/dashboard' ? '/login' : '/login?next=' + encodeURIComponent(back);
+    return;
+  }
 
   document.getElementById('sign-out').addEventListener('click', async () => {
     await supabase.auth.signOut(); window.location.href = '/login';
