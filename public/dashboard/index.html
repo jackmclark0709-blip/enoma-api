@@ -791,20 +791,22 @@ function money(cents) {
 function shortDate(iso) {
   return iso ? new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '';
 }
+// Service pages are billed on the page plan's interval: $9.99/month on a
+// monthly plan, the yearly add-on price on a yearly plan.
+function per(b) { return b?.spotlight_interval === 'year' ? 'year' : 'month'; }
+function spotlightPrice(b) {
+  return money(Number.isInteger(b?.spotlight_amount) ? b.spotlight_amount : 999);
+}
 function renderMonthlyTotal(b) {
   const el = document.getElementById('monthly-total');
   if (!el) return;
   el.style.display = 'none';
-  if (!b || b.billing === 'never' || !Number.isInteger(b.page_amount)) return;
+  if (!b || b.billing === 'never' || !Number.isInteger(b.total)) return;
   const n = b.published;
-  const pages = n ? ` + ${n} service page${n === 1 ? '' : 's'} × ${money(b.spotlight_amount)}` : '';
-  if (b.page_interval === 'year') {
-    el.textContent = `Your plan: ${money(b.page_amount)}/year${n ? ` · service pages billed separately (${n} published)` : ''}`;
-  } else if (b.billing === 'at_checkout') {
-    el.textContent = `When you subscribe: ${money(b.monthly_total)}/month (${money(b.page_amount)} page${pages})`;
-  } else {
-    el.textContent = `Monthly total: ${money(b.monthly_total)} (${money(b.page_amount)} page${pages})`;
-  }
+  const pages = n ? ` + ${n} service page${n === 1 ? '' : 's'} × ${spotlightPrice(b)}` : '';
+  const yearly = b.total_interval === 'year';
+  const label = b.billing === 'at_checkout' ? 'When you subscribe' : (yearly ? 'Yearly total' : 'Monthly total');
+  el.textContent = `${label}: ${money(b.total)}/${yearly ? 'year' : 'month'} (${money(b.page_amount)} page${pages})`;
   el.style.display = 'block';
 }
 
@@ -819,7 +821,7 @@ async function loadSpotlights(profile, session) {
     renderMonthlyTotal(billing);
     if (!spotlights?.length) { list.innerHTML = '<li class="zero-state">No service pages yet.</li>'; return; }
     const free = billing?.billing === 'never';
-    const priceNote = free ? '' : `<span class="price-note">${esc(money(billing?.spotlight_amount ?? 999))}/month when published</span> · `;
+    const priceNote = free ? '' : `<span class="price-note">${esc(spotlightPrice(billing))}/${per(billing)} when published</span> · `;
     list.innerHTML = spotlights.map(sp => {
       const url = `/${encodeURIComponent(profile.username)}/${encodeURIComponent(sp.service_slug)}`;
       const draft = sp.status !== 'published';
@@ -852,18 +854,14 @@ async function loadSpotlights(profile, session) {
     list.innerHTML = '<li class="zero-state">Couldn’t load service pages.</li>';
   }
 }
-// A published page is public, indexed and (unless comped) $9.99/month: ask first.
+// A published page is public, indexed and (unless comped) $9.99/month, or the
+// yearly add-on on a yearly plan: ask first.
 function confirmPublish(billing) {
-  if (billing?.billing === 'yearly') {
-    window.alert("Service pages are billed monthly, and your plan is yearly. Email jack@enoma.io and we'll add it for you.");
-    return false;
-  }
   if (billing?.billing === 'never') {
     return window.confirm("Publish this service page? It will be public and linked from your main page. There's no charge for service pages on your account.");
   }
-  const price = money(billing?.spotlight_amount ?? 999);
   const when = billing?.starts_on ? shortDate(billing.starts_on) : 'when you subscribe';
-  return window.confirm(`Publishing adds ${price}/month to your plan, starting ${when}. You can unpublish anytime.`);
+  return window.confirm(`Publishing adds ${spotlightPrice(billing)}/${per(billing)} to your plan, starting ${when}. You can unpublish anytime.`);
 }
 function showToast(text) {
   const el = document.getElementById('dashToast') || Object.assign(document.body.appendChild(document.createElement('div')), { id: 'dashToast' });

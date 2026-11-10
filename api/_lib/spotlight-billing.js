@@ -1,7 +1,10 @@
 // api/_lib/spotlight-billing.js
 // Service pages (Service Spotlights, table service_spotlights) are an add-on:
 // $9.99/month per PUBLISHED page (Stripe lookup key enoma_spotlight_monthly),
-// not part of the base plan (decision of Nov 9, 2026).
+// not part of the base plan (decision of Nov 9, 2026). Owners on the yearly
+// page plan pay the yearly add-on price instead (enoma_spotlight_yearly,
+// decision of Nov 10, 2026), because Stripe requires every item on one
+// subscription to share an interval.
 //
 // The rule:
 //   - Writing and previewing a service page is free. Only "published" pages
@@ -14,9 +17,8 @@
 //     added as a second line item when they subscribe (api/create-checkout.js).
 //   - Comped businesses (subscriptions.provider = "comped") and internal Enoma
 //     pages are never billed.
-//   - Yearly plan: Stripe can't put a monthly price on a yearly subscription,
-//     so publishing is refused with a "contact us" message until Jack decides
-//     how yearly owners pay for service pages.
+//   - Yearly plan: same as above, with the yearly add-on price. If that price
+//     isn't in Stripe yet, publishing is refused (never published unbilled).
 //
 // The quantity is always recomputed from service_spotlights on the server
 // (syncSpotlightQuantity) — never taken from the browser.
@@ -24,13 +26,21 @@
 // Pure rules first (tested in tests/spotlight-billing.test.js), then the one
 // function that talks to Stripe and Supabase (clients are passed in).
 
-import { SPOTLIGHT_LOOKUP_KEY, isSpotlightItem, intervalOfStripeSubscription } from "./billing.js";
+import {
+  SPOTLIGHT_LOOKUP_KEY, SPOTLIGHT_YEARLY_LOOKUP_KEY, spotlightLookupKeyFor, isSpotlightItem, intervalOfStripeSubscription,
+} from "./billing.js";
 import { isGrandfathered } from "./trial-policy.js";
 import { planByLookupKey } from "../../data/plans.mjs";
 
-export { SPOTLIGHT_LOOKUP_KEY };
+export { SPOTLIGHT_LOOKUP_KEY, SPOTLIGHT_YEARLY_LOOKUP_KEY, spotlightLookupKeyFor };
 export const PRORATION = { proration_behavior: "create_prorations" };
 export const SPOTLIGHT_FALLBACK_AMOUNT = planByLookupKey(SPOTLIGHT_LOOKUP_KEY)?.fallbackAmount ?? 999;
+export const SPOTLIGHT_YEARLY_FALLBACK_AMOUNT = planByLookupKey(SPOTLIGHT_YEARLY_LOOKUP_KEY)?.fallbackAmount ?? 9900;
+
+/** Display fallback for the add-on amount on a page plan of this interval. */
+export function spotlightFallbackAmount(interval) {
+  return interval === "year" ? SPOTLIGHT_YEARLY_FALLBACK_AMOUNT : SPOTLIGHT_FALLBACK_AMOUNT;
+}
 
 // Statuses where a Stripe subscription exists and can take a quantity change.
 const STRIPE_LIVE_STATUSES = ["active", "trialing", "past_due"];
@@ -39,8 +49,7 @@ export class SpotlightBillingError extends Error {
   constructor(code, message) { super(message); this.code = code; }
 }
 
-export const YEARLY_MESSAGE =
-  "Service pages are billed monthly, and your plan is yearly. Email jack@enoma.io and we'll add it for you.";
+export const PRICE_MISSING_MESSAGE = "The service page price isn't set up yet, so it wasn't published. Email jack@enoma.io.";
 
 /** How many service pages are billed: only status "published". */
 export function publishedCount(rows) {
@@ -58,14 +67,17 @@ function inFreeMonth(sub, now) {
  *   billing "never"        — comped or internal: publish free, never billed
  *   billing "subscription" — has a Stripe subscription: change its quantity now
  *   billing "at_checkout"  — no Stripe subscription yet: publish now, billed when they subscribe
- *   billing "yearly"       — yearly Stripe plan: can't add a monthly item (see top of file)
+ * interval: the page plan's ("month" | "year"); the add-on price follows it.
  */
 export function spotlightBilling({ sub = null, business = null, now = Date.now(), env = process.env } = {}) {
   if (business?.is_internal) return { billing: "never", reason: "internal" };
   if (sub?.provider === "comped") return { billing: "never", reason: "comped" };
   if (sub?.stripe_subscription_id && STRIPE_LIVE_STATUSES.includes(sub.status)) {
-    if (sub.billing_interval === "year") return { billing: "yearly", reason: "yearly_plan" };
-    return { billing: "subscription", reason: sub.status === "trialing" ? "subscribed_in_free_month" : "subscribed" };
+    return {
+      billing: "subscription",
+      reason: sub.status === "trialing" ? "subscribed_in_free_month" : "subscribed",
+      interval: sub.billing_interval === "year" ? "year" : "month",
+    };
   }
   if (inFreeMonth(sub, now)) return { billing: "at_checkout", reason: "free_month" };
   if (business && isGrandfathered(business.created_at, env)) return { billing: "at_checkout", reason: "grandfathered" };
@@ -77,10 +89,18 @@ export function spotlightItemOf(stripeSub) {
   return (stripeSub?.items?.data || []).find(isSpotlightItem) || null;
 }
 
-/** What to do to the Stripe subscription so the add-on quantity equals `published`. */
-export function quantityChange(stripeSub, published) {
+/**
+ * What to do to the Stripe subscription so the add-on quantity equals
+ * `published`. With `lookupKey`, an add-on item on the other interval's price
+ * (the owner switched monthly <-> yearly) is swapped for the right one.
+ */
+export function quantityChange(stripeSub, published, lookupKey = null) {
   const item = spotlightItemOf(stripeSub);
   const current = item?.quantity || 0;
+  if (item && lookupKey && item.price?.lookup_key !== lookupKey) {
+    if (published === 0) return { op: "delete", quantity: 0, current, itemId: item.id };
+    return { op: "replace", quantity: published, current, itemId: item.id };
+  }
   if (current === published) return { op: "none", quantity: published, current, itemId: item?.id || null };
   if (!item) return { op: "create", quantity: published, current, itemId: null };
   if (published === 0) return { op: "delete", quantity: 0, current, itemId: item.id };
@@ -90,11 +110,11 @@ export function quantityChange(stripeSub, published) {
 /**
  * The second Checkout line item: the published service pages, same
  * subscription (so same trial_end as the page plan). null line = none needed.
- * Never for comped/internal businesses; never on a yearly checkout.
+ * Never for comped/internal businesses. `spotlightPriceId` must be the add-on
+ * price for the checkout's interval (spotlightLookupKeyFor(interval)).
  */
-export function checkoutSpotlightLine({ published = 0, billing = { billing: "at_checkout" }, interval = "month", spotlightPriceId = null } = {}) {
+export function checkoutSpotlightLine({ published = 0, billing = { billing: "at_checkout" }, spotlightPriceId = null } = {}) {
   if (!published || billing.billing === "never") return { line: null };
-  if (interval !== "month") return { line: null, error: "yearly" };
   if (!spotlightPriceId) return { line: null, error: "price_missing" };
   return { line: { price: spotlightPriceId, quantity: published } };
 }
@@ -103,10 +123,10 @@ export function checkoutSpotlightLine({ published = 0, billing = { billing: "at_
  * line_items + subscription_data for create-checkout. Both line items live on
  * one subscription, so the page plan's trial_end (end of the free month)
  * applies to the service pages too. { error } instead when the service pages
- * can't be added (yearly checkout, or the add-on price is missing).
+ * can't be added (the add-on price for that interval is missing).
  */
-export function checkoutSubscriptionParams({ pagePriceId, published = 0, billing, interval = "month", spotlightPriceId = null, trialEnd = null, metadata = {} }) {
-  const spot = checkoutSpotlightLine({ published, billing, interval, spotlightPriceId });
+export function checkoutSubscriptionParams({ pagePriceId, published = 0, billing, spotlightPriceId = null, trialEnd = null, metadata = {} }) {
+  const spot = checkoutSpotlightLine({ published, billing, spotlightPriceId });
   if (spot.error) return { error: spot.error };
   const spotlightQuantity = spot.line ? spot.line.quantity : 0;
   return {
@@ -131,35 +151,46 @@ export function chargeStartsOn({ billing, sub = null, now = Date.now() }) {
 }
 
 /**
- * What the dashboard shows: the page plan, the service pages and the monthly
- * total (cents). monthly_total is null on a yearly plan.
+ * What the dashboard shows: the page plan, the service pages and the total
+ * (cents) per billing period. The add-on is billed on the page plan's
+ * interval, so `total` is per `total_interval` ("month" | "year").
+ * monthly_total is kept for monthly plans and is null on a yearly one.
  */
-export function billingSummary({ published = 0, billing, sub = null, pageAmount = null, pageInterval = "month", spotlightAmount = SPOTLIGHT_FALLBACK_AMOUNT, billedQuantity = 0, now = Date.now() }) {
+export function billingSummary({ published = 0, billing, sub = null, pageAmount = null, pageInterval = "month", spotlightAmount = null, billedQuantity = 0, now = Date.now() }) {
+  const amount = Number.isInteger(spotlightAmount) ? spotlightAmount : spotlightFallbackAmount(pageInterval);
   const billable = billing.billing === "never" ? 0 : published;
-  const spotlightMonthly = billable * spotlightAmount;
+  const spotlightTotal = billable * amount;
+  const total = Number.isInteger(pageAmount) ? pageAmount + spotlightTotal : null;
   return {
     published,
     billing: billing.billing,
     reason: billing.reason,
     billed_quantity: billedQuantity,
-    spotlight_amount: spotlightAmount,
-    spotlight_monthly: spotlightMonthly,
+    spotlight_amount: amount,
+    spotlight_interval: pageInterval,
+    spotlight_total: spotlightTotal,
     page_amount: pageAmount,
     page_interval: pageInterval,
-    monthly_total: pageInterval === "month" && Number.isInteger(pageAmount) ? pageAmount + spotlightMonthly : null,
+    total,
+    total_interval: pageInterval,
+    monthly_total: pageInterval === "month" ? total : null,
     starts_on: chargeStartsOn({ billing, sub, now }),
   };
 }
 
 // ── I/O ──
 
-let priceCache = { at: 0, price: null };
-/** The live enoma_spotlight_monthly price (cached 10 minutes per instance), or null. */
-export async function lookupSpotlightPrice(stripe) {
-  if (priceCache.price && Date.now() - priceCache.at < 10 * 60 * 1000) return priceCache.price;
-  const { data } = await stripe.prices.list({ lookup_keys: [SPOTLIGHT_LOOKUP_KEY], active: true, limit: 1 });
+// Per Stripe client, then per lookup key (one client per instance in production).
+const priceCache = new WeakMap();
+/** The live add-on price for a lookup key (cached 10 minutes per instance), or null. */
+export async function lookupSpotlightPrice(stripe, lookupKey = SPOTLIGHT_LOOKUP_KEY) {
+  if (!priceCache.has(stripe)) priceCache.set(stripe, new Map());
+  const cache = priceCache.get(stripe);
+  const hit = cache.get(lookupKey);
+  if (hit && Date.now() - hit.at < 10 * 60 * 1000) return hit.price;
+  const { data } = await stripe.prices.list({ lookup_keys: [lookupKey], active: true, limit: 1 });
   const price = data?.[0] || null;
-  if (price) priceCache = { at: Date.now(), price };
+  if (price) cache.set(lookupKey, { at: Date.now(), price });
   return price;
 }
 
@@ -177,36 +208,39 @@ export async function loadSpotlightBillingState(supabase, businessId) {
 /**
  * Recomputes the published count from service_spotlights and sets the
  * add-on quantity on the owner's Stripe subscription to match (with
- * proration). No Stripe subscription, comped or internal -> nothing to change.
- * Throws SpotlightBillingError("yearly") when it would have to add to a yearly
- * plan, and lets Stripe errors through; callers decide what to undo.
+ * proration), on the add-on price that matches the page plan's interval.
+ * No Stripe subscription, comped or internal -> nothing to change.
+ * Throws SpotlightBillingError("price_missing") when the add-on price isn't in
+ * Stripe, and lets Stripe errors through; callers decide what to undo.
  */
 export async function syncSpotlightQuantity({ stripe, supabase, businessId, now = Date.now(), env = process.env, state = null }) {
   const s = state || (await loadSpotlightBillingState(supabase, businessId));
   const billing = spotlightBilling({ sub: s.sub, business: s.business, now, env });
   const result = { business_id: businessId, published: s.published, billing: billing.billing, reason: billing.reason, quantity: 0, op: "none", stripeSub: null };
-  if (billing.billing !== "subscription" && billing.billing !== "yearly") return result;
+  if (billing.billing !== "subscription") return result;
   if (!stripe) throw new SpotlightBillingError("stripe_missing", "Billing isn't set up on this server.");
 
   const stripeSub = await stripe.subscriptions.retrieve(s.sub.stripe_subscription_id);
-  const change = quantityChange(stripeSub, s.published);
-  const out = { ...result, quantity: change.quantity, op: change.op, stripeSub };
+  // The live Stripe subscription is the authority on the interval; the row
+  // is the fallback.
+  const interval = intervalOfStripeSubscription(stripeSub) || billing.interval || "month";
+  const lookupKey = spotlightLookupKeyFor(interval);
+  const change = quantityChange(stripeSub, s.published, lookupKey);
+  const out = { ...result, interval, lookup_key: lookupKey, quantity: change.quantity, op: change.op, stripeSub };
   if (change.op === "none") return out;
   // Lowering the quantity is always allowed (never bill an unpublished page).
   if (change.op === "delete") {
     await stripe.subscriptionItems.del(change.itemId, PRORATION);
     return out;
   }
-  const raising = change.quantity > change.current;
-  if (raising && (intervalOfStripeSubscription(stripeSub) === "year" || billing.billing === "yearly")) {
-    throw new SpotlightBillingError("yearly", YEARLY_MESSAGE);
-  }
   if (change.op === "update") {
     await stripe.subscriptionItems.update(change.itemId, { quantity: change.quantity, ...PRORATION });
     return out;
   }
-  const price = await lookupSpotlightPrice(stripe);
-  if (!price?.id) throw new SpotlightBillingError("price_missing", "The service page price isn't set up yet. Email jack@enoma.io.");
+  // create, or replace an add-on item on the other interval's price.
+  const price = await lookupSpotlightPrice(stripe, lookupKey);
+  if (!price?.id) throw new SpotlightBillingError("price_missing", PRICE_MISSING_MESSAGE);
+  if (change.op === "replace") await stripe.subscriptionItems.del(change.itemId, PRORATION);
   await stripe.subscriptionItems.create({ subscription: stripeSub.id, price: price.id, quantity: change.quantity, ...PRORATION });
   return out;
 }

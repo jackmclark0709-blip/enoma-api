@@ -14,7 +14,8 @@
 // subscription id as live (supabase/migrations/20261110_billing_interval.sql).
 //
 // Service pages: the subscription can carry a second item, the $9.99/month
-// add-on (enoma_spotlight_monthly), quantity = published service pages. Our
+// add-on (enoma_spotlight_monthly, or enoma_spotlight_yearly on a yearly
+// plan), quantity = published service pages. Our
 // database is the source of truth: after checkout, and whenever Stripe
 // reports the subscription changed (someone edited the quantity in the Stripe
 // dashboard, or a page was published while the checkout was open), the

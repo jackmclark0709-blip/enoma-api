@@ -15,7 +15,8 @@
 // Called from the dashboard, /upgrade and /website-live (public/scripts/plan-picker.js).
 //
 // Service pages: each PUBLISHED service page (service_spotlights) is a
-// $9.99/month add-on (lookup key enoma_spotlight_monthly). Checkout adds them
+// $9.99/month add-on (lookup key enoma_spotlight_monthly), or the yearly add-on
+// (enoma_spotlight_yearly) on a yearly checkout. Checkout adds them
 // as a second line item, quantity = published service pages, on the same
 // subscription (same trial_end). Comped and internal businesses are never
 // billed for them. See api/_lib/spotlight-billing.js.
@@ -38,10 +39,10 @@
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { PLANS, LOOKUP_KEYS } from '../data/plans.mjs';
-import { normalizeInterval, checkoutPlanFor, hasLiveStripeSubscription, pageItemOf, SPOTLIGHT_LOOKUP_KEY } from './_lib/billing.js';
+import { normalizeInterval, checkoutPlanFor, hasLiveStripeSubscription, pageItemOf, spotlightLookupKeyFor } from './_lib/billing.js';
 import {
   loadSpotlightBillingState, spotlightBilling, syncSpotlightQuantity, checkoutSubscriptionParams,
-  billingSummary, spotlightItemOf, SPOTLIGHT_FALLBACK_AMOUNT, YEARLY_MESSAGE,
+  billingSummary, spotlightItemOf,
 } from './_lib/spotlight-billing.js';
 import { utmMetadata } from './_lib/attribution.js';
 
@@ -214,28 +215,22 @@ export default async function handler(req, res) {
   };
 
   // Service pages published before subscribing (free month, grandfathered,
-  // or never subscribed) become the second line item. Comped -> none.
+  // or never subscribed) become the second line item, on the add-on price
+  // for the interval being bought (Stripe needs one interval per
+  // subscription). Comped -> none.
   const spotState = await loadSpotlightBillingState(supabase, business_id);
   let spotlightPriceId = null;
   if (spotState.published) {
-    try { spotlightPriceId = (await pricesByLookupKey())[SPOTLIGHT_LOOKUP_KEY]?.id || null; } catch { /* handled below */ }
+    try { spotlightPriceId = (await pricesByLookupKey())[spotlightLookupKeyFor(billedInterval)]?.id || null; } catch { /* handled below */ }
   }
   const params = checkoutSubscriptionParams({
     pagePriceId: priceId,
     published: spotState.published,
     billing: spotlightBilling({ sub: spotState.sub, business: spotState.business }),
-    interval: billedInterval,
     spotlightPriceId,
     trialEnd,
     metadata,
   });
-  if (params.error === 'yearly') {
-    const n = spotState.published;
-    return res.status(409).json({
-      error: `You have ${n} published service page${n === 1 ? '' : 's'}, billed monthly at $9.99 each, so they can't go on the yearly plan. Choose monthly, or email jack@enoma.io and we'll set it up.`,
-      code: 'yearly',
-    });
-  }
   if (params.error) {
     return res.status(503).json({ error: 'Subscriptions are opening shortly. Email jack@enoma.io and we\'ll keep your page live in the meantime.' });
   }
@@ -270,29 +265,33 @@ async function spotlightQuantity(req, res, user, business_id) {
     const sync = dryRun ? null : await syncSpotlightQuantity({ stripe, supabase, businessId: business_id, state });
 
     const byKey = await pricesByLookupKey().catch(() => ({}));
-    let spotlightAmount = byKey[SPOTLIGHT_LOOKUP_KEY]?.unit_amount ?? SPOTLIGHT_FALLBACK_AMOUNT;
-    let pageAmount = null, pageInterval = 'month', billedQuantity = 0;
+    let pageAmount = null, pageInterval = billing.interval || 'month', billedQuantity = 0, spotlightAmount = null;
     if (billing.billing === 'never') {
       pageAmount = 0;
-    } else if (billing.billing === 'subscription' || billing.billing === 'yearly') {
+    } else if (billing.billing === 'subscription') {
       const stripeSub = sync?.stripeSub || await stripe.subscriptions.retrieve(state.sub.stripe_subscription_id);
       const pageItem = pageItemOf(stripeSub);
       pageAmount = pageItem?.price?.unit_amount ?? null;
       pageInterval = pageItem?.price?.recurring?.interval || pageInterval;
       const spotItem = spotlightItemOf(stripeSub);
       billedQuantity = sync ? sync.quantity : (spotItem?.quantity || 0);
-      if (spotItem?.price?.unit_amount != null) spotlightAmount = spotItem.price.unit_amount;
+      // The amount the owner will actually pay: the item already on the
+      // subscription if it matches the plan's interval, else the live price.
+      const key = spotlightLookupKeyFor(pageInterval);
+      spotlightAmount = spotItem?.price?.lookup_key === key && spotItem.price.unit_amount != null
+        ? spotItem.price.unit_amount
+        : byKey[key]?.unit_amount ?? null;
     } else {
       // Not subscribed yet: what the monthly checkout would charge.
       const { lookupKey } = checkoutPlanFor({ referrer: await referrerFor(business_id), interval: 'month' });
       pageAmount = byKey[lookupKey]?.unit_amount ?? null;
+      spotlightAmount = byKey[spotlightLookupKeyFor('month')]?.unit_amount ?? null;
     }
     return res.status(200).json(billingSummary({
       published: state.published, billing, sub: state.sub, pageAmount, pageInterval, spotlightAmount, billedQuantity,
     }));
   } catch (e) {
     console.error('[spotlight-billing] spotlight_quantity failed:', business_id, e?.message);
-    if (e?.code === 'yearly') return res.status(409).json({ error: YEARLY_MESSAGE, code: 'yearly' });
     return res.status(502).json({ error: "We couldn't check your service page billing just now. Email jack@enoma.io." });
   }
 }

@@ -42,6 +42,20 @@ export const PLANS = [
     interval: "month",
     public: true,
   },
+  {
+    id: "spotlight_annual",
+    lookupKey: "enoma_spotlight_yearly",
+    name: "Service Spotlight page (yearly)",
+    // Placeholder until Jack creates the Stripe price: the dashboard and
+    // checkout always use the live Stripe amount, and publishing on a yearly
+    // plan is refused while the price is missing.
+    fallbackAmount: 9900,
+    interval: "year",
+    // Only for owners on the yearly page plan (Stripe can't mix a monthly
+    // item into a yearly subscription). Not on the pricing page until the
+    // amount is confirmed.
+    public: false,
+  },
 ];
 
 export const LOOKUP_KEYS = PLANS.map((p) => p.lookupKey);

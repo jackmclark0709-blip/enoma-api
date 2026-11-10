@@ -71,10 +71,19 @@ function isoFromUnix(sec) {
 // Service pages (Service Spotlights) ride the page subscription as a second
 // line item (api/_lib/spotlight-billing.js). Everything that describes "the
 // plan" (interval, period dates) must read the page item, never that one.
+// Stripe requires every item on a subscription to share one interval, so a
+// yearly page plan gets the yearly add-on price.
 export const SPOTLIGHT_LOOKUP_KEY = "enoma_spotlight_monthly";
+export const SPOTLIGHT_YEARLY_LOOKUP_KEY = "enoma_spotlight_yearly";
+export const SPOTLIGHT_LOOKUP_KEYS = [SPOTLIGHT_LOOKUP_KEY, SPOTLIGHT_YEARLY_LOOKUP_KEY];
+
+/** The add-on lookup key for a page-plan interval ("year" -> yearly, else monthly). */
+export function spotlightLookupKeyFor(interval) {
+  return interval === "year" ? SPOTLIGHT_YEARLY_LOOKUP_KEY : SPOTLIGHT_LOOKUP_KEY;
+}
 
 export function isSpotlightItem(item) {
-  return item?.price?.lookup_key === SPOTLIGHT_LOOKUP_KEY;
+  return SPOTLIGHT_LOOKUP_KEYS.includes(item?.price?.lookup_key);
 }
 
 /** The page-plan item of a Stripe subscription: the first item that isn't the service-page add-on. */

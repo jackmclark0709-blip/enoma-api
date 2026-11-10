@@ -1,13 +1,14 @@
 // Run with: node tests/spotlight-billing.test.js (also wired into `npm test`)
-// Service pages are a $9.99/month add-on per PUBLISHED page
-// (api/_lib/spotlight-billing.js): the quantity counts published pages only,
+// Service pages are a $9.99/month add-on per PUBLISHED page, or the yearly
+// add-on price on a yearly plan (api/_lib/spotlight-billing.js): the quantity
+// counts published pages only,
 // comped businesses are never billed, checkout adds the second line item with
 // the right quantity, and publish/unpublish change the Stripe quantity with
 // proration — with publishing undone if Stripe refuses.
 import assert from "node:assert/strict";
 import {
   publishedCount, spotlightBilling, quantityChange, checkoutSpotlightLine, checkoutSubscriptionParams,
-  chargeStartsOn, billingSummary, syncSpotlightQuantity, SPOTLIGHT_LOOKUP_KEY, PRORATION,
+  chargeStartsOn, billingSummary, syncSpotlightQuantity, SPOTLIGHT_LOOKUP_KEY, SPOTLIGHT_YEARLY_LOOKUP_KEY, PRORATION,
 } from "../api/_lib/spotlight-billing.js";
 import { subscriptionFieldsFromStripe, intervalOfStripeSubscription, pageItemOf } from "../api/_lib/billing.js";
 import { handleSpotlight } from "../api/_lib/spotlight.js";
@@ -25,7 +26,14 @@ const OLD_BIZ = { is_internal: false, created_at: "2026-09-01T00:00:00Z" }; // g
 
 const spot = (slug, status) => ({ id: `id-${slug}`, business_id: BIZ, service_slug: slug, status, content: { hero: {} } });
 const pageItem = (interval = "month", amount = 1999) => ({ id: "si_page", quantity: 1, price: { id: "price_page", lookup_key: interval === "year" ? "enoma_page_annual" : "enoma_page_monthly", unit_amount: amount, recurring: { interval } } });
-const spotItem = (quantity) => ({ id: "si_spot", quantity, price: { id: "price_spot", lookup_key: SPOTLIGHT_LOOKUP_KEY, unit_amount: 999, recurring: { interval: "month" } } });
+const SPOT_PRICES = {
+  [SPOTLIGHT_LOOKUP_KEY]: { id: "price_spot", lookup_key: SPOTLIGHT_LOOKUP_KEY, unit_amount: 999, recurring: { interval: "month" } },
+  [SPOTLIGHT_YEARLY_LOOKUP_KEY]: { id: "price_spot_year", lookup_key: SPOTLIGHT_YEARLY_LOOKUP_KEY, unit_amount: 9900, recurring: { interval: "year" } },
+};
+const spotItem = (quantity, interval = "month") => ({
+  id: interval === "year" ? "si_spot_year" : "si_spot", quantity,
+  price: SPOT_PRICES[interval === "year" ? SPOTLIGHT_YEARLY_LOOKUP_KEY : SPOTLIGHT_LOOKUP_KEY],
+});
 const stripeSubWith = (...items) => ({ id: "sub_1", status: "active", items: { data: items } });
 const activeRow = (extra = {}) => ({ business_id: BIZ, provider: "stripe", status: "active", stripe_subscription_id: "sub_1", billing_interval: "month", ...extra });
 
@@ -51,15 +59,20 @@ function fakeSupabase(tables, user = { id: "owner-1" }) {
   return { auth: { getUser: async () => ({ data: { user }, error: null }) }, from: (name) => new Q(name) };
 }
 
-function fakeStripe(sub, { failWrites = false } = {}) {
+// `prices`: the add-on prices that exist in Stripe (default: both).
+function fakeStripe(sub, { failWrites = false, prices = SPOT_PRICES } = {}) {
   const calls = [];
   const items = () => sub.items.data;
   return {
     calls,
     subscriptions: { retrieve: async (id) => { calls.push(["retrieve", id]); return sub; } },
-    prices: { list: async () => ({ data: [{ id: "price_spot", lookup_key: SPOTLIGHT_LOOKUP_KEY, unit_amount: 999 }] }) },
+    prices: { list: async ({ lookup_keys = [] } = {}) => ({ data: lookup_keys.map((k) => prices[k]).filter(Boolean) }) },
     subscriptionItems: {
-      create: async (p) => { calls.push(["create", p]); if (failWrites) throw new Error("card_declined"); items().push({ ...spotItem(p.quantity) }); },
+      create: async (p) => {
+        calls.push(["create", p]); if (failWrites) throw new Error("card_declined");
+        const price = Object.values(SPOT_PRICES).find((x) => x.id === p.price);
+        items().push({ id: `si_new_${price.recurring.interval}`, quantity: p.quantity, price });
+      },
       update: async (id, p) => { calls.push(["update", id, p]); if (failWrites) throw new Error("stripe down"); items().find((i) => i.id === id).quantity = p.quantity; },
       del: async (id, p) => { calls.push(["del", id, p]); if (failWrites) throw new Error("stripe down"); sub.items.data = items().filter((i) => i.id !== id); },
     },
@@ -98,6 +111,13 @@ test("quantity change: create, update, delete at zero, nothing when equal", () =
   assert.equal(quantityChange(stripeSubWith(pageItem(), spotItem(2)), 2).op, "none");
 });
 
+test("quantity change: an add-on on the other interval's price is replaced (or just removed at zero)", () => {
+  const monthlyOnYearly = stripeSubWith(pageItem("year", 19900), spotItem(2));
+  assert.deepEqual(quantityChange(monthlyOnYearly, 2, SPOTLIGHT_YEARLY_LOOKUP_KEY), { op: "replace", quantity: 2, current: 2, itemId: "si_spot" });
+  assert.equal(quantityChange(monthlyOnYearly, 0, SPOTLIGHT_YEARLY_LOOKUP_KEY).op, "delete");
+  assert.equal(quantityChange(stripeSubWith(pageItem("year", 19900), spotItem(2, "year")), 2, SPOTLIGHT_YEARLY_LOOKUP_KEY).op, "none");
+});
+
 // ── Who pays ──
 test("comped and internal businesses are never billed", () => {
   assert.deepEqual(spotlightBilling({ sub: { provider: "comped", status: "active" }, business: NEW_BIZ, now: NOW, env: ENV }), { billing: "never", reason: "comped" });
@@ -107,8 +127,8 @@ test("comped and internal businesses are never billed", () => {
 });
 
 test("a Stripe subscription (active, subscribed in the free month, past due) is billed now", () => {
-  assert.deepEqual(spotlightBilling({ sub: activeRow(), business: NEW_BIZ, now: NOW, env: ENV }), { billing: "subscription", reason: "subscribed" });
-  assert.deepEqual(spotlightBilling({ sub: activeRow({ status: "trialing" }), business: NEW_BIZ, now: NOW, env: ENV }), { billing: "subscription", reason: "subscribed_in_free_month" });
+  assert.deepEqual(spotlightBilling({ sub: activeRow(), business: NEW_BIZ, now: NOW, env: ENV }), { billing: "subscription", reason: "subscribed", interval: "month" });
+  assert.deepEqual(spotlightBilling({ sub: activeRow({ status: "trialing" }), business: NEW_BIZ, now: NOW, env: ENV }), { billing: "subscription", reason: "subscribed_in_free_month", interval: "month" });
   assert.equal(spotlightBilling({ sub: activeRow({ status: "past_due" }), business: NEW_BIZ, now: NOW, env: ENV }).billing, "subscription");
 });
 
@@ -121,14 +141,14 @@ test("free month, grandfathered and never-subscribed pages publish now and are b
   assert.equal(spotlightBilling({ sub: activeRow({ status: "canceled" }), business: NEW_BIZ, now: NOW, env: ENV }).billing, "at_checkout");
 });
 
-test("a yearly Stripe plan is flagged (monthly add-on can't go on it)", () => {
-  assert.equal(spotlightBilling({ sub: activeRow({ billing_interval: "year" }), business: NEW_BIZ, now: NOW, env: ENV }).billing, "yearly");
+test("a yearly Stripe plan is billed now, on the yearly add-on", () => {
+  assert.deepEqual(spotlightBilling({ sub: activeRow({ billing_interval: "year" }), business: NEW_BIZ, now: NOW, env: ENV }), { billing: "subscription", reason: "subscribed", interval: "year" });
 });
 
 // ── Checkout ──
 test("checkout adds the service pages as a second line item, quantity = published", () => {
   const p = checkoutSubscriptionParams({
-    pagePriceId: "price_page", published: 3, billing: { billing: "at_checkout" }, interval: "month",
+    pagePriceId: "price_page", published: 3, billing: { billing: "at_checkout" },
     spotlightPriceId: "price_spot", trialEnd: 1765000000, metadata: { business_id: BIZ },
   });
   assert.deepEqual(p.line_items, [{ price: "price_page", quantity: 1 }, { price: "price_spot", quantity: 3 }]);
@@ -148,11 +168,19 @@ test("checkout: no second line item with no published pages, or for comped busin
   assert.equal(comped.subscription_data.metadata.spotlight_quantity, "0");
 });
 
-test("checkout refuses rather than dropping published pages (yearly, or price missing)", () => {
-  assert.equal(checkoutSpotlightLine({ published: 2, billing: { billing: "at_checkout" }, interval: "year", spotlightPriceId: "price_spot" }).error, "yearly");
-  assert.equal(checkoutSpotlightLine({ published: 2, billing: { billing: "at_checkout" }, interval: "month", spotlightPriceId: null }).error, "price_missing");
-  // Yearly with nothing published is fine.
-  assert.deepEqual(checkoutSpotlightLine({ published: 0, billing: { billing: "at_checkout" }, interval: "year" }), { line: null });
+test("yearly checkout: the second line item is the yearly add-on, same trial_end", () => {
+  const p = checkoutSubscriptionParams({
+    pagePriceId: "price_page_annual", published: 2, billing: { billing: "at_checkout" },
+    spotlightPriceId: "price_spot_year", trialEnd: 1765000000,
+  });
+  assert.deepEqual(p.line_items, [{ price: "price_page_annual", quantity: 1 }, { price: "price_spot_year", quantity: 2 }]);
+  assert.equal(p.subscription_data.trial_end, 1765000000);
+});
+
+test("checkout refuses rather than dropping published pages when the add-on price is missing", () => {
+  assert.equal(checkoutSpotlightLine({ published: 2, billing: { billing: "at_checkout" }, spotlightPriceId: null }).error, "price_missing");
+  // Nothing published: no add-on price needed.
+  assert.deepEqual(checkoutSpotlightLine({ published: 0, billing: { billing: "at_checkout" }, spotlightPriceId: null }), { line: null });
 });
 
 // ── The page plan is never confused with the add-on item ──
@@ -171,15 +199,27 @@ test("subscription fields come from the page item even when the add-on is listed
 // ── Dashboard numbers ──
 test("monthly total = page plan + published service pages; comped pays nothing for them", () => {
   const s = billingSummary({ published: 2, billing: { billing: "subscription", reason: "subscribed" }, pageAmount: 1999, pageInterval: "month", spotlightAmount: 999, billedQuantity: 2, now: NOW });
-  assert.equal(s.spotlight_monthly, 1998);
+  assert.equal(s.spotlight_total, 1998);
   assert.equal(s.monthly_total, 3997);
+  assert.equal(s.total, 3997);
+  assert.equal(s.total_interval, "month");
   assert.equal(s.starts_on, new Date(NOW).toISOString());
   const c = billingSummary({ published: 2, billing: { billing: "never", reason: "comped" }, pageAmount: 0, spotlightAmount: 999, now: NOW });
-  assert.equal(c.spotlight_monthly, 0);
+  assert.equal(c.spotlight_total, 0);
   assert.equal(c.monthly_total, 0);
   assert.equal(c.starts_on, null);
-  const y = billingSummary({ published: 0, billing: { billing: "yearly" }, pageAmount: 19900, pageInterval: "year", now: NOW });
+});
+
+test("yearly total = $199 page plan + published service pages at the yearly add-on price", () => {
+  const y = billingSummary({ published: 2, billing: { billing: "subscription", reason: "subscribed", interval: "year" }, pageAmount: 19900, pageInterval: "year", spotlightAmount: 9900, now: NOW });
+  assert.equal(y.spotlight_interval, "year");
+  assert.equal(y.spotlight_total, 19800);
+  assert.equal(y.total, 39700);
+  assert.equal(y.total_interval, "year");
   assert.equal(y.monthly_total, null);
+  // No live amount: the display falls back to the yearly placeholder, never $9.99.
+  const f = billingSummary({ published: 1, billing: { billing: "subscription", reason: "subscribed", interval: "year" }, pageAmount: 19900, pageInterval: "year", now: NOW });
+  assert.equal(f.spotlight_amount, 9900);
 });
 
 test("charge start date: today, the first charge, the end of the free month, or 'when you subscribe'", () => {
@@ -231,18 +271,38 @@ test("sync: comped, free-month and grandfathered businesses make no Stripe calls
   }
 });
 
-test("sync: a yearly plan can't gain the monthly add-on, but can always lose it", async () => {
+test("sync: a yearly plan gets the yearly add-on price, with proration", async () => {
   const yearlyRow = activeRow({ billing_interval: "year" });
   const stripe = fakeStripe(stripeSubWith(pageItem("year", 19900)));
+  const r = await syncSpotlightQuantity({ stripe, supabase: fakeSupabase(tablesFor({ spotlights: [spot("a", "published"), spot("b", "published")], sub: yearlyRow })), businessId: BIZ, now: NOW, env: ENV });
+  assert.equal(r.op, "create");
+  assert.equal(r.interval, "year");
+  assert.deepEqual(stripe.calls.find((c) => c[0] === "create")[1], { subscription: "sub_1", price: "price_spot_year", quantity: 2, ...PRORATION });
+});
+
+test("sync: the Stripe subscription's interval wins over a stale row", async () => {
+  // Row still says monthly, but the owner is on the yearly price in Stripe.
+  const stripe = fakeStripe(stripeSubWith(pageItem("year", 19900)));
+  await syncSpotlightQuantity({ stripe, supabase: fakeSupabase(tablesFor({ spotlights: [spot("a", "published")], sub: activeRow() })), businessId: BIZ, now: NOW, env: ENV });
+  assert.equal(stripe.calls.find((c) => c[0] === "create")[1].price, "price_spot_year");
+});
+
+test("sync: after switching to yearly, a monthly add-on item is swapped for the yearly one", async () => {
+  const sub = stripeSubWith(pageItem("year", 19900), spotItem(1));
+  const stripe = fakeStripe(sub);
+  const r = await syncSpotlightQuantity({ stripe, supabase: fakeSupabase(tablesFor({ spotlights: [spot("a", "published")], sub: activeRow({ billing_interval: "year" }) })), businessId: BIZ, now: NOW, env: ENV });
+  assert.equal(r.op, "replace");
+  assert.deepEqual(stripe.calls.filter((c) => c[0] !== "retrieve").map((c) => c[0]), ["del", "create"]);
+  assert.deepEqual(sub.items.data.map((i) => i.price.lookup_key), ["enoma_page_annual", SPOTLIGHT_YEARLY_LOOKUP_KEY]);
+});
+
+test("sync: a missing yearly add-on price refuses (never bills monthly on a yearly plan)", async () => {
+  const stripe = fakeStripe(stripeSubWith(pageItem("year", 19900)), { prices: { [SPOTLIGHT_LOOKUP_KEY]: SPOT_PRICES[SPOTLIGHT_LOOKUP_KEY] } });
   await assert.rejects(
-    syncSpotlightQuantity({ stripe, supabase: fakeSupabase(tablesFor({ spotlights: [spot("a", "published")], sub: yearlyRow })), businessId: BIZ, now: NOW, env: ENV }),
-    (e) => e.code === "yearly",
+    syncSpotlightQuantity({ stripe, supabase: fakeSupabase(tablesFor({ spotlights: [spot("a", "published")], sub: activeRow({ billing_interval: "year" }) })), businessId: BIZ, now: NOW, env: ENV }),
+    (e) => e.code === "price_missing",
   );
   assert.equal(stripe.calls.filter((c) => c[0] === "create").length, 0);
-  const sub = stripeSubWith(pageItem("year", 19900), spotItem(1));
-  const stripe2 = fakeStripe(sub);
-  const r = await syncSpotlightQuantity({ stripe: stripe2, supabase: fakeSupabase(tablesFor({ spotlights: [spot("a", "draft")], sub: yearlyRow })), businessId: BIZ, now: NOW, env: ENV });
-  assert.equal(r.op, "delete");
 });
 
 // ── The real publish / unpublish handler ──
@@ -268,15 +328,24 @@ test("publish: if Stripe refuses, the page goes back to draft and is not billed"
   assert.equal(tables.service_spotlights[0].published_at, null);
 });
 
-test("publish on a yearly plan is refused before anything changes", async () => {
+test("publish on a yearly plan: live, billed on the yearly add-on", async () => {
   const tables = tablesFor({ spotlights: [spot("b", "draft")], sub: activeRow({ billing_interval: "year" }) });
   const stripe = fakeStripe(stripeSubWith(pageItem("year", 19900)));
   const res = fakeRes();
   await handleSpotlight(req("publish", { service_slug: "b" }), res, { supabaseAdmin: fakeSupabase(tables), stripe });
-  assert.equal(res.code, 409);
-  assert.equal(res.body.code, "yearly");
+  assert.equal(res.code, 200, JSON.stringify(res.body));
+  assert.equal(tables.service_spotlights[0].status, "published");
+  assert.equal(stripe.calls.find((c) => c[0] === "create")[1].price, "price_spot_year");
+});
+
+test("publish on a yearly plan with no yearly add-on price in Stripe: back to draft", async () => {
+  const tables = tablesFor({ spotlights: [spot("b", "draft")], sub: activeRow({ billing_interval: "year" }) });
+  const stripe = fakeStripe(stripeSubWith(pageItem("year", 19900)), { prices: {} });
+  const res = fakeRes();
+  await handleSpotlight(req("publish", { service_slug: "b" }), res, { supabaseAdmin: fakeSupabase(tables), stripe });
+  assert.equal(res.code, 502);
+  assert.equal(res.body.code, "price_missing");
   assert.equal(tables.service_spotlights[0].status, "draft");
-  assert.equal(stripe.calls.length, 0);
 });
 
 test("publish for a comped business: live, no Stripe calls", async () => {

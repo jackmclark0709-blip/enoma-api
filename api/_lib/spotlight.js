@@ -15,7 +15,7 @@
 import { bannedWordsIn, lintCopy } from "./copy-lint.js";
 import { waitUntil } from "@vercel/functions";
 import {
-  loadSpotlightBillingState, spotlightBilling, syncSpotlightQuantity, YEARLY_MESSAGE,
+  syncSpotlightQuantity,
 } from "./spotlight-billing.js";
 
 // Keep the last few versions so an owner can go back after a rewrite.
@@ -525,17 +525,11 @@ export async function handleSpotlight(req, res, { supabaseAdmin, fetchImpl, stri
   }
   if (action === "publish" || action === "unpublish") {
     // Billing (api/_lib/spotlight-billing.js): a published service page is
-    // $9.99/month on the owner's plan. The quantity is recomputed here, on the
+    // $9.99/month on the owner's plan (the yearly add-on on a yearly plan). The quantity is recomputed here, on the
     // server, from service_spotlights — the browser never sends a count.
     const published = action === "publish";
     const before = { status: spot.status, published_at: spot.published_at || null };
     const newlyPublished = published && before.status !== "published";
-    if (newlyPublished) {
-      const state = await loadSpotlightBillingState(supabaseAdmin, businessId);
-      if (spotlightBilling({ sub: state.sub, business: state.business }).billing === "yearly") {
-        return res.status(409).json({ error: YEARLY_MESSAGE, code: "yearly" });
-      }
-    }
     const { error: upErr } = await supabaseAdmin.from("service_spotlights").update({
       status: published ? "published" : "draft",
       published_at: published ? (before.status === "published" && before.published_at ? before.published_at : new Date().toISOString()) : null,
@@ -553,10 +547,9 @@ export async function handleSpotlight(req, res, { supabaseAdmin, fetchImpl, stri
         await supabaseAdmin.from("service_spotlights").update({
           status: before.status, published_at: before.published_at, updated_at: new Date().toISOString(),
         }).eq("id", spot.id);
-        const yearly = e?.code === "yearly";
-        return res.status(yearly ? 409 : 502).json({
-          error: yearly ? YEARLY_MESSAGE : (e?.code === "price_missing" ? e.message
-            : "We couldn't add this page to your plan just now, so it wasn't published. Try again in a minute, or email jack@enoma.io."),
+        return res.status(502).json({
+          error: e?.code === "price_missing" ? e.message
+            : "We couldn't add this page to your plan just now, so it wasn't published. Try again in a minute, or email jack@enoma.io.",
           code: e?.code || "billing_failed",
         });
       }
