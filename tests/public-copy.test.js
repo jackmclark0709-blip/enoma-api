@@ -64,4 +64,24 @@ test("the rules allow progress labels like \"Pulling your Google listing\"", () 
   assert.equal(/\b5[ -]?min(ute)?s?\b/i.test("about 30 seconds"), false);
 });
 
+// Service pages (Service Spotlights) are a separate $9.99/month add-on, never
+// part of the $19.99/month or $199/year plan. Flags any line that says
+// they're included, unless it says "not included".
+const SERVICE_PAGES_INCLUDED = /(service (spotlight )?pages?|spotlights?)\b[^.<]{0,60}\b(are|is) included|\binclud(es?|ed|ing)\b[^.<]{0,60}\b(service (spotlight )?pages?|spotlights?)\b/i;
+const saysIncluded = (line) => SERVICE_PAGES_INCLUDED.test(line) && !/not included|aren['’]t included|isn['’]t included/i.test(line);
+
+test("no public page says service pages are included in the plan", () => {
+  const hits = PAGES().flatMap(f => readFileSync(f, "utf8").split("\n")
+    .map((line, i) => (saysIncluded(line) ? `${f}:${i + 1}` : null)).filter(Boolean));
+  assert.deepEqual(hits, []);
+});
+
+test("the service-page rule catches the claim and allows the add-on wording", () => {
+  assert.equal(saysIncluded("Service pages are included in your $19.99 plan"), true);
+  assert.equal(saysIncluded("Your plan includes unlimited service pages"), true);
+  assert.equal(saysIncluded("Service pages are not included in either plan"), false);
+  assert.equal(saysIncluded("Service pages aren't included; they're a separate add-on."), false);
+  assert.equal(saysIncluded("Hosting, security, and maintenance included"), false);
+});
+
 console.log(`public-copy: ${passed} passed`);

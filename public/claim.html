@@ -53,6 +53,11 @@ function setStatus(heading, message, isError) {
   msgEl.style.color = isError ? '#d94040' : '#5a7a9a';
 }
 
+// First landing + utm_* stored by /scripts/ref-capture.js (never replaced).
+function firstTouch() {
+  try { return JSON.parse(localStorage.getItem('enoma_first_touch') || 'null'); } catch (e) { return null; }
+}
+
 function showDashboardLink(businessId) {
   var link = document.getElementById('claim-link');
   link.href = '/dashboard?business_id=' + encodeURIComponent(businessId);
@@ -82,7 +87,7 @@ async function run() {
     var res = await fetch('/api/claim-business', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
-      body: JSON.stringify({ slug: slug, m: outreachMsg || undefined })
+      body: JSON.stringify({ slug: slug, m: outreachMsg || undefined, first_touch: firstTouch() })
     });
     var data = await res.json();
     if (!res.ok) {

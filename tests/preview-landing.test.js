@@ -158,8 +158,8 @@ await test("never mentions the Google listing", () => {
   assert.doesNotMatch(instant, /Google listing/);
 });
 await test("price sits with every 'free' (lede and the catch)", () => {
-  assert.match(instant, /Keep it free for a month, then \$19\.99\/month/);
-  assert.match(instant, /\$19\.99<\/b><span>a month after the free month/);
+  assert.match(instant, /Keep it free for a month, then \$19\.99\/month or \$199\/year/);
+  assert.match(instant, /\$19\.99<\/b><span>a month after the free month, or \$199\/year/);
 });
 await test("keeps the callouts, the catch and all three contact buttons", () => {
   assert.match(instant, /class="note"/);

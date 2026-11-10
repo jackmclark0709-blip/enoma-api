@@ -7,6 +7,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { attributeReferral } from "./_lib/referral.js";
+import { chooseFirstTouch, firstTouchToWrite } from "./_lib/attribution.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -126,6 +127,28 @@ export default async function handler(req, res) {
       }
     } catch (e) {
       console.warn("Outreach claim attribution failed:", e.message);
+    }
+
+    // First-touch attribution, kept through to payment (businesses.first_touch,
+    // copied into Stripe metadata at checkout). Filled once, never overwritten:
+    // see chooseFirstTouch for the order of sources.
+    try {
+      const { data: prospect } = await supabaseAdmin
+        .from("prospects").select("source, raw")
+        .or(`preview_business_id.eq.${profile.business_id},preview_url.eq.https://enoma.io/${profile.username}`)
+        .limit(1).maybeSingle();
+      const candidate = chooseFirstTouch({ browser: req.body?.first_touch, prospect });
+      const { data: biz, error: bizErr } = await supabaseAdmin
+        .from("businesses").select("first_touch").eq("id", profile.business_id).maybeSingle();
+      if (bizErr) throw bizErr;
+      const value = firstTouchToWrite(biz?.first_touch, candidate);
+      if (value) {
+        await supabaseAdmin.from("businesses")
+          .update({ first_touch: value })
+          .eq("id", profile.business_id).is("first_touch", null);
+      }
+    } catch (e) {
+      console.warn("First-touch attribution failed:", e.message);
     }
 
     if (process.env.RESEND_API_KEY) {

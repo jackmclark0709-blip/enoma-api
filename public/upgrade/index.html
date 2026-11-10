@@ -52,13 +52,12 @@
 <div class="upgrade-hero">
   <p class="eyebrow">Enoma Subscription</p>
   <h1 id="heroTitle">Keep your website live</h1>
-  <p id="heroSub">Your free month is ending soon. Subscribe for $19.99/month to keep your page live on Google, with personalized support from our team.</p>
+  <p id="heroSub">Your free month is ending soon. Subscribe for $19.99/month or $199/year to keep your page live on Google, with personalized support from our team.</p>
 </div>
 
 <div class="plan-wrap">
   <div class="plan-card featured">
     <p class="plan-name">Enoma</p>
-    <p class="plan-price">$19.99<span>/mo</span></p>
     <p class="plan-desc">Your page stays live, and you get personalized support from our team whenever you need it.</p>
     <ul class="plan-features">
       <li>Business page live on enoma.io</li>
@@ -69,7 +68,8 @@
       <li>Analytics: page views and contact clicks</li>
       <li>Cancel anytime, no contracts</li>
     </ul>
-    <button class="plan-cta primary" id="selfSubBtn">Subscribe — $19.99/mo →</button>
+    <!-- Monthly / Yearly choice + subscribe (public/scripts/plan-picker.js) -->
+    <div id="planPicker"></div>
   </div>
 </div>
 
@@ -81,7 +81,7 @@
     <div class="what-item"><h3>Contact form → your inbox</h3><p>Every message sent through your page arrives in your email. No logins needed to respond.</p></div>
     <div class="what-item"><h3>Looks great on phones</h3><p>Fully responsive — your page works perfectly on any device, including mobile searches.</p></div>
     <div class="what-item"><h3>Always up to date</h3><p>Log in anytime to update services, photos, or business info. Changes go live immediately.</p></div>
-    <div class="what-item"><h3>No contracts, cancel anytime</h3><p>Monthly billing. If you cancel, your page goes offline. Come back anytime to reactivate it.</p></div>
+    <div class="what-item"><h3>No contracts, cancel anytime</h3><p>Pay monthly or yearly. If you cancel, your page stays live until the end of the period you paid for. Come back anytime to reactivate it.</p></div>
   </div>
 </div>
 
@@ -90,8 +90,11 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/scripts/plan-picker.js"></script>
 <script>
-const supabase = window.supabase.createClient(
+// Not "supabase": the UMD bundle already declares that global, which made this
+// whole script a SyntaxError (the Subscribe button did nothing).
+const sb = window.supabase.createClient(
   'https://qhsivcenpnxwmvwznqie.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc'
 );
@@ -99,10 +102,10 @@ const supabase = window.supabase.createClient(
 async function init() {
   const params = new URLSearchParams(window.location.search);
   const businessId = params.get('business_id');
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await sb.auth.getSession();
 
   if (businessId && session) {
-    const { data: profile } = await supabase
+    const { data: profile } = await sb
       .from('small_business_profiles')
       .select('business_name, username')
       .eq('business_id', businessId)
@@ -114,22 +117,28 @@ async function init() {
     }
   }
 
-  document.getElementById('selfSubBtn').addEventListener('click', async () => {
-    const { data: { session: s } } = await supabase.auth.getSession();
-    if (!s) { window.location.href = `/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`; return; }
-    if (!businessId) { window.location.href = '/dashboard'; return; }
-    const btn = document.getElementById('selfSubBtn');
-    btn.disabled = true; btn.textContent = 'Loading…';
-    try {
-      const res = await fetch('/api/create-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${s.access_token}` },
-        body: JSON.stringify({ business_id: businessId })
-      });
-      const { url, error } = await res.json();
-      if (url) { window.location.href = url; }
-      else { alert(error || 'Could not start checkout.'); btn.disabled = false; btn.textContent = 'Subscribe — $19.99/mo →'; }
-    } catch { btn.disabled = false; btn.textContent = 'Subscribe — $19.99/mo →'; }
+  // The subscription row decides whether checkout defers the first charge to
+  // the end of the free month ("Your first charge is on …").
+  let sub = null;
+  if (businessId && session) {
+    const { data } = await sb
+      .from('subscriptions').select('is_trial, trial_expires_at')
+      .eq('business_id', businessId).maybeSingle();
+    sub = data || null;
+  }
+  window.EnomaPlanPicker.mount(document.getElementById('planPicker'), {
+    // Without a business id there's nothing to subscribe; the dashboard picks one.
+    businessId: businessId || 'none',
+    sub,
+    theme: 'light',
+    getToken: async () => {
+      if (!businessId) { window.location.href = '/dashboard'; return null; }
+      return (await sb.auth.getSession()).data.session?.access_token || null;
+    },
+    onSignedOut: () => {
+      if (!businessId) return;
+      window.location.href = `/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+    },
   });
 }
 init();

@@ -1,10 +1,18 @@
 // api/create-checkout.js
-// Creates a Stripe Checkout session for the monthly lead-page subscription.
+// Creates a Stripe Checkout session for the lead-page subscription.
+// POST body: { business_id, interval: "month" | "year" (default "month") }.
 // Prices come from Stripe by lookup key (data/plans.mjs): enoma_page_monthly
-// ($19.99), or enoma_page_partner_monthly ($9.99) when the business was
+// ($19.99/month) or enoma_page_annual ($199/year), or
+// enoma_page_partner_monthly ($9.99/month, monthly only) when the business was
 // referred by a partner with partner_pricing on. STRIPE_MONTHLY_PRICE_ID is
-// only a fallback if the lookup key isn't found.
-// Called from dashboard when user clicks "Subscribe".
+// only a fallback if the monthly lookup key isn't found; a missing yearly
+// price returns 503 rather than charging monthly.
+//
+// The free month: while the owner's free month (subscriptions.is_trial,
+// trial_expires_at) has more than 48 hours left, the subscription gets a
+// trial_end so the first charge is the day the free month ends
+// (api/_lib/billing.js trialEndFor). Otherwise they're charged at checkout.
+// Called from the dashboard, /upgrade and /website-live (public/scripts/plan-picker.js).
 //
 // action: "portal" (body) opens the Stripe customer portal instead, so an
 // owner can update their card, cancel, or download invoices. The portal has
@@ -16,7 +24,9 @@
 
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
-import { PLANS, LOOKUP_KEYS, pageLookupKeyFor } from '../data/plans.mjs';
+import { PLANS, LOOKUP_KEYS } from '../data/plans.mjs';
+import { normalizeInterval, checkoutPlanFor, hasLiveStripeSubscription } from './_lib/billing.js';
+import { utmMetadata } from './_lib/attribution.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const supabase = createClient(
@@ -56,6 +66,18 @@ async function handlePlans(req, res) {
   }
 }
 
+// First-touch utm_* values for Stripe metadata (businesses.first_touch,
+// filled when the page was claimed). Missing column or row -> {}.
+async function firstTouchUtm(business_id) {
+  try {
+    const { data, error } = await supabase.from('businesses').select('first_touch').eq('id', business_id).maybeSingle();
+    if (error) return {};
+    return utmMetadata(data?.first_touch);
+  } catch {
+    return {};
+  }
+}
+
 // The partner price applies only when the business was referred by an active
 // partner with partner_pricing on. Missing column or row -> standard price.
 async function referrerFor(business_id) {
@@ -88,6 +110,9 @@ export default async function handler(req, res) {
 
   if (action === 'portal') return openPortal(req, res, user, business_id);
 
+  const interval = normalizeInterval(req.body?.interval);
+  if (!interval) return res.status(400).json({ error: 'interval must be "month" or "year"' });
+
 
   // Verify the user owns this business
   const { data: membership } = await supabase
@@ -102,11 +127,13 @@ export default async function handler(req, res) {
   // Check if already subscribed
   const { data: existingSub } = await supabase
     .from('subscriptions')
-    .select('status, stripe_subscription_id, stripe_customer_id')
+    .select('status, stripe_subscription_id, stripe_customer_id, is_trial, trial_expires_at')
     .eq('business_id', business_id)
     .maybeSingle();
 
-  if (existingSub?.status === 'active') {
+  // "trialing" with a Stripe subscription id = already subscribed during the
+  // free month (card on file, first charge pending).
+  if (hasLiveStripeSubscription(existingSub)) {
     return res.status(400).json({ error: 'Already subscribed' });
   }
 
@@ -143,8 +170,12 @@ export default async function handler(req, res) {
       }, { onConflict: 'business_id' });
   }
 
-  // Pick the price: partner or standard, by lookup key.
-  const lookupKey = pageLookupKeyFor(await referrerFor(business_id));
+  // Pick the price: partner (monthly only) or standard monthly/yearly, by
+  // lookup key. Only the monthly price has an env fallback; a missing yearly
+  // price must never fall through to charging monthly.
+  // trialEnd: first charge when the free month ends, if it has more than 48h left.
+  const { lookupKey, interval: billedInterval, trialEnd } =
+    checkoutPlanFor({ referrer: await referrerFor(business_id), interval, sub: existingSub });
   let priceId = null;
   try {
     priceId = (await pricesByLookupKey())[lookupKey]?.id || null;
@@ -155,6 +186,14 @@ export default async function handler(req, res) {
   if (!priceId) {
     return res.status(503).json({ error: 'Subscriptions are opening shortly. Email jack@enoma.io and we\'ll keep your page live in the meantime.' });
   }
+  const utm = await firstTouchUtm(business_id);
+  const metadata = {
+    business_id,
+    supabase_user_id: user.id,
+    lookup_key: lookupKey,
+    interval: billedInterval,
+    ...utm,
+  };
 
   // Create Checkout session
   const session = await stripe.checkout.sessions.create({
@@ -168,18 +207,12 @@ export default async function handler(req, res) {
       },
     ],
     subscription_data: {
-      metadata: {
-        business_id,
-        supabase_user_id: user.id,
-        lookup_key: lookupKey,
-      },
+      metadata,
+      ...(trialEnd ? { trial_end: trialEnd } : {}),
     },
     success_url: `https://enoma.io/dashboard?subscribed=1&business_id=${business_id}`,
     cancel_url: `https://enoma.io/dashboard?business_id=${business_id}`,
-    metadata: {
-      business_id,
-      supabase_user_id: user.id,
-    },
+    metadata,
   });
 
   return res.status(200).json({ url: session.url });

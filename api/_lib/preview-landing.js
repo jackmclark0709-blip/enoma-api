@@ -175,7 +175,7 @@ export function renderLanding(profile, { callouts = [], working = [], slug, m = 
   const eyebrow = instant ? "Live as a preview" : "Ready to go live";
   const headline = instant ? `Here's your page, ${esc(name)}` : `Here's a preview of your page, ${esc(name)}`;
   const lede = instant
-    ? "It's live as a preview. Keep it free for a month, then $19.99/month. Here's what's already on it:"
+    ? "It's live as a preview. Keep it free for a month, then $19.99/month or $199/year. Here's what's already on it:"
     : "It's ready to go. Here's what's already on it:";
 
   return `<!doctype html>
@@ -301,7 +301,7 @@ export function renderLanding(profile, { callouts = [], working = [], slug, m = 
         <li>Not techy? I'll set it up with you over the phone.</li>
       </ul>
     </div>
-    <div class="price"><b>$19.99</b><span>a month after the free month</span></div>
+    <div class="price"><b>$19.99</b><span>a month after the free month, or $199/year</span></div>
   </section>
 
   <section class="contact" aria-labelledby="contact-h">

@@ -82,6 +82,7 @@
       transition: background 0.15s;
     }
     .upgrade-banner-btn:hover { background: rgba(255,255,255,0.22); color: #fff; }
+    .upgrade-banner-picker { flex: 1 1 100%; max-width: 640px; }
 
     /* ── No website card ── */
     .no-website-card {
@@ -251,6 +252,8 @@
   <div class="upgrade-banner" id="upgrade-banner">
     <p id="banner-text"></p>
     <a class="upgrade-banner-btn" id="upgrade-btn" href="/upgrade">Keep my website live →</a>
+    <!-- Monthly / Yearly choice (public/scripts/plan-picker.js), shown instead of the button when subscribing -->
+    <div class="upgrade-banner-picker" id="plan-picker" style="display:none;"></div>
   </div>
 
   <!-- NO WEBSITE -->
@@ -337,7 +340,7 @@
         <!-- Service pages (Service Spotlights) -->
         <div class="card" id="spotlightsCard">
           <div class="card-title">Service pages</div>
-          <p class="card-hint">A page for one service, like snow removal or spring cleanups, with its own link to share. Great for a seasonal post or ad.</p>
+          <p class="card-hint">A page for one service, like snow removal or spring cleanups, with its own link to share. Great for a seasonal post or ad. Service pages are an add-on at $9.99/month per page, not included in your plan.</p>
           <ul class="mini-list" id="spotlightList"><li class="zero-state">Loading…</li></ul>
           <a class="btn" id="newSpotlightBtn" href="/create-spotlight">+ New service page</a>
         </div>
@@ -398,6 +401,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/scripts/plan-picker.js"></script>
 <script type="module">
 const SUPABASE_URL  = 'https://qhsivcenpnxwmvwznqie.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc';
@@ -518,6 +522,22 @@ async function loadDashboard(profile, session) {
   billingBtn.style.display = 'none';
   billingBtn.onclick = null;
   upgradeBtn.textContent = 'Keep my website live →';
+  upgradeBtn.style.display = '';
+  const pickerEl = document.getElementById('plan-picker');
+  pickerEl.style.display = 'none';
+  pickerEl.innerHTML = '';
+  // Monthly / Yearly choice in the banner instead of the "Keep my website live" link.
+  const showPlanPicker = (sub) => {
+    if (!window.EnomaPlanPicker) return; // script failed to load: keep the /upgrade link
+    upgradeBtn.style.display = 'none';
+    pickerEl.style.display = 'block';
+    window.EnomaPlanPicker.mount(pickerEl, {
+      businessId: profile.business_id,
+      sub,
+      theme: 'dark',
+      getToken: async () => (await supabase.auth.getSession()).data.session?.access_token || null,
+    });
+  };
   upgradeBtn.onclick = null;
   // Opens the Stripe customer portal: update card, cancel, invoices.
   const openBillingPortal = async (e) => {
@@ -559,14 +579,25 @@ async function loadDashboard(profile, session) {
       const periodEnd     = sub.current_period_end ? new Date(sub.current_period_end) : null;
       const periodEndFmt  = periodEnd ? periodEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 
-      if (sub.stripe_customer_id && ['active', 'past_due', 'canceled', 'unpaid'].includes(sub.status)) {
+      // Subscribed during the free month: Stripe holds the first charge until
+      // the free month ends (status "trialing" with a Stripe subscription).
+      const subscribedInFreeMonth = sub.status === 'trialing' && !!sub.stripe_subscription_id;
+      const yearly = sub.billing_interval === 'year';
+
+      if (sub.stripe_customer_id && (['active', 'past_due', 'canceled', 'unpaid'].includes(sub.status) || subscribedInFreeMonth)) {
         billingBtn.style.display = 'inline-block';
         billingBtn.onclick = openBillingPortal;
       }
 
       if (sub.status === 'active') {
         statusEl.textContent = '● Active'; statusEl.className = 'pill active';
-        if (periodEnd) renewalEl.textContent = `Renews ${periodEndFmt}`;
+        if (periodEnd) renewalEl.textContent = `${yearly ? 'Yearly plan · renews' : 'Renews'} ${periodEndFmt}`;
+
+      } else if (subscribedInFreeMonth) {
+        statusEl.textContent = '● Active'; statusEl.className = 'pill active';
+        renewalEl.textContent = periodEnd
+          ? `${yearly ? 'Yearly plan · ' : ''}First charge ${periodEndFmt}`
+          : 'Subscribed';
 
       } else if (sub.status === 'past_due') {
         statusEl.textContent = '⚠ Payment due'; statusEl.className = 'pill expired';
@@ -584,6 +615,7 @@ async function loadDashboard(profile, session) {
         renewalEl.textContent = `Canceled — active until ${periodEndFmt}`;
         bannerTxt.innerHTML = `<strong>Your subscription is canceled.</strong> Your page stays live until ${periodEndFmt}, then it will go offline.`;
         upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
+        showPlanPicker(sub);
         bannerEl.style.display = 'flex';
 
       } else if (sub.is_trial && !trialExpired) {
@@ -591,6 +623,7 @@ async function loadDashboard(profile, session) {
         renewalEl.textContent = `Trial ends ${trialExpiry.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
         bannerTxt.innerHTML = `<strong>Your free trial ends in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}.</strong> Subscribe to keep your page live after ${trialExpiry.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}.`;
         upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
+        showPlanPicker(sub);
         bannerEl.style.display = 'flex';
 
       } else if (grandfathered) {
@@ -603,6 +636,7 @@ async function loadDashboard(profile, session) {
         renewalEl.textContent = '';
         bannerTxt.innerHTML = `<strong>Your website is currently offline.</strong> Subscribe to bring it back live and start getting leads again.`;
         upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
+        showPlanPicker(sub);
         bannerEl.style.display = 'flex';
       }
     } else {
