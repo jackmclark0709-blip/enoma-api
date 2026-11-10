@@ -200,6 +200,10 @@ export function renderLanding(profile, { callouts = [], working = [], slug, m = 
   .brand { display:block; text-decoration:none; }
   .brand img { display:block; height:26px; width:auto; }
   .from { color:var(--muted); font-size:14px; }
+  .top-right { display:flex; align-items:center; gap:16px; }
+  .top-cta { display:inline-flex; align-items:center; gap:6px; background:var(--blue); color:#fff; font-weight:700; font-size:14px; padding:9px 18px; border-radius:999px; text-decoration:none; white-space:nowrap; box-shadow:0 8px 20px -10px rgba(31,95,191,.6); transition:background .15s; }
+  .top-cta:hover { background:var(--blue-ink); }
+  .top-cta:focus-visible { outline:3px solid #9cc2ff; outline-offset:2px; }
   .hero { padding:44px 0 24px; }
   .eyebrow { display:inline-block; font-family:var(--mono); font-size:12px; font-weight:500; letter-spacing:.16em; text-transform:uppercase; color:var(--blue); }
   h1, h2, .price b { font-family:var(--display); font-optical-sizing:auto; font-weight:600; color:var(--ink); }
@@ -261,13 +265,14 @@ export function renderLanding(profile, { callouts = [], working = [], slug, m = 
     .price { text-align:left; }
   }
   @media (max-width:560px) {
+    .from { display:none; }
     .values, .buttons, .row { grid-template-columns:1fr; }
     .device iframe { height:70vh; }
   }
 </style>
 </head>
 <body>
-<header class="top"><div class="wrap"><a class="brand" href="/" aria-label="Enoma home"><img src="/assets/logos/enoma-color-name.svg" alt="Enoma" width="90" height="26"></a><span class="from">From Jack at Enoma</span></div></header>
+<header class="top"><div class="wrap"><a class="brand" href="/" aria-label="Enoma home"><img src="/assets/logos/enoma-color-name.svg" alt="Enoma" width="90" height="26"></a><div class="top-right"><span class="from">From Jack at Enoma</span><a class="top-cta" id="top-view" href="${pageUrl}${q}" target="_blank" rel="noopener">View your page ↗</a></div></div></header>
 
 <main class="wrap">
   <section class="hero">
