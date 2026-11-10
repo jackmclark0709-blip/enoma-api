@@ -206,6 +206,7 @@
     .tag { font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 999px; background: rgba(56,130,220,0.1); color: #1e5ca8; }
     .tag.draft { background: #fff4d6; color: #7a5b00; }
     .link-btn { font: inherit; font-size: 0.78rem; font-weight: 700; color: #3882dc; background: none; border: 0; padding: 0; cursor: pointer; }
+    .price-note { font-size: 0.75rem; color: #5b6b80; }
     .link-row { display: flex; gap: 0.5rem; }
     .link-row input { flex: 1; min-width: 0; font: inherit; font-size: 0.8rem; padding: 0.45rem 0.6rem; border: 1px solid #d4e2f4; border-radius: 8px; }
     .count-badge { background: rgba(56,130,220,0.1); color: #1e5ca8; font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px; }
@@ -247,6 +248,8 @@
     <span id="renewal-date" class="renewal-txt"></span>
     <button type="button" id="manage-billing" class="manage-billing-btn" style="display:none;">Manage billing →</button>
   </div>
+  <!-- Page plan + service pages (filled by loadSpotlights from create-checkout spotlight_quantity, dry run) -->
+  <p id="monthly-total" class="renewal-txt" style="display:none;margin:-0.25rem 0 0.75rem;"></p>
 
   <!-- UPGRADE BANNER (shown during trial / expired) -->
   <div class="upgrade-banner" id="upgrade-banner">
@@ -774,12 +777,56 @@ async function ownerApi(kind, action, session, body) {
   return j;
 }
 
+// Service-page billing summary (page plan + published service pages). The
+// server recomputes everything from the database; this only displays it.
+async function spotlightBilling(profile, session) {
+  try {
+    const r = await fetch('/api/create-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ business_id: profile.business_id, action: 'spotlight_quantity', dry_run: true }),
+    });
+    return r.ok ? await r.json() : null;
+  } catch { return null; }
+}
+function money(cents) {
+  if (!Number.isInteger(cents)) return '';
+  return cents % 100 === 0 ? `$${cents / 100}` : `$${(cents / 100).toFixed(2)}`;
+}
+function shortDate(iso) {
+  return iso ? new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '';
+}
+// Service pages are billed on the page plan's interval: $9.99/month on a
+// monthly plan, the yearly add-on price on a yearly plan.
+function per(b) { return b?.spotlight_interval === 'year' ? 'year' : 'month'; }
+function spotlightPrice(b) {
+  return money(Number.isInteger(b?.spotlight_amount) ? b.spotlight_amount : 999);
+}
+function renderMonthlyTotal(b) {
+  const el = document.getElementById('monthly-total');
+  if (!el) return;
+  el.style.display = 'none';
+  if (!b || b.billing === 'never' || !Number.isInteger(b.total)) return;
+  const n = b.published;
+  const pages = n ? ` + ${n} service page${n === 1 ? '' : 's'} × ${spotlightPrice(b)}` : '';
+  const yearly = b.total_interval === 'year';
+  const label = b.billing === 'at_checkout' ? 'When you subscribe' : (yearly ? 'Yearly total' : 'Monthly total');
+  el.textContent = `${label}: ${money(b.total)}/${yearly ? 'year' : 'month'} (${money(b.page_amount)} page${pages})`;
+  el.style.display = 'block';
+}
+
 async function loadSpotlights(profile, session) {
   const list = document.getElementById('spotlightList');
   document.getElementById('newSpotlightBtn').href = `/create-spotlight?business=${encodeURIComponent(profile.username)}`;
   try {
-    const { spotlights } = await ownerApi('spotlight', 'context', session, { business_id: profile.business_id });
+    const [{ spotlights }, billing] = await Promise.all([
+      ownerApi('spotlight', 'context', session, { business_id: profile.business_id }),
+      spotlightBilling(profile, session),
+    ]);
+    renderMonthlyTotal(billing);
     if (!spotlights?.length) { list.innerHTML = '<li class="zero-state">No service pages yet.</li>'; return; }
+    const free = billing?.billing === 'never';
+    const priceNote = free ? '' : `<span class="price-note">${esc(spotlightPrice(billing))}/${per(billing)} when published</span> · `;
     list.innerHTML = spotlights.map(sp => {
       const url = `/${encodeURIComponent(profile.username)}/${encodeURIComponent(sp.service_slug)}`;
       const draft = sp.status !== 'published';
@@ -787,23 +834,39 @@ async function loadSpotlights(profile, session) {
         <span><a href="${url}" target="_blank" rel="noopener">${esc(sp.service_name || sp.service_slug)}</a> <span class="tag${draft ? ' draft' : ''}">${draft ? 'Draft' : 'Live'}</span></span>
         <span>
           <a class="link-btn" href="/create-spotlight?business=${encodeURIComponent(profile.username)}&service=${encodeURIComponent(sp.service_slug)}">Edit</a>
-          ${draft ? ` · <button class="link-btn" data-publish="${esc(sp.service_slug)}" type="button">Publish</button>` : ''}
+          ${draft
+            ? ` · ${priceNote}<button class="link-btn" data-publish="${esc(sp.service_slug)}" type="button">Publish</button>`
+            : ` · <button class="link-btn" data-unpublish="${esc(sp.service_slug)}" type="button">Unpublish</button>`}
         </span>
       </li>`;
     }).join('');
     list.querySelectorAll('[data-publish]').forEach(btn => btn.addEventListener('click', async () => {
-      if (!confirmPublish()) return;
+      if (!confirmPublish(billing)) return;
       btn.disabled = true; btn.textContent = 'Publishing…';
       try { await ownerApi('spotlight', 'publish', session, { business_id: profile.business_id, service_slug: btn.dataset.publish }); loadSpotlights(profile, session); }
       catch (e) { btn.disabled = false; btn.textContent = 'Publish'; showToast(e.message); }
     }));
+    list.querySelectorAll('[data-unpublish]').forEach(btn => btn.addEventListener('click', async () => {
+      const msg = free
+        ? 'Unpublish this service page? It goes back to a draft.'
+        : 'Unpublish this service page? It goes back to a draft and comes off your bill.';
+      if (!window.confirm(msg)) return;
+      btn.disabled = true; btn.textContent = 'Unpublishing…';
+      try { await ownerApi('spotlight', 'unpublish', session, { business_id: profile.business_id, service_slug: btn.dataset.unpublish }); loadSpotlights(profile, session); }
+      catch (e) { btn.disabled = false; btn.textContent = 'Unpublish'; showToast(e.message); }
+    }));
   } catch {
-    list.innerHTML = '<li class="zero-state">Couldn\u2019t load service pages.</li>';
+    list.innerHTML = '<li class="zero-state">Couldn’t load service pages.</li>';
   }
 }
-// A published page is public and indexed; ask once before publishing.
-function confirmPublish() {
-  return window.confirm('Publish this service page? It will be public and linked from your main page.');
+// A published page is public, indexed and (unless comped) $9.99/month, or the
+// yearly add-on on a yearly plan: ask first.
+function confirmPublish(billing) {
+  if (billing?.billing === 'never') {
+    return window.confirm("Publish this service page? It will be public and linked from your main page. There's no charge for service pages on your account.");
+  }
+  const when = billing?.starts_on ? shortDate(billing.starts_on) : 'when you subscribe';
+  return window.confirm(`Publishing adds ${spotlightPrice(billing)}/${per(billing)} to your plan, starting ${when}. You can unpublish anytime.`);
 }
 function showToast(text) {
   const el = document.getElementById('dashToast') || Object.assign(document.body.appendChild(document.createElement('div')), { id: 'dashToast' });

@@ -14,6 +14,9 @@
 
 import { bannedWordsIn, lintCopy } from "./copy-lint.js";
 import { waitUntil } from "@vercel/functions";
+import {
+  syncSpotlightQuantity,
+} from "./spotlight-billing.js";
 
 // Keep the last few versions so an owner can go back after a rewrite.
 export const MAX_VERSIONS = 8;
@@ -384,7 +387,19 @@ async function canEdit(supabaseAdmin, userId, businessId) {
 
 const PROFILE_FIELDS = "business_id,username,business_name,primary_category,city,state,service_area,owner_name,phone,email,logo_url,attachments,attachment_kinds,services";
 
-export async function handleSpotlight(req, res, { supabaseAdmin, fetchImpl }) {
+// Sets the service-page add-on quantity after a status change. Failures are
+// logged, never thrown: the next publish/unpublish (or the Stripe webhook)
+// recomputes the count from service_spotlights and corrects it.
+async function syncQuietly(stripe, supabaseAdmin, businessId, why) {
+  try {
+    return await syncSpotlightQuantity({ stripe, supabase: supabaseAdmin, businessId });
+  } catch (e) {
+    console.error(`[spotlight-billing] quantity sync failed after ${why} for business ${businessId}:`, e?.message || e);
+    return null;
+  }
+}
+
+export async function handleSpotlight(req, res, { supabaseAdmin, fetchImpl, stripe = null }) {
   const action = String(req.query?.action || "generate");
   const authHeader = req.headers.authorization || "";
   const token = authHeader.replace(/^Bearer\s+/i, "");
@@ -462,6 +477,8 @@ export async function handleSpotlight(req, res, { supabaseAdmin, fetchImpl }) {
     const { data: saved, error } = await supabaseAdmin.from("service_spotlights")
       .upsert(pending, { onConflict: "business_id,service_slug" }).select("id,service_slug,status").single();
     if (error) { console.error("spotlight save failed:", error); return res.status(500).json({ error: "Couldn't save your answers." }); }
+    // A rewrite of a live page sends it back to draft, so it stops being billed.
+    if (existing?.status === "published") await syncQuietly(stripe, supabaseAdmin, businessId, "rewrite");
 
     const job = runGeneration({ supabaseAdmin, fetchImpl, id: saved.id, intake, profile });
     try { waitUntil(job); } catch { await job; } // outside Vercel (tests), just wait
@@ -507,13 +524,44 @@ export async function handleSpotlight(req, res, { supabaseAdmin, fetchImpl }) {
     return res.status(200).json({ ok: true });
   }
   if (action === "publish" || action === "unpublish") {
+    // Billing (api/_lib/spotlight-billing.js): a published service page is
+    // $9.99/month on the owner's plan (the yearly add-on on a yearly plan). The quantity is recomputed here, on the
+    // server, from service_spotlights — the browser never sends a count.
     const published = action === "publish";
-    await supabaseAdmin.from("service_spotlights").update({
+    const before = { status: spot.status, published_at: spot.published_at || null };
+    const newlyPublished = published && before.status !== "published";
+    const { error: upErr } = await supabaseAdmin.from("service_spotlights").update({
       status: published ? "published" : "draft",
-      published_at: published ? new Date().toISOString() : null,
+      published_at: published ? (before.status === "published" && before.published_at ? before.published_at : new Date().toISOString()) : null,
       updated_at: new Date().toISOString(),
     }).eq("id", spot.id);
-    return res.status(200).json({ ok: true, status: published ? "published" : "draft" });
+    if (upErr) { console.error("spotlight status update failed:", upErr); return res.status(500).json({ error: "That didn't save. Try again." }); }
+
+    let sync;
+    if (newlyPublished) {
+      // Publishing must not go live unbilled: if Stripe refuses, put it back.
+      try {
+        sync = await syncSpotlightQuantity({ stripe, supabase: supabaseAdmin, businessId });
+      } catch (e) {
+        console.error(`[spotlight-billing] publish refused for business ${businessId}:`, e?.message || e);
+        await supabaseAdmin.from("service_spotlights").update({
+          status: before.status, published_at: before.published_at, updated_at: new Date().toISOString(),
+        }).eq("id", spot.id);
+        return res.status(502).json({
+          error: e?.code === "price_missing" ? e.message
+            : "We couldn't add this page to your plan just now, so it wasn't published. Try again in a minute, or email jack@enoma.io.",
+          code: e?.code || "billing_failed",
+        });
+      }
+    } else {
+      // Unpublishing (or re-publishing a live page) always succeeds; the
+      // quantity only goes down, and a failed sync is retried by the next one.
+      sync = await syncQuietly(stripe, supabaseAdmin, businessId, action);
+    }
+    return res.status(200).json({
+      ok: true, status: published ? "published" : "draft",
+      billing: sync ? { billing: sync.billing, quantity: sync.quantity, published: sync.published } : { pending: true },
+    });
   }
   return res.status(400).json({ error: `Unknown action ${action}` });
 }

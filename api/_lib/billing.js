@@ -68,9 +68,33 @@ function isoFromUnix(sec) {
   return Number.isFinite(sec) && sec > 0 ? new Date(sec * 1000).toISOString() : null;
 }
 
+// Service pages (Service Spotlights) ride the page subscription as a second
+// line item (api/_lib/spotlight-billing.js). Everything that describes "the
+// plan" (interval, period dates) must read the page item, never that one.
+// Stripe requires every item on a subscription to share one interval, so a
+// yearly page plan gets the yearly add-on price.
+export const SPOTLIGHT_LOOKUP_KEY = "enoma_spotlight_monthly";
+export const SPOTLIGHT_YEARLY_LOOKUP_KEY = "enoma_spotlight_yearly";
+export const SPOTLIGHT_LOOKUP_KEYS = [SPOTLIGHT_LOOKUP_KEY, SPOTLIGHT_YEARLY_LOOKUP_KEY];
+
+/** The add-on lookup key for a page-plan interval ("year" -> yearly, else monthly). */
+export function spotlightLookupKeyFor(interval) {
+  return interval === "year" ? SPOTLIGHT_YEARLY_LOOKUP_KEY : SPOTLIGHT_LOOKUP_KEY;
+}
+
+export function isSpotlightItem(item) {
+  return SPOTLIGHT_LOOKUP_KEYS.includes(item?.price?.lookup_key);
+}
+
+/** The page-plan item of a Stripe subscription: the first item that isn't the service-page add-on. */
+export function pageItemOf(sub) {
+  const items = sub?.items?.data || [];
+  return items.find((i) => !isSpotlightItem(i)) || items[0] || null;
+}
+
 /** The billing interval of a Stripe subscription ("month" | "year" | null). */
 export function intervalOfStripeSubscription(sub) {
-  const fromPrice = sub?.items?.data?.[0]?.price?.recurring?.interval;
+  const fromPrice = pageItemOf(sub)?.price?.recurring?.interval;
   if (INTERVALS.includes(fromPrice)) return fromPrice;
   const fromMeta = sub?.metadata?.interval;
   return INTERVALS.includes(fromMeta) ? fromMeta : null;
@@ -83,7 +107,7 @@ export function intervalOfStripeSubscription(sub) {
  * the trial end, i.e. the first charge date.
  */
 export function subscriptionFieldsFromStripe(sub) {
-  const item = sub?.items?.data?.[0] || {};
+  const item = pageItemOf(sub) || {};
   return {
     stripe_subscription_id: sub?.id || null,
     status: sub?.status || null,

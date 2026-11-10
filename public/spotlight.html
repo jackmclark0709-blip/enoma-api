@@ -146,7 +146,7 @@ body:not(.is-draft) .sp-draft { display: none; }
 <div class="sp-draft" id="draftBar">
   <div class="wrap">
     <div class="sp-draft__row">
-      <span><strong>Draft</strong> — only people with this link can see it, and search engines won't index it until you publish.</span>
+      <span><strong>Draft</strong> — only people with this link can see it, and search engines won't index it until you publish. Writing and previewing is free; a published service page is $9.99/month, or a yearly add-on price on the yearly plan.</span>
       <span>
         <a class="btn-sm" id="editAnswers" href="#">Edit answers</a>
         <button type="button" class="primary" id="publishBtn">Approve &amp; publish</button>
@@ -390,7 +390,31 @@ body:not(.is-draft) .sp-draft { display: none; }
     msg.textContent = 'Saving headline…';
     if (await act('choose_headline', { index: Number(e.target.value) })) location.reload();
   });
+  // Confirm step with the price and start date. The server recomputes the
+  // billing itself (api/create-checkout.js spotlight_quantity, dry run here).
+  async function billingSummary() {
+    const t = await token();
+    if (!t) return null;
+    try {
+      const r = await fetch('/api/create-checkout', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
+        body: JSON.stringify({ business_id: S.business_id, action: 'spotlight_quantity', dry_run: true }),
+      });
+      return r.ok ? await r.json() : null;
+    } catch { return null; }
+  }
+  function confirmText(b) {
+    if (b?.billing === 'never') return "Publish this service page? It will be public and linked from your main page. There's no charge for service pages on your account.";
+    const c = Number.isInteger(b?.spotlight_amount) ? b.spotlight_amount : 999;
+    const price = c % 100 === 0 ? `$${c / 100}` : `$${(c / 100).toFixed(2)}`;
+    const per = b?.spotlight_interval === 'year' ? 'year' : 'month'; // yearly plan -> yearly add-on
+    const when = b?.starts_on ? new Date(b.starts_on).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'when you subscribe';
+    return `Publishing adds ${price}/${per} to your plan, starting ${when}. You can unpublish anytime.`;
+  }
   document.getElementById('publishBtn').addEventListener('click', async () => {
+    if (!(await token())) { await act('publish'); return; } // shows the log-in prompt
+    const b = await billingSummary();
+    if (!window.confirm(confirmText(b))) return;
     msg.textContent = 'Publishing…';
     if (await act('publish')) { msg.textContent = 'Published.'; setTimeout(() => location.reload(), 600); }
   });
