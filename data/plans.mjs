@@ -46,15 +46,14 @@ export const PLANS = [
     id: "spotlight_annual",
     lookupKey: "enoma_spotlight_yearly",
     name: "Service Spotlight page (yearly)",
-    // Placeholder until Jack creates the Stripe price: the dashboard and
-    // checkout always use the live Stripe amount, and publishing on a yearly
-    // plan is refused while the price is missing.
+    // $99/year per published page (Jack, Nov 11, 2026). Checkout and the
+    // dashboard use the live Stripe amount; publishing on a yearly plan is
+    // refused while the Stripe price is missing.
     fallbackAmount: 9900,
     interval: "year",
     // Only for owners on the yearly page plan (Stripe can't mix a monthly
-    // item into a yearly subscription). Not on the pricing page until the
-    // amount is confirmed.
-    public: false,
+    // item into a yearly subscription).
+    public: true,
   },
 ];
 
