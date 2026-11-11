@@ -680,8 +680,8 @@ async function generatePreviewForProspect(prospect, { homeHtml, force = false, g
   const phone = place?.nationalPhoneNumber || prospect.phone || raw.phone || null;
 
   const site = prospect.website ? await gatherSiteText(prospect.website, homeHtml) : { text: "", homeHtml: null, homeUrl: null };
-  const checks = site.homeHtml ? siteChecks(site.homeHtml, site.homeUrl) : { score: 0 };
-  const quality = qualifiesForPreview({ rating, reviewCount, hasWebsite: !!prospect.website, siteCheckScore: checks.score, phone });
+  const checks = site.homeHtml ? siteChecks(site.homeHtml, site.homeUrl) : { score: 0, signals: [] };
+  const quality = qualifiesForPreview({ rating, reviewCount, hasWebsite: !!prospect.website, siteCheckScore: checks.score, siteSignals: checks.signals, phone });
   if (!phone && !force) return { skipped: "no_phone" };
   if (gate && !quality.ok && !force) return { skipped: quality.reason };
 
@@ -1699,7 +1699,7 @@ async function prepareOutreachOnce({ limit = PREPARE_MAX_PER_RUN, deadline = Dat
         const home = url ? await fetchPageText(url.toString(), 6000) : { ok: false, html: null, reason: "bad_url" };
         if (!home.ok || !home.html) return fail(prospect, "no_preview", "no_preview_site_unreachable", { site_fetch: home.reason || null });
         const checks = siteChecks(home.html, url.toString());
-        if (!isWeakEnoughSite(checks.score)) return fail(prospect, "no_preview", "no_preview_site_not_weak_enough", { site_score: checks.score });
+        if (!isWeakEnoughSite(checks)) return fail(prospect, "no_preview", "no_preview_site_not_weak_enough", { site_score: checks.score, site_signals: checks.signals });
         homeHtml = home.html;
       }
       return { prospect, quality, place, homeHtml };
