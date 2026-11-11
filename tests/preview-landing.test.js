@@ -65,6 +65,11 @@ await test("fewer than 3 services asks for the rest", () => {
 await test("no phone is called out", () => {
   assert.ok(keys(detectCallouts({ ...full, phone: null }, { spotlightCount: 1 })).includes("phone"));
 });
+await test("the logo note offers the three starter logos", () => {
+  const c = detectCallouts({ ...full, logo_url: null }, { spotlightCount: 2 }).find(x => x.key === "logo");
+  assert.equal(c.body, "You don't have a logo yet, so I made you a simple starter one. Pick from three, or send me yours (a photo of your truck works too).");
+  assert.ok(!/\$\d/.test(c.body), "no price");
+});
 await test("notes follow the house copy rules", () => {
   for (const c of detectCallouts(thin)) assert.deepEqual(bannedWordsIn(`${c.title} ${c.body}`), [], c.key);
 });
