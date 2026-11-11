@@ -91,7 +91,7 @@ export function detectCallouts(profile, { spotlightCount = 0 } = {}) {
   }
   if (!p.logo_url) {
     out.push({ key: "logo", where: "Header", title: "Add your logo",
-      body: "We made a placeholder from your name. Send us your logo, or a photo of your truck, and it goes in." });
+      body: "You don't have a logo yet, so I made you a simple starter one. Pick from three, or send me yours (a photo of your truck works too)." });
   }
   if (!p.phone) {
     out.push({ key: "phone", where: "Contact", title: "Add a phone number",

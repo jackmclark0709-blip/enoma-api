@@ -21,6 +21,7 @@ import { mergeKinds } from "./_lib/photo-kinds.js";
 import { handleSpotlight } from "./_lib/spotlight.js";
 import Stripe from "stripe";
 import { handleReviews } from "./_lib/reviews.js";
+import { handleLogo } from "./_lib/logo-settings.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -321,6 +322,11 @@ export default async function handler(req, res) {
       return await handleReviews(req, res, { supabaseAdmin });
     }
 
+    /* ---------- LOGO: starter-logo pick / upload from the dashboard (api/_lib/logo-settings.js) ---------- */
+    if (req.query?.kind === "logo") {
+      return await handleLogo(req, res, { supabaseAdmin });
+    }
+
     /* ---------- ADMIN SHORTCUT ---------- */
     if (req.headers["x-admin-secret"]) {
       return await handleAdminGenerate(req, res);
@@ -520,6 +526,7 @@ export default async function handler(req, res) {
     const shouldRegenerate = !isEdit || toBool(fields.regenerate_ai) || suggestOnly;
 
     /* ---------- LOGO UPLOAD ---------- */
+    let uploadedLogo = false; // a real logo replaces any starter logo pick
     try {
       const logoFile = files?.logo
         ? (Array.isArray(files.logo) ? files.logo[0] : files.logo)
@@ -544,7 +551,7 @@ export default async function handler(req, res) {
             });
           if (!upErr) {
             const { data: pub } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(storagePath);
-            if (pub?.publicUrl) logo_url = pub.publicUrl;
+            if (pub?.publicUrl) { logo_url = pub.publicUrl; uploadedLogo = true; }
           }
         }
       }
@@ -934,6 +941,7 @@ primary_cta: If phone is provided, set type to "call" and value to the phone num
       city: first(fields.city) || existingProfile?.city || null,
       state: first(fields.state) || existingProfile?.state || null,
       logo_url,
+      ...(uploadedLogo ? { starter_logo_id: null } : {}),
       hero_headline: finalHeroHeadline, hero_tagline: finalHeroTagline,
       about: finalAbout, why_choose_us: finalWhyChooseUs, services_intro: finalServicesIntro,
       seo_title: finalSeoTitle, seo_description: finalSeoDescription,

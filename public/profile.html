@@ -123,6 +123,22 @@ body.no-logo .wordmark::before {
 .wordmark__place { font-size: .8rem; color: rgba(240,246,255,0.62); font-weight: 500; }
 .wordmark__place:empty, .wordmark__rule:has(+ .wordmark__place:empty) { display: none; }
 
+/* ── Starter logo — a simple wordmark SVG (api/_lib/starter-logo.js) shown
+   when there's no uploaded logo. Replaces the text wordmark card above. ── */
+body.has-starter-logo .wordmark { display: none !important; }
+.starter-logo {
+  display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: .9rem;
+  width: 280px; min-height: 180px; padding: 1.6rem 1.5rem;
+  border-radius: 20px;
+  background: linear-gradient(160deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03));
+  border: 1px solid rgba(255,255,255,0.16);
+  box-shadow: 0 24px 60px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.12);
+  backdrop-filter: blur(6px);
+}
+.starter-logo svg { display: block; width: auto; height: auto; max-width: 100%; max-height: 120px; }
+.starter-logo--stacked { align-items: center; text-align: center; }
+.starter-logo__place { font-size: .8rem; color: rgba(240,246,255,0.62); font-weight: 500; }
+
 .hero-inner {
   max-width: 1040px;
   margin-inline: auto;
@@ -734,6 +750,8 @@ body.no-logo .wordmark::before {
   body.no-logo .wordmark { width: 100%; max-width: 320px; min-height: 0; align-items: center; text-align: center; padding: 1.35rem 1.25rem; }
   body.no-logo .wordmark::before { left: 0; right: 0; top: 0; bottom: auto; width: auto; height: 3px; }
   .wordmark__main { font-size: 1.7rem; }
+  .starter-logo { width: 100%; max-width: 320px; min-height: 0; align-items: center; text-align: center; padding: 1.35rem 1.25rem; }
+  .starter-logo svg { max-height: 104px; }
   .hero-meta { justify-content: center; }
   .hero-trust { justify-content: center; }
   .location-grid { grid-template-columns: 1fr; }
@@ -954,6 +972,7 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
         <div class="profile-avatar hidden" id="heroLogo">
           <img id="logoImage" alt="" loading="eager" decoding="async" fetchpriority="high" src="{{MONOGRAM_URI}}" />
         </div>
+        {{STARTER_LOGO}}
         <div class="wordmark" aria-hidden="true">
           <div class="wordmark__main">{{WORDMARK_MAIN}}</div>
           <div class="wordmark__desc">{{WORDMARK_DESCRIPTOR}}</div>

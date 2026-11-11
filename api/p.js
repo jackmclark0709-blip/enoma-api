@@ -13,6 +13,7 @@ import { openSchedule, showEmergencyBadge, townsLine, ctaNote } from "./_lib/pag
 import { heroPhoto as pickHeroPhoto, visibleAttachments } from "./_lib/photo-kinds.js";
 import { renderSpotlight, fillTemplate, linkServicesToSpotlights } from "./_lib/spotlight-render.js";
 import { REVIEW_SLUG, googleReviewUrl } from "./_lib/reviews.js";
+import { starterLogoSvg, chosenStarterLogoId } from "./_lib/starter-logo.js";
 import { LANDING_SLUG, detectCallouts, workingPoints, renderLanding, landingSource } from "./_lib/preview-landing.js";
 
 const supabase = createClient(
@@ -263,6 +264,23 @@ function generateMonogramSvg(businessName, primaryCategory) {
 
   // Return as data URI
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+/**
+ * renderStarterLogo — the hero's starter logo block for a business with no
+ * logo_url. Inline SVG (not an <img>) so it picks up Fraunces from the page.
+ * Returns "" on any error so the page keeps the text wordmark + monogram.
+ */
+function renderStarterLogo(profile, place) {
+  try {
+    const id = chosenStarterLogoId(profile);
+    const svg = starterLogoSvg(profile, id, { tone: "dark" });
+    const placeHtml = place ? `<div class="starter-logo__place">${escapeHtml(place)}</div>` : "";
+    return `<div class="starter-logo starter-logo--${id}" id="starterLogo" data-starter-logo="${id}">${svg}${placeHtml}</div>`;
+  } catch (e) {
+    console.warn("starter logo failed, using monogram:", e?.message);
+    return "";
+  }
 }
 
 /**
@@ -567,6 +585,10 @@ export default async function handler(req, res) {
     const monogramUri = profile.logo_url
       ? ""
       : generateMonogramSvg(profile.business_name, profile.primary_category);
+    // Starter logo: a simple wordmark (api/_lib/starter-logo.js) in place of
+    // the monogram / text card when there's no uploaded logo. The owner's pick
+    // (starter_logo_id) wins; otherwise the "badge" style. If anything throws,
+    // the page falls back to the old text wordmark + monogram.
 
     // Server-side brand color style — sets --brand-primary from trade on first paint.
     // Prevents flash of wrong color before JS loads.
@@ -577,9 +599,11 @@ export default async function handler(req, res) {
     const faqSchemaObj = faqSchema(normalizedProfile || {}, canonical);
     const wordmark = splitWordmark(profile.business_name || slug);
     const place = [profile.city, profile.state].filter(Boolean).join(", ");
+    const starterLogoHtml = profile.logo_url ? "" : renderStarterLogo(profile, place);
     const bodyClass = [
       `persona-${persona}`,
       profile.logo_url ? "has-logo" : "no-logo",
+      starterLogoHtml ? "has-starter-logo" : "",
       heroPhoto ? "has-hero-photo" : "",
     ].filter(Boolean).join(" ");
     // Only surface a Google rating when it actually helps (see isStrongRating).
@@ -627,6 +651,8 @@ export default async function handler(req, res) {
       "{{LOCAL_BUSINESS_SCHEMA}}": safeJsonForInlineScript(localBusinessSchema),
       // Monogram URI — data:image/svg+xml string when no logo, empty string when logo exists
       "{{MONOGRAM_URI}}": monogramUri,
+      // Inline starter-logo SVG (empty when there's a logo or it failed)
+      "{{STARTER_LOGO}}": starterLogoHtml,
       // Server-side brand colors injected into <head> — no flash on first paint
       "{{BRAND_COLOR_STYLE}}": brandColorStyle,
       "{{BODY_CLASS}}": escapeHtml(bodyClass),
