@@ -92,6 +92,15 @@ test("current amounts match Stripe (monthly and spotlight 2026-11-03, yearly 202
   assert.equal(planById("spotlight").fallbackAmount, 999);
 });
 
+test("the yearly service-page add-on is $99/year and on the pricing page (Jack, 2026-11-11)", () => {
+  const p = planById("spotlight_annual");
+  assert.equal(p.lookupKey, "enoma_spotlight_yearly");
+  assert.equal(p.fallbackAmount, 9900);
+  assert.equal(p.interval, "year");
+  assert.equal(p.public, true);
+  assert.ok(page.includes('data-price-key="enoma_spotlight_yearly">$99<'));
+});
+
 test("formatAmount", () => {
   assert.equal(formatAmount(1999), "$19.99");
   assert.equal(formatAmount(999), "$9.99");
