@@ -37,7 +37,10 @@ const FUNNEL_EVENTS = new Set([
   "instant_preview_started",
   "instant_preview_failed",
   "claim_link_requested",
-  "cta_clicked"
+  "cta_clicked",
+  // /<slug>/preview landing (api/_lib/preview-landing.js); metadata carries slug, m, src.
+  "landing_comment_seen",
+  "landing_cta_click"
 ]);
 
 export default async function handler(req, res) {

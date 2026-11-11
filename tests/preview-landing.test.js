@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { detectCallouts, workingPoints, validateContactRequest, buildContactAlert, renderLanding, MAX_CALLOUTS, instantPreviewPath, landingSource } from "../api/_lib/preview-landing.js";
+import { detectCallouts, workingPoints, validateContactRequest, buildContactAlert, renderLanding, MAX_CALLOUTS, instantPreviewPath, landingSource, CALLOUT_ANCHORS, SELLING_POINTS } from "../api/_lib/preview-landing.js";
 import { bannedWordsIn } from "../api/_lib/copy-lint.js";
 
 let passed = 0;
@@ -114,10 +114,73 @@ await test("text alert notes it's opt-in; notes are escaped in HTML", () => {
 
 console.log("renderLanding");
 const html = renderLanding({ ...thin, business_name: "Robbins <Plumbing>" }, { slug: "robbins-plumbing", m: M, callouts: detectCallouts(thin), working: workingPoints(thin) });
+const visible = h => h.replace(/<style>[\s\S]*?<\/style>|<script[^>]*>[\s\S]*?<\/script>/g, "").replace(/<[^>]+>/g, " ");
+const at = s => html.indexOf(s);
 await test("has every section in order", () => {
-  const order = ["Here's a preview of your page", "Built to be found", "What I'd add with you", "What's the catch?", "Talk to Jack"].map(s => html.indexOf(s.replace("'", "&#039;")) >= 0 ? html.indexOf(s.replace("'", "&#039;")) : html.indexOf(s));
+  const order = ["class=\"top\"", "Here's your page", "Built to be found on Google", "Your page, with my notes", "What's the catch?", "id=\"contact-h\">Talk to Jack", "<footer>"].map(at);
   order.forEach((i, n) => assert.ok(i > 0, `section ${n} missing`));
   assert.deepEqual([...order].sort((a, b) => a - b), order);
+});
+await test("nav: Enoma logo home, From Jack, and a small Claim my page button", () => {
+  assert.match(html, /<a class="brand" href="\/"[^>]*><img src="\/assets\/logos\/enoma-color-name\.svg"/);
+  assert.match(html, /<span class="from">From Jack at Enoma<\/span>/);
+  assert.match(html, new RegExp(`class="top-cta" href="/robbins-plumbing\\?claim=1&amp;m=${M}"[^>]*>Claim my page<`));
+});
+await test("hero: headline, one-line lede, the 4 selling points and what's already on it", () => {
+  assert.match(html, /<h1 id="hero-h">Here's your page, Robbins &lt;Plumbing&gt;<\/h1>/);
+  assert.match(html, /A page that gets you found online and gets you the call, not a shared lead\./);
+  assert.equal(SELLING_POINTS.length, 4);
+  for (const t of ["Built to be found on Google and AI assistants", "Tap-to-call and a quote form on every page",
+    "Your leads only: no shared leads, no per-lead fees", "A real person (Jack) makes your changes for you"]) {
+    assert.ok(html.includes(t), t);
+  }
+  assert.equal((html.match(/<span class="ic"><svg /g) || []).length, 4, "inline SVG icons");
+  for (const w of workingPoints(thin)) assert.ok(html.includes(w), w);
+  assert.ok(at("Your leads only") < at("Already on your page"));
+});
+await test("hero CTAs: claim, Text Jack, Email Jack and subscribe-now, with the right links", () => {
+  const hero = html.slice(at("<section class=\"hero"), at("<section class=\"review\""));
+  assert.match(hero, new RegExp(`id="cta-claim" href="/robbins-plumbing\\?claim=1&amp;m=${M}"[^>]*>Claim my page, first month free<`));
+  assert.match(hero, /id="cta-text" type="button" data-panel="hero-text"[^>]*>Text Jack</);
+  assert.match(hero, /<form class="panel" id="panel-hero-text" data-kind="text">/);
+  assert.match(hero, /id="hero-text-phone"[^>]*value="\(555\) 010-0002"/);
+  assert.match(hero, /id="cta-email" href="mailto:jack@enoma\.io\?subject=[^"]+"[^>]*data-email[^>]*>Email Jack</);
+  assert.match(hero, new RegExp(`id="cta-subscribe" href="/robbins-plumbing\\?claim=1&amp;plan=year&amp;m=${M}"[^>]*>Or subscribe now: \\$19\\.99/month or \\$199/year<`));
+  assert.doesNotMatch(hero, /Book 10 minutes/, "booking lives in Talk to Jack, not the hero");
+});
+await test("the price sits right next to 'first month free'", () => {
+  const i = at("Claim my page, first month free");
+  const j = at("First month free, then $19.99/month or $199/year. No contract, cancel anytime.");
+  assert.ok(i > 0 && j > i && j - i < 700, "price line under the hero CTAs");
+  assert.match(html, /Your first month is free\.<\/li>\s*<li>Then \$19\.99\/month or \$199\/year/);
+  assert.match(html, /\$9\.99\/month each/);
+});
+await test("every note renders as a numbered comment card, in order, plus a no-JS list", () => {
+  const cs = detectCallouts(thin);
+  const list = html.slice(at("<ol class=\"cards\" id=\"notes-list\">"), at("</aside>"));
+  assert.ok(list.length > 0, "server-rendered notes list");
+  cs.forEach((c, i) => {
+    assert.ok(list.includes(`id="note-${i + 1}" data-key="${c.key}"`), c.key);
+    assert.ok(list.includes(c.title.replace(/'/g, "&#039;")) || list.includes(c.title), c.title);
+  });
+  assert.equal((list.match(/Suggested change/g) || []).length, cs.length);
+  assert.equal((list.match(/Jack · Enoma/g) || []).length, cs.length);
+  assert.ok(at("id=\"page-frame\"") < at("id=\"notes-list\""), "list comes after the page");
+  assert.match(html, /\.js \.rail \{ display:none; \}/, "the list is only swapped out when JS runs");
+  assert.match(html, /\.browser iframe \{[^}]*height:1400px/, "fixed height without JS");
+});
+await test("notes: bottom bar and sheet for phones, the closing line and CTA", () => {
+  const n = detectCallouts(thin).length;
+  assert.ok(html.includes(`Jack's notes (${n})`.replace("'", "&#039;")) || html.includes(`Jack's notes (${n})`));
+  assert.match(html, /id="notes-bar" type="button"[^>]*hidden/);
+  assert.match(html, /Each one is a few minutes of your time, and I do the work\.<\/p>\s*<a class="b b-primary" href="[^"]*claim=1[^"]*"[^>]*>Claim my page, first month free</);
+});
+await test("passes the anchors for each note to the page script", () => {
+  const m = html.match(/var D = (\{.*?\});\n/);
+  assert.ok(m, "notes data");
+  const d = JSON.parse(m[1]);
+  assert.deepEqual(d.notes.map(x => x.key), keys(detectCallouts(thin)));
+  for (const x of d.notes) assert.deepEqual(d.anchors[x.key], CALLOUT_ANCHORS[x.key]);
 });
 await test("shows the price and the three contact buttons", () => {
   assert.match(html, /\$19\.99/);
@@ -125,58 +188,128 @@ await test("shows the price and the three contact buttons", () => {
   assert.match(html, /Email me/);
   assert.match(html, /Text me/);
   assert.match(html, /Book 10 minutes/);
+  assert.match(html, /<form class="panel" id="panel-text" data-kind="text">/);
+  assert.match(html, /<form class="panel" id="panel-book" data-kind="book">/);
 });
 await test("embeds the page without logging a page view, and keeps m on claim", () => {
   assert.match(html, /src="\/robbins-plumbing\?embed=1"/);
   assert.match(html, new RegExp(`robbins-plumbing\\?claim=1&amp;m=${M}`));
+  assert.match(html, /<span class="url">enoma\.io\/robbins-plumbing<\/span>/);
 });
 await test("escapes the business name and stays out of search", () => {
   assert.doesNotMatch(html, /Robbins <Plumbing>/);
-  assert.match(html, /noindex/);
+  assert.match(html, /<meta name="robots" content="noindex,nofollow">/);
+});
+await test("no new external scripts or fonts", () => {
+  const scripts = [...html.matchAll(/<script[^>]*src="([^"]+)"/g)].map(x => x[1]);
+  assert.deepEqual(scripts, ["/scripts/funnel-track.js"]);
+  const sheets = [...html.matchAll(/<link[^>]*href="([^"]+)"[^>]*rel="stylesheet"|<link[^>]*rel="stylesheet"[^>]*href="([^"]+)"/g)];
+  assert.ok(sheets.every(x => /fonts\.googleapis\.com/.test(x[0])));
+  assert.match(html, /family=Fraunces[^"]*family=Instrument\+Sans[^"]*family=IBM\+Plex\+Mono/);
+  assert.match(html, /--blue:#1F5FBF/);
+});
+await test("tracking: CTA taps and comment views go to the funnel allowlist", () => {
+  const track = readFileSync(new URL("../api/track.js", import.meta.url), "utf8");
+  for (const e of ["landing_comment_seen", "landing_cta_click"]) {
+    assert.ok(track.includes(`"${e}"`), `${e} allowlisted`);
+    assert.ok(html.includes(`"${e}"`), `${e} sent`);
+  }
+  for (const cta of ["claim", "text", "email", "subscribe", "book"]) assert.ok(html.includes(`data-cta="${cta}"`), cta);
+  assert.match(html, /cta: "marker"/);
+  assert.match(html, /if \(isInternal\(\) \|\| typeof window\.enomaTrack !== "function"\) return;/);
+  assert.match(html, /if \(ctx\.m\) meta\.m = ctx\.m;/);
+  assert.match(html, /if \(ctx\.src\) meta\.src = ctx\.src;/);
+});
+await test("markers are labelled buttons; reduced motion turns off pulse and smooth scroll", () => {
+  assert.match(html, /mk\.setAttribute\("aria-label", "Note " \+ note\.n \+ ": " \+ note\.title\)/);
+  assert.match(html, /prefers-reduced-motion: reduce/);
+  assert.match(html, /still\.matches \? "auto" : "smooth"/);
+  assert.match(html, /@media \(prefers-reduced-motion:reduce\) \{\s*\.card\.is-pulse \{ animation:none; \}/);
 });
 await test("page copy follows the house copy rules", () => {
-  const text = html.replace(/<style>[\s\S]*?<\/style>|<script>[\s\S]*?<\/script>/g, "").replace(/<[^>]+>/g, " ");
-  assert.deepEqual(bannedWordsIn(text), []);
+  assert.deepEqual(bannedWordsIn(visible(html)), []);
 });
 
-await test("no copy says the page was built from the Google listing", () => {
+await test("no copy says the page was built from the Google listing, and names no customer", () => {
   assert.doesNotMatch(html, /Google listing/);
   assert.doesNotMatch(html, /I built this/);
+  assert.doesNotMatch(html, /conway/i);
   for (const c of detectCallouts(thin)) assert.doesNotMatch(c.body, /Google listing/, c.key);
   for (const w of workingPoints({ ...thin, website: "https://x" })) assert.doesNotMatch(w, /Google listing/);
 });
 
+console.log("CALLOUT_ANCHORS");
+await test("has an anchor for every key detectCallouts can return", () => {
+  const src = readFileSync(new URL("../api/_lib/preview-landing.js", import.meta.url), "utf8");
+  const body = src.slice(src.indexOf("export function detectCallouts"), src.indexOf("export function workingPoints"));
+  const declared = [...body.matchAll(/key: "([a-z_]+)"/g)].map(x => x[1]);
+  assert.ok(declared.length >= 9, "found the keys");
+  const seen = new Set([...keys(detectCallouts(thin)), ...keys(detectCallouts({ ...full, phone: null }, { spotlightCount: 1 })),
+    ...keys(detectCallouts({ ...thin, why_choose_us: ["20 years"], attachments: ["https://x/a.jpg"], testimonials: [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}], review_count: 10, logo_url: "x", phone: null }))]);
+  for (const k of new Set([...declared, ...seen])) {
+    assert.ok(Array.isArray(CALLOUT_ANCHORS[k]) && CALLOUT_ANCHORS[k].length, `anchor for ${k}`);
+  }
+});
+await test("every first-choice anchor exists in public/profile.html", () => {
+  const profile = readFileSync(new URL("../public/profile.html", import.meta.url), "utf8");
+  for (const [k, sels] of Object.entries(CALLOUT_ANCHORS)) {
+    const s = sels[0];
+    const ok = s.startsWith("#") ? profile.includes(`id="${s.slice(1)}"`) : new RegExp(`class="[^"]*\\b${s.slice(1)}\\b`).test(profile);
+    assert.ok(ok, `${k}: ${s}`);
+  }
+});
+
 console.log("renderLanding src=instant");
 const instant = renderLanding(thin, { slug: "robbins-plumbing", src: "instant", callouts: detectCallouts(thin), working: workingPoints(thin) });
-const visible = h => h.replace(/<style>[\s\S]*?<\/style>|<script>[\s\S]*?<\/script>/g, "").replace(/<[^>]+>/g, " ");
 await test("headline is in the visitor's voice, not Jack's greeting", () => {
-  assert.match(instant, /<h1>Here's your page, Robbins Plumbing<\/h1>/);
-  assert.match(instant, /live as a preview/);
+  assert.match(instant, /<h1 id="hero-h">Here's your page, Robbins Plumbing<\/h1>/);
+  assert.match(instant, /<span class="eyebrow">Live as a preview<\/span>/);
   assert.doesNotMatch(visible(instant), /Hi, it&#039;s Jack|Hi, it's Jack|I built/);
+});
+await test("cold email gets the 'Ready to go live' eyebrow", () => {
+  assert.match(html, /<span class="eyebrow">Ready to go live<\/span>/);
 });
 await test("never mentions the Google listing", () => {
   assert.doesNotMatch(instant, /Google listing/);
 });
-await test("price sits with every 'free' (lede and the catch)", () => {
-  assert.match(instant, /Keep it free for a month, then \$19\.99\/month or \$199\/year/);
+await test("price sits with every 'free' (hero and the catch)", () => {
+  assert.match(instant, /First month free, then \$19\.99\/month or \$199\/year/);
   assert.match(instant, /\$19\.99<\/b><span>a month after the free month, or \$199\/year/);
 });
 await test("keeps the callouts, the catch and all three contact buttons", () => {
-  assert.match(instant, /class="note"/);
+  assert.match(instant, /class="card"/);
   assert.match(instant, /What's the catch\?/);
   for (const b of ["Email me", "Text me", "Book 10 minutes"]) assert.ok(instant.includes(b), b);
 });
-await test("Keep this page claims without m; contact taps carry src=instant", () => {
+await test("claim links have no m; contact taps carry src=instant", () => {
   assert.match(instant, /href="\/robbins-plumbing\?claim=1"/);
+  assert.match(instant, /href="\/robbins-plumbing\?claim=1&amp;plan=year"/);
   assert.match(instant, /var ctx = \{"slug":"robbins-plumbing","m":null,"src":"instant"\}/);
 });
 await test("a cold-email visit with m stays a cold-email visit", () => {
   const cold = renderLanding(thin, { slug: "robbins-plumbing", m: M, src: "instant", callouts: [], working: [] });
-  assert.match(cold, /Here's a preview of your page/);
+  assert.match(cold, /Ready to go live/);
   assert.match(cold, /"src":null/);
 });
 await test("instant copy follows the house copy rules", () => {
   assert.deepEqual(bannedWordsIn(visible(instant)), []);
+});
+
+console.log("plan intent (subscribe now -> claim -> dashboard)");
+await test("the claim page saves ?plan= and the plan picker preselects it", async () => {
+  const profileJs = readFileSync(new URL("../public/scripts/profile.js", import.meta.url), "utf8");
+  assert.match(profileJs, /sessionStorage\.setItem\('enoma_plan_intent', planIntent\)/);
+  const vm = await import("node:vm");
+  const src = readFileSync(new URL("../public/scripts/plan-picker.js", import.meta.url), "utf8");
+  const ctx = { window: {} };
+  vm.runInNewContext(src, ctx);
+  const store = v => ({ getItem: () => v });
+  const { planIntent } = ctx.window.EnomaPlanPicker;
+  assert.equal(planIntent(store("year")), "year");
+  assert.equal(planIntent(store("month")), "month");
+  assert.equal(planIntent(store("lifetime")), null);
+  assert.equal(planIntent(store(null)), null);
+  assert.equal(planIntent({ getItem() { throw new Error("blocked"); } }), null);
 });
 
 console.log("landingSource / instantPreviewPath");

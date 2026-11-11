@@ -44,6 +44,11 @@ function setupClaimBox(pageSlug, businessName) {
   if (!banner || !box || !form || !pageSlug) return;
   const qs = new URLSearchParams(window.location.search);
   const outreachMsg = qs.get('m') || '';
+  // "Or subscribe now: $199/year" on the preview landing claims with
+  // ?plan=year. Checkout only happens after the claim, so remember the choice
+  // for this tab and the dashboard's plan picker preselects it.
+  const planIntent = qs.get('plan');
+  if (planIntent === 'year' || planIntent === 'month') { try { sessionStorage.setItem('enoma_plan_intent', planIntent); } catch (_) {} }
   const open = () => { box.classList.remove('hidden'); line.classList.add('hidden'); };
   // "Questions? Talk to Jack" goes to the preview landing (email, text or book
   // 10 minutes). Cold-email owners keep their message id for attribution.

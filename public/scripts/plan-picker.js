@@ -9,7 +9,8 @@
 //     onSignedOut: () => {},      // optional; default sends them to /login
 //   });
 //
-// Yearly is the default. It posts { business_id, interval } to
+// Yearly is the default (or the plan the owner picked before claiming; see
+// planIntent). It posts { business_id, interval } to
 // /api/create-checkout. "Your first charge is on …" shows only when the
 // server will set a trial_end: the same rule as api/_lib/billing.js
 // trialEndFor (free month running, more than 48 hours left). Keep the two in
@@ -62,6 +63,17 @@
     document.head.appendChild(s);
   }
 
+  // "year" | "month" if the owner picked a plan before claiming (the preview
+  // landing's "subscribe now" link, saved by public/scripts/profile.js), else null.
+  var INTENT_KEY = "enoma_plan_intent";
+  function planIntent(storage) {
+    try {
+      var s = storage || (typeof sessionStorage !== "undefined" ? sessionStorage : null);
+      var v = s && s.getItem(INTENT_KEY);
+      return v === "year" || v === "month" ? v : null;
+    } catch (e) { return null; }
+  }
+
   var seq = 0;
   function mount(el, opts) {
     if (!el || !opts || !opts.businessId) return null;
@@ -89,6 +101,11 @@
     el.querySelectorAll('input[name="' + name + '"]').forEach(function (r) {
       r.addEventListener("change", function () { btn.textContent = label(); });
     });
+    var intent = planIntent();
+    if (intent) {
+      var pick = el.querySelector('input[name="' + name + '"][value="' + intent + '"]');
+      if (pick) { pick.checked = true; btn.textContent = label(); }
+    }
 
     btn.addEventListener("click", async function () {
       var token = opts.getToken ? await opts.getToken() : null;
@@ -117,7 +134,7 @@
     return { interval: chosen };
   }
 
-  var api = { mount: mount, firstChargeDate: firstChargeDate, MIN_TRIAL_END_LEAD_MS: MIN_TRIAL_END_LEAD_MS };
+  var api = { mount: mount, firstChargeDate: firstChargeDate, planIntent: planIntent, MIN_TRIAL_END_LEAD_MS: MIN_TRIAL_END_LEAD_MS };
   if (typeof window !== "undefined") window.EnomaPlanPicker = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })();
