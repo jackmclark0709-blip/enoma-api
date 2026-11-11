@@ -11,6 +11,7 @@
   ],
   "rewrites": [
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
+    { "source": "/internal-optout", "destination": "/api/track?action=internal_optout" },
     { "source": "/login", "destination": "/dashboard/login.html" },
     { "source": "/signup", "destination": "/dashboard/signup.html" },
     { "source": "/dashboard", "destination": "/dashboard/index.html" },

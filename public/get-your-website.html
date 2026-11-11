@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
   <script src="/scripts/clarity.js" defer></script>
-  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());function enomaGaConfig(c){try{var m=location.search.match(/[?&]internal=([01])(?:&|$)/);if(m)localStorage.setItem('enoma_internal',m[1]);if(localStorage.getItem('enoma_internal')==='1')c.traffic_type='internal'}catch(e){}if(navigator.webdriver)window['ga-disable-G-S8XTG72Y2Y']=true;return c};gtag('config','G-S8XTG72Y2Y',enomaGaConfig({}));</script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());function enomaGaConfig(c){try{var m=location.search.match(/[?&]internal=([01])(?:&|$)/);if(m)localStorage.setItem('enoma_internal',m[1]);if(localStorage.getItem('enoma_internal')==='1')c.traffic_type='internal'}catch(e){}try{if(/(?:^|; )enoma_internal=1(?:;|$)/.test(document.cookie))c.traffic_type='internal'}catch(e){}if(navigator.webdriver)window['ga-disable-G-S8XTG72Y2Y']=true;return c};gtag('config','G-S8XTG72Y2Y',enomaGaConfig({}));</script>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -593,6 +593,7 @@
       out.cta = q.get('cta') || (cta && cta.cta) || null;
       if (attr) {
         out.landing = attr.landing || null;
+        if (attr.referrer) out.referrer = attr.referrer;
         ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'].forEach(function (k) { if (attr[k]) out[k] = attr[k]; });
       }
     } catch (e) {}
@@ -600,6 +601,33 @@
   };
 </script>
 <script src="/scripts/funnel-track.js"></script>
+<script>
+  // Self-serve funnel: gyw_viewed → gyw_step_completed (step, step_name) →
+  // gyw_submitted (GA4: get_your_website_submitted) → generation_* (server)
+  // → preview_shown (preview landing) → signup / claim → checkout.
+  (function () {
+    var done = {};
+    window.enomaGywStep = function (step, name) {
+      if (done[name] || !window.enomaTrack) return;
+      done[name] = true;
+      enomaTrack('gyw_step_completed', { step: step, step_name: name });
+    };
+    // Send a GA4 event, then run next() once GA has it (or after 800 ms).
+    window.enomaGaThen = function (name, params, next) {
+      var called = false;
+      function go() { if (!called) { called = true; next(); } }
+      try {
+        if (typeof window.gtag === 'function') {
+          window.gtag('event', name, Object.assign({ transport_type: 'beacon', event_callback: go }, params || {}));
+          setTimeout(go, 800);
+          return;
+        }
+      } catch (e) {}
+      go();
+    };
+    if (window.enomaTrack) enomaTrack('gyw_viewed', window.enomaAttribution ? enomaAttribution() : {});
+  })();
+</script>
 
 <script>
   document.getElementById('submitBtn').addEventListener('click', function(e) {
@@ -651,7 +679,9 @@
         town: city
       })
     }).catch(() => {});
-    if (window.enomaTrack) enomaTrack('get_your_website_submitted', window.enomaAttribution ? enomaAttribution() : {});
+    if (window.enomaGywStep) enomaGywStep(2, 'manual_details_entered');
+    // GA4 gets this as get_your_website_submitted (the key event).
+    if (window.enomaTrack) enomaTrack('gyw_submitted', Object.assign({ path: 'manual' }, window.enomaAttribution ? enomaAttribution() : {}));
 
     const params = new URLSearchParams({ name, city, email });
     this.href = `/choose-path?${params.toString()}`;
@@ -674,6 +704,9 @@
       document.getElementById(id).addEventListener('click', function (e) { e.preventDefault(); resetBuild(); show(target); if (target === 'lookup') lookup.focus(); });
     }
     link('showManual', 'manual'); link('showManual2', 'manual'); link('showLookup', 'lookup'); link('tryAgain', 'lookup');
+    ['showManual', 'showManual2'].forEach(function (id) {
+      document.getElementById(id).addEventListener('click', function () { if (window.enomaGywStep) enomaGywStep(1, 'manual_form_opened'); });
+    });
 
     var list = document.getElementById('lookupList');
     var session = (window.crypto && crypto.randomUUID) ? crypto.randomUUID().replace(/-/g, '').slice(0, 32) : String(Date.now()) + Math.random().toString(36).slice(2, 12);
@@ -705,11 +738,12 @@
       chosen = { id: it.placeId, name: it.name };
       lookup.value = it.name + (it.detail ? ', ' + it.detail : '');
       btn.disabled = false; errEl.classList.remove('visible'); closeList();
+      if (window.enomaGywStep) enomaGywStep(2, 'business_selected');
     }
     var searchLogged = false;
     async function search(q) {
       var mine = ++seq;
-      if (!searchLogged) { searchLogged = true; if (window.enomaTrack) enomaTrack('place_search_used', {}); }
+      if (!searchLogged) { searchLogged = true; if (window.enomaTrack) enomaTrack('place_search_used', {}); if (window.enomaGywStep) enomaGywStep(1, 'search_started'); }
       try {
         var res = await fetch('/api/ga-metrics?action=place_search', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -777,11 +811,13 @@
       document.getElementById('buildSub').textContent = 'This takes about 30 seconds. Don’t close this tab.';
       show('build'); runSteps();
       if (window.enomaTrack) enomaTrack('instant_preview_started', window.enomaAttribution ? enomaAttribution() : {});
+      // GA4 gets this as get_your_website_submitted (the key event).
+      if (window.enomaTrack) enomaTrack('gyw_submitted', Object.assign({ path: 'instant' }, window.enomaAttribution ? enomaAttribution() : {}));
       var data = {};
       try {
         var res = await fetch('/api/ga-metrics?action=instant_preview', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ place_id: chosen.id, session: session, ref: document.referrer || null, attribution: window.enomaAttribution ? enomaAttribution() : null })
+          body: JSON.stringify({ place_id: chosen.id, session: session, ref: document.referrer || null, attribution: window.enomaAttribution ? enomaAttribution() : null, anon_id: window.enomaAnonId ? enomaAnonId() : null })
         });
         data = await res.json().catch(function () { return {}; });
         if (res.status === 429) {
@@ -797,8 +833,10 @@
           document.getElementById('buildTitle').textContent = 'Your page is ready';
           // The same preview landing cold-email owners get (instantPreviewPath in
           // api/_lib/preview-landing.js). Old /<slug>?new=1 links still open the claim box.
-          window.location.href = '/' + encodeURIComponent(data.slug) + '/preview?src=instant';
-          return;
+          var dest = '/' + encodeURIComponent(data.slug) + '/preview?src=instant';
+          // generation_succeeded is logged server-side; GA4 gets its key event here.
+          if (data.existing) { window.location.href = dest; return; }
+          return enomaGaThen('create_generation_succeeded', { path: 'instant', page_slug: data.slug }, function () { window.location.href = dest; });
         }
         if (data.reason === 'no_phone') {
           return fail('Your Google listing doesn’t have a phone number, and your page is built around a call button. Use the short form and we’ll set it up with you.', 'no_phone');

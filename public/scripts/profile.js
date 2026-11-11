@@ -348,7 +348,7 @@ async function loadProfile() {
   document.documentElement.style.setProperty('--brand-rgb', defaultRgb);
 
   // Embedded in the preview landing page (?embed=1): that page logs its own view.
-  if (new URLSearchParams(location.search).get('embed') !== '1') fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug, event: 'page_view', internal: enomaIsInternal() || undefined, metadata: (function () { try { var m = new URLSearchParams(location.search).get('m'); return m ? { m: m } : {}; } catch (e) { return {}; } })() }) }).catch(() => {});
+  if (new URLSearchParams(location.search).get('embed') !== '1') fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug, event: 'page_view', internal: enomaIsInternal() || undefined, referrer: document.referrer || null, metadata: (function () { try { var m = new URLSearchParams(location.search).get('m'); return m ? { m: m } : {}; } catch (e) { return {}; } })() }) }).catch(() => {});
 
   /* ── Sticky nav ── */
   const navBrand = getEl('businessName');

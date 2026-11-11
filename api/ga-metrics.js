@@ -4,7 +4,7 @@
 // the x-admin-secret header to match ADMIN_SECRET.
 
 import { BetaAnalyticsDataClient } from "@google-analytics/data";
-import { cleanAttribution } from "./_lib/attribution.js";
+import { cleanAttribution, selfServeFirstTouch } from "./_lib/attribution.js";
 import { summarizeContent } from "./_lib/content-performance.js";
 import { JWT } from "google-auth-library";
 import { createClient } from "@supabase/supabase-js";
@@ -17,7 +17,9 @@ import { siteChecks, decideSiteTier } from "./_lib/site-checks.js";
 import { previousMonth, tallyClicks, buildResultsEmail } from "./_lib/results-email.js";
 import { qualifiesForPreview, cheapPreviewGate, isWeakEnoughSite, buildFactsPrompt, validateGenerated, assembleProfile, slugify, stateAbbr, PREVIEW_TRIAL_DAYS, INBOUND_PREVIEW_DAYS, INBOUND_SOURCE, isValidPlaceId, inboundLimitReason, placeToProspect, isValidSessionToken, placeSuggestions } from "./_lib/preview-generator.js";
 import { verifyUnsubscribeToken, appendComplianceFooter, buildUnsubscribeUrl, MAILING_ADDRESS } from "./_lib/outreach-footer.js";
-import { buildOutreachEmail, buildOutreachIntro, buildFollowUpEmail, isFollowUpDue, FOLLOW_UP_AFTER_DAYS, FOLLOW_UP_MAX_AGE_DAYS, buildSecondFollowUpEmail, isSecondFollowUpDue, FOLLOW_UP_2_AFTER_FIRST_FOLLOW_UP_DAYS, FOLLOW_UP_2_MIN_AGE_DAYS, FOLLOW_UP_2_MAX_AGE_DAYS, FOLLOW_UP_2_SKIP_PROSPECT_STATUSES, isLikelyLinkScanner, buildOwnerVisitAlert, trackedLinks, replyToFor, slugFromPreviewUrl, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "./_lib/outreach-email.js";
+import { buildOutreachEmail, buildOutreachIntro, buildFollowUpEmail, isFollowUpDue, FOLLOW_UP_AFTER_DAYS, FOLLOW_UP_MAX_AGE_DAYS, buildSecondFollowUpEmail, isSecondFollowUpDue, FOLLOW_UP_2_AFTER_FIRST_FOLLOW_UP_DAYS, FOLLOW_UP_2_MIN_AGE_DAYS, FOLLOW_UP_2_MAX_AGE_DAYS, FOLLOW_UP_2_SKIP_PROSPECT_STATUSES, buildOwnerVisitAlert, trackedLinks, replyToFor, slugFromPreviewUrl, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "./_lib/outreach-email.js";
+import { classifyRequest, markBurstPartners, logFunnelEvent } from "./_lib/tracking.js";
+import { classifyTraffic, isHumanOpenLikely } from "./_lib/traffic-classifier.js";
 import { verifyMailbox, checkZeroBounceAccount, mapWithConcurrency } from "./_lib/mailbox-verify.js";
 import { ALERT_TO, ALERT_FROM, ALERT_KEYS, utcDay, alertDueToday, shouldAlertVerifyRetrySpike, buildZeroBounceAlert, buildVerifyRetrySpikeAlert } from "./_lib/system-alerts.js";
 import { validateContactRequest, buildContactAlert } from "./_lib/preview-landing.js";
@@ -715,6 +717,11 @@ async function generatePreviewForProspect(prospect, { homeHtml, force = false, g
     industry: trade, primary_category: profile.primary_category, is_internal: false, is_published: false,
     google_maps_url: prospect.google_place_id ? `https://www.google.com/maps/search/?api=1&query_place_id=${prospect.google_place_id}` : null,
     ai_generated_at: new Date().toISOString(),
+    // Self-serve (instant preview) pages record their first touch now;
+    // outreach previews get theirs at claim (api/claim-business.js).
+    ...(prospect.source === "inbound_lookup"
+      ? { first_touch: selfServeFirstTouch(prospect.raw?.attribution, "instant_preview", prospect.raw?.referrer) }
+      : {}),
   }).select("id").single();
   if (bizErr) throw bizErr;
 
@@ -732,7 +739,7 @@ async function generatePreviewForProspect(prospect, { homeHtml, force = false, g
 
   const preview_url = `https://enoma.io/${slug}`;
   await supabase.from("prospects").update({ preview_url, preview_business_id: biz.id, updated_at: new Date().toISOString() }).eq("id", prospect.id);
-  return { preview_url, slug, site_checks: checks.signals || [], rating, reviewCount };
+  return { preview_url, slug, business_id: biz.id, site_checks: checks.signals || [], rating, reviewCount };
 }
 
 
@@ -768,10 +775,10 @@ async function handleResultsEmail(req, res) {
 
     const [{ count: views }, { data: clicks }, { count: quotes }] = await Promise.all([
       supabase.from("page_events").select("id", { count: "exact", head: true })
-        .eq("slug", p.username).eq("event", "page_view").not("is_internal", "is", true)
+        .eq("slug", p.username).eq("event", "page_view").eq("traffic_class", "human")
         .gte("created_at", start.toISOString()).lt("created_at", end.toISOString()),
       supabase.from("page_events").select("metadata")
-        .eq("slug", p.username).eq("event", "contact_click").not("is_internal", "is", true)
+        .eq("slug", p.username).eq("event", "contact_click").eq("traffic_class", "human")
         .gte("created_at", start.toISOString()).lt("created_at", end.toISOString()),
       supabase.from("contact_submissions").select("id", { count: "exact", head: true })
         .eq("business_id", p.business_id)
@@ -1041,24 +1048,42 @@ async function handleInstantPreview(req, res) {
   const limited = inboundLimitReason({ perIp: perIp || 0, global: global || 0 });
   if (limited) return res.status(429).json({ error: limited });
 
-  const sessionToken = isValidSessionToken(req.body?.session) ? req.body.session : undefined;
-  const place = await fetchPlaceDetails(placeId, { withAddressComponents: true, sessionToken });
-  if (!place) return res.status(404).json({ error: "place_not_found" });
-  const fields = placeToProspect(place, placeId);
-  if (!fields.business_name) return res.status(404).json({ error: "place_not_found" });
-  if (!fields.phone) return res.status(200).json({ success: false, reason: "no_phone", business_name: fields.business_name, city: fields.city, state: fields.state });
+  // Self-serve funnel steps (funnel_events, with this request's traffic_class).
+  const funnel = (event, metadata = {}, businessId = null) => logFunnelEvent(supabase, req, {
+    event, anonId: req.body?.anon_id, businessId, attribution: req.body?.attribution,
+    referrer: typeof req.body?.ref === "string" ? req.body.ref : null,
+    metadata: { place_id: placeId, path: "instant_preview", ...metadata }
+  });
+  await funnel("generation_started");
+  const failed = async (status, body, error) => {
+    await funnel("generation_failed", { error });
+    return res.status(status).json(body);
+  };
 
-  const { data: prospect, error: pErr } = await supabase.from("prospects").insert({
-    source: INBOUND_SOURCE, status: "inbound_preview", ...fields,
-    raw: { ip_hash: hash, rating: place.rating ?? null, reviews: place.userRatingCount ?? null, referrer: req.body?.ref || null, attribution: cleanAttribution(req.body?.attribution) },
-  }).select("*").single();
-  if (pErr) throw pErr;
+  let gen;
+  let fields;
+  try {
+    const sessionToken = isValidSessionToken(req.body?.session) ? req.body.session : undefined;
+    const place = await fetchPlaceDetails(placeId, { withAddressComponents: true, sessionToken });
+    if (!place) return failed(404, { error: "place_not_found" }, "place_not_found");
+    fields = placeToProspect(place, placeId);
+    if (!fields.business_name) return failed(404, { error: "place_not_found" }, "place_not_found");
+    if (!fields.phone) return failed(200, { success: false, reason: "no_phone", business_name: fields.business_name, city: fields.city, state: fields.state }, "no_phone");
 
-  const gen = await generatePreviewForProspect(prospect, { gate: false, trialDays: INBOUND_PREVIEW_DAYS, place });
-  if (!gen.slug) return res.status(200).json({ success: false, reason: gen.skipped || "failed", business_name: fields.business_name });
+    const { data: prospect, error: pErr } = await supabase.from("prospects").insert({
+      source: INBOUND_SOURCE, status: "inbound_preview", ...fields,
+      raw: { ip_hash: hash, rating: place.rating ?? null, reviews: place.userRatingCount ?? null, referrer: req.body?.ref || null, attribution: cleanAttribution(req.body?.attribution) },
+    }).select("*").single();
+    if (pErr) throw pErr;
 
-  await supabase.from("funnel_events").insert({ event: "instant_preview_generated", business_id: null, metadata: { slug: gen.slug, place_id: placeId, ...(cleanAttribution(req.body?.attribution) || {}) } })
-    .then(({ error }) => { if (error) console.warn("funnel_events insert failed:", error.message); });
+    gen = await generatePreviewForProspect(prospect, { gate: false, trialDays: INBOUND_PREVIEW_DAYS, place });
+  } catch (e) {
+    await funnel("generation_failed", { error: String(e?.message || e).slice(0, 300) });
+    throw e;
+  }
+  if (!gen.slug) return failed(200, { success: false, reason: gen.skipped || "failed", business_name: fields.business_name }, gen.skipped || "failed");
+
+  await funnel("generation_succeeded", { slug: gen.slug }, gen.business_id);
 
   if (resend) {
     try {
@@ -2349,8 +2374,9 @@ async function handleLandingContact(req, res) {
   const { data: biz } = profile.business_id
     ? await supabase.from("businesses").select("is_internal").eq("id", profile.business_id).maybeSingle()
     : { data: null };
-  const internal = biz?.is_internal === true;
   const event = `landing_${r.kind}`;
+  const c = await classifyRequest(supabase, req, { event });
+  const internal = biz?.is_internal === true || c.trafficClass === "internal";
 
   const since = new Date(Date.now() - LANDING_ALERT_COOLDOWN_MS).toISOString();
   const { count: recent } = await supabase.from("page_events")
@@ -2360,9 +2386,10 @@ async function handleLandingContact(req, res) {
     slug: r.slug, event,
     metadata: { ...(r.m ? { m: r.m } : {}), ...(r.src ? { src: r.src } : {}), ...(r.phone ? { phone: r.phone } : {}), ...(r.day ? { day: r.day, window: r.window } : {}), ...(r.note ? { note: r.note } : {}) },
     referrer: req.headers.referer || null,
-    user_agent: req.headers["user-agent"] || null,
-    ip: (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || null,
-    is_internal: internal
+    user_agent: c.userAgent || null,
+    ip: c.ip,
+    is_internal: internal,
+    traffic_class: internal ? "internal" : c.trafficClass
   });
 
   if (!internal && !recent) {
@@ -2473,7 +2500,7 @@ async function handleOutreachRedirect(req, res) {
   if (!isUuid(m)) return res.redirect(302, "https://enoma.io/");
 
   const { data: msg } = await supabase.from("outreach_messages")
-    .select("id, sent_at, followup_sent_at, followup2_sent_at, preview_visited_at, draft_subject, response_status, prospects(id, business_name, email, status, phone, city, state, preview_url, preview_business_id, preview_first_viewed_at, preview_alerted_at)")
+    .select("id, sent_at, delivered_at, followup_sent_at, followup2_sent_at, preview_visited_at, draft_subject, response_status, prospects(id, business_name, email, status, phone, city, state, preview_url, preview_business_id, preview_first_viewed_at, preview_alerted_at)")
     .eq("id", m).maybeSingle();
   const slug = slugFromPreviewUrl(msg?.prospects?.preview_url);
   if (!msg || !slug) return res.redirect(302, "https://enoma.io/");
@@ -2484,19 +2511,20 @@ async function handleOutreachRedirect(req, res) {
     const v = String(req.query[k] || "");
     if (/^[a-z0-9_-]{1,40}$/i.test(v)) utm[k] = v;
   }
-  const at = new Date().toISOString();
-  // Corporate mail filters (Microsoft Safe Links, EdgePilot and similar) open
-  // every link within seconds of delivery — of the first email AND the
-  // follow-up — and expand the page and claim links back to back. They're
-  // logged, flagged, and kept off preview_visited_at and Jack's alerts so
-  // reporting counts people, not scanners.
-  const { data: lastClick } = await supabase.from("page_events")
-    .select("created_at").eq("metadata->>m", msg.id)
-    .order("created_at", { ascending: false }).limit(1).maybeSingle();
-  const scanner = isLikelyLinkScanner({
-    sentAt: msg.sent_at, followupSentAt: msg.followup_sent_at, followup2SentAt: msg.followup2_sent_at, lastClickAt: lastClick?.created_at,
-    now: Date.now(), userAgent: req.headers["user-agent"]
+  const now = Date.now();
+  const at = new Date(now).toISOString();
+  const event = to === "claim" ? "outreach_claim_click" : "outreach_page_click";
+  // Corporate mail filters (Microsoft Safe Links, Defender, Mimecast and
+  // similar) open every link within seconds of delivery — of the first email
+  // AND the follow-ups — and expand the page and claim links back to back.
+  // Only a click classified "human" (api/_lib/traffic-classifier.js) counts
+  // as a visit, sets preview_visited_at, alerts Jack or starts the visit
+  // follow-up; everything else is logged with its traffic_class.
+  const c = await classifyRequest(supabase, req, {
+    event, at: now, messageId: msg.id,
+    outreach: { sentAt: msg.sent_at, deliveredAt: msg.delivered_at, followupSentAt: msg.followup_sent_at, followup2SentAt: msg.followup2_sent_at }
   });
+  const scanner = c.trafficClass !== "human";
   const prospect = msg.prospects;
   try {
     if (!msg.preview_visited_at && !scanner) {
@@ -2521,13 +2549,15 @@ async function handleOutreachRedirect(req, res) {
     }
     await supabase.from("page_events").insert({
       slug,
-      event: to === "claim" ? "outreach_claim_click" : "outreach_page_click",
-      metadata: { m: msg.id, ...(utm.utm_campaign ? { utm_campaign: utm.utm_campaign } : {}), ...(scanner ? { likely_scanner: true } : {}) },
+      event,
+      metadata: { m: msg.id, ...(utm.utm_campaign ? { utm_campaign: utm.utm_campaign } : {}), ...(scanner ? { traffic_reason: c.reason } : {}) },
       referrer: req.headers.referer || null,
-      user_agent: req.headers["user-agent"] || null,
-      ip: (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || null,
-      is_internal: false
+      user_agent: c.userAgent || null,
+      ip: c.ip,
+      is_internal: c.trafficClass === "internal",
+      traffic_class: c.trafficClass
     });
+    await markBurstPartners(supabase, c, { event, at: now });
   } catch (e) {
     console.error("Outreach click logging failed:", e);
   }
@@ -2574,7 +2604,7 @@ function verifyResendWebhookSignature(req) {
 async function findOutreachMessage(data) {
   const tags = data?.tags || {};
   const tagged = Array.isArray(tags) ? tags.find(t => t?.name === "outreach_message_id")?.value : tags.outreach_message_id;
-  const cols = "id, prospect_id, delivered_at, first_opened_at, open_count, first_clicked_at, click_count";
+  const cols = "id, prospect_id, sent_at, delivered_at, followup_sent_at, followup2_sent_at, first_opened_at, open_count, first_clicked_at, click_count, scanner_click_count, human_open_likely";
   if (isUuid(tagged)) {
     const { data: row } = await supabase.from("outreach_messages").select(cols).eq("id", tagged).maybeSingle();
     if (row) return row;
@@ -2632,16 +2662,38 @@ async function handleResendWebhook(req, res) {
   if (!msg) return res.status(200).json({ success: true, matched: false });
 
   const patch = { updated_at: new Date().toISOString() };
+  const outreach = { sentAt: msg.sent_at, deliveredAt: msg.delivered_at, followupSentAt: msg.followup_sent_at, followup2SentAt: msg.followup2_sent_at };
+  const atMs = new Date(at).getTime();
   if (type === "email.delivered" && !msg.delivered_at) patch.delivered_at = at;
   if (type === "email.opened") {
+    // Opens stay a weak signal (Apple Mail Privacy Protection and scanners
+    // fetch the pixel without anyone reading). open_count keeps counting every
+    // open; human_open_likely says whether any of them looked like a person.
     patch.open_count = (msg.open_count || 0) + 1;
     patch.last_opened_at = at;
     if (!msg.first_opened_at) patch.first_opened_at = at;
+    const o = data?.open || {};
+    const likely = isHumanOpenLikely({ ip: o.ipAddress || o.ip_address || o.ip, userAgent: o.userAgent || o.user_agent, at: atMs, outreach });
+    if (likely === true && msg.human_open_likely !== true) patch.human_open_likely = true;
+    if (likely === false && msg.human_open_likely === null) patch.human_open_likely = false;
   }
   if (type === "email.clicked") {
-    patch.click_count = (msg.click_count || 0) + 1;
-    patch.last_clicked_url = data?.click?.link || null;
-    if (!msg.first_clicked_at) patch.first_clicked_at = at;
+    // Resend's own click tracking. Only clicks classified human count as
+    // clicks; link scanners go to scanner_click_count.
+    const k = data?.click || {};
+    const c = classifyTraffic({
+      // If Resend ever omits the user agent, judge by IP and timing alone
+      // rather than calling every click a crawler.
+      ip: k.ipAddress || k.ip_address || k.ip, userAgent: k.userAgent || k.user_agent || "Mozilla/5.0 (no user agent from Resend)",
+      event: "outreach_page_click", at: Number.isFinite(atMs) ? atMs : Date.now(), outreach
+    });
+    patch.last_clicked_url = k.link || null;
+    if (c.trafficClass === "human") {
+      patch.click_count = (msg.click_count || 0) + 1;
+      if (!msg.first_clicked_at) patch.first_clicked_at = at;
+    } else {
+      patch.scanner_click_count = (msg.scanner_click_count || 0) + 1;
+    }
   }
   if (type === "email.delivery_delayed" || type === "email.failed") {
     patch.notes = `${type} at ${at}${data?.failed?.reason ? `: ${data.failed.reason}` : ""}`;
@@ -2910,6 +2962,20 @@ async function handleVoiceQuery(req, res) {
 // funnel-health panel below.
 
 const FUNNEL_STEP_ORDER = [
+  // Self-serve funnel (Nov 2026), human traffic only (see the query below).
+  "gyw_viewed",
+  "gyw_step_completed",
+  "gyw_submitted",
+  "generation_started",
+  "generation_succeeded",
+  "generation_failed",
+  "preview_shown",
+  "signup_viewed",
+  "signup_submitted",
+  "account_created",
+  "checkout_started",
+  "subscription_activated",
+  // Older step names (rows before Nov 2026, and pages that still send them).
   "instant_preview_started",
   "place_search_used",
   "instant_preview_generated",
@@ -2967,6 +3033,7 @@ async function handleSalesQueue(req, res) {
       supabase
         .from("funnel_events")
         .select("event, created_at")
+        .eq("traffic_class", "human")
         .gte("created_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
     ]);
   if (leadsErr) throw leadsErr;
@@ -3110,6 +3177,7 @@ async function toolGetContentPerformance() {
     supabase.from("funnel_events")
       .select("event, metadata")
       .in("event", ["cta_clicked", "instant_preview_started"])
+      .eq("traffic_class", "human")
       .gte("created_at", start.toISOString())
   ]);
   if (error) throw error;

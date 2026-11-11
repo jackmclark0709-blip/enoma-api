@@ -227,6 +227,7 @@ export function renderLanding(profile, { callouts = [], working = [], slug, m = 
   const winOpts = BOOK_WINDOWS.map(w => `<option value="${w}">${WINDOW_LABEL[w]}</option>`).join("");
   const json = o => JSON.stringify(o).replace(/</g, "\\u003c");
   const data = json({ slug, m, src: instant ? "instant" : null });
+  const businessId = json(p.business_id || null);
   const notesData = json({
     notes: callouts.map((c, i) => ({ n: i + 1, key: c.key, title: c.title })),
     anchors: Object.fromEntries(callouts.map(c => [c.key, CALLOUT_ANCHORS[c.key] || []])),
@@ -519,17 +520,20 @@ ${textForm("text")}
 <script>
 (function () {
   var ctx = ${data};
+  var businessId = ${businessId}; // funnel_events.business_id
   var api = "/api/ga-metrics?action=landing_contact";
   // Jack's devices: ?internal=1 flags this browser (same flag as the GA snippet).
   try { var im = location.search.match(/[?&]internal=([01])(?:&|$)/); if (im) localStorage.setItem("enoma_internal", im[1]); } catch (e) {}
   function isInternal() { try { return localStorage.getItem("enoma_internal") === "1"; } catch (e) { return false; } }
+  // Jack's devices are still sent, tagged internal (funnel-track.js), so
+  // nothing raw is lost; reports filter on traffic_class.
   function track(event, extra) {
-    if (isInternal() || typeof window.enomaTrack !== "function") return;
+    if (typeof window.enomaTrack !== "function") return;
     var meta = { slug: ctx.slug };
     if (ctx.m) meta.m = ctx.m;
     if (ctx.src) meta.src = ctx.src;
     for (var k in extra) if (extra[k] != null) meta[k] = extra[k];
-    window.enomaTrack(event, meta);
+    window.enomaTrack(event, meta, businessId);
   }
   window.enomaLandingTrack = track;
   function send(payload) {
@@ -537,7 +541,9 @@ ${textForm("text")}
       .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok && j.success, error: j.error }; }); })
       .catch(function () { return { ok: false }; });
   }
-  try { fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug: ctx.slug, event: "landing_view", internal: isInternal() || undefined, metadata: ctx.m ? { m: ctx.m } : ctx.src ? { src: ctx.src } : {} }), keepalive: true }); } catch (e) {}
+  try { fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug: ctx.slug, event: "landing_view", internal: isInternal() || undefined, referrer: document.referrer || null, metadata: ctx.m ? { m: ctx.m } : ctx.src ? { src: ctx.src } : {} }), keepalive: true }); } catch (e) {}
+  // Funnel step: the visitor's own preview is on screen.
+  track("preview_shown", {});
 
   document.querySelectorAll("[data-cta]").forEach(function (el) {
     el.addEventListener("click", function () { track("landing_cta_click", { cta: el.getAttribute("data-cta"), where: el.getAttribute("data-where") }); });

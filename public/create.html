@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
   <script src="/scripts/clarity.js" defer></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());function enomaGaConfig(c){try{var m=location.search.match(/[?&]internal=([01])(?:&|$)/);if(m)localStorage.setItem('enoma_internal',m[1]);if(localStorage.getItem('enoma_internal')==='1')c.traffic_type='internal'}catch(e){}if(navigator.webdriver)window['ga-disable-G-S8XTG72Y2Y']=true;return c};gtag('config','G-S8XTG72Y2Y',enomaGaConfig({}));</script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());function enomaGaConfig(c){try{var m=location.search.match(/[?&]internal=([01])(?:&|$)/);if(m)localStorage.setItem('enoma_internal',m[1]);if(localStorage.getItem('enoma_internal')==='1')c.traffic_type='internal'}catch(e){}try{if(/(?:^|; )enoma_internal=1(?:;|$)/.test(document.cookie))c.traffic_type='internal'}catch(e){}if(navigator.webdriver)window['ga-disable-G-S8XTG72Y2Y']=true;return c};gtag('config','G-S8XTG72Y2Y',enomaGaConfig({}));</script>
 <style>
 :root {
   --dark: #0a1628; --blue: #3882dc; --blue-light: #7ab3e0;
@@ -1198,6 +1198,12 @@ form.addEventListener("submit", async (e) => {
   } else {
     // The create wizard doesn't show these; let the AI and Google fill them.
     ["hero_availability", "hero_response_time"].forEach(k => fd.delete(k));
+    // Funnel + first-touch attribution (businesses.first_touch, generation_* in funnel_events).
+    try {
+      if (window.enomaAnonId) fd.set("anon_id", enomaAnonId() || "");
+      if (window.enomaFirstTouch && enomaFirstTouch()) fd.set("first_touch", JSON.stringify(enomaFirstTouch()));
+      if (document.referrer) fd.set("referrer", document.referrer.slice(0, 500));
+    } catch (e) {}
   }
   ["social_facebook", "social_instagram", "social_google", "social_linkedin", "ai_notes"].forEach(k => { if (!(isEdit && k === "ai_notes")) fd.delete(k); });
   const trustBadges = (form.trust_badges?.value || "").split("\n").map(s => s.trim()).filter(Boolean);

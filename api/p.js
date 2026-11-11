@@ -15,6 +15,7 @@ import { renderSpotlight, fillTemplate, linkServicesToSpotlights } from "./_lib/
 import { REVIEW_SLUG, googleReviewUrl } from "./_lib/reviews.js";
 import { starterLogoSvg, chosenStarterLogoId } from "./_lib/starter-logo.js";
 import { LANDING_SLUG, detectCallouts, workingPoints, renderLanding, landingSource } from "./_lib/preview-landing.js";
+import { logFunnelEvent } from "./_lib/tracking.js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -364,8 +365,10 @@ async function serveLanding(req, res, bizSlug) {
   const { count: spotlightCount } = await supabase.from("service_spotlights")
     .select("id", { count: "exact", head: true }).eq("business_id", profile.business_id).eq("status", "published");
   if (src === "instant") {
-    await supabase.from("funnel_events").insert({ event: "instant_preview_viewed", business_id: null, metadata: { slug: profile.username, business_id: profile.business_id } })
-      .then(({ error }) => { if (error) console.warn("funnel_events insert failed:", error.message); });
+    // Server-rendered, so link-preview fetchers land here too: the row's
+    // traffic_class says whether it was a person. The browser also sends
+    // preview_shown (with anon_id) once the page actually renders.
+    await logFunnelEvent(supabase, req, { event: "instant_preview_viewed", businessId: profile.business_id, metadata: { slug: profile.username } });
   }
   const html = renderLanding(profile, {
     slug: profile.username, m, src,

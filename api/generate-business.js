@@ -22,6 +22,8 @@ import { handleSpotlight } from "./_lib/spotlight.js";
 import Stripe from "stripe";
 import { handleReviews } from "./_lib/reviews.js";
 import { handleLogo } from "./_lib/logo-settings.js";
+import { logFunnelEvent } from "./_lib/tracking.js";
+import { selfServeFirstTouch } from "./_lib/attribution.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -305,6 +307,10 @@ export default async function handler(req, res) {
 
   if (req.method === "OPTIONS") return res.status(200).end();
 
+  // Self-serve funnel steps for a brand-new page (not edits): set once the
+  // form is parsed. No-op until then.
+  let funnel = async () => {};
+
   try {
     if (req.method !== "POST") {
       return res.status(405).json({ error: "POST only" });
@@ -376,6 +382,15 @@ export default async function handler(req, res) {
 
     if (!business_name || !email) {
       return res.status(400).json({ error: "Business name and email required" });
+    }
+
+    const firstTouchInput = safeJSON(first(fields.first_touch) || "", null);
+    if (!incomingBusinessId) {
+      funnel = (event, metadata = {}, businessId = null) => logFunnelEvent(supabaseAdmin, req, {
+        event, anonId: first(fields.anon_id), businessId, attribution: firstTouchInput,
+        referrer: first(fields.referrer) || null, metadata: { path: "create", ...metadata }
+      });
+      await funnel("generation_started");
     }
 
     /* ---------- ONE-PAGE GATE (new users only) ---------- */
@@ -489,7 +504,10 @@ export default async function handler(req, res) {
 
       const { data: newBiz, error } = await supabaseAdmin
         .from("businesses")
-        .insert({ name: business_name, slug, ai_generated_at: new Date().toISOString() })
+        .insert({
+          name: business_name, slug, ai_generated_at: new Date().toISOString(),
+          first_touch: selfServeFirstTouch(firstTouchInput, "create", first(fields.referrer))
+        })
         .select("id, slug")
         .single();
 
@@ -743,6 +761,7 @@ primary_cta: If phone is provided, set type to "call" and value to the phone num
       if (!aiRes.ok) {
         const text = await aiRes.text();
         console.error("❌ OpenAI error:", text);
+        await funnel("generation_failed", { error: "ai_request_failed" }, business_id);
         return res.status(500).json({
           error: "AI request failed",
           message: "We couldn't generate your page copy just now. Nothing was lost — please try again in a moment."
@@ -752,6 +771,7 @@ primary_cta: If phone is provided, set type to "call" and value to the phone num
       const ai = await aiRes.json();
       const rawAI = ai?.choices?.[0]?.message?.content;
       if (!rawAI) {
+        await funnel("generation_failed", { error: "ai_empty_response" }, business_id);
         return res.status(500).json({
           error: "AI generation failed",
           message: "We couldn't generate your page copy just now. Nothing was lost — please try again in a moment."
@@ -760,6 +780,7 @@ primary_cta: If phone is provided, set type to "call" and value to the phone num
 
       generated = safeJSON(extractJSON(rawAI), null);
       if (!generated || typeof generated !== "object") {
+        await funnel("generation_failed", { error: "ai_invalid_json" }, business_id);
         return res.status(500).json({
           error: "AI generation failed",
           details: "Invalid JSON",
@@ -979,6 +1000,8 @@ primary_cta: If phone is provided, set type to "call" and value to the phone num
       console.warn("⚠️ Failed to sync businesses table:", e?.message);
     }
 
+    if (isNewBusiness) await funnel("generation_succeeded", { slug }, business_id);
+
     const redirectUrl = isNewBusiness
       ? `/website-live?slug=${slug}&business_id=${business_id}`
       : `/${slug}`;
@@ -996,6 +1019,7 @@ primary_cta: If phone is provided, set type to "call" and value to the phone num
     // Postgres/Supabase/storage error and shouldn't reach a non-technical
     // business owner's screen.
     console.error("🔥 generate-business error:", err);
+    await funnel("generation_failed", { error: String(err?.message || err).slice(0, 300) });
     return res.status(500).json({
       error: "Server error",
       message: "We couldn't finish creating your site. Your information is safe — please try again, or email jack@enoma.io if it keeps happening."

@@ -40,12 +40,13 @@ test("no GA config call skips the internal/bot guard", () => {
 // Pull the helper out of one page and run it in a fake browser.
 const page = fs.readFileSync(path.join(root, "public/index.html"), "utf8");
 const helper = page.match(/function enomaGaConfig\(c\)\{.*?return c\}/)[0];
-function run({ search = "", stored = null, webdriver = false, cfg = {} }) {
+function run({ search = "", stored = null, webdriver = false, cfg = {}, cookie = "" }) {
   const store = new Map(stored == null ? [] : [["enoma_internal", stored]]);
   const win = {};
   const ctx = {
     location: { search },
     navigator: { webdriver },
+    document: { cookie },
     window: win,
     localStorage: { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)) },
   };
@@ -75,13 +76,27 @@ test("normal visitors are untouched and existing config is kept", () => {
   assert.equal(r.disabled, false);
 });
 
+test("the enoma_internal cookie from /internal-optout tags the visit", () => {
+  assert.equal(run({ cookie: "_ga=GA1.1.1; enoma_internal=1" }).cfg.traffic_type, "internal");
+  assert.equal(run({ cookie: "enoma_internal=0" }).cfg.traffic_type, undefined);
+  assert.equal(run({ cookie: "xenoma_internal=1" }).cfg.traffic_type, undefined);
+});
+
+test("the cookie still works when localStorage is blocked", () => {
+  const out = vm.runInNewContext(`${helper}; enomaGaConfig({})`, {
+    location: { search: "" }, navigator: {}, window: {}, document: { cookie: "enoma_internal=1" },
+    localStorage: { getItem() { throw new Error("blocked"); }, setItem() { throw new Error("blocked"); } },
+  });
+  assert.equal(out.traffic_type, "internal");
+});
+
 test("headless browsers don't send GA hits", () => {
   assert.equal(run({ webdriver: true }).disabled, true);
 });
 
 test("blocked localStorage doesn't break the page", () => {
   const out = vm.runInNewContext(`${helper}; enomaGaConfig({})`, {
-    location: { search: "?internal=1" }, navigator: {}, window: {},
+    location: { search: "?internal=1" }, navigator: {}, window: {}, document: { cookie: "" },
     localStorage: { getItem() { throw new Error("blocked"); }, setItem() { throw new Error("blocked"); } },
   });
   assert.deepEqual({ ...out }, {});

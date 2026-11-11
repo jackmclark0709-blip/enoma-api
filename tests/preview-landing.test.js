@@ -213,15 +213,18 @@ await test("no new external scripts or fonts", () => {
   assert.match(html, /family=Fraunces[^"]*family=Instrument\+Sans[^"]*family=IBM\+Plex\+Mono/);
   assert.match(html, /--blue:#1F5FBF/);
 });
-await test("tracking: CTA taps and comment views go to the funnel allowlist", () => {
-  const track = readFileSync(new URL("../api/track.js", import.meta.url), "utf8");
-  for (const e of ["landing_comment_seen", "landing_cta_click"]) {
-    assert.ok(track.includes(`"${e}"`), `${e} allowlisted`);
+await test("tracking: CTA taps and comment views go to the funnel allowlist", async () => {
+  const { FUNNEL_EVENTS } = await import("../api/_lib/tracking.js");
+  for (const e of ["landing_comment_seen", "landing_cta_click", "preview_shown"]) {
+    assert.ok(FUNNEL_EVENTS.has(e), `${e} allowlisted`);
     assert.ok(html.includes(`"${e}"`), `${e} sent`);
   }
   for (const cta of ["claim", "text", "email", "subscribe", "book"]) assert.ok(html.includes(`data-cta="${cta}"`), cta);
   assert.match(html, /cta: "marker"/);
-  assert.match(html, /if \(isInternal\(\) \|\| typeof window\.enomaTrack !== "function"\) return;/);
+  // Jack's devices are sent and tagged internal (not dropped): the landing
+  // view carries the flag, funnel events go through funnel-track.js.
+  assert.match(html, /event: "landing_view", internal: isInternal\(\) \|\| undefined/);
+  assert.ok(html.includes('track("preview_shown"'), "preview_shown sent");
   assert.match(html, /if \(ctx\.m\) meta\.m = ctx\.m;/);
   assert.match(html, /if \(ctx\.src\) meta\.src = ctx\.src;/);
 });

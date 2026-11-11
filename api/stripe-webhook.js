@@ -25,6 +25,7 @@
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { subscriptionFieldsFromStripe } from './_lib/billing.js';
+import { logFunnelEvent } from './_lib/tracking.js';
 import { syncSpotlightQuantity, spotlightItemOf } from './_lib/spotlight-billing.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -132,6 +133,16 @@ export default async function handler(req, res) {
           .eq('id', business_id);
 
         await keepSpotlightQuantityInSync(business_id, subscription, 'checkout.session.completed');
+
+        // The request is from Stripe, so the visitor's class comes from the
+        // business: a real payment is a person unless it's one of Jack's.
+        const { data: biz } = await supabase.from('businesses').select('is_internal').eq('id', business_id).maybeSingle();
+        await logFunnelEvent(supabase, req, {
+          event: 'subscription_activated', businessId: business_id,
+          trafficClass: biz?.is_internal ? 'internal' : 'human',
+          referrer: null,
+          metadata: { interval: session.metadata?.interval || null, status: fields.status, stripe_session: session.id }
+        });
 
         console.log(`✓ Subscription activated for business ${business_id}`);
         break;
