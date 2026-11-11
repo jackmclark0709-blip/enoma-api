@@ -193,7 +193,8 @@ test("first touch: never overwrite an existing value", () => {
 test("first touch: the browser's utm values win", () => {
   const browser = { t: 1, landing: "/for/website-for-electrician", referrer: "https://google.com", utm_source: "google", utm_campaign: "electricians" };
   const prospect = { source: "inbound_lookup", raw: { attribution: { utm_source: "newsletter" } } };
-  assert.deepEqual(chooseFirstTouch({ browser, prospect }), { landing: "/for/website-for-electrician", utm_source: "google", utm_campaign: "electricians" });
+  // referrer is kept too (businesses.first_touch: utm_*, referrer, landing page)
+  assert.deepEqual(chooseFirstTouch({ browser, prospect }), { landing: "/for/website-for-electrician", referrer: "https://google.com", utm_source: "google", utm_campaign: "electricians" });
 });
 
 test("first touch: else the prospect's raw.attribution", () => {

@@ -120,7 +120,11 @@
         var r = await fetch("/api/create-checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-          body: JSON.stringify({ business_id: opts.businessId, interval: chosen() }),
+          body: JSON.stringify({
+            business_id: opts.businessId, interval: chosen(),
+            // funnel_events checkout_started (api/create-checkout.js)
+            anon_id: (function () { try { return localStorage.getItem("enoma_anon_id"); } catch (e) { return null; } })()
+          }),
         });
         var j = await r.json().catch(function () { return {}; });
         if (j.url) { location.href = j.url; return; }

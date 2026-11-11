@@ -252,24 +252,7 @@ export function buildSecondFollowUpEmail({ businessName, originalSubject, messag
   return { subject, text, html, links };
 }
 
-// A click soon after an email lands is a mail filter checking the link, not a
-// person (people open the email later; scanners hit it on arrival). This
-// applies to both follow-ups too: in Oct 2026 scanners re-clicked every link
-// 24-32 s after each follow-up landed, and one hit at 2 m 49 s, so the window
-// is five minutes from whichever send is most recent.
-export const SCANNER_WINDOW_MS = 5 * 60 * 1000;
-// Two links of the same email opened within a few seconds of each other is a
-// scanner expanding every link (Oct 26: page + claim, 0.5 s apart, repeated).
-export const SCANNER_BURST_MS = 3 * 1000;
-export function isLikelyLinkScanner({ sentAt, followupSentAt, followup2SentAt, lastClickAt, now = Date.now(), userAgent } = {}) {
-  if (/bot|crawler|spider|preview|scanner|python|curl|wget|headless/i.test(String(userAgent || ""))) return true;
-  const within = (t, ms) => {
-    const ts = t ? new Date(t).getTime() : NaN;
-    return Number.isFinite(ts) && now - ts >= 0 && now - ts < ms;
-  };
-  return within(sentAt, SCANNER_WINDOW_MS) || within(followupSentAt, SCANNER_WINDOW_MS)
-    || within(followup2SentAt, SCANNER_WINDOW_MS) || within(lastClickAt, SCANNER_BURST_MS);
-}
+// Telling scanners from people is api/_lib/traffic-classifier.js.
 
 // The note Jack gets the first time a real person (not a scanner) opens their
 // preview from a cold email, or whenever one clicks "claim". The point is to

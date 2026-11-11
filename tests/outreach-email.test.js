@@ -1,7 +1,7 @@
 // Run with: node tests/outreach-email.test.js (also wired into `npm test`)
 
 import assert from "node:assert/strict";
-import { buildOutreachEmail, buildOutreachIntro, buildFollowUpEmail, isFollowUpDue, cleanBusinessName, isLikelyLinkScanner, buildOwnerVisitAlert, trackedLinks, slugFromPreviewUrl, replyToFor, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "../api/_lib/outreach-email.js";
+import { buildOutreachEmail, buildOutreachIntro, buildFollowUpEmail, isFollowUpDue, cleanBusinessName, buildOwnerVisitAlert, trackedLinks, slugFromPreviewUrl, replyToFor, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "../api/_lib/outreach-email.js";
 import { decisionForStatus, verifyMailbox } from "../api/_lib/mailbox-verify.js";
 
 let passed = 0;
@@ -114,28 +114,7 @@ await test("follow-up replies in the thread with the same tracked page link", ()
   assert.equal(buildFollowUpEmail({ businessName: "A", originalSubject: "Re: x", messageId: ID, slug: "a", unsubscribeUrl: "u", mailingAddress: "m" }).subject, "Re: x");
 });
 
-console.log("isLikelyLinkScanner");
-await test("a click within two minutes of sending is a scanner, later is a person", () => {
-  const sent = "2026-10-26T11:42:14Z";
-  assert.equal(isLikelyLinkScanner({ sentAt: sent, now: Date.parse("2026-10-26T11:43:08Z") }), true);
-  assert.equal(isLikelyLinkScanner({ sentAt: sent, now: Date.parse("2026-10-26T14:10:00Z") }), false);
-  assert.equal(isLikelyLinkScanner({ sentAt: sent, now: Date.parse("2026-10-26T14:10:00Z"), userAgent: "Mozilla/5.0 HeadlessChrome/141" }), true);
-  assert.equal(isLikelyLinkScanner({ sentAt: null, now: Date.now() }), false);
-});
-await test("scanners that click 2-5 minutes after delivery are caught (Nov 1: 2 m 49 s)", () => {
-  assert.equal(isLikelyLinkScanner({ sentAt: "2026-11-01T11:11:31Z", now: Date.parse("2026-11-01T11:14:20Z") }), true);
-  assert.equal(isLikelyLinkScanner({ sentAt: "2026-11-01T11:11:37Z", now: Date.parse("2026-11-01T14:12:11Z") }), false);
-});
-await test("a click right after the follow-up lands is a scanner (Oct 30: 32 s)", () => {
-  const sent = "2026-10-26T11:42:14Z", followup = "2026-10-30T11:11:25Z";
-  assert.equal(isLikelyLinkScanner({ sentAt: sent, followupSentAt: followup, now: Date.parse("2026-10-30T11:11:57Z") }), true);
-  assert.equal(isLikelyLinkScanner({ sentAt: sent, followupSentAt: followup, now: Date.parse("2026-10-30T15:00:00Z") }), false);
-});
-await test("two links of one email opened within 3 s is a scanner burst", () => {
-  const sent = "2026-10-20T11:42:13Z";
-  assert.equal(isLikelyLinkScanner({ sentAt: sent, lastClickAt: "2026-10-26T15:45:01.780Z", now: Date.parse("2026-10-26T15:45:03.557Z") }), true);
-  assert.equal(isLikelyLinkScanner({ sentAt: sent, lastClickAt: "2026-10-26T15:45:01Z", now: Date.parse("2026-10-26T15:46:30Z") }), false);
-});
+// Link-scanner detection moved to api/_lib/traffic-classifier.js (tests/traffic-classifier.test.js).
 
 console.log("buildOwnerVisitAlert");
 await test("leads with the business, the action and a tappable phone number", () => {

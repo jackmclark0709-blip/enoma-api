@@ -8,6 +8,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { attributeReferral } from "./_lib/referral.js";
 import { chooseFirstTouch, firstTouchToWrite } from "./_lib/attribution.js";
+import { logFunnelEvent } from "./_lib/tracking.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -89,11 +90,13 @@ export default async function handler(req, res) {
     // Credit the referrer if this visitor arrived via a referral link.
     await attributeReferral(supabaseAdmin, req, profile.business_id);
 
-    await supabaseAdmin.from("funnel_events").insert({
+    await logFunnelEvent(supabaseAdmin, req, {
       event: "business_claimed",
-      business_id: profile.business_id,
-      metadata: { slug: profile.username }
-    }).then(({ error }) => { if (error) console.warn("funnel_events insert failed:", error.message); });
+      businessId: profile.business_id,
+      anonId: req.body?.anon_id,
+      attribution: req.body?.first_touch,
+      metadata: { slug: profile.username, ...(req.body?.m ? { m: String(req.body.m).slice(0, 40) } : {}) }
+    });
 
     // Cold-outreach attribution. The prospect behind this preview page is
     // marked claimed either way; the claim is credited to an email only

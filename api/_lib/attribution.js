@@ -1,7 +1,7 @@
 // Signup attribution sent by get-your-website.html (guide slug, CTA position,
-// first-touch landing page and utm_* params). Client-supplied, so keep only
+// first-touch landing page, external referrer and utm_* params). Client-supplied, so keep only
 // known keys as short plain strings.
-const ATTRIBUTION_KEYS = ["from", "cta", "landing", "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"];
+const ATTRIBUTION_KEYS = ["from", "cta", "landing", "referrer", "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"];
 export function cleanAttribution(input) {
   if (!input || typeof input !== "object") return null;
   const out = {};
@@ -63,4 +63,18 @@ export function utmMetadata(firstTouch) {
     if (typeof v === "string" && v.trim()) out[k] = v.trim().slice(0, 500);
   }
   return out;
+}
+
+/**
+ * businesses.first_touch for a page created self-serve (instant preview on
+ * /get-your-website, or /create). Never null, so every self-serve business
+ * records how it was made even when the browser had no utm_* or referrer.
+ * @param {object} attribution  the browser's first touch / enomaAttribution()
+ * @param {string} createdVia   "instant_preview" | "create"
+ * @param {string} [referrer]   document.referrer, used when attribution has none
+ */
+export function selfServeFirstTouch(attribution, createdVia, referrer) {
+  const clean = cleanAttribution(attribution) || {};
+  if (!clean.referrer && typeof referrer === "string" && referrer.trim()) clean.referrer = referrer.trim().slice(0, 100);
+  return { ...clean, created_via: createdVia };
 }

@@ -45,6 +45,7 @@ import {
   billingSummary, spotlightItemOf,
 } from './_lib/spotlight-billing.js';
 import { utmMetadata } from './_lib/attribution.js';
+import { logFunnelEvent } from './_lib/tracking.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const supabase = createClient(
@@ -235,6 +236,12 @@ export default async function handler(req, res) {
     return res.status(503).json({ error: 'Subscriptions are opening shortly. Email jack@enoma.io and we\'ll keep your page live in the meantime.' });
   }
 
+  let pageAmountCents = null;
+  try { pageAmountCents = (await pricesByLookupKey())[lookupKey]?.unit_amount ?? null; } catch { /* only used for GA */ }
+  // ?session_id/plan/value let the dashboard send GA4's purchase event once.
+  const successParams = new URLSearchParams({ subscribed: '1', business_id, plan: billedInterval });
+  if (pageAmountCents !== null) successParams.set('value', (pageAmountCents / 100).toFixed(2));
+
   // Create Checkout session
   const session = await stripe.checkout.sessions.create({
     customer: stripeCustomerId,
@@ -242,9 +249,15 @@ export default async function handler(req, res) {
     payment_method_types: ['card'],
     line_items: params.line_items,
     subscription_data: params.subscription_data,
-    success_url: `https://enoma.io/dashboard?subscribed=1&business_id=${business_id}`,
+    // {CHECKOUT_SESSION_ID} is filled in by Stripe (left unencoded on purpose).
+    success_url: `https://enoma.io/dashboard?${successParams.toString()}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `https://enoma.io/dashboard?business_id=${business_id}`,
     metadata,
+  });
+
+  await logFunnelEvent(supabase, req, {
+    event: 'checkout_started', businessId: business_id, anonId: req.body?.anon_id,
+    metadata: { interval: billedInterval, lookup_key: lookupKey, ...utm }
   });
 
   return res.status(200).json({ url: session.url });

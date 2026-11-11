@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
   <script src="/scripts/clarity.js" defer></script>
-  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());function enomaGaConfig(c){try{var m=location.search.match(/[?&]internal=([01])(?:&|$)/);if(m)localStorage.setItem('enoma_internal',m[1]);if(localStorage.getItem('enoma_internal')==='1')c.traffic_type='internal'}catch(e){}if(navigator.webdriver)window['ga-disable-G-S8XTG72Y2Y']=true;return c};gtag('config','G-S8XTG72Y2Y',enomaGaConfig({}));</script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());function enomaGaConfig(c){try{var m=location.search.match(/[?&]internal=([01])(?:&|$)/);if(m)localStorage.setItem('enoma_internal',m[1]);if(localStorage.getItem('enoma_internal')==='1')c.traffic_type='internal'}catch(e){}try{if(/(?:^|; )enoma_internal=1(?:;|$)/.test(document.cookie))c.traffic_type='internal'}catch(e){}if(navigator.webdriver)window['ga-disable-G-S8XTG72Y2Y']=true;return c};gtag('config','G-S8XTG72Y2Y',enomaGaConfig({}));</script>
   <style>
     :root {
       --dark: #0a1628; --blue: #3882dc; --blue-light: #7ab3e0;
@@ -88,6 +88,7 @@
 <div class="glow-orb glow-orb--1"></div>
 <div class="glow-orb glow-orb--2"></div>
 <script src="/scripts/ref-capture.js"></script>
+<script src="/scripts/funnel-track.js"></script>
 <script type="module" src="/partials/nav.js"></script>
 
 <div class="auth-page">
@@ -154,6 +155,9 @@ if (__claimSlug) {
   if (__subtitleEl) __subtitleEl.innerHTML = 'Create an account to claim this business page.';
 }
 
+// Funnel: signup_viewed → signup_submitted → account_created (GA4: sign_up).
+if (window.enomaTrack) enomaTrack('signup_viewed', { claim: __claimSlug ? 1 : 0 });
+
 function initSupabase() {
   try {
     var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -178,6 +182,7 @@ function initSupabase() {
       if (password !== passwordConfirm) { errorMsg.textContent = 'Passwords do not match.'; return; }
       btn.disabled = true;
       btn.textContent = 'Creating account…';
+      if (window.enomaTrack) enomaTrack('signup_submitted', { claim: __claimSlug ? 1 : 0 });
       try {
         // Carry the pending business name/city into the user's account
         // metadata (not just the URL) — this survives the email
@@ -202,7 +207,9 @@ function initSupabase() {
           btn.textContent = 'Create free account →';
           return;
         }
-        try { gtag('event', 'sign_up', { method: 'email' }); } catch(e) {}
+        // GA4 gets this as sign_up (funnel-track.js maps account_created).
+        if (window.enomaTrack) enomaTrack('account_created', { method: 'email', claim: __claimSlug ? 1 : 0 });
+        else { try { gtag('event', 'sign_up', { method: 'email' }); } catch(e) {} }
         document.getElementById('signup-form-view').style.display = 'none';
         document.getElementById('confirm-view').style.display = 'block';
         document.getElementById('confirm-email').textContent = email;

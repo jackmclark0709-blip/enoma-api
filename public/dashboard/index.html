@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&display=swap" rel="stylesheet" />
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
-  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());function enomaGaConfig(c){try{var m=location.search.match(/[?&]internal=([01])(?:&|$)/);if(m)localStorage.setItem('enoma_internal',m[1]);if(localStorage.getItem('enoma_internal')==='1')c.traffic_type='internal'}catch(e){}if(navigator.webdriver)window['ga-disable-G-S8XTG72Y2Y']=true;return c};gtag('config','G-S8XTG72Y2Y',enomaGaConfig({}));</script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());function enomaGaConfig(c){try{var m=location.search.match(/[?&]internal=([01])(?:&|$)/);if(m)localStorage.setItem('enoma_internal',m[1]);if(localStorage.getItem('enoma_internal')==='1')c.traffic_type='internal'}catch(e){}try{if(/(?:^|; )enoma_internal=1(?:;|$)/.test(document.cookie))c.traffic_type='internal'}catch(e){}if(navigator.webdriver)window['ga-disable-G-S8XTG72Y2Y']=true;return c};gtag('config','G-S8XTG72Y2Y',enomaGaConfig({}));</script>
   <style>
     /* ── Base ── */
     body { background: #f0f6ff; font-family: Inter, system-ui, sans-serif; color: #0a1628; margin: 0; }
@@ -238,6 +238,32 @@
 </head>
 <body>
 <script src="/scripts/ref-capture.js"></script>
+<script>
+  // GA4 key event "purchase", once per Stripe Checkout session. Stripe sends
+  // the owner back to /dashboard?subscribed=1&plan=&value=&session_id=
+  // (api/create-checkout.js success_url). The server logs
+  // subscription_activated in funnel_events from the Stripe webhook.
+  (function () {
+    try {
+      var q = new URLSearchParams(location.search);
+      var sid = q.get('session_id');
+      if (q.get('subscribed') !== '1' || !sid || !/^cs_[A-Za-z0-9_]+$/.test(sid)) return;
+      var key = 'enoma_purchase_' + sid;
+      if (localStorage.getItem(key)) return;
+      var value = Number(q.get('value'));
+      var plan = q.get('plan') === 'year' ? 'year' : 'month';
+      if (typeof window.gtag === 'function') {
+        gtag('event', 'purchase', {
+          transaction_id: sid,
+          currency: 'USD',
+          value: Number.isFinite(value) ? value : undefined,
+          items: [{ item_id: 'enoma_page_' + plan, item_name: 'Enoma page (' + plan + 'ly)', quantity: 1, price: Number.isFinite(value) ? value : undefined }]
+        });
+      }
+      localStorage.setItem(key, '1');
+    } catch (e) {}
+  })();
+</script>
 <script type="module" src="/partials/nav.js"></script>
 
 <div class="dash-wrap">
@@ -1039,11 +1065,11 @@ async function loadMetrics(profile) {
   if (!pageViews) {
     const { count: pv } = await supabase.from('page_events')
       .select('*', { count: 'exact', head: true })
-      .eq('slug', profile.username).eq('event', 'page_view')
+      .eq('slug', profile.username).eq('event', 'page_view').eq('traffic_class', 'human')
       .gte('created_at', since.toISOString());
     const { count: cc } = await supabase.from('page_events')
       .select('*', { count: 'exact', head: true })
-      .eq('slug', profile.username).in('event', ['contact_click', 'cta_click_phone', 'cta_click_email'])
+      .eq('slug', profile.username).in('event', ['contact_click', 'cta_click_phone', 'cta_click_email']).eq('traffic_class', 'human')
       .gte('created_at', since.toISOString());
     pageViews = pv ?? 0; contactClicks = cc ?? 0;
   }

@@ -7,7 +7,8 @@ import { verifyMailbox, checkZeroBounceAccount, accountErrorReason, mapWithConcu
 import { siteChecks } from "../api/_lib/site-checks.js";
 import { cheapPreviewGate, isWeakEnoughSite, qualifiesForPreview, SITE_WEAK_MIN_SCORE } from "../api/_lib/preview-generator.js";
 import { alertDueToday, shouldAlertVerifyRetrySpike, buildZeroBounceAlert, buildVerifyRetrySpikeAlert, utcDay, VERIFY_RETRY_ALERT_THRESHOLD } from "../api/_lib/system-alerts.js";
-import { isSecondFollowUpDue, buildSecondFollowUpEmail, buildFollowUpEmail, isLikelyLinkScanner, withUtm } from "../api/_lib/outreach-email.js";
+import { isSecondFollowUpDue, buildSecondFollowUpEmail, buildFollowUpEmail, withUtm } from "../api/_lib/outreach-email.js";
+import { classifyTraffic } from "../api/_lib/traffic-classifier.js";
 import { followUpAllowance, secondFollowUpAllowance, FOLLOWUP_DAILY_CAP } from "../api/_lib/outreach-ramp.js";
 
 let passed = 0;
@@ -220,11 +221,13 @@ await test("withUtm keeps existing params", () => {
 });
 
 console.log("scanner window after the second follow-up");
-await test("a click within 5 minutes of followup2_sent_at is a scanner", () => {
+await test("a click within 120 s of followup2_sent_at is a scanner", () => {
   const f2 = "2026-11-12T11:00:00Z";
-  assert.equal(isLikelyLinkScanner({ sentAt, followupSentAt: fu1, followup2SentAt: f2, now: Date.parse("2026-11-12T11:00:40Z") }), true);
-  assert.equal(isLikelyLinkScanner({ sentAt, followupSentAt: fu1, followup2SentAt: f2, now: Date.parse("2026-11-12T11:06:00Z") }), false);
-  assert.equal(isLikelyLinkScanner({ sentAt, followupSentAt: fu1, now: Date.parse("2026-11-12T11:00:40Z") }), false);
+  const ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
+  const cls = (outreach, at) => classifyTraffic({ ip: "68.104.221.174", userAgent: ua, event: "outreach_page_click", at: Date.parse(at), outreach }).trafficClass;
+  assert.equal(cls({ sentAt, followupSentAt: fu1, followup2SentAt: f2 }, "2026-11-12T11:00:40Z"), "link_scanner");
+  assert.equal(cls({ sentAt, followupSentAt: fu1, followup2SentAt: f2 }, "2026-11-12T11:06:00Z"), "human");
+  assert.equal(cls({ sentAt, followupSentAt: fu1 }, "2026-11-12T11:00:40Z"), "human");
 });
 
 console.log("follow-up cap ordering");
