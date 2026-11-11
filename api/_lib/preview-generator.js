@@ -35,14 +35,24 @@ export function slugify(text) {
 // many verified problems (site-checks.js score): otherwise there's nothing
 // honest to pitch.
 export const SITE_WEAK_MIN_SCORE = 2;
-export function isWeakEnoughSite(siteCheckScore) {
-  return Number(siteCheckScore) >= SITE_WEAK_MIN_SCORE;
+// One proven problem is enough when it's one of these: each is a clear,
+// checkable pitch on its own ("you have no quote form" / "browsers mark your
+// site not secure"). Jack, Nov 11 2026: ~130 strong-rated prospects were
+// failing the 2-problem bar on exactly one of these.
+export const SITE_STANDALONE_SIGNALS = ["no_contact_form", "not_https"];
+// Accepts a site-checks result ({ score, signals }) or, for older callers,
+// a bare score.
+export function isWeakEnoughSite(checks) {
+  const score = typeof checks === "object" && checks !== null ? checks.score : checks;
+  const signals = typeof checks === "object" && checks !== null ? (checks.signals || []) : [];
+  if (Number(score) >= SITE_WEAK_MIN_SCORE) return true;
+  return signals.some(s => SITE_STANDALONE_SIGNALS.includes(s));
 }
 
-export function qualifiesForPreview({ rating, reviewCount, hasWebsite, siteCheckScore, phone }) {
+export function qualifiesForPreview({ rating, reviewCount, hasWebsite, siteCheckScore, siteSignals, phone }) {
   if (!phone) return { ok: false, reason: "no_phone" };
   if (!isStrongRating(rating, reviewCount)) return { ok: false, reason: "weak_or_thin_rating" };
-  if (hasWebsite && !isWeakEnoughSite(siteCheckScore)) return { ok: false, reason: "site_not_weak_enough" };
+  if (hasWebsite && !isWeakEnoughSite({ score: siteCheckScore, signals: siteSignals })) return { ok: false, reason: "site_not_weak_enough" };
   return { ok: true };
 }
 

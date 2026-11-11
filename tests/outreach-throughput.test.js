@@ -4,6 +4,7 @@
 
 import assert from "node:assert/strict";
 import { verifyMailbox, checkZeroBounceAccount, accountErrorReason, mapWithConcurrency } from "../api/_lib/mailbox-verify.js";
+import { siteChecks } from "../api/_lib/site-checks.js";
 import { cheapPreviewGate, isWeakEnoughSite, qualifiesForPreview, SITE_WEAK_MIN_SCORE } from "../api/_lib/preview-generator.js";
 import { alertDueToday, shouldAlertVerifyRetrySpike, buildZeroBounceAlert, buildVerifyRetrySpikeAlert, utcDay, VERIFY_RETRY_ALERT_THRESHOLD } from "../api/_lib/system-alerts.js";
 import { isSecondFollowUpDue, buildSecondFollowUpEmail, buildFollowUpEmail, isLikelyLinkScanner, withUtm } from "../api/_lib/outreach-email.js";
@@ -103,6 +104,25 @@ await test("site check: the free pre-ZeroBounce rule is the same one the build u
     const build = qualifiesForPreview({ rating: 5, reviewCount: 50, hasWebsite: true, siteCheckScore: score, phone: "x" });
     assert.equal(isWeakEnoughSite(score), build.ok, `score ${score}`);
   }
+  const cases = [
+    [{ score: 1, signals: ["no_contact_form"] }, true],
+    [{ score: 1, signals: ["not_https"] }, true],
+    [{ score: 1, signals: ["no_tap_to_call"] }, false],
+    [{ score: 1, signals: ["stale_copyright"] }, false],
+    [{ score: 2, signals: ["no_tap_to_call", "stale_copyright"] }, true],
+    [{ score: 0, signals: [] }, false],
+  ];
+  for (const [checks, want] of cases) {
+    assert.equal(isWeakEnoughSite(checks), want, JSON.stringify(checks));
+    const build = qualifiesForPreview({ rating: 5, reviewCount: 50, hasWebsite: true, siteCheckScore: checks.score, siteSignals: checks.signals, phone: "x" });
+    assert.equal(build.ok, want, `build ${JSON.stringify(checks)}`);
+  }
+});
+
+await test("one standalone site problem passes the prep gate on real check output", () => {
+  const html = "<html><head><meta name=viewport content=x></head><body><a href='tel:5085550100'>Call</a><form action='/q'></form>" + " word".repeat(200) + "</body></html>";
+  assert.equal(isWeakEnoughSite(siteChecks(html, "https://example.com")), false);
+  assert.equal(isWeakEnoughSite(siteChecks(html, "http://example.com")), true);
 });
 
 console.log("system alerts");
