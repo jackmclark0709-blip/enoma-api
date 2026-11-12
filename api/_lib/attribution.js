@@ -1,6 +1,32 @@
 // Signup attribution sent by get-your-website.html (guide slug, CTA position,
-// first-touch landing page, external referrer and utm_* params). Client-supplied, so keep only
-// known keys as short plain strings.
+// first-touch landing page, external referrer, utm_* params and the
+// comment-keyword keys below). Client-supplied, so keep only known keys as
+// short plain strings.
+//
+// Comment-keyword entry (Nov 2026): a ManyChat DM sends people who comment a
+// keyword on an Enoma Facebook/Instagram post to /page?ch=fb&kw=PAGE, which
+// redirects to /get-your-website?src=comment&ch=fb&kw=PAGE (vercel.json).
+//   src  "comment"   (the only src value kept: other pages use src= for
+//                     their own things, e.g. /<slug>/preview?src=instant)
+//   ch   "fb" | "ig" (the channel the comment was on)
+//   kw   the keyword (letters/digits/-/_ only, upper-cased, max 30)
+export const COMMENT_SRC = "comment";
+export const COMMENT_CHANNELS = ["fb", "ig"];
+export const COMMENT_KEYS = ["src", "ch", "kw"];
+
+/** { src, ch?, kw? } for a comment-keyword visit, or null. */
+export function cleanCommentParams(input) {
+  if (!input || typeof input !== "object") return null;
+  const src = typeof input.src === "string" ? input.src.trim().toLowerCase() : "";
+  if (src !== COMMENT_SRC) return null;
+  const out = { src };
+  const ch = typeof input.ch === "string" ? input.ch.trim().toLowerCase() : "";
+  if (COMMENT_CHANNELS.includes(ch)) out.ch = ch;
+  const kw = typeof input.kw === "string" ? input.kw.trim().toUpperCase().slice(0, 30) : "";
+  if (/^[A-Z0-9_-]+$/.test(kw)) out.kw = kw;
+  return out;
+}
+
 const ATTRIBUTION_KEYS = ["from", "cta", "landing", "referrer", "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"];
 export function cleanAttribution(input) {
   if (!input || typeof input !== "object") return null;
@@ -9,6 +35,7 @@ export function cleanAttribution(input) {
     const v = input[k];
     if (typeof v === "string" && v.trim()) out[k] = v.trim().slice(0, 100);
   }
+  Object.assign(out, cleanCommentParams(input) || {});
   return Object.keys(out).length ? out : null;
 }
 
@@ -20,12 +47,13 @@ export function cleanAttribution(input) {
 
 export const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"];
 
-const hasUtm = (o) => !!o && UTM_KEYS.some((k) => typeof o[k] === "string" && o[k]);
+// A campaign tag: any utm_* value, or a comment-keyword visit (src=comment).
+const hasUtm = (o) => !!o && (UTM_KEYS.some((k) => typeof o[k] === "string" && o[k]) || o.src === COMMENT_SRC);
 
 /**
  * The first touch to store for a newly claimed page, in priority order:
  * 1. the claiming browser's stored first touch (localStorage enoma_first_touch)
- *    when it carries utm_* values;
+ *    when it carries utm_* values or src=comment;
  * 2. the prospect's raw.attribution (instant previews);
  * 3. { utm_source: "cold_email" } for an outreach prospect (any prospect that
  *    isn't an inbound instant preview);
@@ -54,7 +82,10 @@ export function firstTouchToWrite(existing, candidate) {
   return candidate && typeof candidate === "object" && Object.keys(candidate).length ? candidate : null;
 }
 
-/** Just the utm_* keys, as Stripe metadata (string values, max 500 chars). */
+/**
+ * The campaign keys (utm_* plus the comment-keyword src/ch/kw), as Stripe
+ * metadata (string values, max 500 chars).
+ */
 export function utmMetadata(firstTouch) {
   const out = {};
   if (!firstTouch || typeof firstTouch !== "object") return out;
@@ -62,6 +93,7 @@ export function utmMetadata(firstTouch) {
     const v = firstTouch[k];
     if (typeof v === "string" && v.trim()) out[k] = v.trim().slice(0, 500);
   }
+  Object.assign(out, cleanCommentParams(firstTouch) || {});
   return out;
 }
 
