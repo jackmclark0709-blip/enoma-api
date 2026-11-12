@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { TOWN_PAGE_SLUGS } from "./_lib/town-pages-slugs.js";
+import { pageIndexable } from "./_lib/pricing.js";
 import { isSitemapListable } from "./_lib/sitemap-filter.js";
 import { GUIDES } from "../data/guides.mjs";
 
@@ -51,20 +52,25 @@ const STATIC_PAGES = [
   ...TOWN_PAGE_SLUGS.map(slug => ({ url: `https://enoma.io/for/${slug}`, lastmod: TODAY, changefreq: "monthly", priority: "0.80" })),
 ];
 
+const firstSub = (s) => (Array.isArray(s) ? s[0] : s) || null;
+
 export default async function handler(req, res) {
   try {
     // Fetch all public, claimed business profile pages.
     // Unclaimed preview pages (is_claimed === false) are real, visitable pages
     // but shouldn't be indexed/listed until the business actually claims them.
-    const { data: profiles, error } = await supabase
+    const query = (subCols) => supabase
       .from("small_business_profiles")
-      .select("username, business_name, updated_at, businesses(is_internal)")
+      .select(`username, business_name, is_public, is_claimed, updated_at, businesses(is_internal${subCols})`)
       .eq("is_public", true)
       .eq("is_claimed", true)
       .not("username", "is", null)
       // Pages on a customer's own domain are canonical there, not on enoma.io.
       .is("custom_domain", null)
       .order("updated_at", { ascending: false });
+    // Before 20261112_pricing_version.sql is applied, every page is legacy.
+    let { data: profiles, error } = await query(", subscriptions(pricing_version, provider, status, stripe_subscription_id, current_period_end)");
+    if (error && /pricing_version/.test(error.message || "")) ({ data: profiles, error } = await query(""));
 
     if (error) throw error;
 
@@ -83,6 +89,8 @@ export default async function handler(req, res) {
     // Test, QA and Enoma-internal pages stay visitable but out of the sitemap.
     const profileEntries = (profiles || [])
       .filter(isSitemapListable)
+      // Pricing v2: previews that haven't gone live through checkout stay out.
+      .filter((p) => pageIndexable({ profile: p, sub: firstSub(p.businesses?.subscriptions), isInternal: !!p.businesses?.is_internal }))
       .map(
         (p) => `
       <url>

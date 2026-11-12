@@ -18,6 +18,7 @@
 (function () {
   var MIN_TRIAL_END_LEAD_MS = 48 * 60 * 60 * 1000;
   var ACCOUNT_MANAGER = "A real person as your account manager: text or email Jack any change and it’s on your page within two business days.";
+  var V2_BUTTON = "Go live: $1 today →";
   var PLANS = {
     year: { label: "Yearly", price: "$199/year — about $16.58 a month, saves $40.88", button: "Subscribe — $199/year →" },
     month: { label: "Monthly", price: "$19.99/month", button: "Subscribe — $19.99/month →" },
@@ -32,6 +33,24 @@
     if (!isFinite(ends)) return null;
     if (ends - now <= MIN_TRIAL_END_LEAD_MS) return null;
     return new Date(Math.floor(ends / 1000) * 1000);
+  }
+
+  // Pricing v2 ($1 first month; api/_lib/pricing.js firstMonthOfferApplies):
+  // a v2 account that has never subscribed pays $1 today and the plan starts
+  // 30 days later. Keep in step with the server; tests/pricing.test.js checks.
+  var FIRST_MONTH_DAYS = 30;
+  var PRICE_LINE = "$1 for your first month, then $19.99/month or $199/year. Cancel anytime.";
+  function firstMonthOffer(sub) {
+    return !!sub && sub.pricing_version === "v2_1dollar" && !sub.stripe_subscription_id && sub.provider !== "comped";
+  }
+  function firstFullChargeDate(now) {
+    if (now === undefined) now = Date.now();
+    return new Date(now + FIRST_MONTH_DAYS * 24 * 60 * 60 * 1000);
+  }
+  // "$1 today. Then $19.99/month starting {date 30 days from today}. Cancel anytime from your dashboard."
+  function termsLine(interval, now) {
+    var then = interval === "year" ? "$199/year" : "$19.99/month";
+    return "$1 today. Then " + then + " starting " + fmtDate(firstFullChargeDate(now)) + ". Cancel anytime from your dashboard.";
   }
 
   function fmtDate(d) {
@@ -54,7 +73,8 @@
   function mount(el, opts) {
     if (!el || !opts || !opts.businessId) return null;
     var name = "epp-interval-" + ++seq;
-    var chargeOn = firstChargeDate(opts.sub);
+    var v2 = firstMonthOffer(opts.sub);
+    var chargeOn = v2 ? null : firstChargeDate(opts.sub);
     el.innerHTML =
       '<div class="epp' + (opts.theme === "dark" ? " epp--dark" : "") + '">' +
       '<fieldset class="epp-choices"><legend class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Billing</legend>' +
@@ -66,20 +86,25 @@
       '<span class="epp-opt__head">' + PLANS.month.label + "</span>" +
       '<span class="epp-opt__price">' + PLANS.month.price + "</span></label>" +
       "</fieldset>" +
-      '<button type="button" class="epp-btn">' + PLANS.year.button + "</button>" +
-      '<p class="epp-note">' + (chargeOn ? "Your first charge is on " + fmtDate(chargeOn) + ". Cancel anytime." : "Cancel anytime.") + "</p>" +
+      '<button type="button" class="epp-btn">' + (v2 ? V2_BUTTON : PLANS.year.button) + "</button>" +
+      (v2
+        ? '<p class="epp-note epp-terms">' + termsLine("year") + "</p>" +
+          '<p class="epp-note epp-priceline">' + PRICE_LINE + "</p>"
+        : '<p class="epp-note">' + (chargeOn ? "Your first charge is on " + fmtDate(chargeOn) + ". Cancel anytime." : "Cancel anytime.") + "</p>") +
       "</div>";
 
     var btn = el.querySelector(".epp-btn");
     var chosen = function () { var c = el.querySelector('input[name="' + name + '"]:checked'); return c ? c.value : "year"; };
-    var label = function () { return PLANS[chosen()].button; };
+    var label = function () { return v2 ? V2_BUTTON : PLANS[chosen()].button; };
+    var terms = el.querySelector(".epp-terms");
+    var refresh = function () { btn.textContent = label(); if (terms) terms.textContent = termsLine(chosen()); };
     el.querySelectorAll('input[name="' + name + '"]').forEach(function (r) {
-      r.addEventListener("change", function () { btn.textContent = label(); });
+      r.addEventListener("change", refresh);
     });
     var intent = planIntent();
     if (intent) {
       var pick = el.querySelector('input[name="' + name + '"][value="' + intent + '"]');
-      if (pick) { pick.checked = true; btn.textContent = label(); }
+      if (pick) { pick.checked = true; refresh(); }
     }
 
     btn.addEventListener("click", async function () {
@@ -113,7 +138,10 @@
     return { interval: chosen };
   }
 
-  var api = { mount: mount, firstChargeDate: firstChargeDate, planIntent: planIntent, MIN_TRIAL_END_LEAD_MS: MIN_TRIAL_END_LEAD_MS };
+  var api = {
+    mount: mount, firstChargeDate: firstChargeDate, planIntent: planIntent, MIN_TRIAL_END_LEAD_MS: MIN_TRIAL_END_LEAD_MS,
+    firstMonthOffer: firstMonthOffer, firstFullChargeDate: firstFullChargeDate, termsLine: termsLine, PRICE_LINE: PRICE_LINE,
+  };
   if (typeof window !== "undefined") window.EnomaPlanPicker = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })();

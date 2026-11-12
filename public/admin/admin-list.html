@@ -58,7 +58,7 @@
 
     const { data, error } = await session.client
       .from('small_business_profiles')
-      .select('business_id, business_name, email, username, created_at')
+      .select('business_id, business_name, email, username, created_at, is_claimed')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -76,11 +76,35 @@
         <td>${esc(b.email || '—')}</td>
         <td><a href="/${encodeURIComponent(b.username || '')}" target="_blank">${esc(b.username || '—')}</a></td>
         <td>${new Date(b.created_at).toLocaleDateString()}</td>
-        <td><a href="/create?business_id=${encodeURIComponent(b.business_id)}">Edit</a></td>
+        <td><a href="/create?business_id=${encodeURIComponent(b.business_id)}">Edit</a>${b.is_claimed ? ` &middot; <button type="button" class="checkout-link" data-id="${esc(b.business_id)}" data-name="${esc(b.business_name || b.username || '')}">Send checkout link</button>` : ''}</td>
       `;
       tbody.appendChild(tr);
     });
   }
+
+  // Done-for-you: after the setup call, send the owner the same Stripe
+  // Checkout they'd get from their dashboard ($1 first month on pricing v2).
+  // api/ga-metrics.js?action=checkout_link. The link works for 24 hours.
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.checkout-link');
+    if (!btn) return;
+    const session = await EnomaAdmin.requireAdminSession();
+    if (!session) return alert('Sign in again.');
+    const yearly = confirm(`${btn.dataset.name}: yearly plan ($199/year)?\n\nOK = yearly, Cancel = monthly ($19.99/month).`);
+    const send = confirm('Email the link to the owner now?\n\nOK = email it, Cancel = just copy it.');
+    btn.disabled = true;
+    try {
+      const r = await fetch('/api/ga-metrics?action=checkout_link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.accessToken },
+        body: JSON.stringify({ business_id: btn.dataset.id, interval: yearly ? 'year' : 'month', send }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.url) return alert(j.error || 'Could not create the checkout link.');
+      try { await navigator.clipboard.writeText(j.url); } catch (_) { /* shown below */ }
+      alert((j.emailed ? `Emailed to ${j.to}. ` : '') + `Link copied (expires in 24 hours):\n${j.url}`);
+    } finally { btn.disabled = false; }
+  });
 
   init();
 </script>

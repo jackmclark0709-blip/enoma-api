@@ -1,6 +1,8 @@
 // api/p.js
-// Serves a business page. The first month is free; after that an unpaid page
-// shows a clean "inactive" screen (website_is_active). Pages created before
+// Serves a business page. Legacy pages: the first month is free; after that
+// an unpaid page shows a clean "inactive" screen (website_is_active).
+// Pricing v2 pages ($1 first month): a noindex preview until the owner goes
+// live through checkout, then indexed (api/_lib/pricing.js). Pages created before
 // PRICING_TRIAL_STARTS_AT keep their free-for-good promise (trial-policy.js).
 
 import fs from "fs";
@@ -9,6 +11,7 @@ import { createClient } from "@supabase/supabase-js";
 import { personaFor, pickPalette, splitWordmark, heroPatternSvg, isStrongRating, stripWeakRatingClaims, tidyHeadline } from "./_lib/page-style.js";
 import { renderSections, faqSchema } from "./_lib/page-ssr.js";
 import { isGrandfathered } from "./_lib/trial-policy.js";
+import { pageIndexable } from "./_lib/pricing.js";
 import { openSchedule, showEmergencyBadge, townsLine, ctaNote } from "./_lib/page-claims.js";
 import { heroPhoto as pickHeroPhoto, visibleAttachments } from "./_lib/photo-kinds.js";
 import { renderSpotlight, fillTemplate, linkServicesToSpotlights } from "./_lib/spotlight-render.js";
@@ -181,6 +184,23 @@ async function pageIsLive(businessId) {
   if (isGrandfathered(biz?.created_at)) return true;
   const { data: active } = await supabase.rpc("website_is_active", { p_business_id: businessId });
   return active !== false;
+}
+
+// Pricing v2 ($1 first month): a v2 page is a noindex preview until the
+// owner goes live through checkout (api/_lib/pricing.js pageIndexable).
+// Before the pricing_version column exists every page is legacy.
+async function billingStateFor(businessId) {
+  try {
+    const [{ data: sub, error }, { data: biz }] = await Promise.all([
+      supabase.from("subscriptions")
+        .select("pricing_version, provider, status, stripe_subscription_id, current_period_end")
+        .eq("business_id", businessId).maybeSingle(),
+      supabase.from("businesses").select("is_internal").eq("id", businessId).maybeSingle(),
+    ]);
+    return { sub: error ? null : sub, isInternal: biz?.is_internal === true };
+  } catch {
+    return { sub: null, isInternal: false };
+  }
 }
 
 // ── Trade color system ──
@@ -532,7 +552,9 @@ export default async function handler(req, res) {
     const ogImage = firstPhoto || profile.logo_url || `${baseUrl}/api/p?og=1&slug=${encodeURIComponent(slug)}`;
     // Unclaimed preview pages render normally (visitable, shareable link) but
     // stay out of search results until the business actually claims the page.
-    const robots = (profile.is_public && profile.is_claimed !== false) ? "index,follow" : "noindex,nofollow";
+    // Pricing v2 pages also stay out until they've gone live through checkout.
+    const billingState = profile.business_id ? await billingStateFor(profile.business_id) : { sub: null, isInternal: false };
+    const robots = pageIndexable({ profile, ...billingState }) ? "index,follow" : "noindex,nofollow";
 
     function collectSameAs(p) {
       const urls = new Set();

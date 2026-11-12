@@ -70,7 +70,7 @@ export const GUIDES = [
       { q: "How long does it take for a business to show up on Google?", a: "A newly verified Google Business Profile can appear for its own name within days. Ranking for competitive searches like \"[service] near me\" usually takes weeks to a few months of steady reviews, photos and an accurate website." },
       { q: "Do I need a website to show up on Google Maps?", a: "No, a verified Google Business Profile can appear on Maps without a website. But a listing with a real website behind it gives Google more information about your services and towns, and customers are more likely to call a business they can check out first." },
       { q: "Can I pay Google to show up higher in the map results?", a: "You can't pay to rank higher in the free map results. You can pay for ads, including Local Services Ads, which appear above them. The free results are earned through relevance, distance and reviews." },
-      { q: "What does Enoma cost?", a: "Your first month is free, with no credit card. After that it's $19.99 a month to keep your page live, and that includes personal support. No contract; cancel anytime." },
+      { q: "What does Enoma cost?", a: "Seeing your page is free, with no card. To go live: $1 for your first month, then $19.99/month or $199/year. Cancel anytime. That includes personal support, and there's no contract." },
     ],
     ctaH2: "Get found for the jobs you want",
     ctaSub: "Pick your business on Google and see your page in about 30 seconds: your services, your towns, tap-to-call and a quote form that sends leads straight to you.",
@@ -114,7 +114,7 @@ export const GUIDES = [
 
 <h3>3. A page that turns searches into calls</h3>
 <p>When someone finds you, they want to know three things fast: do you do this job, do you cover my town, and how do I reach you. A simple page with your services, towns, a tap-to-call button and a quote form answers all three. Quote requests come straight to you. You don't pay per lead, and you don't compete with four other pros for the same homeowner.</p>
-<div class="lp-callout">That's what an Enoma page does. It sends calls and quote requests straight to you, and costs less than many single marketplace leads: first month free, then $19.99/month. Cancel anytime. <a href="/get-your-website" data-cta="inline">Type in your business name and see your page in about 30 seconds</a>. Not on Google yet, or your info is out of date? I'll build it with you.</div>
+<div class="lp-callout">That's what an Enoma page does. It sends calls and quote requests straight to you, and costs less than many single marketplace leads: $1 for your first month, then $19.99/month or $199/year. Cancel anytime. <a href="/get-your-website" data-cta="inline">Type in your business name and see your page in about 30 seconds</a>. Not on Google yet, or your info is out of date? I'll build it with you.</div>
 
 <h2>A sensible way to switch</h2>
 <p>Don't cancel everything on day one. Most contractors who move away from shared leads do it in stages:</p>
@@ -130,7 +130,7 @@ export const GUIDES = [
       { q: "What is the best alternative to Angi and Thumbtack?", a: "For most local contractors, the best long-term alternative is getting your own calls from Google: a complete Google Business Profile, steady reviews, and a simple website with your services, towns and a quote form. Those leads come only to you and don't cost per lead." },
       { q: "Do Thumbtack leads cost money even if I don't get the job?", a: "Yes. Thumbtack charges when you contact a customer or are auto-matched to a lead, whether or not they hire you. You can set a weekly budget to cap spending." },
       { q: "How do I get leads without paying per lead?", a: "Show up where homeowners search. Finish your Google Business Profile, ask every happy customer for a Google review, and have a page that names your services and towns with tap-to-call and a quote form. Referral asks and truck signage pointing to that page help too." },
-      { q: "What does Enoma cost?", a: "Your first month is free, with no credit card. After that it's $19.99 a month to keep your page live, and that includes personal support. No contract; cancel anytime." },
+      { q: "What does Enoma cost?", a: "Seeing your page is free, with no card. To go live: $1 for your first month, then $19.99/month or $199/year. Cancel anytime. That includes personal support, and there's no contract." },
     ],
     ctaH2: "Get leads that are only yours",
     ctaSub: "Pick your business on Google and see your page in about 30 seconds. Calls and quote requests go straight to you. No per-lead fees, no sharing.",
@@ -198,7 +198,7 @@ export const GUIDES = [
       { q: "Should I charge per push or a seasonal rate?", a: "Many operators offer a seasonal contract as the default for predictable revenue and route planning, and per-push pricing for one-off and storm-day customers. Per-inch tiers are common for commercial lots." },
       { q: "How do people find snow removal companies?", a: "Mostly through referrals and Google, especially \"snow removal near me\" searches on a phone the night before or morning of a storm. Having \"Snow removal service\" as a Google Business Profile category and a page with your towns and phone number helps you show up." },
       { q: "How do I advertise snow removal services?", a: "Start with the people you already serve: text your lawn care and fall cleanup customers, and leave door hangers on streets where you already plow driveways. Add \"Snow removal service\" as a category on your Google Business Profile and list the towns you plow, since storm-day customers search Google Maps. Then put up a page with your towns, tap-to-call and a seasonal contract form so people can sign up before the first storm." },
-      { q: "What does Enoma cost?", a: "Your first month is free, with no credit card. After that it's $19.99 a month to keep your page live, and that includes personal support. No contract; cancel anytime." },
+      { q: "What does Enoma cost?", a: "Seeing your page is free, with no card. To go live: $1 for your first month, then $19.99/month or $199/year. Cancel anytime. That includes personal support, and there's no contract." },
     ],
     ctaH2: "Be the one they find on storm day",
     ctaSub: "Pick your business on Google and see your page in about 30 seconds: your towns, tap-to-call, and a form that collects seasonal contract requests.",
@@ -258,7 +258,7 @@ export const GUIDES = [
       { q: "When is the best time to ask a customer for a review?", a: "The same day the job is finished, ideally after asking in person. Customers are happiest and the details are fresh, so they're far more likely to follow through than if you ask a week later." },
       { q: "Can I offer a discount for a Google review?", a: "No. Google prohibits offering incentives such as discounts, free services or gift cards in exchange for reviews. Incentivized reviews can be removed and can put your profile at risk." },
       { q: "How do I respond to a bad Google review?", a: "Reply once, calmly and briefly. Thank them, acknowledge the issue without arguing, and offer to make it right by phone or email. Future customers read your reply as much as the review." },
-      { q: "What does Enoma cost?", a: "Your first month is free, with no credit card. After that it's $19.99 a month to keep your page live, and that includes personal support. No contract; cancel anytime." },
+      { q: "What does Enoma cost?", a: "Seeing your page is free, with no card. To go live: $1 for your first month, then $19.99/month or $199/year. Cancel anytime. That includes personal support, and there's no contract." },
     ],
     ctaH2: "Turn your reviews into calls",
     ctaSub: "Pick your business on Google and see your page in about 30 seconds: your rating, your services, your towns, and a button that calls you.",
@@ -315,7 +315,7 @@ export const GUIDES = [
       { q: "How do I get recurring cleaning clients instead of one-time jobs?", a: "Offer a lower recurring rate than your one-time price, book the next visit before you leave the first clean, and follow up by text if they didn't book. Reliability, the same cleaner each visit, and reviews that mention both make clients stay." },
       { q: "Where do people look for house cleaners?", a: "Mostly Google (\"house cleaning near me\" on a phone), referrals from friends and neighbors, and local Facebook or Nextdoor groups. All of them work better when they point to one page that shows your towns, what's included and how to get a quote." },
       { q: "Do cleaning businesses need a website?", a: "It helps. People want to check your services, coverage area and reviews before letting you into their home. One clear page with a quote form and your Google rating does the job for most small cleaning businesses." },
-      { q: "What does Enoma cost?", a: "Your first month is free, with no credit card. After that it's $19.99 a month to keep your page live, and that includes personal support. No contract; cancel anytime." },
+      { q: "What does Enoma cost?", a: "Seeing your page is free, with no card. To go live: $1 for your first month, then $19.99/month or $199/year. Cancel anytime. That includes personal support, and there's no contract." },
     ],
     ctaH2: "Fill your schedule with regulars",
     ctaSub: "Pick your business on Google and see your page in about 30 seconds: your towns, what's included, and a quote form that sends requests straight to you.",
@@ -364,7 +364,7 @@ export const GUIDES = [
       { q: "What's the best way to get HVAC leads without paying for them?", a: "Show up in the map results for urgent searches like \"furnace repair near me\", list every service you offer in plain words, ask every satisfied customer for a Google review, and give after-hours visitors a request form so you can call them back first thing." },
       { q: "When should HVAC companies do their marketing?", a: "Before each season, not during it. Text past customers about furnace tune-ups in early fall and AC checks in spring, and update your Google profile and website before the first cold snap or heat wave, when you'll be too busy to do it." },
       { q: "Are HVAC maintenance plans worth offering?", a: "For most small HVAC companies, yes. They create recurring revenue, fill the schedule in slower months, and keep you top of mind when the customer needs a replacement system." },
-      { q: "What does Enoma cost?", a: "Your first month is free, with no credit card. After that it's $19.99 a month to keep your page live, and that includes personal support. No contract; cancel anytime." },
+      { q: "What does Enoma cost?", a: "Seeing your page is free, with no card. To go live: $1 for your first month, then $19.99/month or $199/year. Cancel anytime. That includes personal support, and there's no contract." },
     ],
     ctaH2: "Be the HVAC company they find first",
     ctaSub: "Pick your business on Google and see your page in about 30 seconds: your services, your towns, tap-to-call and a request form for after-hours leads.",
@@ -390,7 +390,7 @@ export const GUIDES = [
 <h2>How they compare</h2>
 <table>
   <tr><th></th><th>How you pay</th><th>Who else gets the lead</th></tr>
-  <tr><td><strong>Enoma</strong></td><td>First month free, then $19.99/mo flat. No contract. We build it for you.</td><td>Nobody. One business per page.</td></tr>
+  <tr><td><strong>Enoma</strong></td><td>$1 for your first month, then $19.99/month or $199/year. Cancel anytime. No contract. We build it for you.</td><td>Nobody. One business per page.</td></tr>
   <tr><td>Angi</td><td>Per lead, plus program fees depending on your plan</td><td>Requests can go to several pros at once</td></tr>
   <tr><td>Thumbtack</td><td>Per lead when you contact a customer or get auto-matched</td><td>Customers usually hear from several pros</td></tr>
   <tr><td>Yelp</td><td>Free page; ads are per click; upgrades cost extra</td><td>Quote requests can go to several businesses; competitor ads can show on your page</td></tr>
@@ -446,7 +446,7 @@ export const GUIDES = [
       { q: "Should I cancel Angi or Thumbtack if I get an Enoma page?", a: "Not right away. Keep anything that books jobs profitably, track cost per booked job for each source for a month or two, and cut the ones that cost the most per job as calls from your own page and Google listing grow." },
       { q: "Do I still need a Google Business Profile if I have an Enoma page?", a: "Yes. Your Google Business Profile is where most local searches start. Link it to your Enoma page so Google and customers find the same services, towns and phone number in both places." },
       { q: "Why does cost per booked job matter more than cost per lead?", a: "Because you can pay for a lead and never win the job, especially when the same homeowner hears from several pros. Dividing what you spent by the jobs you actually booked shows what each customer really cost." },
-      { q: "What does Enoma cost?", a: "Your first month is free, with no credit card. After that it's $19.99 a month to keep your page live, and that includes personal support. No contract; cancel anytime." },
+      { q: "What does Enoma cost?", a: "Seeing your page is free, with no card. To go live: $1 for your first month, then $19.99/month or $199/year. Cancel anytime. That includes personal support, and there's no contract." },
     ],
     ctaH2: "Get calls that are only yours",
     ctaSub: "Pick your business on Google and see your page in about 30 seconds. One flat monthly price, no per-lead fees, and every call goes straight to you.",
@@ -503,7 +503,7 @@ export const GUIDES = [
       { q: "Will a website help my Google Business Profile rank better?", a: "It can. Google uses your website to understand what you do and where. A page that names your services and service towns, with the same name, phone and address as your profile, gives Google more to work with." },
       { q: "What should I put in the website field of my Google Business Profile?", a: "A page you control that matches your profile: your services, the towns you serve, your phone number and a way to request a quote. Avoid linking only to a Facebook page." },
       { q: "Do AI assistants like ChatGPT use my website?", a: "AI assistants draw on public information about your business, including your Google listing, review sites and web pages. Clear, consistent details on a page of your own make it easier for them to understand and describe your business." },
-      { q: "What does Enoma cost?", a: "Your first month is free, with no credit card. After that it's $19.99 a month to keep your page live, and that includes personal support. No contract; cancel anytime." },
+      { q: "What does Enoma cost?", a: "Seeing your page is free, with no card. To go live: $1 for your first month, then $19.99/month or $199/year. Cancel anytime. That includes personal support, and there's no contract." },
     ],
     ctaH2: "Give your Google listing a page to point to",
     ctaSub: "Pick your business on Google and see your page in about 30 seconds: your services, your towns, tap-to-call and a quote form that sends leads straight to you.",
@@ -562,7 +562,7 @@ export const GUIDES = [
       { q: "Are Angi leads shared with other contractors?", a: "Angi can send a homeowner's request to more than one pro, so you may be competing with other companies for the same job. Responding quickly improves your chances." },
       { q: "How do I get contractor leads without paying per lead?", a: "Show up where homeowners search: a verified Google Business Profile, a steady flow of Google reviews, and a website that names your services and towns with tap-to-call and a quote form. Those calls come only to you." },
       { q: "Does Thumbtack check if contractors are insured?", a: "What Thumbtack verifies varies by pro and by location, so a profile on its own doesn't prove a contractor is insured, and careful homeowners will ask. Keep a current certificate of insurance ready to send with your quotes, and say you're licensed and insured on your own page and Google Business Profile. It's a simple way to win jobs over pros who can't show it." },
-      { q: "What does Enoma cost?", a: "Your first month is free, with no credit card. After that it's $19.99 a month to keep your page live, and that includes personal support. No contract; cancel anytime." },
+      { q: "What does Enoma cost?", a: "Seeing your page is free, with no card. To go live: $1 for your first month, then $19.99/month or $199/year. Cancel anytime. That includes personal support, and there's no contract." },
     ],
     ctaH2: "Build a source of calls you don't share",
     ctaSub: "Pick your business on Google and see your page in about 30 seconds. Calls and quote requests go straight to you. No per-lead fees.",
@@ -624,7 +624,7 @@ export const GUIDES = [
       { q: "How does Yelp advertising charge?", a: "Yelp ads are pay-per-click: you set a monthly budget and pay when someone clicks your ad. Yelp also sells page upgrades, such as removing competitor ads from your page." },
       { q: "Is a free Yelp business page worth having?", a: "Yes. A claimed, complete Yelp page can show up in Google results, can receive quote requests, and is one of the sources AI assistants read. Keep its details identical to your Google Business Profile." },
       { q: "Why do competitor ads show on my Yelp page?", a: "Yelp sells ad placements that can appear on other businesses' pages. Removing them from your own page is a paid upgrade." },
-      { q: "What does Enoma cost?", a: "Your first month is free, with no credit card. After that it's $19.99 a month to keep your page live, and that includes personal support. No contract; cancel anytime." },
+      { q: "What does Enoma cost?", a: "Seeing your page is free, with no card. To go live: $1 for your first month, then $19.99/month or $199/year. Cancel anytime. That includes personal support, and there's no contract." },
     ],
     ctaH2: "Get a page with no competitor ads on it",
     ctaSub: "Pick your business on Google and see your page in about 30 seconds. Every call and quote request goes straight to you.",
@@ -637,4 +637,21 @@ export const GUIDES = [
 
 // One label everywhere a CTA leads to the instant-preview signup.
 export const CTA_LABEL = "See your page in 30 seconds →";
-export const CTA_PROOF = "First month free &nbsp;·&nbsp; No credit card &nbsp;·&nbsp; $19.99/mo after &nbsp;·&nbsp; Cancel anytime";
+// The standing price line (Operating Doc): wherever a price or "$1" appears,
+// the full line is in the same view. api/_lib/pricing.js PRICE_LINE.
+export const CTA_PROOF = "Free preview, no card &nbsp;·&nbsp; $1 for your first month, then $19.99/month or $199/year. Cancel anytime.";
+
+// Trade pages under /for/ (hand-written HTML, not guides). The homepage's
+// "See an example for:" chips are rendered from this list by
+// scripts/build-guides.mjs; tests/homepage.test.js checks each page exists.
+// The homepage shows at most HOMEPAGE_TRADE_CHIPS of them.
+export const TRADE_PAGES = [
+  { label: "Landscapers", slug: "website-for-landscaping-business" },
+  { label: "Plumbers", slug: "website-for-plumbing-business" },
+  { label: "Cleaners", slug: "website-for-cleaning-business" },
+  { label: "Electricians", slug: "website-for-electrician" },
+  { label: "HVAC", slug: "website-for-hvac-business" },
+  { label: "Painters", slug: "website-for-painting-contractor" },
+  { label: "Contractors", slug: "website-builder-for-contractors" },
+];
+export const HOMEPAGE_TRADE_CHIPS = 8;

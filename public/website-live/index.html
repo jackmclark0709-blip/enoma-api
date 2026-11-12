@@ -55,7 +55,7 @@
 
   <!-- Trial expires notice -->
   <div class="expires-bar">
-    ⏰ <span>Your free trial ends on <strong id="trial-end-date">April 21, 2026</strong> — subscribe to keep your website live.</span>
+    ⏰ <span id="expires-text">Your free trial ends on <strong id="trial-end-date">April 21, 2026</strong> — subscribe to keep your website live.</span>
   </div>
 
   <!-- Subscribe card -->
@@ -149,14 +149,21 @@ function initSupabase() {
       });
     };
     if (businessId) {
-      sb.from('subscriptions')
-        .select('is_trial, trial_expires_at')
-        .eq('business_id', businessId)
-        .maybeSingle()
+      // pricing_version: v2 pages ($1 first month) are a preview until the
+      // owner goes live through checkout. Before that column exists the
+      // select fails and we fall back to the legacy fields.
+      var subQuery = function (cols) { return sb.from('subscriptions').select(cols).eq('business_id', businessId).maybeSingle(); };
+      subQuery('is_trial, trial_expires_at, pricing_version, stripe_subscription_id, provider')
+        .then(function (res) { return res.error ? subQuery('is_trial, trial_expires_at') : res; })
         .then(function(res) {
           var sub = res.data;
+          var v2 = !!sub && sub.pricing_version === 'v2_1dollar' && !sub.stripe_subscription_id && sub.provider !== 'comped';
           if (sub && sub.trial_expires_at) {
             var d = new Date(sub.trial_expires_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+            if (v2) {
+              document.getElementById('expires-text').innerHTML = 'This is your preview, up until <strong id="trial-end-date"></strong>. Go live to show it on Google and keep it up. $1 for your first month, then $19.99/month or $199/year. Cancel anytime.';
+              var h = document.querySelector('.trial-header h2'); if (h) h.textContent = 'Go live';
+            }
             document.getElementById('trial-end-date').textContent = d;
           }
           mountPicker(sub || null);

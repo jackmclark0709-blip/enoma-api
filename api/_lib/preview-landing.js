@@ -286,12 +286,12 @@ export function renderLanding(profile, { callouts = [], working = [], slug, m = 
       </div>
       <div class="hero-ctas">
         <div class="cta-row">
-          <a class="b b-primary" id="cta-claim" href="${esc(links.claim)}" data-cta="claim" data-where="hero">Claim my page, first month free</a>
+          <a class="b b-primary" id="cta-claim" href="${esc(links.claim)}" data-cta="claim" data-where="hero">Claim my page, free</a>
           <button class="b b-secondary" id="cta-text" type="button" data-panel="hero-text" data-cta="text" data-where="hero">Text Jack</button>
           <a class="b b-secondary" id="cta-email" href="${esc(mailto)}" data-email data-cta="email" data-where="hero">Email Jack</a>
         </div>
-        <p class="fine">First month free, then $19.99/month or $199/year. No contract, cancel anytime.</p>
-        <a class="sub-link" id="cta-subscribe" href="${esc(links.subscribe)}" data-cta="subscribe" data-where="hero">Or subscribe now: $19.99/month or $199/year</a>
+        <p class="fine">$1 for your first month, then $19.99/month or $199/year. Cancel anytime. No contract.</p>
+        <a class="sub-link" id="cta-subscribe" href="${esc(links.subscribe)}" data-cta="subscribe" data-where="hero">Or go live now: $1 for your first month</a>
 ${textForm("hero-text")}
       </div>
     </div>
@@ -318,7 +318,7 @@ ${textForm("hero-text")}
     </div>
     <div class="notes-after">
       <p>Each one is a few minutes of your time, and I do the work.</p>
-      <a class="b b-primary" href="${esc(links.claim)}" data-cta="claim" data-where="notes">Claim my page, first month free</a>
+      <a class="b b-primary" href="${esc(links.claim)}" data-cta="claim" data-where="notes">Claim my page, free</a>
     </div>
     <button class="notes-bar" id="notes-bar" type="button" aria-haspopup="dialog" aria-controls="notes-sheet" hidden><span class="av" aria-hidden="true">J</span>Jack's notes (${n})</button>
     <div class="sheet-back" id="sheet-back" hidden></div>
@@ -335,13 +335,13 @@ ${textForm("hero-text")}
     <div>
       <h2 id="catch-h">What's the catch?</h2>
       <ul>
-        <li>Your first month is free.</li>
-        <li>Then $19.99/month or $199/year, with me as your account manager: your changes go live within two business days.</li>
+        <li>Claiming and editing your page is free, with no card.</li>
+        <li>Going live is $1 for your first month, then $19.99/month or $199/year, with me as your account manager: your changes go live within two business days.</li>
         <li>No per-lead fees, no contract. Cancel anytime.</li>
         <li>A page for any extra service you want found for: $9.99/month each.</li>
       </ul>
     </div>
-    <div class="price"><b>$19.99</b><span>a month after the free month, or $199/year</span></div>
+    <div class="price"><b>$1</b><span>for your first month, then $19.99/month or $199/year. Cancel anytime.</span></div>
   </section>
 
   <section class="contact" aria-labelledby="contact-h">

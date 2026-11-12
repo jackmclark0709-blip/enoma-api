@@ -81,18 +81,18 @@ test("checkout: monthly and yearly pick their lookup keys, both respecting the f
   const sub = freeMonth(10 * DAY);
   const m = checkoutPlanFor({ interval: "month", sub, now: NOW });
   const y = checkoutPlanFor({ interval: "year", sub, now: NOW });
-  assert.deepEqual(m, { lookupKey: "enoma_page_monthly", interval: "month", trialEnd: Math.floor((NOW + 10 * DAY) / 1000) });
-  assert.deepEqual(y, { lookupKey: "enoma_page_annual", interval: "year", trialEnd: Math.floor((NOW + 10 * DAY) / 1000) });
+  assert.deepEqual(m, { lookupKey: "enoma_page_monthly", interval: "month", trialEnd: Math.floor((NOW + 10 * DAY) / 1000), firstMonthFee: false, pricingVersion: null });
+  assert.deepEqual(y, { lookupKey: "enoma_page_annual", interval: "year", trialEnd: Math.floor((NOW + 10 * DAY) / 1000), firstMonthFee: false, pricingVersion: null });
 });
 
 test("checkout: no subscription row -> charged now, default monthly", () => {
-  assert.deepEqual(checkoutPlanFor({ now: NOW }), { lookupKey: "enoma_page_monthly", interval: "month", trialEnd: null });
+  assert.deepEqual(checkoutPlanFor({ now: NOW }), { lookupKey: "enoma_page_monthly", interval: "month", trialEnd: null, firstMonthFee: false, pricingVersion: null });
 });
 
 test("checkout: partner price is monthly even when yearly is picked", () => {
   const partner = { active: true, partner_pricing: true };
   assert.deepEqual(checkoutPlanFor({ referrer: partner, interval: "year", now: NOW }),
-    { lookupKey: "enoma_page_partner_monthly", interval: "month", trialEnd: null });
+    { lookupKey: "enoma_page_partner_monthly", interval: "month", trialEnd: null, firstMonthFee: false, pricingVersion: null });
 });
 
 // ── subscribed / page live ──

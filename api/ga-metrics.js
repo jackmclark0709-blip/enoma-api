@@ -29,12 +29,16 @@ import { plainTextToHtml, wrapEmailHtml } from "./_lib/email-html.js";
 import { rampCapForDate, capWithBounceBrake, followUpAllowance, secondFollowUpAllowance } from "./_lib/outreach-ramp.js";
 import { townForDate, tradeForDate } from "./_lib/prospect-rotation.js";
 import { Resend } from "resend";
+import Stripe from "stripe";
 import { isGrandfathered } from "./_lib/trial-policy.js";
 import { hasLiveStripeSubscription } from "./_lib/billing.js";
+import { writeNewSubscription, pricingVersionForNewSignup, PRICING_V2 } from "./_lib/pricing.js";
 import {
   planTrialReminders, buildTrialReminderEmail, buildSubscribeUrl, formatEndsOn, buildJackSummary,
   JACK_USER_ID, LOOKBACK_MS, LOOKAHEAD_MS,
+  chargeReminderDue, chargeReminderSkipReason, buildChargeReminderEmail, buildManageBillingUrl, buildCheckoutLinkEmail,
 } from "./_lib/trial-reminders.js";
+import { createPageCheckoutSession } from "./_lib/page-checkout.js";
 import { pageLookupKeyFor, planByLookupKey, formatAmount } from "../data/plans.mjs";
 import { lintCopy } from "./_lib/copy-lint.js";
 import {
@@ -47,6 +51,8 @@ import {
 // the webhook, and the sales-queue dashboard all live here) at import time.
 // Guarded the same way as api/send-contact.js.
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+// Same guard for Stripe (charge reminders and Jack's checkout links).
+const stripeClient = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 
 const client = new BetaAnalyticsDataClient({
   credentials: {
@@ -728,7 +734,8 @@ async function generatePreviewForProspect(prospect, { homeHtml, force = false, g
 
   // Unclaimed previews stay visitable for PREVIEW_TRIAL_DAYS (website_is_active
   // reads this row), then show the inactive page unless claimed.
-  const { error: subErr } = await supabase.from("subscriptions").insert({
+  // pricing_version: new previews are on the $1 first month (api/_lib/pricing.js).
+  const { error: subErr } = await writeNewSubscription((row) => supabase.from("subscriptions").insert(row), {
     business_id: biz.id, provider: "stripe", plan_code: "starter", status: "trialing", is_trial: true,
     trial_starts_at: new Date().toISOString(),
     trial_expires_at: new Date(Date.now() + trialDays * 86400000).toISOString(),
@@ -815,12 +822,16 @@ async function handleResultsEmail(req, res) {
 // rules for who and when live in planTrialReminders so they're unit-tested.
 // ?dry_run=1 returns what would go out without inserting or sending.
 async function loadTrialReminderCandidates(now) {
-  const { data: subs, error } = await supabase
+  const query = (cols) => supabase
     .from("subscriptions")
-    .select("business_id, provider, status, stripe_subscription_id, is_trial, trial_expires_at, businesses(slug, name, is_internal, created_at, referred_by)")
+    .select(`business_id, provider, status, stripe_subscription_id, is_trial, trial_expires_at, ${cols}businesses(slug, name, is_internal, created_at, referred_by)`)
     .eq("is_trial", true)
     .gte("trial_expires_at", new Date(now - LOOKBACK_MS).toISOString())
     .lte("trial_expires_at", new Date(now + LOOKAHEAD_MS).toISOString());
+  // pricing_version picks the v2 wording (preview, not free month). Before
+  // 20261112_pricing_version.sql is applied the column is missing: legacy.
+  let { data: subs, error } = await query("pricing_version, ");
+  if (error && /pricing_version/.test(error.message || "")) ({ data: subs, error } = await query(""));
   if (error) throw error;
   if (!subs?.length) return [];
   const ids = [...new Set(subs.map((s) => s.business_id))];
@@ -896,6 +907,126 @@ function trialReminderPrices(referrer) {
   };
 }
 
+// v2 subscriptions in their $1 first month ("trialing" in Stripe) whose
+// first full charge (current_period_end = trial end) is within 4 days.
+async function loadChargeReminderCandidates(now) {
+  const { data: subs, error } = await supabase
+    .from("subscriptions")
+    .select("business_id, provider, status, stripe_subscription_id, pricing_version, billing_interval, current_period_end, cancel_at_period_end, businesses(slug, name, is_internal)")
+    .eq("pricing_version", PRICING_V2)
+    .eq("status", "trialing")
+    .not("stripe_subscription_id", "is", null)
+    .gt("current_period_end", new Date(now).toISOString())
+    .lte("current_period_end", new Date(now + 4 * 86400000).toISOString());
+  if (error) {
+    if (/pricing_version/.test(error.message || "")) return [];
+    throw error;
+  }
+  if (!subs?.length) return [];
+  const ids = [...new Set(subs.map((s) => s.business_id))];
+  const [profilesRes, membersRes, sentRes] = await Promise.all([
+    supabase.from("small_business_profiles").select("business_id, username, business_name, owner_name, email").in("business_id", ids),
+    supabase.from("business_members").select("business_id, user_id").eq("role", "owner").in("business_id", ids),
+    supabase.from("trial_reminders").select("business_id, kind").in("business_id", ids),
+  ]);
+  for (const r of [profilesRes, membersRes, sentRes]) if (r.error) throw r.error;
+  const profileBy = new Map((profilesRes.data || []).map((p) => [p.business_id, p]));
+  const sentBy = new Map();
+  for (const r of sentRes.data || []) sentBy.set(r.business_id, [...(sentBy.get(r.business_id) || []), r.kind]);
+  const out = [];
+  for (const s of subs) {
+    const p = profileBy.get(s.business_id) || {};
+    const owner = (membersRes.data || []).find((m) => m.business_id === s.business_id && m.user_id !== JACK_USER_ID);
+    let ownerEmail = null;
+    if (owner) {
+      const { data } = await supabase.auth.admin.getUserById(owner.user_id);
+      ownerEmail = data?.user?.email || null;
+    }
+    out.push({
+      businessId: s.business_id, slug: s.businesses?.slug || p.username, username: p.username,
+      businessName: p.business_name || s.businesses?.name, ownerName: p.owner_name,
+      isInternal: s.businesses?.is_internal === true, ownerEmail, sub: s, sent: sentBy.get(s.business_id) || [],
+    });
+  }
+  return out;
+}
+
+// What Stripe will charge on the first full invoice: every recurring item
+// (page plan + service pages), and whether it's the partner price. Falls
+// back to the plan's list price.
+async function firstFullCharge(sub) {
+  if (stripeClient && sub.stripe_subscription_id) {
+    try {
+      const st = await stripeClient.subscriptions.retrieve(sub.stripe_subscription_id);
+      const items = st.items?.data || [];
+      const cents = items.reduce((sum, i) => sum + (i.price?.unit_amount || 0) * (i.quantity || 1), 0);
+      const partner = items.some((i) => i.price?.lookup_key === "enoma_page_partner_monthly");
+      if (cents > 0) return { cents, partner };
+    } catch (e) { console.warn("charge reminder: Stripe lookup failed:", e?.message); }
+  }
+  return { cents: planByLookupKey(sub.billing_interval === "year" ? "enoma_page_annual" : "enoma_page_monthly")?.fallbackAmount ?? null, partner: false };
+}
+
+// Page views and contact clicks (people only) since the owner went live.
+async function activitySince(slug, sinceIso) {
+  if (!slug) return null;
+  try {
+    const [{ count: views, error: e1 }, { count: contactClicks, error: e2 }] = await Promise.all([
+      supabase.from("page_events").select("id", { count: "exact", head: true })
+        .eq("slug", slug).eq("event", "page_view").eq("traffic_class", "human").gte("created_at", sinceIso),
+      supabase.from("page_events").select("id", { count: "exact", head: true })
+        .eq("slug", slug).eq("event", "contact_click").eq("traffic_class", "human").gte("created_at", sinceIso),
+    ]);
+    if (e1 || e2) return null;
+    return { views: views || 0, contactClicks: contactClicks || 0 };
+  } catch { return null; }
+}
+
+async function runChargeReminders({ now, dryRun }) {
+  const out = { sent: [], failed: [], skipped: [], preview: [] };
+  const candidates = await loadChargeReminderCandidates(now);
+  for (const c of candidates) {
+    const reason = chargeReminderSkipReason(c);
+    if (reason) { out.skipped.push({ slug: c.slug, reason: `charge_${reason}` }); continue; }
+    const kind = chargeReminderDue({ chargeAt: c.sub.current_period_end, now, sent: c.sent });
+    if (!kind) { out.skipped.push({ slug: c.slug, reason: "charge_nothing_due" }); continue; }
+    const { cents, partner } = await firstFullCharge(c.sub);
+    // The $1 month started 30 days before the first full charge.
+    const wentLive = new Date(new Date(c.sub.current_period_end).getTime() - 30 * 86400000).toISOString();
+    const email = buildChargeReminderEmail({
+      businessName: c.businessName, ownerFirstName: (c.ownerName || "").trim().split(/\s+/)[0] || null,
+      amount: formatAmount(cents), interval: c.sub.billing_interval === "year" ? "year" : "month",
+      chargeDate: c.sub.current_period_end, activity: await activitySince(c.username || c.slug, wentLive),
+      manageUrl: buildManageBillingUrl(c.businessId), partner,
+    });
+    if (!email) { out.skipped.push({ slug: c.slug, reason: "charge_no_amount" }); continue; }
+    if (dryRun) { out.preview.push({ business: c.businessName, kind, to: c.ownerEmail, subject: email.subject, text: email.text }); continue; }
+    if (!resend) throw new Error("RESEND_API_KEY not configured");
+    const { data: row, error: insErr } = await supabase.from("trial_reminders")
+      .insert({ business_id: c.businessId, kind }).select("id").single();
+    if (insErr) {
+      if (insErr.code === "23505") out.skipped.push({ slug: c.slug, reason: "charge_already_sent" });
+      else out.failed.push({ business: c.businessName, kind, error: insErr.message });
+      continue;
+    }
+    // A billing notice, not marketing: no unsubscribe link, sent even to
+    // addresses on the outreach suppression list.
+    const { data: sendData, error: sendErr } = await resend.emails.send({
+      from: "Jack at Enoma <jack@enoma.io>", to: c.ownerEmail, replyTo: "jack@enoma.io",
+      subject: email.subject, text: email.text, html: email.html,
+    });
+    if (sendErr) {
+      await supabase.from("trial_reminders").delete().eq("id", row.id);
+      out.failed.push({ business: c.businessName, kind, error: sendErr.message });
+      await logNotificationFailure("charge_reminder", c.ownerEmail, sendErr, { business_id: c.businessId, kind });
+      continue;
+    }
+    await supabase.from("trial_reminders").update({ resend_id: sendData?.id || null }).eq("id", row.id);
+    out.sent.push({ businessName: c.businessName, kind });
+  }
+  return out;
+}
+
 async function handleTrialReminders(req, res) {
   const dryRun = req.query.dry_run === "1";
   const now = Date.now();
@@ -910,7 +1041,7 @@ async function handleTrialReminders(req, res) {
     const email = buildTrialReminderEmail({
       kind: c.kind, businessName: c.businessName, ownerFirstName: (c.ownerName || "").trim().split(/\s+/)[0] || null,
       pageUrl, endsOn: formatEndsOn(c.sub.trial_expires_at), turnsOff: c.turnsOff,
-      ...trialReminderPrices(c.referrer),
+      ...trialReminderPrices(c.referrer), pricingVersion: c.sub.pricing_version || null,
       subscribeUrl: buildSubscribeUrl(c.businessId, c.kind), unsubscribeUrl: buildUnsubscribeUrl(c.ownerEmail),
     });
     if (!email) { skipped.push({ slug: c.slug, reason: "no_email_for_kind" }); continue; }
@@ -942,6 +1073,13 @@ async function handleTrialReminders(req, res) {
     await supabase.from("trial_reminders").update({ resend_id: sendData?.id || null }).eq("id", row.id);
     sent.push({ businessName: c.businessName, kind: c.kind });
   }
+
+  // Pricing v2: 3 days before the first full charge (after the $1 month).
+  const charge = await runChargeReminders({ now, dryRun });
+  sent.push(...charge.sent);
+  failed.push(...charge.failed);
+  skipped.push(...charge.skipped);
+  preview.push(...charge.preview);
 
   const summary = buildJackSummary(sent);
   if (summary && !dryRun) {
@@ -1053,7 +1191,7 @@ async function handleInstantPreview(req, res) {
   const funnel = (event, metadata = {}, businessId = null) => logFunnelEvent(supabase, req, {
     event, anonId: req.body?.anon_id, businessId, attribution: req.body?.attribution,
     referrer: typeof req.body?.ref === "string" ? req.body.ref : null,
-    metadata: { place_id: placeId, path: "instant_preview", ...metadata }
+    metadata: { place_id: placeId, path: "instant_preview", pricing_version: pricingVersionForNewSignup() || "v1", ...metadata }
   });
   await funnel("generation_started");
   const failed = async (status, body, error) => {
@@ -1430,7 +1568,7 @@ Do NOT mention pricing (it's in the line added after), and do NOT add a closing 
     brief = `STRUCTURE:
 1. One line: I'm Jack; I build simple websites for trades businesses.
 2. ${gaps.length && siteHost ? `Name ONE of these verified problems with ${siteHost} and why it costs them calls: ${gaps[0]}` : `They don't have a website, so homeowners who search for a ${prospect.trade || "local service"} business can't find a page for them.`}
-3. Enoma builds a one-page site made to turn a local search into a call. First month free, then $19.99/month; no contract.
+3. Enoma builds a one-page site made to turn a local search into a call. $1 for your first month, then $19.99/month or $199/year. Cancel anytime. No contract.
 4. Close, exactly: "Want me to build yours? Reply \"yes\" and I'll set it up — or find your business at ${SIGNUP_URL} and see your page in about 30 seconds."`;
   }
 
@@ -2983,6 +3121,7 @@ const FUNNEL_STEP_ORDER = [
   "signup_submitted",
   "account_created",
   "checkout_started",
+  "checkout_completed",
   "subscription_activated",
   // Older step names (rows before Nov 2026, and pages that still send them).
   "instant_preview_started",
@@ -3223,6 +3362,61 @@ async function handleCopyAudit(req, res) {
   return res.status(200).json({ success: true, generated_at: new Date().toISOString(), pages_checked: (data || []).length, pages_with_issues: pages.length, totals, pages });
 }
 
+// Done-for-you path: after the setup call, Jack creates (and optionally
+// emails) the same Stripe Checkout the owner would get from the dashboard,
+// for one claimed page. POST { business_id, interval: "month"|"year", send }.
+// Only claimed pages with a real owner: the owner's sign-in email becomes the
+// Stripe customer email, and the webhook ties the payment to the business.
+async function handleCheckoutLink(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+  const user = await requireAdmin(req);
+  if (!user) return res.status(401).json({ error: "Unauthorized" });
+  if (!stripeClient) return res.status(503).json({ error: "STRIPE_SECRET_KEY not configured" });
+
+  const businessId = String(req.body?.business_id || "");
+  const interval = req.body?.interval === "year" ? "year" : "month";
+  if (!isUuid(businessId)) return res.status(400).json({ error: "business_id required" });
+
+  const { data: profile } = await supabase.from("small_business_profiles")
+    .select("business_name, owner_name, is_claimed").eq("business_id", businessId).maybeSingle();
+  if (!profile) return res.status(404).json({ error: "No page for that business" });
+  if (profile.is_claimed !== true) return res.status(409).json({ error: "The owner hasn't claimed this page yet. Send them the claim link first." });
+  const { data: members } = await supabase.from("business_members").select("user_id").eq("business_id", businessId).eq("role", "owner");
+  const owner = (members || []).find((m) => m.user_id !== JACK_USER_ID);
+  if (!owner) return res.status(409).json({ error: "This page has no owner account besides Jack." });
+  const { data: ownerUser } = await supabase.auth.admin.getUserById(owner.user_id);
+  const ownerEmail = ownerUser?.user?.email || null;
+
+  const result = await createPageCheckoutSession({
+    stripe: stripeClient, supabase, businessId, interval,
+    customer: { email: ownerEmail, userId: owner.user_id }, source: "admin_link",
+  });
+  if (result.status !== 200) return res.status(result.status).json({ error: result.error });
+
+  await logFunnelEvent(supabase, req, {
+    event: "checkout_started", businessId, trafficClass: "internal",
+    metadata: { interval: result.plan.interval, lookup_key: result.plan.lookupKey, pricing_version: result.plan.pricingVersion || "v1", first_month_fee: !!result.plan.firstMonthFee, source: "admin_link" },
+  });
+
+  let emailed = false;
+  if (req.body?.send === true) {
+    if (!ownerEmail) return res.status(200).json({ success: true, url: result.url, emailed: false, error: "No owner email; copy the link instead." });
+    if (!resend) throw new Error("RESEND_API_KEY not configured");
+    const email = buildCheckoutLinkEmail({
+      businessName: profile.business_name, ownerFirstName: (profile.owner_name || "").trim().split(/\s+/)[0] || null,
+      url: result.url, interval: result.plan.interval, chargeDate: result.plan.trialEnd,
+      firstMonth: !!result.plan.firstMonthFee, partner: result.plan.lookupKey === "enoma_page_partner_monthly",
+    });
+    const { error: sendErr } = await resend.emails.send({
+      from: "Jack at Enoma <jack@enoma.io>", to: ownerEmail, replyTo: "jack@enoma.io",
+      subject: email.subject, text: email.text, html: email.html,
+    });
+    if (sendErr) return res.status(502).json({ error: sendErr.message, url: result.url });
+    emailed = true;
+  }
+  return res.status(200).json({ success: true, url: result.url, emailed, to: ownerEmail, first_month_fee: !!result.plan.firstMonthFee });
+}
+
 async function handleBusinessPagesStatus(req, res) {
   const user = await requireAdmin(req);
   if (!user) return res.status(401).json({ error: "Unauthorized" });
@@ -3426,6 +3620,15 @@ export default async function handler(req, res) {
       return await handleCopyAudit(req, res);
     } catch (err) {
       console.error("Copy audit failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.query.action === "checkout_link") {
+    try {
+      return await handleCheckoutLink(req, res);
+    } catch (err) {
+      console.error("Checkout link failed:", err);
       return res.status(500).json({ success: false, error: err.message });
     }
   }

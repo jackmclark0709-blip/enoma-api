@@ -42,7 +42,7 @@ test("src=comment swaps the hero, adds the price line and focuses the search box
   const { doc, api } = loadEntry("?src=comment&ch=fb&kw=PAGE");
   assert.equal(doc.nodes[".copy .headline"].textContent, "Here’s the free preview you asked for");
   assert.equal(doc.nodes[".copy .subhead"].textContent, "Find your business below and see your page in about a minute.");
-  assert.equal(doc.nodes[".copy .page-line"].textContent, "First month free, then $19.99/month or $199/year. Cancel anytime.");
+  assert.equal(doc.nodes[".copy .page-line"].textContent, "$1 for your first month, then $19.99/month or $199/year. Cancel anytime.");
   assert.equal(doc.input.focused, 1);
   assert.ok(doc.classes.has("from-comment"));
   assert.deepEqual({ ...api.params("?src=comment&ch=ig&kw=page") }, { src: "comment", ch: "ig", kw: "PAGE" });

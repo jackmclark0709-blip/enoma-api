@@ -12,6 +12,12 @@
 // trial_expires_at) has more than 48 hours left, the subscription gets a
 // trial_end so the first charge is the day the free month ends
 // (api/_lib/billing.js trialEndFor). Otherwise they're charged at checkout.
+//
+// Pricing v2 ($1 first month, api/_lib/pricing.js): accounts with
+// subscriptions.pricing_version = 'v2_1dollar' that have never subscribed get
+// a one-time $1 line item today and the plan on a 30-day trial. The session
+// itself is built in api/_lib/page-checkout.js (shared with Jack's
+// "send checkout link" in api/ga-metrics.js).
 // Called from the dashboard, /upgrade and /website-live (public/scripts/plan-picker.js).
 //
 // Service pages: each PUBLISHED service page (service_spotlights) is a
@@ -38,14 +44,14 @@
 
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
-import { PLANS, LOOKUP_KEYS } from '../data/plans.mjs';
-import { normalizeInterval, checkoutPlanFor, hasLiveStripeSubscription, pageItemOf, spotlightLookupKeyFor } from './_lib/billing.js';
+import { PLANS } from '../data/plans.mjs';
+import { normalizeInterval, checkoutPlanFor, pageItemOf, spotlightLookupKeyFor } from './_lib/billing.js';
 import {
-  loadSpotlightBillingState, spotlightBilling, syncSpotlightQuantity, checkoutSubscriptionParams,
+  loadSpotlightBillingState, spotlightBilling, syncSpotlightQuantity,
   billingSummary, spotlightItemOf,
 } from './_lib/spotlight-billing.js';
-import { utmMetadata } from './_lib/attribution.js';
 import { logFunnelEvent } from './_lib/tracking.js';
+import { createPageCheckoutSession, pricesByLookupKey as livePrices, referrerFor as referrerOf } from './_lib/page-checkout.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const supabase = createClient(
@@ -53,16 +59,8 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Live prices by lookup key, cached per warm instance for 10 minutes.
-let priceCache = { at: 0, byKey: null };
-async function pricesByLookupKey() {
-  if (priceCache.byKey && Date.now() - priceCache.at < 10 * 60 * 1000) return priceCache.byKey;
-  const { data } = await stripe.prices.list({ lookup_keys: LOOKUP_KEYS, active: true, limit: 10 });
-  const byKey = {};
-  for (const price of data || []) if (price.lookup_key) byKey[price.lookup_key] = price;
-  priceCache = { at: Date.now(), byKey };
-  return byKey;
-}
+const pricesByLookupKey = () => livePrices(stripe);
+const referrerFor = (business_id) => referrerOf(supabase, business_id);
 
 async function handlePlans(req, res) {
   try {
@@ -82,33 +80,6 @@ async function handlePlans(req, res) {
   } catch (e) {
     console.error('plans lookup failed:', e?.message);
     return res.status(200).json({ plans: [], error: 'unavailable' });
-  }
-}
-
-// First-touch utm_* values for Stripe metadata (businesses.first_touch,
-// filled when the page was claimed). Missing column or row -> {}.
-async function firstTouchUtm(business_id) {
-  try {
-    const { data, error } = await supabase.from('businesses').select('first_touch').eq('id', business_id).maybeSingle();
-    if (error) return {};
-    return utmMetadata(data?.first_touch);
-  } catch {
-    return {};
-  }
-}
-
-// The partner price applies only when the business was referred by an active
-// partner with partner_pricing on. Missing column or row -> standard price.
-async function referrerFor(business_id) {
-  try {
-    const { data: biz } = await supabase.from('businesses').select('referred_by').eq('id', business_id).maybeSingle();
-    if (!biz?.referred_by) return null;
-    const { data: ref, error } = await supabase.from('referrers')
-      .select('code, active, partner_pricing').eq('code', biz.referred_by).maybeSingle();
-    if (error) return null;
-    return ref || null;
-  } catch {
-    return null;
   }
 }
 
@@ -133,7 +104,6 @@ export default async function handler(req, res) {
   const interval = normalizeInterval(req.body?.interval);
   if (!interval) return res.status(400).json({ error: 'interval must be "month" or "year"' });
 
-
   // Verify the user owns this business
   const { data: membership } = await supabase
     .from('business_members')
@@ -144,123 +114,22 @@ export default async function handler(req, res) {
 
   if (!membership) return res.status(403).json({ error: 'Not your business' });
 
-  // Check if already subscribed
-  const { data: existingSub } = await supabase
-    .from('subscriptions')
-    .select('status, stripe_subscription_id, stripe_customer_id, is_trial, trial_expires_at')
-    .eq('business_id', business_id)
-    .maybeSingle();
-
-  // "trialing" with a Stripe subscription id = already subscribed during the
-  // free month (card on file, first charge pending).
-  if (hasLiveStripeSubscription(existingSub)) {
-    return res.status(400).json({ error: 'Already subscribed' });
-  }
-
-  // Get or create Stripe customer
-  let stripeCustomerId = existingSub?.stripe_customer_id;
-
-  if (!stripeCustomerId) {
-    const { data: profile } = await supabase
-      .from('small_business_profiles')
-      .select('business_name, email')
-      .eq('business_id', business_id)
-      .maybeSingle();
-
-    const customer = await stripe.customers.create({
-      email: user.email,
-      name: profile?.business_name || user.email,
-      metadata: {
-        supabase_user_id: user.id,
-        business_id,
-      },
-    });
-    stripeCustomerId = customer.id;
-
-    // Save customer ID immediately
-    await supabase
-      .from('subscriptions')
-      .upsert({
-        business_id,
-        stripe_customer_id: stripeCustomerId,
-        provider: 'stripe',
-        status: existingSub?.status || 'trialing',
-        plan_code: 'starter',
-        is_trial: existingSub?.is_trial ?? true,
-      }, { onConflict: 'business_id' });
-  }
-
-  // Pick the price: partner (monthly only) or standard monthly/yearly, by
-  // lookup key. Only the monthly price has an env fallback; a missing yearly
-  // price must never fall through to charging monthly.
-  // trialEnd: first charge when the free month ends, if it has more than 48h left.
-  const { lookupKey, interval: billedInterval, trialEnd } =
-    checkoutPlanFor({ referrer: await referrerFor(business_id), interval, sub: existingSub });
-  let priceId = null;
-  try {
-    priceId = (await pricesByLookupKey())[lookupKey]?.id || null;
-  } catch (e) {
-    console.error('price lookup failed:', e?.message);
-  }
-  if (!priceId && lookupKey === 'enoma_page_monthly') priceId = process.env.STRIPE_MONTHLY_PRICE_ID || null;
-  if (!priceId) {
-    return res.status(503).json({ error: 'Subscriptions are opening shortly. Email jack@enoma.io and we\'ll keep your page live in the meantime.' });
-  }
-  const utm = await firstTouchUtm(business_id);
-  const metadata = {
-    business_id,
-    supabase_user_id: user.id,
-    lookup_key: lookupKey,
-    interval: billedInterval,
-    ...utm,
-  };
-
-  // Service pages published before subscribing (free month, grandfathered,
-  // or never subscribed) become the second line item, on the add-on price
-  // for the interval being bought (Stripe needs one interval per
-  // subscription). Comped -> none.
-  const spotState = await loadSpotlightBillingState(supabase, business_id);
-  let spotlightPriceId = null;
-  if (spotState.published) {
-    try { spotlightPriceId = (await pricesByLookupKey())[spotlightLookupKeyFor(billedInterval)]?.id || null; } catch { /* handled below */ }
-  }
-  const params = checkoutSubscriptionParams({
-    pagePriceId: priceId,
-    published: spotState.published,
-    billing: spotlightBilling({ sub: spotState.sub, business: spotState.business }),
-    spotlightPriceId,
-    trialEnd,
-    metadata,
+  const result = await createPageCheckoutSession({
+    stripe, supabase, businessId: business_id, interval,
+    customer: { email: user.email, userId: user.id }, source: 'dashboard',
   });
-  if (params.error) {
-    return res.status(503).json({ error: 'Subscriptions are opening shortly. Email jack@enoma.io and we\'ll keep your page live in the meantime.' });
-  }
-
-  let pageAmountCents = null;
-  try { pageAmountCents = (await pricesByLookupKey())[lookupKey]?.unit_amount ?? null; } catch { /* only used for GA */ }
-  // ?session_id/plan/value let the dashboard send GA4's purchase event once.
-  const successParams = new URLSearchParams({ subscribed: '1', business_id, plan: billedInterval });
-  if (pageAmountCents !== null) successParams.set('value', (pageAmountCents / 100).toFixed(2));
-
-  // Create Checkout session
-  const session = await stripe.checkout.sessions.create({
-    customer: stripeCustomerId,
-    mode: 'subscription',
-    payment_method_types: ['card'],
-    line_items: params.line_items,
-    subscription_data: params.subscription_data,
-    // {CHECKOUT_SESSION_ID} is filled in by Stripe (left unencoded on purpose).
-    success_url: `https://enoma.io/dashboard?${successParams.toString()}&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `https://enoma.io/dashboard?business_id=${business_id}`,
-    metadata,
-  });
+  if (result.status !== 200) return res.status(result.status).json({ error: result.error });
 
   await logFunnelEvent(supabase, req, {
     event: 'checkout_started', businessId: business_id, anonId: req.body?.anon_id,
-    metadata: { interval: billedInterval, lookup_key: lookupKey, ...utm }
+    metadata: {
+      interval: result.plan.interval, lookup_key: result.plan.lookupKey,
+      pricing_version: result.plan.pricingVersion || 'v1', first_month_fee: !!result.plan.firstMonthFee,
+      source: 'dashboard', ...result.utm,
+    }
   });
 
-  return res.status(200).json({ url: session.url });
+  return res.status(200).json({ url: result.url });
 }
 
 // Service-page add-on: recompute the published count and set the Stripe

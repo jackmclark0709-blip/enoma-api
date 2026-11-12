@@ -99,7 +99,7 @@ export function renderTownPage(p, { pairs, asOf, asOfLabel }) {
   const url = `https://enoma.io/for/${slug}`;
   const town = `${p.city}, ${p.st}`;
   const title = `Website for ${cap(t.plural)} in ${town} | Enoma`;
-  const desc = `Get your ${p.city} ${t.business} found on Google. We found ${p.n} ${t.plural} in ${p.city}; ${p.noSite + p.weakSite > 0 ? `${p.noSite + p.weakSite} had no website or a weak one. ` : ""}First month free, then $19.99/mo with personal support.`;
+  const desc = `Get your ${p.city} ${t.business} found on Google. We found ${p.n} ${t.plural} in ${p.city}; ${p.noSite + p.weakSite > 0 ? `${p.noSite + p.weakSite} had no website or a weak one. ` : ""}$1 for your first month, then $19.99/month or $199/year. Cancel anytime.`;
   const findings = localFindings(p, asOfLabel);
   const searches = t.searches.map(s => s.replace("{town}", p.city));
   const sibs = siblings(p, pairs);
@@ -108,18 +108,18 @@ export function renderTownPage(p, { pairs, asOf, asOfLabel }) {
     name: `Websites for ${t.plural} in ${town}`,
     provider: { "@type": "Organization", name: "Enoma", url: "https://enoma.io" },
     areaServed: { "@type": "City", name: p.city, containedInPlace: { "@type": "State", name: STATE_NAMES[p.st] || p.st } },
-    offers: { "@type": "Offer", price: "19.99", priceCurrency: "USD", description: "First month free, then $19.99/month to keep the page live, with personalized support." },
+    offers: { "@type": "Offer", price: "19.99", priceCurrency: "USD", description: "$1 for your first month, then $19.99/month or $199/year. Cancel anytime. Includes personalized support." },
     url,
   };
   const faq = {
     "@context": "https://schema.org", "@type": "FAQPage",
     mainEntity: [
       { "@type": "Question", name: `What does a website for a ${p.city} ${t.one} cost with Enoma?`,
-        acceptedAnswer: { "@type": "Answer", text: "Your first month is free, with no credit card. After that it's $19.99/month to keep the page live, and that includes personalized support. Cancel anytime." } },
+        acceptedAnswer: { "@type": "Answer", text: "Seeing your page is free, with no card. To go live: $1 for your first month, then $19.99/month or $199/year. Cancel anytime. That includes personalized support, and there's no contract." } },
       { "@type": "Question", name: `Will it show up when someone in ${p.city} searches?`,
         acceptedAnswer: { "@type": "Answer", text: `Nobody can honestly promise a ranking. Your page is built the way Google reads local businesses: your trade, ${p.city} and the towns you serve, your services and your number, and it's added to the sitemap Google crawls the day it goes live.` } },
       { "@type": "Question", name: "Do I have to build it myself?",
-        acceptedAnswer: { "@type": "Answer", text: "You can build it yourself in about 5 minutes, or we can set it up for you from a short call. Either way, changes are made for you when you ask." } },
+        acceptedAnswer: { "@type": "Answer", text: "Type in your business name and see your page in about 30 seconds. Not on Google yet, or your info is out of date? I'll build it with you. Either way, changes are made for you when you ask." } },
     ],
   };
   const sibLinks = sibs.map(o => `<a class="tp-chip" href="/for/${pageSlug(o)}">${esc(o.city)}, ${esc(o.st)}</a>`).join("\n        ");
@@ -165,12 +165,12 @@ export function renderTownPage(p, { pairs, asOf, asOfLabel }) {
   <div class="tp-wrap">
     <p class="tp-eyebrow">For ${esc(t.plural)} in ${esc(town)}</p>
     <h1>A website that gets ${esc(p.city)} homeowners <em>calling you</em></h1>
-    <p>A one-page site for your ${esc(t.business)}, built for one job: turning a local Google search into a call or a quote request. Build it in about 5 minutes, or we'll set it up for you.</p>
+    <p>A one-page site for your ${esc(t.business)}, built for one job: turning a local Google search into a call or a quote request. Type in your business name and see your page in about 30 seconds. Not on Google yet, or your info is out of date? I'll build it with you.</p>
     <div class="tp-actions">
       <a href="/get-your-website" class="btn btn--primary">See your page in 30 seconds →</a>
       <a href="/get-your-website" class="btn btn--on-dark">Have us set it up</a>
     </div>
-    <p class="tp-proof">First month free &nbsp;·&nbsp; No credit card &nbsp;·&nbsp; Then $19.99/mo with personal support</p>
+    <p class="tp-proof">Free preview, no card &nbsp;·&nbsp; $1 for your first month, then $19.99/month or $199/year. Cancel anytime.</p>
   </div>
 </section>
 
@@ -222,7 +222,7 @@ ${sibs.length ? `
 <section class="tp-cta">
   <div class="tp-wrap">
     <h2>Get your ${esc(p.city)} ${esc(t.business)} found</h2>
-    <p>Your page can be live today. If it isn't bringing in calls after your free month, walk away. No contract.</p>
+    <p>Your page can be live today. If it isn't bringing in calls after your $1 first month, walk away. No contract.</p>
     <div class="tp-actions">
       <a href="/get-your-website" class="btn btn--primary">See your page in 30 seconds →</a>
       <a href="/examples" class="btn btn--on-dark">See live examples</a>

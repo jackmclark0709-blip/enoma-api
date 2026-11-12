@@ -90,12 +90,22 @@ export default async function handler(req, res) {
     // Credit the referrer if this visitor arrived via a referral link.
     await attributeReferral(supabaseAdmin, req, profile.business_id);
 
+    // pricing_version on the claim, so claim -> paid can be compared before
+    // and after the $1 first month (api/_lib/pricing.js). No card is needed
+    // to claim on either version.
+    let pricingVersion = "v1";
+    try {
+      const { data: subRow } = await supabaseAdmin.from("subscriptions")
+        .select("pricing_version").eq("business_id", profile.business_id).maybeSingle();
+      pricingVersion = subRow?.pricing_version || "v1";
+    } catch { /* column missing before the migration: legacy */ }
+
     await logFunnelEvent(supabaseAdmin, req, {
       event: "business_claimed",
       businessId: profile.business_id,
       anonId: req.body?.anon_id,
       attribution: req.body?.first_touch,
-      metadata: { slug: profile.username, ...(req.body?.m ? { m: String(req.body.m).slice(0, 40) } : {}) }
+      metadata: { slug: profile.username, pricing_version: pricingVersion, ...(req.body?.m ? { m: String(req.body.m).slice(0, 40) } : {}) }
     });
 
     // Cold-outreach attribution. The prospect behind this preview page is
@@ -112,7 +122,9 @@ export default async function handler(req, res) {
         await supabaseAdmin.from("prospects").update({ status: "claimed", updated_at: now }).in("id", prospectIds);
       }
       // Instant previews built from the website only stay up for a week
-      // unclaimed; claiming one starts the normal free month from today.
+      // unclaimed; claiming one starts the normal free month from today
+      // (legacy) or, on pricing v2, a 30-day preview window to edit and
+      // decide before going live through checkout.
       const { data: inbound } = prospectIds.length
         ? await supabaseAdmin.from("prospects").select("id").in("id", prospectIds).eq("source", "inbound_lookup").limit(1)
         : { data: [] };

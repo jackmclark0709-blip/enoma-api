@@ -10,6 +10,7 @@ import fetch from "node-fetch";
 import { createClient } from "@supabase/supabase-js";
 import formidable from "formidable";
 import { Resend } from "resend";
+import { writeNewSubscription, pricingVersionForNewSignup } from "./_lib/pricing.js";
 import { attributeReferral } from "./_lib/referral.js";
 import { hasLiveStripeSubscription } from "./_lib/billing.js";
 import fs from "fs";
@@ -185,14 +186,15 @@ async function handleAdminGenerate(req, res) {
     user_id: ADMIN_USER_ID, business_id, role: "owner"
   });
 
-  await supabaseAdmin.from("subscriptions").upsert({
+  // pricing_version: new pages are on the $1 first month (api/_lib/pricing.js).
+  await writeNewSubscription((row) => supabaseAdmin.from("subscriptions").upsert(row, { onConflict: "business_id" }), {
     business_id, provider: "stripe", plan_code: "starter",
     status: "trialing", is_trial: true,
     trial_starts_at: new Date().toISOString(),
     trial_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     cancel_at_period_end: false,
     created_at: new Date().toISOString(), updated_at: new Date().toISOString()
-  }, { onConflict: "business_id" });
+  });
 
   const servicesList = services.join(", ") || "general landscaping services";
   const areasStr = areasServed.join(", ") || town;
@@ -388,7 +390,7 @@ export default async function handler(req, res) {
     if (!incomingBusinessId) {
       funnel = (event, metadata = {}, businessId = null) => logFunnelEvent(supabaseAdmin, req, {
         event, anonId: first(fields.anon_id), businessId, attribution: firstTouchInput,
-        referrer: first(fields.referrer) || null, metadata: { path: "create", ...metadata }
+        referrer: first(fields.referrer) || null, metadata: { path: "create", pricing_version: pricingVersionForNewSignup() || "v1", ...metadata }
       });
       await funnel("generation_started");
     }
@@ -523,7 +525,8 @@ export default async function handler(req, res) {
         role: "owner"
       });
 
-      await supabaseAdmin.from("subscriptions").upsert({
+      // pricing_version: new pages are on the $1 first month (api/_lib/pricing.js).
+      await writeNewSubscription((row) => supabaseAdmin.from("subscriptions").upsert(row, { onConflict: "business_id" }), {
         business_id,
         provider: "stripe",
         plan_code: "starter",
@@ -534,7 +537,7 @@ export default async function handler(req, res) {
         cancel_at_period_end: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
-      }, { onConflict: "business_id" });
+      });
     }
 
     const isEdit = Boolean(incomingBusinessId);

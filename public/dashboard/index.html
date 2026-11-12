@@ -442,7 +442,15 @@ async function loadDashboard(profile, session) {
       if (sub.stripe_customer_id && (['active', 'past_due', 'canceled', 'unpaid'].includes(sub.status) || subscribedInFreeMonth)) {
         billingBtn.style.display = 'inline-block';
         billingBtn.onclick = openBillingPortal;
+        // ?billing=1 (the "Manage or cancel" link in billing emails) opens
+        // Stripe's portal straight away: change plan, update card, cancel.
+        if (new URLSearchParams(location.search).get('billing') === '1') openBillingPortal();
       }
+
+      // Pricing v2 ($1 first month, api/_lib/pricing.js): the page is a free
+      // preview until the owner goes live through checkout.
+      const v2Preview = sub.pricing_version === 'v2_1dollar' && !sub.stripe_subscription_id && sub.provider !== 'comped';
+      const PRICE_LINE = '$1 for your first month, then $19.99/month or $199/year. Cancel anytime.';
 
       if (sub.status === 'active') {
         statusEl.textContent = '● Active'; statusEl.className = 'pill active';
@@ -470,6 +478,25 @@ async function loadDashboard(profile, session) {
         renewalEl.textContent = `Canceled — active until ${periodEndFmt}`;
         bannerTxt.innerHTML = `<strong>Your subscription is canceled.</strong> Your page stays live until ${periodEndFmt}, then it will go offline.`;
         upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
+        showPlanPicker(sub);
+        bannerEl.style.display = 'flex';
+
+      } else if (v2Preview && !trialExpired) {
+        const endsFmt = trialExpiry.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+        statusEl.textContent = 'Preview'; statusEl.className = 'pill trial';
+        renewalEl.textContent = `Not live on Google yet · preview up until ${endsFmt}`;
+        bannerTxt.innerHTML = `<strong>Your page is a preview.</strong> Edit anything you like. When you're happy, go live: your page is shown to Google and stays up after ${endsFmt}. ${PRICE_LINE}`;
+        upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
+        upgradeBtn.textContent = 'Go live →';
+        showPlanPicker(sub);
+        bannerEl.style.display = 'flex';
+
+      } else if (v2Preview) {
+        statusEl.textContent = '● Preview ended'; statusEl.className = 'pill expired';
+        renewalEl.textContent = '';
+        bannerTxt.innerHTML = `<strong>Your preview has ended.</strong> Go live and your page is back up right away. ${PRICE_LINE}`;
+        upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
+        upgradeBtn.textContent = 'Go live →';
         showPlanPicker(sub);
         bannerEl.style.display = 'flex';
 

@@ -122,7 +122,7 @@ export function buildOutreachIntro({ business_name, website, site_gaps, raw }) {
 // less like a marketing blast to spam filters and link scanners.
 export function buildOutreachEmail({ intro, businessName, messageId, slug, unsubscribeUrl, mailingAddress }) {
   const links = trackedLinks(messageId, slug);
-  const ask = `If you want to keep it, just reply "yes". The first month is free, then it's $19.99/month, no contract. If it's not for you, reply "no" and I'll take it down.`;
+  const ask = `If you want to keep it, just reply "yes". Seeing and claiming it is free, no card. Going live is $1 for your first month, then $19.99/month or $199/year. Cancel anytime, no contract. If it's not for you, reply "no" and I'll take it down.`;
   const signoff = "Jack Clark\nEnoma · jack@enoma.io";
 
   const text = [
@@ -232,7 +232,7 @@ export function buildSecondFollowUpEmail({ businessName, originalSubject, messag
   const subjectBase = String(originalSubject || `I built ${name} a new page`).replace(/^\s*re:\s*/i, "");
   const subject = `Re: ${subjectBase}`;
   const p1 = `Last note from me about ${name}'s page:`;
-  const p2 = `It's yours to keep: first month free, then $19.99/month or $199/year. If now's not the time, no problem, I won't email again.`;
+  const p2 = `It's yours to keep: $1 for your first month, then $19.99/month or $199/year. Cancel anytime. If now's not the time, no problem, I won't email again.`;
   const text = [
     "Hi there,", `${p1} ${links.page}`, p2, "Jack",
     `---\n${mailingAddress}\nDon't want these emails? ${links.unsubscribe}`
