@@ -6,6 +6,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { cleanReview, escHtml } from './_lib/reviews.js';
+import { cleanAnswers, safeReturnPath } from './_lib/quote-form.js';
+import { leadRow, ownerLeadEmail, jackLeadAlert } from './_lib/lead-email.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -26,11 +28,13 @@ const esc = v => String(v ?? '')
   .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 const EMAIL_RE = /^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/;
 
-// Light spam guard: at most 5 submissions per email address and 20 per
-// business in 10 minutes (counted from contact_submissions).
-async function tooManyRecent(email, businessId) {
+// Light spam guard: at most 5 submissions per email address (or, for
+// phone-only quote requests, per phone) and 20 per business in 10 minutes
+// (counted from contact_submissions).
+async function tooManyRecent(email, businessId, phone) {
   const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
   const checks = [];
+  if (!email && phone) checks.push(supabase.from('contact_submissions').select('id', { count: 'exact', head: true }).eq('phone', phone).gte('created_at', since).then(r => (r.count || 0) >= 5));
   if (email) checks.push(supabase.from('contact_submissions').select('id', { count: 'exact', head: true }).eq('email', email).gte('created_at', since).then(r => (r.count || 0) >= 5));
   if (businessId) checks.push(supabase.from('contact_submissions').select('id', { count: 'exact', head: true }).eq('business_id', businessId).gte('created_at', since).then(r => (r.count || 0) >= 20));
   try { return (await Promise.all(checks)).some(Boolean); } catch { return false; }
@@ -41,18 +45,32 @@ export default async function handler(req, res) {
 
   // `to` is deliberately ignored: lead emails only ever go to the email
   // stored on the business's profile, never to an address sent by the browser.
-  const {
-    name, email, phone, message, subject, business_id, slug, source,
-    trade, town, website
-  } = req.body || {};
+  const body = req.body || {};
+  const one = v => (Array.isArray(v) ? v[0] : v);
+  const trimmed = v => (one(v) == null ? '' : String(one(v)).trim());
+  const name = trimmed(body.name), email = trimmed(body.email), phone = trimmed(body.phone), message = trimmed(body.message);
+  const { subject, business_id, slug, source, trade, town, website } = Object.fromEntries(
+    ['subject', 'business_id', 'slug', 'source', 'trade', 'town', 'website'].map(k => [k, one(body[k])])
+  );
+
+  // Multi-step quote form (api/_lib/quote-form.js): null for every other
+  // caller, which then behaves exactly as before.
+  const answers = cleanAnswers(body);
+  // The quote form with JavaScript off posts a plain HTML form: answer with a
+  // redirect back to the page (?sent=1 / ?sent=0) instead of JSON.
+  const isJson = String(req.headers?.['content-type'] || '').includes('application/json');
+  const redirectBack = answers && !isJson
+    ? ok => res.redirect(303, `${safeReturnPath(one(body.return_path), one(slug))}?sent=${ok ? 1 : 0}${String(source || '').startsWith('spotlight:') ? '#request' : '#contact'}`)
+    : null;
+  const fail = (code, error) => (redirectBack ? redirectBack(false) : res.status(code).json({ error }));
 
   // Honeypot: real visitors never see or fill the hidden "website" field.
-  if (website) return res.status(200).json({ ok: true });
-  if (email && !EMAIL_RE.test(String(email).trim())) {
-    return res.status(400).json({ error: 'Please enter a valid email address.' });
+  if (website) return redirectBack ? redirectBack(true) : res.status(200).json({ ok: true });
+  if (email && !EMAIL_RE.test(email)) {
+    return fail(400, 'Please enter a valid email address.');
   }
-  if (await tooManyRecent(email || null, business_id || null)) {
-    return res.status(429).json({ error: 'Too many messages in a short time. Please call instead, or try again in a few minutes.' });
+  if (await tooManyRecent(email || null, business_id || null, answers ? phone || null : null)) {
+    return fail(429, 'Too many messages in a short time. Please call instead, or try again in a few minutes.');
   }
 
   /* ─────────────────────────────────────────────
@@ -238,7 +256,11 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
-  if (!name || !email || !message) {
+  // Quote-form leads need a name and a phone OR an email (the answers stand
+  // in for the message). Everything else keeps the old rule.
+  if (answers) {
+    if (!name || (!email && !phone)) return fail(400, 'Please add your name and a phone number or email.');
+  } else if (!name || !email || !message) {
     return res.status(400).json({ error: 'name, email, and message are required' });
   }
 
@@ -390,19 +412,17 @@ export default async function handler(req, res) {
   }
 
   // ── 2. Store in Supabase ──
-  const { error: dbError } = await supabase
+  // email and message are NOT NULL columns; leadRow() fills them for
+  // phone-only quote requests (api/_lib/lead-email.js).
+  const row = leadRow({ businessId: resolvedBusinessId, slug: resolvedSlug, name, email, phone, subject, message, source, answers });
+  let { error: dbError } = await supabase
     .from('contact_submissions')
-    .insert({
-      business_id: resolvedBusinessId || null,
-      slug: resolvedSlug || null,
-      name,
-      email,
-      phone: phone || null,
-      subject: subject || null,
-      message,
-      source: source || 'profile_page',
-      is_read: false,
-    });
+    .insert(row);
+  // Deployed before the `answers` column migration ran: keep the lead anyway.
+  if (dbError && row.answers && /answers/i.test(dbError.message || '')) {
+    const { answers: _unstored, ...withoutAnswers } = row;
+    ({ error: dbError } = await supabase.from('contact_submissions').insert(withoutAnswers));
+  }
 
   if (dbError) {
     console.error('DB insert error:', dbError.message);
@@ -414,29 +434,7 @@ export default async function handler(req, res) {
       await resend.emails.send({
         from: 'Enoma <noreply@enoma.io>',
         to: ownerEmail,
-        replyTo: email,
-        subject: `New message from ${name} via your Enoma page`,
-        html: `
-          <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a;">
-            <div style="background:#0a1628;padding:24px 28px;border-radius:12px 12px 0 0;">
-              <p style="margin:0;font-size:13px;font-weight:700;color:rgba(220,238,255,0.7);letter-spacing:0.1em;text-transform:uppercase;">New message</p>
-              <p style="margin:6px 0 0;font-size:20px;font-weight:800;color:#fff;">${esc(bName)}</p>
-            </div>
-            <div style="background:#fff;border:1px solid #e4edf5;border-top:none;border-radius:0 0 12px 12px;padding:24px 28px;">
-              <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
-                <tr><td style="padding:6px 0;font-size:13px;color:#7ab3e0;width:80px;">From</td><td style="padding:6px 0;font-size:13px;font-weight:600;color:#0a1628;">${esc(name)}</td></tr>
-                <tr><td style="padding:6px 0;font-size:13px;color:#7ab3e0;">Email</td><td style="padding:6px 0;font-size:13px;color:#0a1628;"><a href="mailto:${esc(email)}" style="color:#3882dc;">${esc(email)}</a></td></tr>
-                ${phone ? `<tr><td style="padding:6px 0;font-size:13px;color:#7ab3e0;">Phone</td><td style="padding:6px 0;font-size:13px;color:#0a1628;">${esc(phone)}</td></tr>` : ''}
-                ${subject ? `<tr><td style="padding:6px 0;font-size:13px;color:#7ab3e0;">Topic</td><td style="padding:6px 0;font-size:13px;color:#0a1628;">${esc(subject)}</td></tr>` : ''}
-              </table>
-              <div style="background:#f7faff;border:1px solid #e4edf5;border-radius:10px;padding:16px 18px;margin-bottom:20px;">
-                <p style="margin:0;font-size:14px;line-height:1.65;color:#374151;">${esc(message).replace(/\n/g, '<br>')}</p>
-              </div>
-              <a href="mailto:${esc(email)}?subject=Re: Your enquiry to ${esc(bName)}" style="display:inline-block;background:#0a1628;color:#fff;padding:10px 20px;border-radius:999px;font-weight:700;font-size:13px;text-decoration:none;">Reply to ${esc(name)} →</a>
-              <p style="margin:20px 0 0;font-size:12px;color:#9ca3af;">This message was sent through your Enoma business page. <a href="https://enoma.io/dashboard" style="color:#7ab3e0;">View your dashboard →</a></p>
-            </div>
-          </div>
-        `,
+        ...ownerLeadEmail({ bName, name, email, phone, subject, message, answers }),
       });
     } catch (emailErr) {
       console.error('Email send error:', emailErr.message);
@@ -449,11 +447,11 @@ export default async function handler(req, res) {
       await resend.emails.send({
         from: 'Enoma Platform <noreply@enoma.io>',
         to: 'jack@enoma.io',
-        subject: `[Lead] ${name} contacted ${bName}`,
-        html: `<p><b>${esc(name)}</b> (${esc(email)}) sent a message to <b>${esc(bName)}</b> via their Enoma page.</p><p>${esc(message)}</p>`,
+        ...jackLeadAlert({ bName, name, email, phone, message, answers }),
       });
     } catch {}
   }
 
+  if (redirectBack) return redirectBack(true);
   return res.status(200).json({ ok: true });
 }

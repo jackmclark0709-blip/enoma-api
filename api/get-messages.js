@@ -36,13 +36,18 @@ export default async function handler(req, res) {
   const since = new Date();
   since.setDate(since.getDate() - 90);
 
-  const { data: messages, error } = await supabase
+  const fetchMessages = cols => supabase
     .from('contact_submissions')
-    .select('id, created_at, name, email, phone, subject, message, is_read, replied_at')
+    .select(cols)
     .eq('business_id', business_id)
     .gte('created_at', since.toISOString())
     .order('created_at', { ascending: false })
     .limit(20);
+  const BASE_COLS = 'id, created_at, name, email, phone, subject, message, is_read, replied_at';
+  // `answers` = the quote form's tap-to-choose answers (20261112_lead_answers.sql).
+  // Until that migration has run, read the leads without it.
+  let { data: messages, error } = await fetchMessages(`${BASE_COLS}, answers`);
+  if (error && /answers/i.test(error.message || '')) ({ data: messages, error } = await fetchMessages(BASE_COLS));
 
   if (error) return res.status(500).json({ error: error.message });
 

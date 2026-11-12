@@ -17,6 +17,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=DM+Sans:opsz,wght@9..40,500;9..40,600;9..40,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <!-- Shared by every Enoma business page (company page + service spotlights) -->
   <link rel="stylesheet" href="/styles/business-pages.css" />
+  <link rel="stylesheet" href="/styles/quote-form.css" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
   {{SCHEMA}}
   {{BRAND_STYLE}}
@@ -106,7 +107,8 @@ body.has-hero-photo .sp-hero {
 .sp-cta h2 { color: #fff; }
 .sp-cta-grid { display: grid; gap: 24px; }
 @media (min-width: 820px) { .sp-cta-grid { grid-template-columns: 1fr 1fr; align-items: start; } }
-.sp-cta p { color: rgba(255,255,255,.82); }
+.sp-cta-copy p { color: rgba(255,255,255,.82); }
+.sp-cta .quote-form-wrap { margin: 0; max-width: none; }
 .sp-form { background: #fff; color: #1c2a22; border-radius: 16px; padding: 20px; display: grid; gap: 10px; }
 .sp-form input, .sp-form textarea { width: 100%; font: inherit; padding: .75rem .85rem; border: 1.5px solid #d6e0d6; border-radius: 10px; }
 .sp-form textarea { min-height: 96px; resize: vertical; }
@@ -255,21 +257,11 @@ body:not(.is-draft) .sp-draft { display: none; }
   <!-- 8. CTA + lead form -->
   <section class="sp-cta" id="request">
     <div class="wrap sp-cta-grid">
-      <div>
+      <div class="sp-cta-copy">
         <h2>{{CTA_HEADING}}</h2>
         <p>{{CTA_BODY}}</p>
-        {{CTA_PHONE_HTML}}
       </div>
-      <form class="sp-form" id="leadForm" novalidate>
-        <!-- Honeypot: hidden from people; bots that fill it are ignored (api/send-contact.js) -->
-    <input name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" />
-        <input name="name" placeholder="Your name" autocomplete="name" required />
-        <input name="phone" type="tel" placeholder="Phone" autocomplete="tel" />
-        <input name="email" type="email" placeholder="Email" autocomplete="email" required />
-        <textarea name="message" placeholder="Tell us about the job: address or town, size, timing"></textarea>
-        <button class="primary-cta" type="submit">{{CTA_LABEL}}</button>
-        <p class="sp-form-status" id="leadStatus" role="status"></p>
-      </form>
+      {{QUOTE_FORM_HTML}}
     </div>
   </section>
 
@@ -298,34 +290,12 @@ body:not(.is-draft) .sp-draft { display: none; }
 </footer>
 <div class="sp-sticky"><a class="primary-cta" href="{{CTA_HREF}}">{{CTA_LABEL}}</a></div>
 
+<script src="/scripts/quote-form.js"></script>
 <script>
 (function () {
   const S = window.__SPOT__ || {};
 
-  // Lead form → same endpoint as the company page, tagged with the service.
-  const form = document.getElementById('leadForm');
-  const status = document.getElementById('leadStatus');
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const fd = new FormData(form);
-    const name = String(fd.get('name') || '').trim(), email = String(fd.get('email') || '').trim();
-    if (!name || !email) { status.textContent = 'Please add your name and email.'; status.style.color = '#b42318'; return; }
-    status.textContent = 'Sending…'; status.style.color = '#46554d';
-    try {
-      const res = await fetch('/api/send-contact', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name, email, phone: fd.get('phone') || '', message: fd.get('message') || '',
-          subject: {{FORM_SUBJECT_JSON}}, source: 'spotlight:' + S.service_slug,
-          business_id: S.business_id, slug: S.username, website: fd.get('website') || '',
-        }),
-      });
-      if (!res.ok) throw new Error();
-      status.textContent = '✓ Sent. We’ll get back to you shortly.'; status.style.color = '#067647'; form.reset();
-    } catch {
-      status.textContent = 'Something went wrong. Please call instead.'; status.style.color = '#b42318';
-    }
-  });
+  // Lead form: public/scripts/quote-form.js (the shared multi-step quote form).
 
   if (S.status === 'published') return;
 

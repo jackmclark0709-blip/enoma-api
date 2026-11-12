@@ -168,6 +168,9 @@
     .message-full { display: none; font-size: 0.85rem; color: #374151; line-height: 1.6; margin-top: 0.5rem; background: #f7faff; border-radius: 8px; padding: 0.75rem; }
     .message-item.expanded .message-full { display: block; }
     .message-item.expanded .message-preview { display: none; }
+    .message-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0.15rem 0 0.35rem; }
+    .message-tag { font-size: 0.7rem; font-weight: 600; color: #1e4a7a; background: #eaf2fc; border-radius: 999px; padding: 0.15rem 0.55rem; line-height: 1.4; }
+    .message-tag b { font-weight: 700; color: #6b8bb0; margin-right: 0.2rem; }
     .message-reply-btn { display: inline-flex; align-items: center; gap: 0.3rem; margin-top: 0.6rem; font-size: 0.78rem; font-weight: 600; color: #3882dc; text-decoration: none; }
     .unread-dot { width: 7px; height: 7px; border-radius: 50%; background: #3882dc; flex-shrink: 0; margin-top: 3px; }
     .no-messages { font-size: 0.85rem; color: #9ca3af; text-align: center; padding: 1.5rem 0; line-height: 1.6; }
@@ -763,14 +766,15 @@ async function loadMessages(profile, session) {
               <span class="message-name">${esc(m.name)}</span>
               <span class="message-time">${timeAgo(m.created_at)}</span>
             </div>
-            <div class="message-email">${esc(m.email)}${m.phone ? ` · ${esc(m.phone)}` : ''}</div>
+            <div class="message-email">${[m.email, m.phone].filter(Boolean).map(esc).join(' · ')}</div>
+            ${leadTags(m)}
             ${m.subject ? `<div style="font-size:0.75rem;color:#9ca3af;margin-bottom:0.2rem;">${esc(m.subject)}</div>` : ''}
-            <div class="message-preview">${esc(m.message)}</div>
+            <div class="message-preview">${esc(leadNote(m))}</div>
             <div class="message-full">
-              ${esc(m.message).replace(/\n/g, '<br>')}
-              <a href="mailto:${encodeURIComponent(m.email ?? '')}?subject=Re%3A%20Your%20enquiry" class="message-reply-btn" onclick="event.stopPropagation()">
+              ${esc(leadNote(m)).replace(/\n/g, '<br>')}
+              <a href="${m.email ? `mailto:${encodeURIComponent(m.email)}?subject=Re%3A%20Your%20enquiry` : `tel:${esc(String(m.phone || '').replace(/[^\d+]/g, ''))}`}" class="message-reply-btn" onclick="event.stopPropagation()">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
-                Reply to ${esc(m.name)}
+                ${m.email ? 'Reply to' : 'Call'} ${esc(m.name)}
               </a>
             </div>
           </div>
@@ -820,6 +824,31 @@ async function loadMessages(profile, session) {
     `).join('');
     headingEl.textContent = `Recent messages (${msgs.length})`;
   }
+}
+
+// Quote-form answers on a lead (contact_submissions.answers, written by
+// api/send-contact.js via api/_lib/quote-form.js) as small labels. Same
+// labels as the owner's email summary line; null answers → nothing.
+const LEAD_TIMING = { asap: 'ASAP', this_week: 'This week', this_month: 'This month', just_prices: 'Just getting prices' };
+const LEAD_PREF = { text: 'Text', call: 'Call', email: 'Email' };
+function leadAnswerPairs(a) {
+  if (!a || typeof a !== 'object') return [];
+  const out = [];
+  if (Array.isArray(a.services) && a.services.length) out.push(['Needs', a.services.join(', ')]);
+  if (a.timing) out.push(['When', LEAD_TIMING[a.timing] || a.timing]);
+  if (a.location) out.push(['Where', a.location]);
+  if (a.preference) out.push(['Prefers', LEAD_PREF[a.preference] || a.preference]);
+  return out;
+}
+function leadTags(m) {
+  const pairs = leadAnswerPairs(m.answers);
+  return pairs.length ? `<div class="message-tags">${pairs.map(([k, v]) => `<span class="message-tag"><b>${esc(k)}</b>${esc(v)}</span>`).join('')}</div>` : '';
+}
+// A quote request with nothing in "Anything else?" stores the summary line as
+// its message; the tags already say that, so don't repeat it.
+function leadNote(m) {
+  const summary = leadAnswerPairs(m.answers).map(([k, v]) => `${k}: ${v}`).join(' · ');
+  return summary && m.message === summary ? '' : (m.message || '');
 }
 
 // Escape untrusted text (visitor-submitted contact-form fields, referrer sources)

@@ -602,7 +602,7 @@ async function loadProfile() {
   /* ── Contact form ── */
   const contactIntro = getEl('contactIntro');
   if (contactIntro && p.business_name) {
-    contactIntro.textContent = `Ready to work with ${p.business_name}? Send a message and we'll get back to you quickly.`;
+    contactIntro.textContent = `Tell ${p.business_name} what you need in four quick taps and get a quote back.`;
   }
   /* ── Testimonials — carousel ── */
   // The business's own testimonials are rendered on the server. This adds the
@@ -747,44 +747,21 @@ async function loadProfile() {
     'requestIdleCallback' in window ? requestIdleCallback(loadAddrMap) : setTimeout(loadAddrMap, 1200);
   }
 
-  /* ── Contact form ── */
-  /* ── Contact form — with hours note below ── */
-  const contactForm = getEl('contactForm');
-  const contactStatus = getEl('contactStatus');
-  if (contactForm) {
-    // Add availability/hours info below the form
-    const contactStatus = getEl('contactStatus');
-    if (contactStatus) {
-      const infoItems = [];
-      if (p.hero_availability) infoItems.push(`<span>🕐 ${p.hero_availability}</span>`);
-      if (p.hero_response_time) infoItems.push(`<span>💬 ${p.hero_response_time}</span>`);
-      if (p.phone) infoItems.push(`<span>📞 Prefer to call? <a href="tel:${p.phone}" style="color:var(--brand-primary,#1a3a2a);font-weight:600;">${p.phone}</a></span>`);
-      if (infoItems.length) {
-        const infoDiv = document.createElement('div');
-        infoDiv.style.cssText = 'display:flex;flex-wrap:wrap;gap:0.75rem;justify-content:center;margin-top:1rem;font-size:0.82rem;color:#6b7280;';
-        infoDiv.innerHTML = infoItems.join('');
-        contactStatus.after(infoDiv);
-      }
+  /* ── Quote form — hours note below ──
+     The form itself (4 steps, submit, tracking) is public/scripts/quote-form.js
+     on markup from api/_lib/quote-form.js. Its tap-to-call button sits above
+     the form, so the note only adds hours and response time. */
+  const quoteWrap = getEl('quoteFormWrap');
+  if (quoteWrap) {
+    const infoItems = [];
+    if (p.hero_availability) infoItems.push(`<span>🕐 ${escapeHtml(p.hero_availability)}</span>`);
+    if (p.hero_response_time) infoItems.push(`<span>💬 ${escapeHtml(p.hero_response_time)}</span>`);
+    if (infoItems.length) {
+      const infoDiv = document.createElement('div');
+      infoDiv.style.cssText = 'display:flex;flex-wrap:wrap;gap:0.75rem;justify-content:center;margin-top:1rem;font-size:0.82rem;color:#6b7280;';
+      infoDiv.innerHTML = infoItems.join('');
+      quoteWrap.after(infoDiv);
     }
-    contactForm.addEventListener('submit', async e => {
-      e.preventDefault();
-      trackContactClick('contact_form');
-      contactStatus.textContent = 'Sending…';
-      const payload = Object.fromEntries(new FormData(contactForm).entries());
-      try {
-        const res = await fetch('/api/send-contact', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...payload, business_id: window.profileData?.business_id, slug: window.profileData?.username })
-        });
-        if (!res.ok) throw new Error();
-        contactStatus.textContent = '✓ Message sent! We\'ll be in touch shortly.';
-        contactStatus.style.color = '#059669';
-        contactForm.reset();
-      } catch {
-        contactStatus.textContent = 'Something went wrong. Please try calling us directly.';
-        contactStatus.style.color = '#d94040';
-      }
-    });
   }
 
   /* ── Non-image attachments ── */
