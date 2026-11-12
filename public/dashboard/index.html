@@ -3,243 +3,25 @@
 <head>
   <meta charset="UTF-8" />
   <title>Dashboard — Enoma</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/styles/enoma.css">
+  <link rel="icon" href="/brand/favicon.ico" sizes="any">
+  <link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#0A1628">
+  <meta property="og:image" content="https://enoma.io/brand/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://enoma.io/brand/og-image.png">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="/styles/enoma.css" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&display=swap" rel="stylesheet" />
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());function enomaGaConfig(c){try{var m=location.search.match(/[?&]internal=([01])(?:&|$)/);if(m)localStorage.setItem('enoma_internal',m[1]);if(localStorage.getItem('enoma_internal')==='1')c.traffic_type='internal'}catch(e){}try{if(/(?:^|; )enoma_internal=1(?:;|$)/.test(document.cookie))c.traffic_type='internal'}catch(e){}if(navigator.webdriver)window['ga-disable-G-S8XTG72Y2Y']=true;return c};gtag('config','G-S8XTG72Y2Y',enomaGaConfig({}));</script>
-  <style>
-    /* ── Base ── */
-    body { background: #f0f6ff; font-family: Inter, system-ui, sans-serif; color: #0a1628; margin: 0; }
-
-    .dash-wrap { max-width: 1040px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
-
-    /* ── Header ── */
-    .dash-header {
-      display: flex; align-items: flex-start; justify-content: space-between;
-      gap: 1rem; flex-wrap: wrap; margin-bottom: 1.75rem;
-    }
-    .dash-header h1 {
-      font-family: 'DM Sans', sans-serif; font-size: 1.6rem; font-weight: 800;
-      color: #0a1628; letter-spacing: -0.025em; margin: 0 0 0.2rem;
-    }
-    .dash-header .sub { font-size: 0.85rem; color: #7ab3e0; margin: 0; }
-    .header-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-top: 0.25rem; }
-
-    /* ── Buttons ── */
-    .btn {
-      display: inline-flex; align-items: center; gap: 0.4rem;
-      padding: 0.5rem 1rem; border-radius: 999px;
-      font-weight: 600; font-size: 0.82rem; text-decoration: none;
-      border: 1.5px solid #d4e2f4; background: #fff; color: #0a1628;
-      cursor: pointer; transition: all 0.15s ease; white-space: nowrap;
-    }
-    .btn:hover { border-color: #0a1628; color: #0a1628; }
-    .btn.primary { background: #0a1628; color: #fff; border-color: #0a1628; }
-    .btn.primary:hover { filter: brightness(1.15); }
-    .btn.danger { border-color: #fca5a5; color: #d94040; }
-    .btn.danger:hover { background: #fef2f2; }
-    .btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
-
-    /* ── Business selector ── */
-    .biz-select {
-      background: #fff; color: #0a1628;
-      border: 1.5px solid #d4e2f4; border-radius: 10px;
-      padding: 0.45rem 0.85rem; font-size: 0.88rem;
-      cursor: pointer; font-family: inherit;
-    }
-    .biz-select:focus { outline: none; border-color: #3882dc; }
-
-    /* ── Status pills ── */
-    .status-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
-    .pill {
-      font-size: 0.75rem; font-weight: 700; padding: 0.3rem 0.8rem;
-      border-radius: 999px; letter-spacing: 0.04em;
-    }
-    .pill.trial   { background: rgba(245,158,11,0.12); color: #b45309; border: 1px solid rgba(245,158,11,0.25); }
-    .pill.active  { background: rgba(5,150,105,0.1);  color: #047857; border: 1px solid rgba(5,150,105,0.25); }
-    .pill.expired { background: rgba(220,38,38,0.1);  color: #dc2626; border: 1px solid rgba(220,38,38,0.2); }
-    .pill.none    { background: #f0f6ff; color: #7ab3e0; border: 1px solid #d4e2f4; }
-    .renewal-txt  { font-size: 0.82rem; color: #7ab3e0; }
-    .manage-billing-btn { margin-left: auto; font: inherit; font-size: 0.82rem; font-weight: 700; color: #3882dc; background: none; border: 1px solid rgba(56,130,220,0.3); border-radius: 999px; padding: 0.3rem 0.85rem; cursor: pointer; }
-    .manage-billing-btn:hover { background: rgba(56,130,220,0.08); }
-    .manage-billing-btn:disabled { opacity: 0.6; cursor: wait; }
-
-    /* ── Trial / upgrade banner ── */
-    .upgrade-banner {
-      background: #0a1628; border-radius: 16px;
-      padding: 1.1rem 1.5rem; margin-bottom: 1.5rem;
-      display: none; align-items: center; justify-content: space-between;
-      gap: 1rem; flex-wrap: wrap;
-    }
-    .upgrade-banner p { margin: 0; font-size: 0.88rem; color: rgba(220,238,255,0.8); line-height: 1.5; }
-    .upgrade-banner strong { color: #fff; }
-    .upgrade-banner-btn {
-      flex-shrink: 0;
-      background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.25);
-      color: #fff; font-weight: 700; font-size: 0.82rem;
-      padding: 0.5rem 1.1rem; border-radius: 999px;
-      text-decoration: none; white-space: nowrap;
-      transition: background 0.15s;
-    }
-    .upgrade-banner-btn:hover { background: rgba(255,255,255,0.22); color: #fff; }
-    .upgrade-banner-picker { flex: 1 1 100%; max-width: 640px; }
-
-    /* ── No website card ── */
-    .no-website-card {
-      background: #fff; border: 1px solid #d4e2f4; border-radius: 20px;
-      padding: 3.5rem 2rem; text-align: center;
-      box-shadow: 0 4px 24px rgba(10,22,40,0.06);
-    }
-    .no-website-card h2 { font-family: 'DM Sans', sans-serif; font-size: 1.4rem; font-weight: 700; color: #0a1628; margin: 0 0 0.5rem; }
-    .no-website-card p { color: #7ab3e0; font-size: 0.92rem; margin: 0 0 1.5rem; }
-
-    /* ── Main grid ── */
-    .dash-grid {
-      display: grid;
-      grid-template-columns: 1fr 340px;
-      gap: 1rem;
-      align-items: start;
-    }
-    @media (max-width: 860px) { .dash-grid { grid-template-columns: 1fr; } }
-
-    /* ── Cards ── */
-    .card {
-      background: #fff; border: 1px solid #d4e2f4; border-radius: 16px;
-      padding: 1.5rem; box-shadow: 0 2px 12px rgba(10,22,40,0.05);
-    }
-    .card-title {
-      font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 700;
-      color: #0a1628; margin: 0 0 1rem; display: flex; align-items: center;
-      justify-content: space-between; gap: 0.5rem;
-    }
-    .card-title a { font-size: 0.78rem; font-weight: 600; color: #3882dc; text-decoration: none; }
-    .card-title a:hover { text-decoration: underline; }
-
-    /* ── Live preview ── */
-    .preview-card { padding: 0; overflow: hidden; }
-    .preview-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 1rem 1.25rem; border-bottom: 1px solid #e8f0f8;
-    }
-    .preview-header h3 { font-family: 'DM Sans', sans-serif; font-size: 0.88rem; font-weight: 700; color: #0a1628; margin: 0; }
-    .preview-url { font-size: 0.78rem; color: #7ab3e0; margin-top: 2px; }
-    .preview-actions { display: flex; gap: 0.5rem; }
-    .preview-frame-wrap {
-      position: relative; width: 100%; height: 380px;
-      overflow: hidden; background: #f7faff;
-    }
-    .preview-frame-wrap iframe {
-      width: 166.67%; height: 166.67%;
-      transform: scale(0.6); transform-origin: top left;
-      border: none; pointer-events: none;
-    }
-    .preview-loading {
-      position: absolute; inset: 0;
-      display: flex; align-items: center; justify-content: center;
-      background: #f7faff; font-size: 0.82rem; color: #7ab3e0;
-    }
-
-    /* ── Metrics ── */
-    .metrics-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem; }
-    .metric-card {
-      background: #f7faff; border: 1px solid #e8f0f8; border-radius: 12px;
-      padding: 1rem 1.1rem;
-    }
-    .metric-label { font-size: 0.75rem; font-weight: 600; color: #7ab3e0; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.35rem; }
-    .metric-value { font-family: 'DM Sans', sans-serif; font-size: 1.9rem; font-weight: 800; color: #0a1628; line-height: 1; }
-    .metric-sub { font-size: 0.72rem; color: #9ca3af; margin-top: 0.25rem; }
-
-    /* ── Messages ── */
-    .messages-list { display: flex; flex-direction: column; gap: 0; }
-    .message-item {
-      padding: 0.9rem 0; border-bottom: 1px solid #e8f0f8;
-      cursor: pointer; transition: background 0.1s;
-    }
-    .message-item:last-child { border-bottom: none; padding-bottom: 0; }
-    .message-item:first-child { padding-top: 0; }
-    .message-item:hover { background: #f7faff; margin: 0 -1.5rem; padding-left: 1.5rem; padding-right: 1.5rem; }
-    .message-header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.2rem; }
-    .message-name { font-size: 0.88rem; font-weight: 700; color: #0a1628; }
-    .message-time { font-size: 0.75rem; color: #9ca3af; white-space: nowrap; }
-    .message-email { font-size: 0.78rem; color: #3882dc; margin-bottom: 0.3rem; }
-    .message-preview { font-size: 0.82rem; color: #6b7280; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .message-full { display: none; font-size: 0.85rem; color: #374151; line-height: 1.6; margin-top: 0.5rem; background: #f7faff; border-radius: 8px; padding: 0.75rem; }
-    .message-item.expanded .message-full { display: block; }
-    .message-item.expanded .message-preview { display: none; }
-    .message-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0.15rem 0 0.35rem; }
-    .message-tag { font-size: 0.7rem; font-weight: 600; color: #1e4a7a; background: #eaf2fc; border-radius: 999px; padding: 0.15rem 0.55rem; line-height: 1.4; }
-    .message-tag b { font-weight: 700; color: #6b8bb0; margin-right: 0.2rem; }
-    .message-reply-btn { display: inline-flex; align-items: center; gap: 0.3rem; margin-top: 0.6rem; font-size: 0.78rem; font-weight: 600; color: #3882dc; text-decoration: none; }
-    .unread-dot { width: 7px; height: 7px; border-radius: 50%; background: #3882dc; flex-shrink: 0; margin-top: 3px; }
-    .no-messages { font-size: 0.85rem; color: #9ca3af; text-align: center; padding: 1.5rem 0; line-height: 1.6; }
-
-    /* ── Managed upsell ── */
-    .upsell-card {
-      background: linear-gradient(160deg, #0d1b2a 0%, #162436 100%);
-      border: none; color: #fff;
-    }
-    .upsell-eyebrow { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #7ab3e0; margin-bottom: 0.4rem; }
-    .upsell-title { font-family: 'DM Sans', sans-serif; font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 0.4rem; }
-    .upsell-desc { font-size: 0.82rem; color: rgba(220,238,255,0.65); line-height: 1.55; margin-bottom: 1.1rem; }
-    .upsell-features { list-style: none; padding: 0; margin: 0 0 1.25rem; display: flex; flex-direction: column; gap: 0.45rem; }
-    .upsell-features li { font-size: 0.8rem; color: rgba(220,238,255,0.75); display: flex; align-items: flex-start; gap: 0.5rem; line-height: 1.4; }
-    .upsell-features li::before { content: ''; width: 14px; height: 14px; flex-shrink: 0; margin-top: 1px; background: rgba(56,130,220,0.3) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 24 24' fill='none' stroke='%237ab3e0' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E") no-repeat center; border-radius: 50%; }
-    .upsell-cta {
-      display: block; width: 100%; text-align: center; box-sizing: border-box;
-      background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.25);
-      color: #fff; font-weight: 700; font-size: 0.85rem;
-      padding: 0.7rem 1rem; border-radius: 999px; text-decoration: none;
-      transition: background 0.15s;
-    }
-    .upsell-cta:hover { background: rgba(255,255,255,0.22); color: #fff; }
-
-    /* ── Sources list ── */
-    .sources-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; }
-    .sources-list li { display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; gap: 0.5rem; }
-    .sources-list li span { color: #374151; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .sources-list li strong { color: #0a1628; font-weight: 700; flex-shrink: 0; }
-    .source-bar-wrap { flex: 1; height: 4px; background: #e8f0f8; border-radius: 999px; margin: 0 0.75rem; min-width: 40px; }
-    .source-bar { height: 4px; background: #3882dc; border-radius: 999px; }
-    .zero-state { font-size: 0.82rem; color: #9ca3af; padding: 0.5rem 0; line-height: 1.6; }
-    .card-hint { font-size: 0.82rem; color: #7ab3e0; margin: 0 0 0.75rem; line-height: 1.5; }
-    .mini-list { list-style: none; padding: 0; margin: 0 0 0.75rem; display: flex; flex-direction: column; gap: 0.5rem; }
-    .mini-list li { font-size: 0.85rem; line-height: 1.45; }
-    .mini-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
-    .mini-row a { font-weight: 600; }
-    .tag { font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 999px; background: rgba(56,130,220,0.1); color: #1e5ca8; }
-    .tag.draft { background: #fff4d6; color: #7a5b00; }
-    .link-btn { font: inherit; font-size: 0.78rem; font-weight: 700; color: #3882dc; background: none; border: 0; padding: 0; cursor: pointer; }
-    .price-note { font-size: 0.75rem; color: #5b6b80; }
-    .link-row { display: flex; gap: 0.5rem; }
-    .link-row input { flex: 1; min-width: 0; font: inherit; font-size: 0.8rem; padding: 0.45rem 0.6rem; border: 1px solid #d4e2f4; border-radius: 8px; }
-    .count-badge { background: rgba(56,130,220,0.1); color: #1e5ca8; font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px; }
-    .review-item { border: 1px solid #e5edf5; border-radius: 10px; padding: 0.6rem 0.7rem; }
-    .review-item .stars { color: #f2b01e; letter-spacing: 1px; }
-    /* ── Your logo: starter logos (api/_lib/starter-logo.js) + upload ── */
-    .logo-options { display: grid; grid-template-columns: 1fr; gap: 0.6rem; margin: 0 0 0.85rem; }
-    .logo-option {
-      position: relative; display: flex; align-items: center; justify-content: center;
-      min-height: 96px; padding: 1rem 1.1rem; border-radius: 12px; cursor: pointer;
-      border: 2px solid transparent; box-shadow: 0 0 0 1px #d4e2f4; transition: box-shadow .15s, border-color .15s;
-      font: inherit; width: 100%;
-    }
-    .logo-option:hover { box-shadow: 0 0 0 1px #0a1628; }
-    .logo-option:focus-visible { outline: 3px solid #3882dc; outline-offset: 2px; }
-    .logo-option svg { display: block; max-width: 100%; height: auto; max-height: 76px; }
-    .logo-option[aria-pressed="true"] { border-color: #3882dc; box-shadow: 0 0 0 3px rgba(56,130,220,0.25); }
-    .logo-option .picked {
-      position: absolute; top: 6px; right: 6px; display: none;
-      background: #3882dc; color: #fff; font-size: 0.68rem; font-weight: 700; padding: 0.12rem 0.5rem; border-radius: 999px;
-    }
-    .logo-option[aria-pressed="true"] .picked { display: inline-block; }
-    .logo-current { display: flex; align-items: center; gap: 0.75rem; margin: 0 0 0.85rem; }
-    .logo-current img { width: 64px; height: 64px; object-fit: contain; border-radius: 10px; border: 1px solid #d4e2f4; background: #fff; }
-    .logo-upload input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
-  </style>
 </head>
-<body>
+<body class="page-dashboard">
 <script src="/scripts/ref-capture.js"></script>
 <script>
   // GA4 key event "purchase", once per Stripe Checkout session. Stripe sends
@@ -356,7 +138,7 @@
         <div class="card">
           <div class="card-title">
             <span id="messages-heading">Recent messages</span>
-            <span id="messages-badge" style="display:none;background:rgba(56,130,220,0.1);color:#1e5ca8;font-size:0.72rem;font-weight:700;padding:0.2rem 0.6rem;border-radius:999px;border:1px solid rgba(56,130,220,0.2);"></span>
+            <span id="messages-badge" style="display:none;background:color-mix(in srgb, var(--accent) 10%, transparent);color:var(--accent);font-size:0.72rem;font-weight:700;padding:0.2rem 0.6rem;border-radius:999px;border:1px solid color-mix(in srgb, var(--accent) 20%, transparent);"></span>
           </div>
           <div id="messages-list" class="messages-list">
             <div class="zero-state" style="text-align:center;padding:1.5rem 0;">Loading messages…</div>
@@ -367,7 +149,7 @@
         <div class="card">
           <div class="card-title">
             Traffic sources
-            <span style="font-size:0.75rem;color:#9ca3af;font-weight:400;">last 30 days</span>
+            <span style="font-size:0.75rem;color:var(--muted);font-weight:400;">last 30 days</span>
           </div>
           <div class="metrics-row">
             <div class="metric-card">
@@ -442,7 +224,7 @@
         <!-- Quick share -->
         <div class="card">
           <div class="card-title">Share your page</div>
-          <p style="font-size:0.82rem;color:#7ab3e0;margin:0 0 0.85rem;line-height:1.5;">Share your link in your local Facebook groups, with customers, or add it to your business card.</p>
+          <p style="font-size:0.82rem;color:var(--muted);margin:0 0 0.85rem;line-height:1.5;">Share your link in your local Facebook groups, with customers, or add it to your business card.</p>
           <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
             <button class="btn" id="copy-link-btn">
               <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
@@ -453,7 +235,7 @@
               Share
             </a>
           </div>
-          <p id="copy-confirm" style="display:none;font-size:0.78rem;color:#059669;margin:0.5rem 0 0;">✓ Link copied to clipboard!</p>
+          <p id="copy-confirm" style="display:none;font-size:0.78rem;color:var(--success);margin:0.5rem 0 0;">✓ Link copied to clipboard!</p>
         </div>
 
         <!-- Quick tips -->
@@ -752,7 +534,7 @@ async function loadMessages(profile, session) {
       messagesEl.innerHTML = `<div class="no-messages">
         No messages yet.<br>
         Share your page to start getting enquiries —<br>
-        <a href="https://www.facebook.com/sharer/sharer.php?u=https://enoma.io/${profile.username}" target="_blank" style="color:#3882dc;font-weight:600;">share on Facebook →</a>
+        <a href="https://www.facebook.com/sharer/sharer.php?u=https://enoma.io/${profile.username}" target="_blank" style="color:var(--accent);font-weight:600;">share on Facebook →</a>
       </div>`;
       return;
     }
@@ -768,7 +550,7 @@ async function loadMessages(profile, session) {
             </div>
             <div class="message-email">${[m.email, m.phone].filter(Boolean).map(esc).join(' · ')}</div>
             ${leadTags(m)}
-            ${m.subject ? `<div style="font-size:0.75rem;color:#9ca3af;margin-bottom:0.2rem;">${esc(m.subject)}</div>` : ''}
+            ${m.subject ? `<div style="font-size:0.75rem;color:var(--muted);margin-bottom:0.2rem;">${esc(m.subject)}</div>` : ''}
             <div class="message-preview">${esc(leadNote(m))}</div>
             <div class="message-full">
               ${esc(leadNote(m)).replace(/\n/g, '<br>')}
@@ -963,7 +745,7 @@ function confirmPublish(billing) {
 function showToast(text) {
   const el = document.getElementById('dashToast') || Object.assign(document.body.appendChild(document.createElement('div')), { id: 'dashToast' });
   el.textContent = text;
-  el.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#0a1628;color:#fff;padding:0.6rem 1rem;border-radius:999px;font-size:0.85rem;z-index:50;';
+  el.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--white);padding:0.6rem 1rem;border-radius:999px;font-size:0.85rem;z-index:50;';
   clearTimeout(el._t); el._t = setTimeout(() => el.remove(), 3500);
 }
 
@@ -1061,7 +843,7 @@ async function loadReviews(profile, session) {
       <div class="mini-row"><strong>${esc(r.name)}</strong><span class="stars">${'★'.repeat(r.rating)}</span></div>
       <p style="margin:0.3rem 0 0.4rem;">${esc(r.quote)}</p>
       <button class="link-btn" data-approve="${esc(r.id)}" type="button">Add to my page</button> ·
-      <button class="link-btn" data-hide="${esc(r.id)}" type="button" style="color:#9ca3af;">Hide</button>
+      <button class="link-btn" data-hide="${esc(r.id)}" type="button" style="color:var(--muted);">Hide</button>
     </li>`).join('');
     list.querySelectorAll('[data-approve],[data-hide]').forEach(btn => btn.addEventListener('click', async () => {
       const approve = !!btn.dataset.approve;
@@ -1154,16 +936,16 @@ async function loadQuickWins(profile) {
   const winsEl = document.getElementById('quick-wins');
 
   if (!wins.length) {
-    winsEl.innerHTML = `<p style="font-size:0.85rem;color:#059669;margin:0;">✓ Your profile looks complete! Great work.</p>`;
+    winsEl.innerHTML = `<p style="font-size:0.85rem;color:var(--success);margin:0;">✓ Your profile looks complete! Great work.</p>`;
     return;
   }
 
   winsEl.innerHTML = wins.slice(0, 3).map(w => `
-    <a href="${editUrl}" style="display:flex;align-items:flex-start;gap:0.6rem;text-decoration:none;padding:0.6rem 0.75rem;border-radius:10px;border:1px solid #e8f0f8;background:#f7faff;transition:border-color 0.15s;" onmouseover="this.style.borderColor='#3882dc'" onmouseout="this.style.borderColor='#e8f0f8'">
+    <a href="${editUrl}" style="display:flex;align-items:flex-start;gap:0.6rem;text-decoration:none;padding:0.6rem 0.75rem;border-radius:10px;border:1px solid var(--accent-bg);background:var(--surface-alt);transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--accent-bg)'">
       <span style="font-size:1.1rem;flex-shrink:0;margin-top:1px;">${w.icon}</span>
       <div>
-        <div style="font-size:0.85rem;font-weight:600;color:#0a1628;margin-bottom:2px;">${w.label}</div>
-        <div style="font-size:0.78rem;color:#7ab3e0;line-height:1.4;">${w.desc}</div>
+        <div style="font-size:0.85rem;font-weight:600;color:var(--ink);margin-bottom:2px;">${w.label}</div>
+        <div style="font-size:0.78rem;color:var(--muted);line-height:1.4;">${w.desc}</div>
       </div>
     </a>
   `).join('');

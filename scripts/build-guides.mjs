@@ -72,10 +72,10 @@ export function renderGuide(g) {
   const articleSchema = {
     "@context": "https://schema.org", "@type": "Article",
     headline, description: g.description, url, mainEntityOfPage: url,
-    image: `${SITE}/assets/og/enoma-default-v2.png`,
+    image: `${SITE}/brand/og-image.png`,
     datePublished: g.published, dateModified: g.updated || g.published,
     author: { "@type": "Organization", name: "Enoma", url: SITE },
-    publisher: { "@type": "Organization", name: "Enoma", url: SITE, logo: { "@type": "ImageObject", url: `${SITE}/assets/logos/enoma-color-name.png` } },
+    publisher: { "@type": "Organization", name: "Enoma", url: SITE, logo: { "@type": "ImageObject", url: `${SITE}/brand/enoma-wordmark-blue.png` } },
   };
   const breadcrumbSchema = {
     "@context": "https://schema.org", "@type": "BreadcrumbList",
@@ -104,22 +104,29 @@ export function renderGuide(g) {
   <meta property="og:site_name" content="Enoma" />
   <meta property="og:title" content="${escAttr(g.title)}" />
   <meta property="og:description" content="${escAttr(g.description)}" />
-  <meta property="og:image" content="${SITE}/assets/og/enoma-default-v2.png" />
   <meta property="og:url" content="${url}" />
   <meta property="article:published_time" content="${g.published}" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <link rel="stylesheet" href="/styles/enoma.css" />
-  <link rel="stylesheet" href="/styles/guide.css" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/styles/enoma.css">
+  <link rel="icon" href="/brand/favicon.ico" sizes="any">
+  <link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#0A1628">
+  <meta property="og:image" content="https://enoma.io/brand/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://enoma.io/brand/og-image.png">
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
   <script src="/scripts/clarity.js" defer></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());function enomaGaConfig(c){try{var m=location.search.match(/[?&]internal=([01])(?:&|$)/);if(m)localStorage.setItem('enoma_internal',m[1]);if(localStorage.getItem('enoma_internal')==='1')c.traffic_type='internal'}catch(e){}try{if(/(?:^|; )enoma_internal=1(?:;|$)/.test(document.cookie))c.traffic_type='internal'}catch(e){}if(navigator.webdriver)window['ga-disable-G-S8XTG72Y2Y']=true;return c};gtag('config','G-S8XTG72Y2Y',enomaGaConfig({content_group:'guide'}));</script>
 ${faqs.length ? `  ${jsonLd(faqSchema(faqs))}\n` : ""}  ${jsonLd(articleSchema)}
   ${jsonLd(breadcrumbSchema)}
 </head>
-<body data-page="${g.slug}">
+<body class="page-guide page-guide-gen" data-page="${g.slug}">
 <script src="/scripts/ref-capture.js"></script>
 <script src="/scripts/funnel-track.js"></script>
 <script type="module" src="/partials/nav.js"></script>
@@ -130,8 +137,8 @@ ${faqs.length ? `  ${jsonLd(faqSchema(faqs))}\n` : ""}  ${jsonLd(articleSchema)}
     <h1 class="lp-hero__h1">${g.h1}</h1>
     <p class="lp-hero__sub">${g.heroSub}</p>
     <div class="lp-hero__actions">
-      <a href="/get-your-website" class="btn-primary" data-cta="hero">${CTA_LABEL}</a>
-      <a href="/examples" class="btn-secondary" data-cta="hero-examples">See live examples</a>
+      <a href="/get-your-website" class="btn btn--primary" data-cta="hero">${CTA_LABEL}</a>
+      <a href="/examples" class="btn btn--on-dark" data-cta="hero-examples">See live examples</a>
     </div>
     <p class="lp-hero__proof">${CTA_PROOF}</p>
   </div>
@@ -158,8 +165,8 @@ ${faqs.length ? renderFaqSection(faqs, headline) + "\n" : ""}<section class="lp-
     <h2 class="lp-cta__h2">${g.ctaH2}</h2>
     <p class="lp-cta__sub">${g.ctaSub}</p>
     <div class="lp-cta__actions">
-      <a href="/get-your-website" class="btn-primary" data-cta="final">${CTA_LABEL}</a>
-      <a href="/examples" class="btn-secondary" data-cta="final-examples">See live examples</a>
+      <a href="/get-your-website" class="btn btn--primary" data-cta="final">${CTA_LABEL}</a>
+      <a href="/examples" class="btn btn--on-dark" data-cta="final-examples">See live examples</a>
     </div>
     <p class="lp-cta__proof">${CTA_PROOF}</p>
   </div>

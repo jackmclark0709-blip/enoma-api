@@ -4,75 +4,27 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Contact Enoma</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/styles/enoma.css">
+  <link rel="icon" href="/brand/favicon.ico" sizes="any">
+  <link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#0A1628">
+  <meta property="og:image" content="https://enoma.io/brand/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://enoma.io/brand/og-image.png">
   <meta name="description" content="Have a question about Enoma? Get in touch — we typically respond within one business day." />
   <link rel="canonical" href="https://enoma.io/contact" />
-  <link rel="stylesheet" href="/styles/enoma.css" />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="icon" href="/favicon.ico" sizes="any" />
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
   <script src="/scripts/clarity.js" defer></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());function enomaGaConfig(c){try{var m=location.search.match(/[?&]internal=([01])(?:&|$)/);if(m)localStorage.setItem('enoma_internal',m[1]);if(localStorage.getItem('enoma_internal')==='1')c.traffic_type='internal'}catch(e){}try{if(/(?:^|; )enoma_internal=1(?:;|$)/.test(document.cookie))c.traffic_type='internal'}catch(e){}if(navigator.webdriver)window['ga-disable-G-S8XTG72Y2Y']=true;return c};gtag('config','G-S8XTG72Y2Y',enomaGaConfig({}));</script>
-  <style>
-    :root{
-      --void:#F6F8FB; --panel:#FFFFFF; --panel-border:#DCE3ED;
-      --sky:#1F5FBF; --sky-light:#1F5FBF; --sky-dim:rgba(31,95,191,0.10);
-      --text-1:#0B1B33; --text-2:#3B4A63; --text-3:#55647D;
-    }
-    body { background: var(--void); color: var(--text-1); min-height: 100vh; display: flex; flex-direction: column; font-family: 'Instrument Sans', -apple-system, sans-serif; -webkit-font-smoothing:antialiased; position:relative; overflow-x:hidden; }
-    body::before{
-      content:''; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.35;
-      background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
-    }
-    .glow{position:fixed;border-radius:50%;pointer-events:none;z-index:0;filter:blur(10px);}
-    .glow--a{width:56vw;height:56vw;top:-18vw;left:-14vw;background:radial-gradient(circle,rgba(56,130,220,.16),transparent 70%);}
-    .glow--b{width:46vw;height:46vw;bottom:8vw;right:-16vw;background:radial-gradient(circle,rgba(90,168,240,.13),transparent 70%);}
-
-    .contact-page { position:relative; z-index:1; flex: 1; max-width: 600px; margin: 0 auto; padding: 4rem 1.5rem 3rem; width: 100%; box-sizing: border-box; }
-    .contact-page .section-label { font-family:'IBM Plex Mono',monospace; font-size: 0.72rem; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--sky-light); display: block; margin-bottom: 0.5rem; opacity:.9; }
-    .contact-page h1 { font-family: 'Fraunces', serif; font-optical-sizing:auto; font-size: clamp(1.8rem, 4vw, 2.2rem); font-weight: 600; color: var(--text-1); letter-spacing: -0.02em; margin: 0 0 0.6rem; }
-    .contact-page > p { color: var(--text-2); font-size: 0.95rem; line-height: 1.65; margin: 0 0 2rem; }
-    .contact-card { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 20px; padding: 2rem; box-shadow: 0 20px 60px rgba(11,27,51,.12); margin-bottom: 1.5rem; backdrop-filter: blur(6px); }
-    .field { margin-bottom: 1rem; }
-    .field label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-2); margin-bottom: 0.35rem; }
-    .field input, .field select, .field textarea {
-      width: 100%; padding: 0.75rem 1rem; box-sizing: border-box;
-      border: 1px solid var(--panel-border); border-radius: 10px;
-      font-size: 0.95rem; font-family: inherit; color: var(--text-1);
-      background: rgba(11,27,51,.06);
-      transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-    }
-    .field input::placeholder, .field textarea::placeholder { color: var(--text-3); }
-    .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--sky-light); box-shadow: 0 0 0 3px rgba(56,130,220,0.2); background: rgba(11,27,51,.09); }
-    .field select option { background: #FFFFFF; color: var(--text-1); }
-    .field textarea { min-height: 120px; resize: vertical; }
-    .submit-btn {
-      width: 100%; padding: 0.9rem; margin-top: 0.25rem;
-      background: var(--sky); color: #fff;
-      border: none; border-radius: 999px;
-      font-family: 'Fraunces', serif; font-weight: 700; font-size: 1rem;
-      cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-    }
-    .submit-btn:hover { background: var(--sky-light); transform: translateY(-1px); box-shadow: 0 16px 40px rgba(56,130,220,0.35); }
-    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-    .status-msg { font-size: 0.85rem; margin-top: 0.5rem; min-height: 1.2em; color: var(--text-3); }
-    .status-msg.error { color: #f87171; }
-    .quick-links { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 2rem; }
-    .quick-link { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 14px; padding: 1.1rem 1.25rem; text-decoration: none; transition: transform 0.15s ease, border-color 0.15s ease; backdrop-filter: blur(6px); }
-    .quick-link:hover { transform: translateY(-2px); border-color: var(--sky-light); }
-    .ql-label { display: block; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--sky-light); margin-bottom: 0.2rem; }
-    .ql-title { display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-1); }
-    #site-footer { position:relative; z-index:1; margin-top: auto; }
-  
-    /* ---------- light theme (Nov 2026): no grain, glow or particle field ---------- */
-    body::before{display:none}
-    .glow,#bgcanvas{display:none}
-    a.btn-primary:hover,.pricing-cta-btn:hover{background:#163F7F}
-    .btn-secondary{color:#22314A;border-color:#C9D3E0;background:#FFFFFF}
-    .btn-secondary:hover{color:#0B1B33;border-color:#1F5FBF;background:#EEF4FD}
-</style>
 </head>
-<body>
+<body class="page-contact">
 <script src="/scripts/ref-capture.js"></script>
 <script type="module" src="/partials/nav.js"></script>
 <div class="glow glow--a"></div>
@@ -102,12 +54,12 @@
       <button class="submit-btn" id="contact-submit" type="button">Send message →</button>
       <p class="status-msg" id="contact-status"></p>
     </div>
-    <div id="success-view" style="display:none; text-align:center; padding: 1.5rem 0;">
-      <div style="width:52px;height:52px;background:rgba(74,222,128,0.12);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1F7A4D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    <div id="success-view" style="display:none; text-align:center; padding:1.5rem 0;">
+      <div style="width:52px;height:52px;background:var(--success-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="color:var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
-      <h3 style="font-family:'Fraunces',serif;color:var(--text-1);margin:0 0 0.5rem;font-size:1.3rem;">Message sent!</h3>
-      <p style="color:var(--text-2);font-size:0.9rem;line-height:1.6;margin:0;">We'll get back to you within one business day.</p>
+      <h3 style="font-family:'Fraunces',serif;color:var(--ink);margin:0 0 0.5rem;font-size:1.3rem;">Message sent!</h3>
+      <p style="color:var(--slate);font-size:0.9rem;line-height:1.6;margin:0;">We'll get back to you within one business day.</p>
     </div>
   </div>
 

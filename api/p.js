@@ -142,22 +142,27 @@ function inactivePage(businessName, baseUrl) {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>${escapeHtml(businessName)} — Enoma</title>
   <meta name="robots" content="noindex,nofollow" />
-  <link rel="stylesheet" href="/styles/enoma.css" />
-  <style>
-    body { background: #f6f7fb; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem; }
-    .card { background: white; border-radius: 20px; padding: 3rem 2.5rem; max-width: 480px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.08); border: 1px solid #e5e7eb; }
-    h1 { font-size: 1.4rem; color: #211551; margin: 0 0 0.75rem; }
-    p { color: #6b7280; line-height: 1.6; margin: 0 0 1.5rem; }
-    .btn { display: inline-block; background: #9A8CFF; color: #0b0a14; padding: 0.85rem 2rem; border-radius: 999px; font-weight: 700; text-decoration: none; }
-    .business-name { font-size: 1rem; color: #9ca3af; margin-bottom: 1.5rem; }
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/styles/enoma.css">
+  <link rel="icon" href="/brand/favicon.ico" sizes="any">
+  <link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#0A1628">
+  <meta property="og:image" content="https://enoma.io/brand/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://enoma.io/brand/og-image.png">
 </head>
-<body>
-  <div class="card">
-    <p class="business-name">${escapeHtml(businessName)}</p>
+<body class="page-status">
+  <div class="status-card">
+    <p class="status-card__business">${escapeHtml(businessName)}</p>
     <h1>This website is currently inactive</h1>
     <p>This Enoma website's free trial has ended. The business owner can reactivate it by subscribing.</p>
-    <a href="${baseUrl}" class="btn">Learn about Enoma →</a>
+    <a href="${baseUrl}" class="btn btn--primary">Learn about Enoma →</a>
   </div>
 </body>
 </html>`;

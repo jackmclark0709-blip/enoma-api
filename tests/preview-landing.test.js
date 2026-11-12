@@ -4,6 +4,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { detectCallouts, workingPoints, validateContactRequest, buildContactAlert, renderLanding, MAX_CALLOUTS, instantPreviewPath, landingSource, CALLOUT_ANCHORS, SELLING_POINTS } from "../api/_lib/preview-landing.js";
 import { bannedWordsIn } from "../api/_lib/copy-lint.js";
+// Page styles live in the one Enoma stylesheet, scoped to body.page-preview.
+const css = readFileSync(new URL("../public/styles/enoma.css", import.meta.url), "utf8");
 
 let passed = 0;
 async function test(name, fn) {
@@ -127,7 +129,7 @@ await test("has every section in order", () => {
   assert.deepEqual([...order].sort((a, b) => a - b), order);
 });
 await test("nav: Enoma logo home, From Jack, and a small Claim my page button", () => {
-  assert.match(html, /<a class="brand" href="\/"[^>]*><img src="\/assets\/logos\/enoma-color-name\.svg"/);
+  assert.match(html, /<a class="brand" href="\/"[^>]*><img src="\/brand\/enoma-wordmark-blue-notagline-cropped\.svg"/);
   assert.match(html, /<span class="from">From Jack at Enoma<\/span>/);
   assert.match(html, new RegExp(`class="top-cta" href="/robbins-plumbing\\?claim=1&amp;m=${M}"[^>]*>Claim my page<`));
 });
@@ -171,8 +173,9 @@ await test("every note renders as a numbered comment card, in order, plus a no-J
   assert.equal((list.match(/Suggested change/g) || []).length, cs.length);
   assert.equal((list.match(/Jack · Enoma/g) || []).length, cs.length);
   assert.ok(at("id=\"page-frame\"") < at("id=\"notes-list\""), "list comes after the page");
-  assert.match(html, /\.js \.rail \{ display:none; \}/, "the list is only swapped out when JS runs");
-  assert.match(html, /\.browser iframe \{[^}]*height:1400px/, "fixed height without JS");
+  assert.match(html, /<body class="page-preview">/);
+  assert.match(css, /html\.js body\.page-preview \.rail \{ display: none; \}/, "the list is only swapped out when JS runs");
+  assert.match(css, /body\.page-preview \.browser iframe \{[^}]*height: 1400px/, "fixed height without JS");
 });
 await test("notes: bottom bar and sheet for phones, the closing line and CTA", () => {
   const n = detectCallouts(thin).length;
@@ -209,9 +212,9 @@ await test("no new external scripts or fonts", () => {
   const scripts = [...html.matchAll(/<script[^>]*src="([^"]+)"/g)].map(x => x[1]);
   assert.deepEqual(scripts, ["/scripts/funnel-track.js"]);
   const sheets = [...html.matchAll(/<link[^>]*href="([^"]+)"[^>]*rel="stylesheet"|<link[^>]*rel="stylesheet"[^>]*href="([^"]+)"/g)];
-  assert.ok(sheets.every(x => /fonts\.googleapis\.com/.test(x[0])));
+  assert.deepEqual(sheets.map(x => x[1] || x[2]).map(h => /fonts\.googleapis\.com/.test(h) ? "fonts" : h), ["fonts", "/styles/enoma.css"]);
   assert.match(html, /family=Fraunces[^"]*family=Instrument\+Sans[^"]*family=IBM\+Plex\+Mono/);
-  assert.match(html, /--blue:#1F5FBF/);
+  assert.doesNotMatch(html, /<style/);
 });
 await test("tracking: CTA taps and comment views go to the funnel allowlist", async () => {
   const { FUNNEL_EVENTS } = await import("../api/_lib/tracking.js");
@@ -232,7 +235,7 @@ await test("markers are labelled buttons; reduced motion turns off pulse and smo
   assert.match(html, /mk\.setAttribute\("aria-label", "Note " \+ note\.n \+ ": " \+ note\.title\)/);
   assert.match(html, /prefers-reduced-motion: reduce/);
   assert.match(html, /still\.matches \? "auto" : "smooth"/);
-  assert.match(html, /@media \(prefers-reduced-motion:reduce\) \{\s*\.card\.is-pulse \{ animation:none; \}/);
+  assert.match(css, /@media \(prefers-reduced-motion:reduce\) \{\s*body\.page-preview \.card\.is-pulse \{ animation: none; \}/);
 });
 await test("page copy follows the house copy rules", () => {
   assert.deepEqual(bannedWordsIn(visible(html)), []);

@@ -253,163 +253,21 @@ export function renderLanding(profile, { callouts = [], working = [], slug, m = 
 <script>document.documentElement.className += " js";</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
-<style>
-  /* Same tokens and type as the enoma.io homepage (public/index.html, light theme). */
-  :root { --ink:#0B1B33; --ink2:#3B4A63; --muted:#55647D; --line:#DCE3ED; --bg:#F6F8FB; --card:#fff; --blue:#1F5FBF; --blue-ink:#163F7F; --blue-bg:#EEF4FD; --blue-line:#C9DAF3; --red:#c62828; --green:#1e7d4f;
-    --display:'Fraunces',Georgia,serif; --sans:'Instrument Sans',-apple-system,system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace; --nav:60px; }
-  * { box-sizing:border-box; }
-  html { scroll-padding-top:calc(var(--nav) + 12px); }
-  body { margin:0; font-family:var(--sans); color:var(--ink); background:var(--bg); line-height:1.5; -webkit-font-smoothing:antialiased; }
-  .wrap { max-width:1120px; margin:0 auto; padding:0 16px; }
-  .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
-  a:focus-visible, button:focus-visible, .card:focus-visible { outline:3px solid #9cc2ff; outline-offset:2px; }
-
-  /* 1. Nav */
-  header.top { position:sticky; top:0; z-index:50; background:#fff; border-bottom:1px solid var(--line); }
-  header.top .wrap { display:flex; align-items:center; justify-content:space-between; height:var(--nav); max-width:1180px; }
-  .brand { display:block; text-decoration:none; }
-  .brand img { display:block; height:26px; width:auto; }
-  .from { color:var(--muted); font-size:14px; }
-  .top-right { display:flex; align-items:center; gap:16px; }
-  .top-cta { display:inline-flex; align-items:center; background:var(--blue); color:#fff; font-weight:700; font-size:14px; padding:8px 16px; border-radius:999px; text-decoration:none; white-space:nowrap; transition:background .15s; }
-  .top-cta:hover { background:var(--blue-ink); }
-
-  /* 2. Hero */
-  .hero { padding-top:36px; padding-bottom:32px; }
-  .hero-grid { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr); grid-template-areas:"copy side" "ctas side"; column-gap:48px; align-items:start; }
-  .hero-copy { grid-area:copy; } .hero-side { grid-area:side; } .hero-ctas { grid-area:ctas; }
-  .eyebrow { display:inline-block; font-family:var(--mono); font-size:12px; font-weight:500; letter-spacing:.16em; text-transform:uppercase; color:var(--blue); }
-  h1, h2, .price b { font-family:var(--display); font-optical-sizing:auto; font-weight:600; color:var(--ink); }
-  h1 { font-size:clamp(30px,4.4vw,48px); line-height:1.08; letter-spacing:-.025em; margin:10px 0 12px; }
-  .lede { color:var(--ink2); font-size:19px; max-width:560px; margin:0 0 22px; }
-  .hero-side { background:var(--card); border:1px solid var(--line); border-radius:20px; padding:22px 22px 20px; margin-top:6px; }
-  .sells { list-style:none; margin:0; padding:0; display:grid; gap:12px; }
-  .sells li { display:flex; gap:12px; align-items:center; font-weight:600; font-size:16px; line-height:1.3; color:var(--ink); }
-  .sells .ic { flex:0 0 36px; height:36px; border-radius:10px; background:var(--blue-bg); border:1px solid var(--blue-line); color:var(--blue); display:grid; place-items:center; }
-  .sells svg { width:19px; height:19px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
-  .already { margin:18px 0 8px; font-family:var(--mono); font-size:11px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
-  .working { list-style:none; padding:0; margin:0; display:flex; flex-wrap:wrap; gap:6px; }
-  .working li { background:var(--bg); border:1px solid var(--line); border-radius:999px; padding:4px 11px; font-size:13px; color:var(--ink2); }
-  .working li::before { content:"✓ "; color:var(--blue); font-weight:700; }
-  .cta-row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
-  .b { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:50px; padding:0 22px; border-radius:999px; border:1.5px solid transparent; font:inherit; font-weight:700; font-size:16px; text-decoration:none; cursor:pointer; white-space:nowrap; transition:background .15s, border-color .15s; }
-  .b-primary { background:var(--blue); color:#fff; box-shadow:0 12px 30px -12px rgba(31,95,191,.6); }
-  .b-primary:hover { background:var(--blue-ink); }
-  .b-secondary { background:var(--card); color:var(--ink); border-color:#C9D3E0; }
-  .b-secondary:hover { border-color:var(--blue); background:var(--blue-bg); }
-  .sub-link { display:inline-block; margin-top:14px; color:var(--blue); font-weight:600; font-size:15px; text-underline-offset:3px; }
-  .fine { margin:6px 0 0; color:var(--muted); font-size:13px; }
-
-  /* 3. Their page, with margin comments */
-  section.review { padding:40px 0 32px; border-top:1px solid var(--line); background:#fff; }
-  h2 { font-size:30px; letter-spacing:-.02em; line-height:1.15; margin:0 0 6px; }
-  .sub { color:var(--muted); margin:0 0 22px; max-width:680px; }
-  .doc { position:relative; max-width:1180px; margin:0 auto; padding:0 16px; }
-  .browser { background:#fff; border:1px solid var(--line); border-radius:14px; overflow:hidden; box-shadow:0 30px 70px -40px rgba(11,27,51,.35); }
-  .browser-bar { display:flex; align-items:center; gap:12px; height:40px; padding:0 14px; background:#F1F4F8; border-bottom:1px solid var(--line); }
-  .dots { display:flex; gap:6px; flex:0 0 auto; } .dots i { width:10px; height:10px; border-radius:50%; background:#D3DAE4; display:block; }
-  .url { flex:1; max-width:360px; margin:0 auto; height:24px; display:flex; align-items:center; justify-content:center; background:#fff; border:1px solid var(--line); border-radius:999px; font-family:var(--mono); font-size:12px; color:var(--muted); overflow:hidden; white-space:nowrap; text-overflow:ellipsis; padding:0 10px; }
-  .browser iframe { display:block; width:100%; height:1400px; border:0; background:#fff; }
-  .open-full { display:inline-block; margin-top:10px; font-size:14px; color:var(--blue); font-weight:600; }
-  .rail { position:relative; margin-top:24px; }
-  .cards { list-style:none; margin:0; padding:0; display:grid; gap:12px; }
-  .card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:12px 14px 14px; box-shadow:0 1px 3px rgba(11,27,51,.07); transition:border-color .15s, box-shadow .15s; }
-  .card:hover, .card.is-on { border-color:var(--blue); box-shadow:0 0 0 3px rgba(31,95,191,.14); }
-  .card-head { display:flex; align-items:center; gap:9px; margin-bottom:6px; }
-  .av { flex:0 0 28px; width:28px; height:28px; border-radius:50%; background:var(--blue); color:#fff; font-weight:700; font-size:13px; display:grid; place-items:center; }
-  .who { display:flex; flex-direction:column; line-height:1.25; min-width:0; flex:1; }
-  .who b { font-size:13px; } .who .where { font-size:12px; color:var(--muted); }
-  .n { flex:0 0 auto; min-width:22px; height:22px; padding:0 6px; border-radius:999px; background:var(--blue-bg); border:1px solid var(--blue-line); color:var(--blue); font-family:var(--mono); font-weight:500; font-size:12px; display:grid; place-items:center; }
-  .card h3 { margin:2px 0 4px; font-size:15px; font-weight:700; line-height:1.3; }
-  .card p { margin:0 0 10px; color:var(--ink2); font-size:14px; }
-  .chip { display:inline-block; font-size:12px; font-weight:600; color:#7A5A10; background:#FFF6D6; border:1px solid #F0DFA0; border-radius:999px; padding:1px 9px; }
-  .card.is-pulse { animation:pulse 1.2s ease-out 1; }
-  @keyframes pulse { 0% { box-shadow:0 0 0 0 rgba(31,95,191,.5); } 100% { box-shadow:0 0 0 16px rgba(31,95,191,0); } }
-  .connectors { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; overflow:visible; }
-  .connectors path { fill:none; stroke:rgba(31,95,191,.32); stroke-width:1; stroke-dasharray:3 3; }
-  .connectors path.is-on { stroke:var(--blue); stroke-width:1.5; stroke-dasharray:none; }
-  .notes-after { text-align:center; padding:28px 16px 4px; }
-  .notes-after p { margin:0 0 14px; color:var(--ink2); font-size:17px; }
-  .js .rail { display:none; }
-  @media (min-width:1024px) {
-    .js .doc { display:grid; grid-template-columns:minmax(0,820px) 320px; gap:32px; justify-content:center; align-items:start; }
-    .js .rail { display:block; margin-top:0; }
-    .js .rail.is-placed .cards { display:block; }
-    .js .rail.is-placed .card { position:absolute; left:0; right:0; transition:top .2s ease, border-color .15s, box-shadow .15s; }
-  }
-  .notes-bar { position:fixed; left:12px; right:12px; bottom:12px; z-index:60; display:flex; align-items:center; justify-content:center; gap:10px; max-width:480px; margin:0 auto; min-height:52px; border:0; border-radius:999px; background:var(--ink); color:#fff; font:inherit; font-weight:700; font-size:16px; cursor:pointer; box-shadow:0 14px 34px -12px rgba(11,27,51,.55); }
-  .notes-bar[hidden], .sheet[hidden], .sheet-back[hidden], .pin[hidden] { display:none; }
-  .sheet-back { position:fixed; inset:0; z-index:70; background:rgba(11,27,51,.42); }
-  .sheet { position:fixed; left:0; right:0; bottom:0; z-index:71; max-height:78vh; overflow:auto; background:#fff; border-radius:18px 18px 0 0; padding:6px 16px 20px; box-shadow:0 -20px 50px -20px rgba(11,27,51,.4); }
-  .sheet-head { display:flex; align-items:center; justify-content:space-between; padding:12px 0 8px; }
-  .sheet-head h2 { font-size:20px; margin:0; }
-  .x { width:40px; height:40px; border-radius:50%; border:1px solid var(--line); background:#fff; font-size:22px; line-height:1; cursor:pointer; color:var(--ink); }
-  .sheet ol { list-style:none; margin:0; padding:0; }
-  .sheet-note { display:flex; gap:12px; align-items:flex-start; width:100%; text-align:left; background:none; border:0; border-top:1px solid var(--line); padding:14px 2px; font:inherit; color:var(--ink); cursor:pointer; }
-  .sheet-note b { display:block; font-size:15px; } .sheet-note small { color:var(--muted); font-size:13px; }
-  .pin { position:fixed; left:12px; right:12px; bottom:74px; z-index:65; max-width:480px; margin:0 auto; }
-  .pin .card { position:relative; padding-right:44px; box-shadow:0 20px 44px -16px rgba(11,27,51,.5); border-color:var(--blue); }
-  .pin .x { position:absolute; top:8px; right:8px; width:32px; height:32px; font-size:18px; }
-
-  /* 4. What's the catch */
-  .catch { background:var(--card); border:1px solid var(--line); border-radius:20px; padding:26px 28px; margin:36px 0 28px; display:grid; grid-template-columns:1fr auto; gap:20px; align-items:center; }
-  .catch ul { margin:8px 0 0; padding-left:20px; color:var(--ink2); }
-  .catch li + li { margin-top:4px; }
-  .price { text-align:right; }
-  .price b { display:block; font-size:40px; letter-spacing:-.02em; line-height:1.1; color:var(--blue); }
-  .price span { color:var(--muted); font-size:14px; }
-
-  /* 5. Talk to Jack */
-  .contact { padding:8px 0 48px; }
-  .buttons { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
-  .btn { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; min-height:72px; border-radius:16px; border:1px solid #C9D3E0; background:var(--card); color:#22314A; font:inherit; font-weight:700; font-size:17px; text-decoration:none; cursor:pointer; padding:12px; transition:border-color .15s, background .15s; }
-  .btn:hover { border-color:var(--blue); background:var(--blue-bg); color:var(--ink); }
-  .btn small { font-weight:400; color:var(--muted); font-size:13px; }
-  .btn.primary { background:var(--blue); border-color:var(--blue); color:#fff; box-shadow:0 12px 32px -12px rgba(31,95,191,.55); }
-  .btn.primary:hover { background:var(--blue-ink); border-color:var(--blue-ink); }
-  .btn.primary small { color:#dbe8ff; }
-  .panel { display:none; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px; margin-top:12px; max-width:640px; }
-  .panel.open { display:block; }
-  .panel label { display:block; font-size:14px; font-weight:600; margin:0 0 4px; }
-  .panel input, .panel select, .panel textarea { width:100%; font:inherit; font-size:16px; padding:10px 12px; border:1.5px solid var(--line); border-radius:10px; margin:0 0 12px; background:#fff; color:var(--ink); }
-  .panel input:focus, .panel select:focus, .panel textarea:focus { outline:none; border-color:var(--blue); }
-  .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  .panel button[type=submit] { background:var(--blue); color:#fff; border:0; border-radius:999px; padding:12px 22px; font:inherit; font-weight:700; cursor:pointer; }
-  .panel button[type=submit]:hover { background:var(--blue-ink); }
-  .msg { margin:10px 0 0; font-weight:600; }
-  .msg.ok { color:var(--green); } .msg.err { color:var(--red); }
-  .keep { text-align:center; color:var(--muted); margin:20px 0 0; }
-  .keep a { color:var(--blue); font-weight:600; }
-  footer { border-top:1px solid var(--line); color:var(--muted); font-size:13px; padding:20px 0 32px; }
-  @media (max-width:860px) {
-    .hero-grid { grid-template-columns:1fr; grid-template-areas:"copy" "side" "ctas"; }
-    .hero-side { background:none; border:0; padding:0; margin:0 0 22px; }
-    .lede { margin-bottom:18px; }
-    .catch { grid-template-columns:1fr; }
-    .price { text-align:left; }
-  }
-  @media (max-width:560px) {
-    .from { display:none; }
-    .hero { padding-top:24px; }
-    .lede { font-size:17px; }
-    .sells { gap:9px; } .sells li { font-size:15px; } .sells .ic { flex-basis:32px; height:32px; }
-    .already { margin-top:14px; }
-    .b-primary { width:100%; }
-    .cta-row .b-secondary { flex:1 1 0; padding:0 10px; min-width:0; }
-    .buttons, .row { grid-template-columns:1fr; }
-    .browser iframe { height:900px; }
-    .browser-bar { height:34px; } .dots i { width:8px; height:8px; }
-    .doc { padding:0 10px; }
-  }
-  @media (prefers-reduced-motion:reduce) {
-    .card.is-pulse { animation:none; }
-    .js .rail.is-placed .card { transition:none; }
-  }
-</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/styles/enoma.css">
+<link rel="icon" href="/brand/favicon.ico" sizes="any">
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/brand/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="theme-color" content="#0A1628">
+<meta property="og:image" content="https://enoma.io/brand/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://enoma.io/brand/og-image.png">
 </head>
-<body>
-<header class="top"><div class="wrap"><a class="brand" href="/" aria-label="Enoma home"><img src="/assets/logos/enoma-color-name.svg" alt="Enoma" width="90" height="26"></a><div class="top-right"><span class="from">From Jack at Enoma</span><a class="top-cta" href="${esc(links.claim)}" data-cta="claim" data-where="nav">Claim my page</a></div></div></header>
+<body class="page-preview">
+<header class="top"><div class="wrap"><a class="brand" href="/" aria-label="Enoma home"><img src="/brand/enoma-wordmark-blue-notagline-cropped.svg" alt="Enoma" width="125" height="24"></a><div class="top-right"><span class="from">From Jack at Enoma</span><a class="top-cta" href="${esc(links.claim)}" data-cta="claim" data-where="nav">Claim my page</a></div></div></header>
 
 <main>
   <section class="hero wrap" aria-labelledby="hero-h">
@@ -490,9 +348,9 @@ ${textForm("hero-text")}
     <h2 id="contact-h">Talk to Jack</h2>
     <p class="sub">Pick whatever's easiest. I'm a real person and I'll get back to you.</p>
     <div class="buttons">
-      <a class="btn" id="btn-email" href="${esc(mailto)}" data-email data-cta="email" data-where="contact">Email me<small>jack@enoma.io</small></a>
-      <button class="btn" type="button" data-panel="text" data-cta="text" data-where="contact">Text me<small>I'll text you</small></button>
-      <button class="btn primary" type="button" data-panel="book" data-cta="book" data-where="contact">Book 10 minutes<small>Pick a time, I'll call</small></button>
+      <a class="contact-btn" id="btn-email" href="${esc(mailto)}" data-email data-cta="email" data-where="contact">Email me<small>jack@enoma.io</small></a>
+      <button class="contact-btn" type="button" data-panel="text" data-cta="text" data-where="contact">Text me<small>I'll text you</small></button>
+      <button class="contact-btn primary" type="button" data-panel="book" data-cta="book" data-where="contact">Book 10 minutes<small>Pick a time, I'll call</small></button>
     </div>
 ${textForm("text")}
 
@@ -623,11 +481,11 @@ ${textForm("text")}
     "body.has-mobile-call-bar{padding-bottom:0!important}" +
     "html{overflow:hidden!important;scroll-behavior:auto!important}" +
     "#enoma-notes-layer{position:absolute;top:0;left:0;width:0;height:0;z-index:2147483000;pointer-events:none}" +
-    ".enl-box{position:absolute;border:2px dashed rgba(31,95,191,.55);background:rgba(255,222,89,.13);border-radius:8px;transition:background .15s,border-color .15s,box-shadow .15s}" +
-    ".enl-box.is-on{border-color:#1F5FBF;background:rgba(255,214,51,.3);box-shadow:0 0 0 4px rgba(31,95,191,.18)}" +
-    ".enl-mark{position:absolute;pointer-events:auto;width:28px;height:28px;padding:0;border-radius:50%;border:2px solid #fff;background:#1F5FBF;color:#fff;font:500 13px/24px 'IBM Plex Mono',ui-monospace,monospace;text-align:center;cursor:pointer;box-shadow:0 3px 10px rgba(11,27,51,.35);transition:transform .15s}" +
+    ".enl-box{position:absolute;border:2px dashed rgba(10,114,196,.55);background:rgba(255,222,89,.13);border-radius:8px;transition:background .15s,border-color .15s,box-shadow .15s}" +
+    ".enl-box.is-on{border-color:#0A72C4;background:rgba(255,214,51,.3);box-shadow:0 0 0 4px rgba(10,114,196,.18)}" +
+    ".enl-mark{position:absolute;pointer-events:auto;width:28px;height:28px;padding:0;border-radius:50%;border:2px solid #fff;background:#0A72C4;color:#fff;font:500 13px/24px 'IBM Plex Mono',ui-monospace,monospace;text-align:center;cursor:pointer;box-shadow:0 3px 10px rgba(10,22,40,.35);transition:transform .15s}" +
     ".enl-mark.is-on{transform:scale(1.18)}" +
-    ".enl-mark:focus-visible{outline:3px solid #9cc2ff;outline-offset:2px}" +
+    ".enl-mark:focus-visible{outline:2px solid #0A72C4;outline-offset:2px}" +
     "@media (prefers-reduced-motion:reduce){.enl-box,.enl-mark{transition:none}}";
 
   function anchorFor(key) {
