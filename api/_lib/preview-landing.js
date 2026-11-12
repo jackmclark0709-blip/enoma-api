@@ -155,25 +155,26 @@ export function buildContactAlert({ kind, businessName, city, state, phone, day,
 }
 
 /**
- * Where each margin note points on the embedded page (public/profile.html).
+ * Where each margin note points on the embedded page (public/profile.html,
+ * rendered by api/_lib/company-page.js: a block with no data isn't there).
  * Each key lists CSS selectors, best first; the landing uses the first one
  * that's on the page and visible. A note whose anchors are all missing still
  * shows, stacked after the note before it.
  * - photos: the photo gallery when it's rendered, else the hero.
- * - reviews: #reviews in profile.html is a hidden data holder, so the
- *   visible review carousel (#testimonialsWrap) is the anchor.
+ * - reviews: the reviews section (#testimonialsWrap), else the hero.
+ * - logo: the header logo, else the business name in the header.
  * - services vs service_pages: the whole services section vs its grid, so
  *   the two notes (which often come together) don't share one marker.
  */
 export const CALLOUT_ANCHORS = {
   photos: ["#gallerySection", ".hero-wrapper"],
-  reviews: ["#testimonialsWrap", "#whyOuterSection"],
+  reviews: ["#testimonialsWrap", ".hero-wrapper"],
   services: ["#servicesSection", "#services-grid"],
   service_pages: ["#services-grid", "#servicesSection"],
   towns: ["#towns", "#townsWrap"],
   numbers: ["#about-body", "#about-lead", "#why"],
   response_time: ["#tagline", ".hero-wrapper"],
-  logo: ["#heroLogo", "#navLogo"],
+  logo: ["#navLogo", "#businessName"],
   phone: ["#contact"],
 };
 

@@ -12,6 +12,8 @@
 
 import { isStrongRating, pickReviewQuotes, personaFor } from "./page-style.js";
 import { US_STATE_NAMES, US_STATE_ABBR } from "./service-utils.js";
+import { buildFactsPrompt, applyFactRules, factChecker, normalizeSteps } from "./page-copy.js";
+import { scrubCopy } from "./copy-lint.js";
 
 export const PREVIEW_TRIAL_DAYS = 90;
 
@@ -74,108 +76,44 @@ export function cheapPreviewGate({ prospectPhone, raw, place } = {}) {
   return { ok: false, reason: "weak_or_thin_rating" };
 }
 
-export function buildFactsPrompt({ name, trade, city, state, phone, address, siteText, googleTypes, hours }) {
-  return `You are writing a one-page website for a real local business. Use ONLY the facts in SOURCE below.
-
-HARD RULES
-- Never invent facts: no years in business, license numbers, guarantees, certifications, pricing, awards, owner names, team size, or services that SOURCE does not state.
-- If SOURCE does not support a field, return an empty string or empty array for it. Empty is better than invented.
-- No puffery words: trusted, reliable, professional, quality, dedicated, passionate, excellence, premier, top-notch, best, #1, leading.
-- Do not mention ratings, stars or review counts (the page shows the real rating separately).
-- Plain, specific, homeowner-facing language. Short sentences.
-
-SOURCE
-Business name: ${name}
-Trade (from Google): ${trade}${googleTypes?.length ? ` (${googleTypes.join(", ")})` : ""}
-Location: ${[city, state].filter(Boolean).join(", ")}${address ? ` — ${address}` : ""}
-Phone: ${phone}
-${hours?.length ? `Hours: ${hours.join("; ")}\n` : ""}Website text (may be empty):
-"""
-${String(siteText || "").slice(0, 7000)}
-"""
-
-Return ONLY JSON:
-{
-  "hero_headline": "6-9 words: what they do + where. No business name.",
-  "hero_tagline": "one sentence from SOURCE facts",
-  "about": "1-2 short paragraphs separated by \\n\\n, only SOURCE facts",
-  "services_intro": "one sentence",
-  "services": [{"service_name": "", "service_description": ""}],   // 3-6, grouped from services SOURCE lists; if none listed, one entry for the trade itself
-  "service_area": ["Town"],                                        // only towns SOURCE lists; else just the business's town
-  "why_choose_us": ["short concrete fact from SOURCE"],             // 0-5
-  "trust_badges": ["2-4 word fact from SOURCE"],                    // 0-4
-  "faqs": [{"q": "", "a": ""}]                                      // 2-4, answers only from SOURCE (area served, how to get a quote, services)
-}`;
-}
-
-const BANNED = /\b(trusted|reliable|professional|quality|dedicated|passionate|excellence|premier|top-notch|best|#1|leading)\b/gi;
-const RATING = /(\d(\.\d)?\s*★|\bstars?\b|\breviews?\b|\brated\b)/i;
-
-// Numbers in generated copy must appear in the source (phone digits, years,
-// license #s). Anything else is a hallucinated fact — drop that sentence/item.
-function numbersIn(s) { return (String(s).match(/\d[\d,]*/g) || []).map(n => n.replace(/,/g, "")); }
-function unsupportedNumber(text, sourceNumbers) {
-  return numbersIn(text).some(n => n.length >= 2 && !sourceNumbers.has(n));
-}
-function cleanSentence(s) {
-  const t = String(s || "").replace(BANNED, "").replace(/\s{2,}/g, " ").replace(/\s+([,.])/g, "$1").trim();
-  return t.charAt(0).toUpperCase() + t.slice(1);
-}
-// Short claims (badges, why-us bullets) must share a distinctive word with the
-// source text — catches invented-but-numberless claims like "Free estimates"
-// on a site that never offers them.
-const STOP = new Set("about after also always and any are best call can come customers every from have home homes into just local more most need needs only other our over same service services that their them they this through throughout time today very what when where which will with work your".split(" "));
-function grounded(text, siteLc) {
-  if (!siteLc) return false;
-  const words = String(text).toLowerCase().match(/[a-z]{5,}/g) || [];
-  return words.some(w => !STOP.has(w) && siteLc.includes(w.slice(0, Math.max(5, w.length - 2))));
-}
-function keep(text, srcNums) { return text && !RATING.test(text) && !unsupportedNumber(text, srcNums); }
-function filterSentences(text, srcNums) {
-  return String(text || "").split(/\n\n+/).map(par =>
-    par.split(/(?<=[.!?])\s+/).map(cleanSentence).filter(s => keep(s, srcNums)).join(" ")
-  ).filter(Boolean).join("\n\n");
-}
+// The prompt, the output schema and the facts-only rules are shared with
+// every other page-copy path: api/_lib/page-copy.js.
+export { buildFactsPrompt };
 
 /**
+ * Facts-only check for preview copy: the shared rules (applyFactRules), the
+ * banned-word scrub (copy-lint.js), then the preview's own limits.
  * @param {object} gen    parsed LLM JSON
- * @param {object} source { siteText, phone, address, city, trade }
+ * @param {object} source { siteText, phone, address, hours, city, trade }
  */
 export function validateGenerated(gen, source) {
-  const srcNums = new Set(numbersIn(`${source.siteText || ""} ${source.phone || ""} ${source.address || ""} ${(source.hours || []).join(" ")}`));
   const arr = v => (Array.isArray(v) ? v : []);
-  const str = v => (typeof v === "string" ? v : "");
+  const raw = gen && typeof gen === "object" ? gen : {};
+  const sourceText = [source.siteText || "", source.phone || "", source.address || "", (source.hours || []).join(" ")].join("\n");
+  const why = Array.isArray(raw.why_choose_us) ? raw.why_choose_us : String(raw.why_choose_us || "").split("\n").filter(Boolean);
+  const checked = scrubCopy(applyFactRules({ ...raw, why_choose_us: why }, sourceText), { offers_free_estimates: false, years_in_business: null });
 
-  const services = arr(gen.services)
-    .map(s => ({ service_name: cleanSentence(s?.service_name), service_description: filterSentences(s?.service_description, srcNums) }))
-    .filter(s => s.service_name && keep(s.service_name, srcNums))
-    .slice(0, 6);
+  const services = arr(checked.services).map(s => ({ service_name: s.service_name, service_description: s.service_description })).slice(0, 6);
   if (!services.length) {
     const trade = String(source.trade || "Local service").replace(/\b\w/g, m => m.toUpperCase());
     services.push({ service_name: trade, service_description: "" });
   }
-
-  const towns = arr(gen.service_area).map(t => String(t).replace(/,\s*[A-Z]{2}$/, "").trim()).filter(Boolean);
+  const towns = arr(raw.service_area).map(t => String(t).replace(/,\s*[A-Z]{2}$/, "").trim()).filter(Boolean);
   const siteLc = String(source.siteText || "").toLowerCase();
   // Towns must literally appear in the source text (or be the home town).
   const service_area = [...new Set([source.city, ...towns.filter(t => siteLc.includes(t.toLowerCase()))].filter(Boolean))].slice(0, 20);
 
-  const faqs = arr(gen.faqs)
-    .map(f => ({ q: cleanSentence(f?.q), a: filterSentences(f?.a, srcNums) }))
-    .filter(f => f.q && f.a && !RATING.test(f.q))
-    .slice(0, 4);
-
-  const headline = cleanSentence(str(gen.hero_headline));
   return {
-    hero_headline: keep(headline, srcNums) ? headline : "",
-    hero_tagline: filterSentences(gen.hero_tagline, srcNums),
-    about: filterSentences(gen.about, srcNums),
-    services_intro: filterSentences(gen.services_intro, srcNums),
+    hero_headline: checked.hero_headline,
+    hero_tagline: checked.hero_tagline,
+    about: checked.about,
+    services_intro: checked.services_intro,
     services,
     service_area,
-    why_choose_us: arr(gen.why_choose_us).map(cleanSentence).filter(w => keep(w, srcNums) && grounded(w, siteLc)).slice(0, 5),
-    trust_badges: arr(gen.trust_badges).map(cleanSentence).filter(b => b && b.length <= 32 && keep(b, srcNums) && grounded(b, siteLc)).slice(0, 4),
-    faqs,
+    why_choose_us: arr(checked.why_choose_us).filter(w => factChecker(source.siteText).grounded(w)).slice(0, 5),
+    trust_badges: arr(checked.trust_badges).filter(b => factChecker(source.siteText).grounded(b)).slice(0, 4),
+    faqs: arr(checked.faqs).slice(0, 4),
+    how_it_works: normalizeSteps(checked.how_it_works),
   };
 }
 
@@ -202,6 +140,7 @@ export function assembleProfile({ slug, name, trade, city, state, phone, address
     why_choose_us: copy.why_choose_us,
     trust_badges: copy.trust_badges,
     faqs: copy.faqs,
+    ...(copy.how_it_works?.length ? { how_it_works: copy.how_it_works } : {}),
     testimonials: pickReviewQuotes(googleReviews || [], 3),
     google_place_id: placeId || null,
     average_rating: rating ?? null,

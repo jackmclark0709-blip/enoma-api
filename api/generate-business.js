@@ -17,7 +17,8 @@ import fs from "fs";
 import {
   first, safeJSON, mergeUserServicePrices, normalizeServiceAreas
 } from "./_lib/service-utils.js";
-import { buildAdminPrompt, buildSelfServePrompt, finishGenerated, lintFlagsFor, yearsInBusinessFrom } from "./_lib/generator-prompt.js";
+import { buildAdminPrompt, buildSelfServePrompt, finishGenerated, lintFlagsFor, yearsInBusinessFrom, requestCopy, factSourceText } from "./_lib/page-copy.js";
+import { ownerFactsFromForm, cleanServiceExtras, cleanPhotoUrl, cleanSteps } from "./_lib/profile-fields.js";
 import { mergeKinds } from "./_lib/photo-kinds.js";
 import { handleSpotlight } from "./_lib/spotlight.js";
 import Stripe from "stripe";
@@ -67,10 +68,6 @@ const BUCKET = "business-images";
 const toBool = v => {
   const s = String(first(v)).toLowerCase().trim();
   return s === "true" || s === "on" || s === "1" || s === "yes";
-};
-const extractJSON = text => {
-  if (!text || typeof text !== "string") return "";
-  return text.replace(/```json/gi, "").replace(/```/g, "").trim();
 };
 const normalizeCtaType = (t = "") => {
   const v = String(t).toLowerCase().trim();
@@ -196,31 +193,17 @@ async function handleAdminGenerate(req, res) {
     created_at: new Date().toISOString(), updated_at: new Date().toISOString()
   });
 
-  // Prompt and honesty rules: api/_lib/generator-prompt.js (shared with the form path).
+  // One generator for every path (api/_lib/page-copy.js): the prompt,
+  // structured output, the facts-only rules, then lint / retry / scrub.
   const adminInput = { businessName, ownerFirstName, trade, phone, town, state, areasServed, yearsInBusiness, services };
   const prompt = buildAdminPrompt(adminInput);
-  const askAI = async (extra = "") => {
-    const r = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${process.env.OPENAI_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "gpt-4o", temperature: 0.2,
-        messages: [
-          { role: "system", content: "You are a JSON API. Return ONLY valid JSON. No text, no markdown." },
-          { role: "user", content: prompt + extra }
-        ]
-      })
-    });
-    if (!r.ok) throw new Error(`OpenAI error: ${await r.text()}`);
-    return safeJSON(extractJSON((await r.json())?.choices?.[0]?.message?.content), null);
-  };
+  const askAI = (extra = "") => requestCopy(prompt + extra, { fetchImpl: fetch });
 
   const generatedRaw = await askAI();
-  if (!generatedRaw) throw new Error("AI returned invalid JSON");
-  // Same copy check as the form path: lint, one retry if needed, scrub.
   const { generated, issues: adminIssues } = await finishGenerated(generatedRaw, {
     flags: lintFlagsFor({ offersEmergency: false, yearsInBusiness: yearsInBusinessFrom(yearsInBusiness), profile: adminInput }),
     profile: adminInput,
+    source: factSourceText(adminInput),
     retry: askAI,
     log: m => console.warn(m),
   });
@@ -248,6 +231,9 @@ async function handleAdminGenerate(req, res) {
       primary_cta_label: generated.primary_cta.label,
       primary_cta_type: "call", primary_cta_value: phone || "",
       testimonials: [], attachments: [],
+      // Owner facts (migration 20261114_profile_upgrade): only what was given.
+      ...(yearsInBusinessFrom(yearsInBusiness) ? { years_in_business: yearsInBusinessFrom(yearsInBusiness) } : {}),
+      ...(generated.how_it_works.length ? { how_it_works: generated.how_it_works } : {}),
       is_open_now: false, accepting_clients: true, offers_emergency: false,
       is_public: true, updated_at: new Date().toISOString()
     }, { onConflict: "business_id" });
@@ -539,6 +525,22 @@ export default async function handler(req, res) {
       console.warn("⚠️ Logo upload error:", e?.message);
     }
 
+    /* ---------- OWNER PHOTO (optional, "Meet the owner") ---------- */
+    let uploadedOwnerPhoto = null;
+    try {
+      const f = files?.owner_photo ? (Array.isArray(files.owner_photo) ? files.owner_photo[0] : files.owner_photo) : null;
+      if (f && f.size > 0 && f.size <= 8 * 1024 * 1024
+          && (isImageMimetype(f.mimetype) || /\.(png|jpe?g|webp)$/i.test(f.originalFilename || ""))) {
+        const ext = ((f.originalFilename || "photo.jpg").split(".").pop() || "jpg").toLowerCase();
+        const storagePath = `${business_id}/owner-${Date.now()}.${ext}`;
+        const { error: upErr } = await supabaseAdmin.storage.from(BUCKET)
+          .upload(storagePath, fs.readFileSync(f.filepath || f.path), { contentType: f.mimetype || contentTypeForExt(ext), upsert: true });
+        if (!upErr) uploadedOwnerPhoto = supabaseAdmin.storage.from(BUCKET).getPublicUrl(storagePath).data?.publicUrl || null;
+      }
+    } catch (e) {
+      console.warn("⚠️ Owner photo upload error:", e?.message);
+    }
+
     /* ---------- IMAGE UPLOADS ---------- */
     let newAttachments = [];
     try {
@@ -601,12 +603,17 @@ export default async function handler(req, res) {
       servicesJSON = JSON.stringify(existingProfile.services);
     }
 
+    /* ---------- OWNER FACTS (all optional) ---------- */
+    // A field the form didn't send keeps its stored value; one sent empty clears it.
+    const formValue = name => (hasField(fields, name) ? first(fields[name]) : undefined);
+    const ownerFacts = ownerFactsFromForm(formValue, existingProfile || {});
+
     /* ---------- AI COPY ---------- */
     let generated = null;
     let primaryCTA = null;
 
     if (shouldRegenerate) {
-      // Prompt and honesty rules: api/_lib/generator-prompt.js (shared with the admin path).
+      // Prompt and honesty rules: api/_lib/page-copy.js (shared with the admin path).
       const promptProfile = {
         business_name, primary_category: first(fields.primary_category), tone, notes: about_input,
         services_json: servicesJSON, address: first(fields.address), phone: first(fields.phone),
@@ -614,74 +621,29 @@ export default async function handler(req, res) {
         service_area: first(fields.service_area), owner_name, trust_badges: first(fields.trust_badges),
         testimonials: first(fields.testimonials), accepting_clients: toBool(fields.accepting_clients),
         offers_emergency: toBool(fields.offers_emergency),
+        // The owner's answers (years, license, insured, free estimates, reply time).
+        ...ownerFacts, owner_blurb: undefined,
       };
       const prompt = buildSelfServePrompt(promptProfile);
-
-      const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.OPENAI_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          temperature: 0.2,
-          messages: [
-            { role: "system", content: "You are a JSON API. You ONLY return valid JSON. No text." },
-            { role: "user", content: prompt }
-          ]
-        })
-      });
-
-      if (!aiRes.ok) {
-        const text = await aiRes.text();
-        console.error("❌ OpenAI error:", text);
-        await funnel("generation_failed", { error: "ai_request_failed" }, business_id);
-        return res.status(500).json({
-          error: "AI request failed",
-          message: "We couldn't generate your page copy just now. Nothing was lost — please try again in a moment."
-        });
-      }
-
-      const ai = await aiRes.json();
-      const rawAI = ai?.choices?.[0]?.message?.content;
-      if (!rawAI) {
-        await funnel("generation_failed", { error: "ai_empty_response" }, business_id);
+      // Shared generator (api/_lib/page-copy.js): structured output, so the
+      // reply is always JSON in one schema; the facts-only rules and the copy
+      // check run in finishGenerated below.
+      const askAI = (extra = "") => requestCopy(prompt + extra, { fetchImpl: fetch });
+      try {
+        generated = await askAI();
+      } catch (e) {
+        console.error("❌ OpenAI error:", e?.message);
+        await funnel("generation_failed", { error: e?.code || "ai_request_failed" }, business_id);
         return res.status(500).json({
           error: "AI generation failed",
           message: "We couldn't generate your page copy just now. Nothing was lost — please try again in a moment."
         });
       }
-
-      generated = safeJSON(extractJSON(rawAI), null);
-      if (!generated || typeof generated !== "object") {
-        await funnel("generation_failed", { error: "ai_invalid_json" }, business_id);
-        return res.status(500).json({
-          error: "AI generation failed",
-          details: "Invalid JSON",
-          message: "We couldn't generate your page copy just now. Nothing was lost — please try again in a moment."
-        });
-      }
-
-      // Copy check (copy-lint.js via finishGenerated): one AI retry with the
-      // problems listed, kept only if it parses and has fewer problems, then a scrub.
-      const askAgain = async extra => {
-        const retryRes = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${process.env.OPENAI_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "gpt-4o", temperature: 0.2,
-            messages: [
-              { role: "system", content: "You are a JSON API. You ONLY return valid JSON. No text." },
-              { role: "user", content: prompt + extra }
-            ]
-          })
-        });
-        return retryRes.ok ? safeJSON(extractJSON((await retryRes.json())?.choices?.[0]?.message?.content), null) : null;
-      };
+      const askAgain = askAI;
       const finished = await finishGenerated(generated, {
-        flags: lintFlagsFor({ offersEmergency: toBool(fields.offers_emergency), yearsInBusiness: yearsInBusinessFrom(null, about_input), profile: promptProfile }),
+        flags: lintFlagsFor({ offersEmergency: toBool(fields.offers_emergency), yearsInBusiness: yearsInBusinessFrom(ownerFacts.years_in_business, about_input), profile: promptProfile }),
         profile: promptProfile,
+        source: factSourceText(promptProfile),
         retry: askAgain,
         log: m => console.warn(m),
       });
@@ -701,6 +663,7 @@ export default async function handler(req, res) {
           why_choose_us: generated?.why_choose_us || "",
           services_intro: generated?.services_intro || "",
           services: Array.isArray(generated?.services) ? generated.services : [],
+          how_it_works: Array.isArray(generated?.how_it_works) ? generated.how_it_works : [],
           faqs: Array.isArray(generated?.faqs) ? generated.faqs : [],
           seo_title: generated?.seo_title || "",
           seo_description: generated?.seo_description || "",
@@ -730,7 +693,19 @@ export default async function handler(req, res) {
     const finalServices = mergeUserServicePrices(
       shouldRegenerate ? (generated?.services ?? []) : (manualServices ?? []),
       rawServices
-    );
+    ).map(sv => {
+      // "From $150" / "Same week": cleaned, and dropped when blank.
+      const { price_from, turnaround, ...rest } = sv || {};
+      return { ...rest, ...cleanServiceExtras({ price_from, turnaround }) };
+    });
+
+    // How it works: the owner's own three steps win; otherwise the AI's
+    // (facts-only, page-copy.js) when the copy is being rewritten; the page
+    // falls back to plain defaults when there are none.
+    const submittedSteps = hasField(fields, "how_it_works") ? cleanSteps(first(fields.how_it_works)) : undefined;
+    const finalHowItWorks = submittedSteps
+      || (shouldRegenerate ? (generated?.how_it_works?.length ? generated.how_it_works : (existingProfile?.how_it_works ?? null))
+        : (submittedSteps === null ? null : (existingProfile?.how_it_works ?? null)));
     // FAQs: owners can now edit them directly (create.html sends "faqs").
     const submittedFaqs = hasField(fields, "faqs")
       ? (safeJSON(first(fields.faqs), []) || [])
@@ -822,6 +797,11 @@ export default async function handler(req, res) {
       // Sent as "" when the owner clears the field, so it can be removed.
       hero_availability: hasField(fields, "hero_availability") ? (first(fields.hero_availability) || null) : (existingProfile?.hero_availability || null),
       hero_response_time: hasField(fields, "hero_response_time") ? (first(fields.hero_response_time) || null) : (existingProfile?.hero_response_time || null),
+      // Owner facts (migration 20261114_profile_upgrade), all optional.
+      ...ownerFacts,
+      how_it_works: finalHowItWorks,
+      owner_photo_url: uploadedOwnerPhoto
+        || (hasField(fields, "owner_photo_url") ? cleanPhotoUrl(first(fields.owner_photo_url)) : (existingProfile?.owner_photo_url ?? null)),
       social_links: hasField(fields, "social_links")
         ? safeJSON(first(fields.social_links), null)
         : (existingProfile?.social_links ?? null),

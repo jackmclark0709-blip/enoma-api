@@ -7,7 +7,8 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
-import { renderSections, normalizeProfile } from "../api/_lib/page-ssr.js";
+import { normalizeProfile } from "../api/_lib/page-ssr.js";
+import { renderCompanyPage } from "../api/_lib/company-page.js";
 
 let passed = 0;
 async function test(name, fn) {
@@ -16,11 +17,10 @@ async function test(name, fn) {
 }
 
 const TEMPLATE = fs.readFileSync(new URL("../public/profile.html", import.meta.url), "utf8");
-// Same fill as api/p.js: every placeholder from renderSections, in order.
+// Same fill as api/p.js (api/_lib/company-page.js renderCompanyPage).
 function page(profile) {
-  let html = TEMPLATE;
-  for (const [needle, value] of Object.entries(renderSections(normalizeProfile(profile)))) html = html.split(needle).join(value);
-  return html.replace(/<script>window\.__PROFILE__[\s\S]*?<\/script>/, "");
+  const html = renderCompanyPage(TEMPLATE, profile, { slug: "arno-plumbing" });
+  return html.replace(/<script>window\.__PROFILE__[\s\S]*?<\/script>/, "").replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/g, "");
 }
 const headings = html => [...html.matchAll(/<h[1-3][^>]*>([\s\S]*?)<\/h[1-3]>/g)].map(m => m[1].replace(/<[^>]+>/g, "").trim());
 
@@ -35,32 +35,30 @@ const full = {
 };
 
 console.log("empty sections");
-await test('no testimonials or photos: no "What Clients Say", "Recent Work" or "Before & After" in the HTML at all', () => {
+await test('no testimonials or photos: no reviews, "Recent projects" or "Before & After" in the HTML at all', () => {
   const html = page(bare);
   const h = headings(html);
-  for (const gone of ["What Clients Say", "Recent Work", "Before &amp; After", "Why Choose Us", "Frequently Asked Questions", "Areas We Serve"]) {
+  for (const gone of ["What customers say", "Recent projects", "Before &amp; After", "Why choose us", "Frequently Asked Questions", "Areas We Serve"]) {
     assert.ok(!h.includes(gone), gone);
     assert.ok(!html.includes(`>${gone}<`), `${gone} still in the HTML`);
   }
   for (const id of ["gallerySection", "baSection", "testimonialsWrap", "whySection", "faqsBand", "townsWrap"]) assert.ok(!html.includes(`id="${id}"`), id);
-  // Google reviews can still fill the testimonials slot in the browser.
-  assert.match(html, /<div id="testimonialsSlot" hidden><\/div>/);
-  assert.doesNotMatch(html, /\{\{SSR_(TOWNS|WHY|FAQS|GALLERY|BA|TESTIMONIALS|CALL|QUOTE)/);
+  assert.doesNotMatch(html.slice(html.indexOf("<body")).replace(/<body class="\{\{BODY_CLASS\}\}"/, ""), /\{\{[A-Z_]+\}\}/);
 });
 await test("each section renders when it has content", () => {
   const h = headings(page(full));
-  for (const there of ["Areas We Serve", "Recent Work", "Before &amp; After", "Why Choose Us", "What Clients Say", "Frequently Asked Questions"]) assert.ok(h.includes(there), there);
+  for (const there of ["Areas We Serve", "Recent projects", "Before &amp; After", "Why choose us", "What customers say", "Frequently Asked Questions"]) assert.ok(h.includes(there), there);
   const html = page(full);
   assert.match(html, /<img src="https:\/\/cdn\.example\.com\/job1\.jpg"/);
   assert.doesNotMatch(html, /menu\.pdf" alt/);
 });
 await test("why without testimonials, and testimonials without why", () => {
   const a = page({ ...bare, why_choose_us: "Owner on every job" });
-  assert.ok(headings(a).includes("Why Choose Us"));
-  assert.ok(!headings(a).includes("What Clients Say"));
+  assert.ok(headings(a).includes("Why choose us"));
+  assert.ok(!headings(a).includes("What customers say"));
   const b = page({ ...bare, testimonials: [{ quote: "Great", author: "Sam" }] });
-  assert.ok(!headings(b).includes("Why Choose Us"));
-  assert.ok(headings(b).includes("What Clients Say"));
+  assert.ok(!headings(b).includes("Why choose us"));
+  assert.ok(headings(b).includes("What customers say"));
 });
 
 console.log("map and areas");
@@ -73,10 +71,10 @@ await test("the map only for a local-radius business; area chips for everyone", 
 });
 
 console.log("CTA copy");
-await test('"Call for a quote" and "Get a quote", never free', () => {
-  const html = page(full);
-  assert.match(html, /<a id="quickCall" class="primary-cta">Call for a quote<\/a>/);
-  assert.match(html, /<h2>Get a quote<\/h2>/);
+await test('"Get a quote", never free', () => {
+  const html = page({ ...full, phone: "(413) 555-0100" });
+  assert.match(html, /<a class="secondary-btn" href="#contact" data-contact="quote">Get a quote<\/a>/);
+  assert.match(html, /<h2 id="quoteHeading">Get a quote<\/h2>/);
   assert.doesNotMatch(html, /Free Quote|Free Estimate|free quote|free estimate/);
 });
 await test("profile.js has no hard-coded free CTA or Accepting clients pill", () => {

@@ -241,6 +241,7 @@
         <!-- Quick tips -->
         <div class="card">
           <div class="card-title">Quick wins</div>
+          <p id="quick-wins-percent" style="font-size:0.82rem;color:var(--muted);margin:0 0 0.6rem;"></p>
           <div id="quick-wins" style="display:flex;flex-direction:column;gap:0.6rem;"></div>
         </div>
 
@@ -938,42 +939,30 @@ async function loadMetrics(profile) {
         </li>`).join('');
 }
 
+// "Quick wins": the page checklist's missing items (public/scripts/page-checklist.js),
+// most useful first: photos, a few words about you, reply time, license /
+// insurance, free estimates. Each links to the edit form, where every one is optional.
 async function loadQuickWins(profile) {
-  // Fetch the full profile to check what's missing
   const { data: p } = await supabase
     .from('small_business_profiles').select('*').eq('business_id', profile.business_id).maybeSingle();
-
   if (!p) return;
-
-  const wins = [];
-  const editUrl = `/create?business_id=${profile.business_id}`;
-
-  const hasPhotos = Array.isArray(p.attachments) && p.attachments.length > 0;
-  const hasTestimonials = Array.isArray(p.testimonials) && p.testimonials.length > 0;
-  const hasFaqs = Array.isArray(p.faqs) && p.faqs.length > 0;
-  const hasBadges = Array.isArray(p.trust_badges) && p.trust_badges.length > 0;
-  const hasAbout = p.about && p.about.length > 80;
-
-  if (!hasPhotos)      wins.push({ label: 'Add photos of your work', desc: 'Businesses with photos get more contact clicks', icon: '📸' });
-  if (!hasTestimonials) wins.push({ label: 'Add a client testimonial', desc: 'Even one review builds significant trust', icon: '⭐' });
-  if (!hasBadges)      wins.push({ label: 'Add trust badges', desc: 'e.g. "Licensed & Insured", "Free Estimates"', icon: '🛡' });
-  if (!hasFaqs)        wins.push({ label: 'Add FAQs', desc: 'Answers to common questions reduce friction', icon: '❓' });
-  if (!hasAbout)       wins.push({ label: 'Expand your About section', desc: 'Tell your story — people hire people they know', icon: '✍️' });
-
   const winsEl = document.getElementById('quick-wins');
+  const editUrl = `/create?business_id=${profile.business_id}`;
+  let checklist;
+  try { checklist = await import('/scripts/page-checklist.js'); } catch { return; }
+  const c = checklist.pageChecklist(p);
+  const wins = checklist.nextSteps(p);
+  const pct = document.getElementById('quick-wins-percent');
+  if (pct) pct.textContent = `Your page is ${c.percent}% done`;
 
   if (!wins.length) {
-    winsEl.innerHTML = `<p style="font-size:0.85rem;color:var(--success);margin:0;">✓ Your profile looks complete! Great work.</p>`;
+    winsEl.innerHTML = `<p style="font-size:0.85rem;color:var(--success);margin:0;">✓ Your page has everything on our list. Great work.</p>`;
     return;
   }
-
-  winsEl.innerHTML = wins.slice(0, 3).map(w => `
-    <a href="${editUrl}" style="display:flex;align-items:flex-start;gap:0.6rem;text-decoration:none;padding:0.6rem 0.75rem;border-radius:10px;border:1px solid var(--accent-bg);background:var(--surface-alt);transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--accent-bg)'">
-      <span style="font-size:1.1rem;flex-shrink:0;margin-top:1px;">${w.icon}</span>
-      <div>
-        <div style="font-size:0.85rem;font-weight:600;color:var(--ink);margin-bottom:2px;">${w.label}</div>
-        <div style="font-size:0.78rem;color:var(--muted);line-height:1.4;">${w.desc}</div>
-      </div>
+  winsEl.innerHTML = wins.slice(0, 4).map(w => `
+    <a href="${editUrl}" style="display:block;text-decoration:none;padding:0.6rem 0.75rem;border-radius:10px;border:1px solid var(--accent-bg);background:var(--surface-alt);min-height:44px;">
+      <div style="font-size:0.85rem;font-weight:600;color:var(--ink);margin-bottom:2px;">Add: ${esc(w.label)}</div>
+      ${w.tip ? `<div style="font-size:0.78rem;color:var(--muted);line-height:1.4;">${esc(w.tip)}</div>` : ''}
     </a>
   `).join('');
 }

@@ -1,21 +1,15 @@
 // api/_lib/page-ssr.js
-// Server-side HTML for the content sections of a business page.
+// Server-side HTML for some content sections of a company page: About text,
+// Why choose us lines, Areas served (+ map slots), FAQs, the photo gallery
+// and the before/after slots. api/_lib/company-page.js places these and
+// renders the rest (header, hero, services, reviews, owner, footer).
 //
-// This is the ONLY renderer for these sections. The server puts the content
-// in the HTML (so crawlers and AI answer engines that don't run JavaScript
-// see it), and public/scripts/profile.js no longer redraws them — it only
-// adds behaviour (testimonial carousel, FAQ toggles) to this markup. Change a
-// section's markup here, not in profile.html.
-//
-// One exception: when a business has no testimonials of its own, the browser
-// may fill that slot with Google reviews after the page loads
-// (testimonialsAside, mirrored in profile.js).
-//
-// A section with nothing in it is not in the HTML at all (no empty heading
-// hidden with CSS): Areas We Serve, Recent Work, Before & After, Why Choose
-// Us, What Clients Say and the FAQs each render only when they have content.
+// The server puts the content in the HTML (so crawlers and AI answer
+// engines that don't run JavaScript see it); public/scripts/profile.js only
+// adds behaviour (FAQ toggles, maps, sliders). A section with nothing in it
+// is not in the HTML at all (no empty heading hidden with CSS).
 
-import { townsLine, isLocalRadius, callCtaLabel, offersFreeEstimates } from "./page-claims.js";
+import { townsLine, isLocalRadius, offersFreeEstimates, callCtaLabel } from "./page-claims.js";
 import { isImageUrl } from "./photo-kinds.js";
 
 const esc = s => String(s == null ? "" : s)
@@ -56,23 +50,6 @@ export function normalizeFaqs(faqs) {
     .filter(f => f.q && f.a);
 }
 
-/** The "What Clients Say" aside. profile.js builds the same markup for Google reviews. */
-export function testimonialsAside(innerHtml, count) {
-  return `<aside class="why-sidebar" id="testimonialsWrap">
-    <h2>What Clients Say</h2>
-    <div class="testimonial-carousel" id="testimonialCarousel">
-      <div class="testimonial-carousel-track" id="testimonialList" data-count="${Number(count) || 0}">${innerHtml}</div>
-      <div class="carousel-nav" id="carouselNav" style="display:none;">
-        <div class="carousel-dots" id="carouselDots"></div>
-        <div class="carousel-arrows">
-          <button class="carousel-arrow" id="carouselPrev" aria-label="Previous">&#8592;</button>
-          <button class="carousel-arrow" id="carouselNext" aria-label="Next">&#8594;</button>
-        </div>
-      </div>
-    </div>
-  </aside>`;
-}
-
 function imageAttachments(p) {
   return (Array.isArray(p.attachments) ? p.attachments : [])
     .map(a => (typeof a === "string" ? { url: a } : a))
@@ -80,116 +57,51 @@ function imageAttachments(p) {
 }
 
 /**
- * @returns {Record<string,string>} template replacements for public/profile.html
+ * @returns {Record<string,string>} section HTML for api/_lib/company-page.js
  */
 export function renderSections(p) {
   const out = {};
 
-  // CTA wording: "free" only when the business offers free estimates.
-  out["{{SSR_CALL_LABEL}}"] = esc(callCtaLabel(p));
+  // "free" only when the business says it offers free estimates.
   out["{{SSR_QUOTE_HEADING}}"] = offersFreeEstimates(p) ? "Get a free quote" : "Get a quote";
 
   const about = splitAbout(p.about);
   out["{{SSR_ABOUT_LEAD}}"] = esc(about.lead);
   out["{{SSR_ABOUT_BODY}}"] = about.body.split(/\n\n+/).map(esc).join("<br><br>");
-  out["{{SSR_ABOUT_BODY_HIDDEN}}"] = about.body ? "" : " hidden";
-
-  const services = (parseMaybeJson(p.services) || []).filter(s => s && (s.service_name || s.name));
-  out["{{SSR_SERVICES_INTRO}}"] = esc(p.services_intro || "");
-  out["{{SSR_SERVICES_INTRO_HIDDEN}}"] = String(p.services_intro || "").trim() ? "" : " hidden";
-  out["{{SSR_SERVICES_SECTION_HIDDEN}}"] = services.length ? "" : " hidden";
-  // A service with a published spotlight page renders as a link to it.
-  out["{{SSR_SERVICES}}"] = services.map((s, i) => {
-    const tag = s.spotlight_url ? "a" : "div";
-    const href = s.spotlight_url ? ` href="${esc(s.spotlight_url)}"` : "";
-    const side = s.spotlight_url
-      ? `<div class="service-price">${s.price ? `${esc(s.price)} ` : ""}<span class="service-more">Details →</span></div>`
-      : (s.price ? `<div class="service-price">${esc(s.price)}</div>` : "");
-    return `
-      <${tag} class="service-card${i === 0 ? " service-card--primary" : ""}${s.spotlight_url ? " service-card--linked" : ""}"${href}>
-        <h3>${esc(s.service_name || s.name)}</h3>
-        ${s.service_description ? `<p>${esc(s.service_description)}</p>` : ""}
-        ${side}
-      </${tag}>`;
-  }).join("");
 
   const towns = (parseMaybeJson(p.service_area) || []).filter(Boolean);
-  out["{{SSR_TOWNS}}"] = towns.map(t => `<span class="town">${esc(t)}</span>`).join("");
-  out["{{SSR_TOWNS_CLASS}}"] = towns.length ? "" : "hidden";
   // The map only for a business that works around a home base (isLocalRadius);
   // statewide, nationwide and online businesses keep the area chips alone.
   const mapSlots = isLocalRadius(p) ? `
-    <!-- Map — Google Place ID takes priority, falls back to address -->
-    <div id="serviceMapWrap" class="service-map-wrap hidden">
-      <div id="serviceMap" class="service-map"></div>
-    </div>
-    <!-- Google Place map slot (used when place_id available) -->
-    <div id="placesMapWrap" class="service-map-wrap hidden" style="margin-top:0.75rem;">
-      <div id="map" style="width:100%;height:280px;border-radius:14px;overflow:hidden;"></div>
-    </div>` : "";
+    <div id="serviceMapWrap" class="service-map-wrap hidden"><div id="serviceMap" class="service-map"></div></div>
+    <div id="placesMapWrap" class="service-map-wrap hidden"></div>` : "";
   out["{{SSR_TOWNS_SECTION}}"] = towns.length ? `<div id="townsWrap">
-  <section class="section" id="towns" style="border-bottom:1px solid #e8f0f8;">
-    <h2>Areas We Serve</h2>
+  <section class="section" id="towns" aria-labelledby="townsHeading">
+    <h2 id="townsHeading">Areas We Serve</h2>
     <p class="towns-sub" id="townsSub">${esc(townsLine(p))}</p>
-    <div id="townList" style="margin-bottom:1.25rem;">${out["{{SSR_TOWNS}}"]}</div>${mapSlots}
+    <div id="townList">${towns.map(t => `<span class="town">${esc(t)}</span>`).join("")}</div>${mapSlots}
   </section>
 </div>` : "";
 
-  const why = splitWhy(p.why_choose_us);
-  out["{{SSR_WHY}}"] = why.map(i => `<li>${esc(i)}</li>`).join("");
-  out["{{SSR_WHY_HIDDEN}}"] = why.length ? "" : " hidden";
+  out["{{SSR_WHY}}"] = splitWhy(p.why_choose_us).map(i => `<li>${esc(i)}</li>`).join("");
 
   const faqs = normalizeFaqs(p.faqs);
-  out["{{SSR_FAQS}}"] = faqs.map(f => `
-      <div class="faq-item-wrapper">
-        <button class="faq-item" type="button">
-          <span class="faq-question">${esc(f.q)}</span>
-          <span class="faq-icon">+</span>
-        </button>
-        <div class="faq-answer"><p>${esc(f.a)}</p></div>
-      </div>`).join("");
-  out["{{SSR_FAQS_CLASS}}"] = faqs.length ? "band" : "band hidden";
   out["{{SSR_FAQS_SECTION}}"] = faqs.length ? `<div class="band" id="faqsBand">
-<div class="faq-wrap" id="faqs" style="border-bottom:none;">
-  <h2 class="faq-heading">Frequently Asked Questions</h2>
-  <div class="faq-list" id="faqList">${out["{{SSR_FAQS}}"]}</div>
-</div>
+<section class="faq-wrap" id="faqs" aria-labelledby="faqHeading">
+  <h2 class="faq-heading" id="faqHeading">Frequently Asked Questions</h2>
+  <div class="faq-list" id="faqList">${faqs.map(f => `
+    <div class="faq-item-wrapper">
+      <button class="faq-item" type="button">
+        <span class="faq-question">${esc(f.q)}</span>
+        <span class="faq-icon" aria-hidden="true">+</span>
+      </button>
+      <div class="faq-answer"><p>${esc(f.a)}</p></div>
+    </div>`).join("")}</div>
+</section>
 </div>` : "";
 
-  const testimonials = (Array.isArray(p.testimonials) ? p.testimonials : []).filter(t => t?.quote);
-  out["{{SSR_TESTIMONIALS}}"] = testimonials.map((t, i) => {
-    const n = Math.min(5, Math.max(1, Math.round(Number(t.rating) || 5)));
-    return `<div class="testimonial${i === 0 ? " active" : ""}" data-idx="${i}">
-        <div class="testimonial-accent"></div>
-        <span class="quote-mark">&#8220;</span>
-        <div class="stars">${"★".repeat(n)}${"☆".repeat(5 - n)}</div>
-        <p>${esc(t.quote)}</p>
-        <div class="testimonial-author">
-          <div class="testimonial-avatar">${esc((t.author || "?")[0].toUpperCase())}</div>
-          <strong>${esc(t.author || "Customer")}</strong>${t.source === "google" ? '<span class="testimonial-source">— via Google</span>' : ""}
-        </div>
-      </div>`;
-  }).join("");
-  out["{{SSR_TESTIMONIALS_CLASS}}"] = testimonials.length ? "why-sidebar" : "why-sidebar hidden";
-  out["{{SSR_TESTIMONIALS_COUNT}}"] = String(testimonials.length);
-
-  // Why Choose Us + What Clients Say share a two-column section. With
-  // neither, the section stays (hidden, no headings) only as the place the
-  // browser puts Google reviews; #testimonialsSlot marks where they go.
-  const whyHtml = why.length ? `<div class="why-main" id="whySection">
-    <h2>Why Choose Us</h2>
-    <ul class="why-list" id="why">${out["{{SSR_WHY}}"]}</ul>
-  </div>` : "";
-  const testimonialsHtml = testimonials.length
-    ? testimonialsAside(out["{{SSR_TESTIMONIALS}}"], testimonials.length)
-    : `<div id="testimonialsSlot" hidden></div>`;
-  out["{{SSR_WHY_SECTION}}"] = `<section class="section why-with-testimonials${why.length || testimonials.length ? "" : " hidden"}" id="whyOuterSection">
-  ${whyHtml}
-  ${testimonialsHtml}
-</section>`;
-
-  // Recent Work and Before & After: only with photos. profile.js sets the
-  // trade-specific gallery title and the call link.
+  // Recent work and Before & After: only with photos. company-page.js sets
+  // the trade's gallery title; profile.js the call link and the sliders.
   const photos = imageAttachments(p).slice(0, 12);
   out["{{SSR_GALLERY_SECTION}}"] = photos.length ? `<div class="gallery-section" id="gallerySection">
   <div class="gallery-header">
@@ -197,7 +109,7 @@ export function renderSections(p) {
     <a href="#contact" class="gallery-cta-btn" id="galleryCtaBtn">Have a project in mind? →</a>
   </div>
   <div id="gallery" class="image-grid">${photos.map(a =>
-    `<a href="${esc(a.url)}" target="_blank" rel="noopener"><img src="${esc(a.url)}" alt="${esc(a.filename || p.business_name || "Photo")}" loading="lazy" /></a>`).join("")}</div>
+    `<a href="${esc(a.url)}" target="_blank" rel="noopener"><img src="${esc(a.url)}" alt="${esc(a.filename || `Work by ${p.business_name || "the business"}`)}" loading="lazy" /></a>`).join("")}</div>
 </div>` : "";
   const ba = (Array.isArray(p.before_after_images) ? p.before_after_images : []).filter(i => i && i.before && i.after);
   out["{{SSR_BA_SECTION}}"] = ba.length ? `<div class="ba-section" id="baSection">

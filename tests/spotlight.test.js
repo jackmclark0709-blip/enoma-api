@@ -7,7 +7,7 @@ import {
   stripUnsupportedSpeed, buildFactCheckPrompt,
 } from "../api/_lib/spotlight.js";
 import { renderSpotlight, fillTemplate, priceLine, linkServicesToSpotlights } from "../api/_lib/spotlight-render.js";
-import { renderSections } from "../api/_lib/page-ssr.js";
+import { renderBlocks } from "../api/_lib/company-page.js";
 
 let passed = 0;
 async function test(name, fn) {
@@ -185,25 +185,22 @@ await test("service cards link to matching published spotlights", () => {
   assert.equal(out[1].spotlight_url, "/conways-landscaping/snow-removal-and-salting");
   assert.deepEqual(unmatched.map(u => u.service_slug), ["gutter-cleaning"]);
 });
-await test("server render makes a linked service card an <a> with Details →", () => {
-  const html = renderSections({ services: [{ service_name: "Mowing" }, { service_name: "Snow Removal", spotlight_url: "/conways-landscaping/snow-removal" }] })["{{SSR_SERVICES}}"];
-  assert.match(html, /<div class="service-card service-card--primary">\s*<h3>Mowing/);
-  assert.match(html, /<a class="service-card service-card--linked" href="\/conways-landscaping\/snow-removal">/);
-  assert.match(html, /Details →/);
+await test("a service with a published spotlight gets a \"More about\" link on its card", () => {
+  const html = renderBlocks({ username: "conways-landscaping", services: [{ service_name: "Mowing" }, { service_name: "Snow Removal" }] },
+    { slug: "conways-landscaping", spotlights: [{ service_slug: "snow-removal", service_name: "Snow Removal" }] })["{{BLOCK_SERVICES}}"];
+  assert.match(html, /<article class="service-card service-card--primary" id="service-mowing">\s*<h3>Mowing/);
+  assert.match(html, /<a class="service-more" href="\/conways-landscaping\/snow-removal" data-spotlight-link="snow-removal">More about Snow Removal →<\/a>/);
+  assert.equal((html.match(/class="service-more"/g) || []).length, 1, "only the service with a spotlight");
 });
 
-await test("company page sections hide themselves server-side when empty", () => {
-  const empty = renderSections({ about: "One paragraph only.", services: [], why_choose_us: "", testimonials: [] });
-  assert.equal(empty["{{SSR_ABOUT_BODY_HIDDEN}}"], " hidden");
-  assert.equal(empty["{{SSR_SERVICES_SECTION_HIDDEN}}"], " hidden");
-  assert.equal(empty["{{SSR_SERVICES_INTRO_HIDDEN}}"], " hidden");
-  assert.equal(empty["{{SSR_WHY_HIDDEN}}"], " hidden");
-  assert.equal(empty["{{SSR_TESTIMONIALS_COUNT}}"], "0");
-  const full = renderSections({ about: "A.\n\nB.", services: [{ service_name: "Mowing" }], services_intro: "Intro", why_choose_us: "Owner-operated", testimonials: [{ quote: "Great" }] });
-  assert.equal(full["{{SSR_ABOUT_BODY_HIDDEN}}"], "");
-  assert.equal(full["{{SSR_SERVICES_SECTION_HIDDEN}}"], "");
-  assert.equal(full["{{SSR_WHY_HIDDEN}}"], "");
-  assert.equal(full["{{SSR_TESTIMONIALS_COUNT}}"], "1");
+await test("company page blocks are absent server-side when empty", () => {
+  const empty = renderBlocks({ about: "", services: [], why_choose_us: "", testimonials: [] });
+  for (const k of ["{{BLOCK_SERVICES}}", "{{BLOCK_REVIEWS}}", "{{BLOCK_ABOUT}}", "{{BLOCK_OWNER}}", "{{BLOCK_TRUST}}"]) assert.equal(empty[k], "", k);
+  const full = renderBlocks({ about: "A.\n\nB.", services: [{ service_name: "Mowing" }], services_intro: "Intro", why_choose_us: "Owner-operated", testimonials: [{ quote: "Great" }] });
+  assert.match(full["{{BLOCK_ABOUT}}"], /id="about-body"/);
+  assert.match(full["{{BLOCK_ABOUT}}"], /id="whySection"/);
+  assert.match(full["{{BLOCK_SERVICES}}"], /id="services-intro"/);
+  assert.equal((full["{{BLOCK_REVIEWS}}"].match(/class="review-card"/g) || []).length, 1);
 });
 await test("profile.html no longer redraws server-rendered sections", () => {
   // The page's behaviour script lives in public/scripts/profile.js.

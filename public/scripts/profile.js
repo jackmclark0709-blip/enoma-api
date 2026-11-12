@@ -1,32 +1,22 @@
-// Devices flagged with ?internal=1 (set by the GA snippet) don't count
-// toward a page's views or contact clicks. See api/track.js.
+// Devices flagged as Jack's (the enoma_internal cookie from /internal-optout,
+// or ?internal=1 via the GA snippet) don't count toward a page's views or
+// clicks: events are sent with internal:true. See api/track.js.
 function enomaIsInternal() {
+  try { if (/(?:^|;\s*)enoma_internal=1(?:;|$)/.test(document.cookie)) return true; } catch (e) {}
   try { return localStorage.getItem('enoma_internal') === '1'; } catch (e) { return false; }
 }
 
 // public/scripts/profile.js
-// Behaviour for Enoma company pages (public/profile.html). The page content
-// itself is rendered on the server (api/p.js + api/_lib/page-ssr.js); this
-// script only adds behaviour: nav call button, hero pills ("Open now"), logo
-// colour, carousel, FAQ toggles, maps, Google reviews fallback, contact form,
-// claim banner and preview poll. It reads window.__PROFILE__, set inline by
-// the page. Loaded as a normal (blocking) script in the same position the
-// inline code used to sit, so behaviour and timing are unchanged.
+// Behaviour for Enoma company pages (public/profile.html). Every block is
+// rendered on the server (api/_lib/company-page.js) and is absent when it has
+// no data; this script never draws content. It adds: "Open now", logo colour,
+// before/after sliders, FAQ toggles, maps, the #quote?service=<slug> deep
+// link, click tracking, the claim banner and the preview poll. It reads
+// window.__PROFILE__ (behaviour data only), set inline by the page.
 /* ── Utilities ── */
 const getEl = id => document.getElementById(id);
 const escapeHtml = s => String(s == null ? '' : s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const safeParse = v => {
-  try {
-    if (Array.isArray(v) || (v && typeof v === 'object')) return v;
-    if (typeof v === 'string') return JSON.parse(v);
-    return null;
-  } catch { return null; }
-};
-function truncateText(text, max = 300) {
-  if (!text || text.length <= max) return text;
-  return text.slice(0, max).trim() + '…';
-}
 /* ── Claim by email link (no password) ──
    The owner gets a Supabase sign-in link that lands on /claim, which claims
    the page with the new session. Fresh instant previews (?new=1) open the
@@ -69,14 +59,14 @@ function setupClaimBox(pageSlug, businessName) {
     const extras = getEl('ownerExtras');
     if (extras) {
       extras.classList.remove('hidden');
-      import('/scripts/page-checklist.js').then(({ pageChecklist }) => {
+      import('/scripts/page-checklist.js').then(({ pageChecklist, nextSteps }) => {
         const c = pageChecklist(window.__PROFILE__ || {});
         getEl('ownerPercent').textContent = `Your page is ${c.percent}% done`;
         getEl('ownerBar').style.width = `${c.percent}%`;
         const list = getEl('ownerList');
         list.innerHTML = '';
-        // Missing items first: they're the point.
-        [...c.items.filter(i => !i.done), ...c.items.filter(i => i.done)].forEach(i => {
+        // Missing items first, most useful first: they're the point.
+        [...nextSteps(window.__PROFILE__ || {}), ...c.items.filter(i => i.done)].forEach(i => {
           const li = document.createElement('li');
           li.textContent = i.label;
           if (i.done) li.className = 'is-done';
@@ -203,6 +193,18 @@ function setupPreviewPoll(pageSlug) {
   });
 }
 
+/* ── Page events (page_events via /api/track, with the page slug) ──
+   No personal data: a type or a service slug, never what a visitor typed. */
+function trackPageEvent(event, metadata) {
+  const slug = window.profileData?.username;
+  if (!slug) return;
+  try { if (new URLSearchParams(location.search).get('embed') === '1') return; } catch (e) {}
+  try { if (typeof window.gtag === 'function') window.gtag('event', event, Object.assign({ page_slug: slug, transport_type: 'beacon' }, metadata || {})); } catch (e) {}
+  try {
+    fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true, body: JSON.stringify({ slug, event, metadata: metadata || {}, internal: enomaIsInternal() || undefined }) }).catch(() => {});
+  } catch (e) {}
+}
+
 function trackContactClick(type) {
   if (!window.profileData?.username) return;
   // Mirror to GA4 so calls/quote taps on client pages show up as a key event.
@@ -229,12 +231,6 @@ function applyBrandColor(color) {
   // Extract RGB components for use in radial glows
   const m = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
   if (m) root.style.setProperty('--brand-rgb', `${m[1]},${m[2]},${m[3]}`);
-  // Also update the SVG checkmark color in why-list
-  document.querySelectorAll('.why-list li::before').forEach(() => {});
-  // Inject dynamic CSS for why-list checkmarks
-  let dynStyle = document.getElementById('dyn-brand-css');
-  if (!dynStyle) { dynStyle = document.createElement('style'); dynStyle.id = 'dyn-brand-css'; document.head.appendChild(dynStyle); }
-  dynStyle.textContent = `.why-list li::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='${encodeURIComponent(color)}' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E"); }`;
 }
 function extractDominantColor(img, callback) {
   const canvas = document.createElement('canvas');
@@ -301,41 +297,78 @@ function buildBASlider(item) {
   return outer;
 }
 
+/* ── Service quote deep link: #quote?service=<slug> ──
+   Opens the quote form with that service ticked (quote-form.js
+   preselectService), from a service card's "Get a quote" or a shared link. */
+function quoteServiceFromHash(hash) {
+  const m = String(hash || '').match(/^#quote(?:\?(.*))?$/);
+  if (!m) return null;
+  try { return new URLSearchParams(m[1] || '').get('service') || ''; } catch (e) { return ''; }
+}
+function openQuoteForService(slug) {
+  const form = window.enomaQuoteForm;
+  if (slug && form && typeof form.preselectService === 'function') form.preselectService(slug);
+  const target = getEl('contact');
+  if (target) {
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+  }
+}
+function setupQuoteDeepLinks() {
+  const fromHash = () => { const slug = quoteServiceFromHash(location.hash); if (slug !== null) openQuoteForService(slug); };
+  // quote-form.js is deferred: it has run by now (DOMContentLoaded), but
+  // wait a tick so its stepper is set up before we move it to step 2.
+  setTimeout(fromHash, 0);
+  window.addEventListener('hashchange', fromHash);
+}
+
+/* ── Clicks: one listener for every tracked link on the page ── */
+function setupClickTracking() {
+  document.addEventListener('click', e => {
+    const a = e.target.closest && e.target.closest('a');
+    if (!a) return;
+    const service = a.getAttribute('data-service-quote');
+    if (service !== null) {
+      e.preventDefault();
+      trackPageEvent('service_quote_click', { service });
+      try { history.replaceState(null, '', '#quote?service=' + encodeURIComponent(service)); } catch (_) {}
+      openQuoteForService(service);
+      return;
+    }
+    const spot = a.getAttribute('data-spotlight-link');
+    if (spot !== null) { trackPageEvent('spotlight_link_click', { service: spot }); return; }
+    const contact = a.getAttribute('data-contact');
+    if (contact) trackContactClick(contact);
+  });
+}
+
+// "Open now" from the parsed hours, checked at view time in the business's
+// time zone. Mirrors isOpenAt in api/_lib/page-claims.js. No hours, no badge.
+function isOpenNow(s) {
+  if (!s || !Array.isArray(s.days)) return false;
+  try {
+    const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: s.tz, weekday: 'short', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' })
+      .formatToParts(new Date()).map(x => [x.type, x.value]));
+    const day = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(parts.weekday);
+    const mins = Number(parts.hour) * 60 + Number(parts.minute);
+    return s.days.includes(day) && mins >= s.open && mins < s.close;
+  } catch { return false; }
+}
+
 /* ── Main ── */
 async function loadProfile() {
   const urlParams = new URLSearchParams(location.search);
-  const businessId = urlParams.get('business_id');
   let slug = urlParams.get('slug');
   if (!slug) {
     const parts = location.pathname.split('/').filter(Boolean);
     if (parts[0] === 'p' && parts[1]) slug = parts[1];
     else if (parts.length === 1) slug = parts[0];
   }
-  if (!slug && !businessId) return;
-
-  let p = null;
-  if (window.__PROFILE__ && Object.keys(window.__PROFILE__).length) {
-    p = window.__PROFILE__;
-  } else {
-    const res = await fetch(businessId ? `/api/get-business?id=${businessId}` : `/api/get-business?slug=${slug}`);
-    p = await res.json();
-  }
+  const p = window.__PROFILE__ || {};
+  if (!slug) slug = p.username;
+  if (!slug) return;
   window.profileData = p;
   window.dispatchEvent(new CustomEvent('profileDataReady', { detail: p }));
-
-  // ── Apply persona class based on trade category ──
-  const categoryMap = {
-    landscaping: 'landscaping', lawn: 'landscaping', gardening: 'landscaping',
-    plumber: 'plumbing', plumbing: 'plumbing', heating: 'plumbing',
-    hvac: 'hvac', air_conditioning: 'hvac',
-    electrician: 'electrical', electrical: 'electrical',
-    cleaning: 'cleaning', cleaning_service: 'cleaning',
-    general_contractor: 'contractor', contractor: 'contractor', roofing: 'contractor', painting: 'contractor',
-    retail: 'retail', gifts: 'retail', florist: 'retail',
-  };
-  const rawCat = (p.primary_category || '').toLowerCase().replace(/[^a-z_]/g, '');
-  const persona = categoryMap[rawCat] || null;
-  if (persona) document.body.classList.add(`persona-${persona}`);
 
   /* ── Unclaimed-page banner ── */
   if (p.is_claimed === false) {
@@ -343,7 +376,7 @@ async function loadProfile() {
     const unclaimedText = getEl('unclaimedText');
     const unclaimedCta = getEl('unclaimedCta');
     if (unclaimedBanner) {
-      if (unclaimedText) unclaimedText.textContent = `This is a preview page for ${p.business_name || 'this business'} — not yet claimed by the business owner.`;
+      if (unclaimedText) unclaimedText.textContent = `This is a preview page for ${p.business_name || 'this business'}, not yet claimed by the business owner.`;
       if (unclaimedCta) unclaimedCta.href = `/signup?business=${encodeURIComponent(p.username || slug || '')}`;
       unclaimedBanner.classList.remove('hidden');
       setupClaimBox(p.username || slug || '', p.business_name || '');
@@ -352,470 +385,116 @@ async function loadProfile() {
     }
   }
 
-  // ── Set brand RGB for CSS glow effects ──
-  // (applied after logo color extraction; this sets a default)
-  const defaultRgb = persona === 'landscaping' ? '26,90,42'
-    : persona === 'plumbing' ? '20,60,120'
-    : persona === 'hvac' ? '20,100,140'
-    : persona === 'electrical' ? '160,120,10'
-    : persona === 'retail' ? '130,40,120'
-    : '26,60,80';
-  document.documentElement.style.setProperty('--brand-rgb', defaultRgb);
-
   // Embedded in the preview landing page (?embed=1): that page logs its own view.
-  if (new URLSearchParams(location.search).get('embed') !== '1') fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug, event: 'page_view', internal: enomaIsInternal() || undefined, referrer: document.referrer || null, metadata: (function () { try { var m = new URLSearchParams(location.search).get('m'); return m ? { m: m } : {}; } catch (e) { return {}; } })() }) }).catch(() => {});
+  if (urlParams.get('embed') !== '1') fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug, event: 'page_view', internal: enomaIsInternal() || undefined, referrer: document.referrer || null, metadata: (function () { try { var m = urlParams.get('m'); return m ? { m: m } : {}; } catch (e) { return {}; } })() }) }).catch(() => {});
 
-  /* ── Sticky nav ── */
-  const navBrand = getEl('businessName');
-  if (navBrand) navBrand.textContent = p.business_name || '';
-  const navLogoImg = getEl('navLogo');
-  if (navLogoImg && p.logo_url) {
-    navLogoImg.src = p.logo_url;
-    navLogoImg.alt = `${p.business_name || ''} logo`;
-    navLogoImg.onload = () => {
-      navLogoImg.classList.remove('hidden');
-      navBrand?.classList.add('hidden');
-    };
-  }
-  const contactCall = getEl('contactCall');
-  if (contactCall && p.phone) {
-    contactCall.href = `tel:${p.phone}`;
-    contactCall.classList.remove('hidden');
-    contactCall.addEventListener('click', () => trackContactClick('call'));
+  setupClickTracking();
+  setupQuoteDeepLinks();
+
+  /* ── "Open now" (the server renders the badge hidden with the schedule) ── */
+  const openEl = getEl('heroOpen');
+  if (openEl) {
+    let schedule = null;
+    try { schedule = JSON.parse(openEl.getAttribute('data-open-schedule') || 'null'); } catch (e) {}
+    if (isOpenNow(schedule)) openEl.hidden = false; else openEl.remove();
   }
 
-  /* ── Sticky mobile call bar ── */
-  const mobileCallBar = getEl('mobileCallBar');
-  const mcbCall = getEl('mcbCall');
-  if (mobileCallBar && mcbCall && p.phone && !document.body.classList.contains('is-owner-view')) {
-    mcbCall.href = `tel:${p.phone}`;
-    mcbCall.addEventListener('click', () => trackContactClick('mobile_bar_call'));
-    const mcbQuote = getEl('mcbQuote');
-    if (mcbQuote) mcbQuote.addEventListener('click', () => trackContactClick('mobile_bar_quote'));
-    mobileCallBar.classList.remove('hidden');
-    document.body.classList.add('has-mobile-call-bar');
+  /* ── Brand colour from the real logo (the server sets the palette first) ── */
+  if (p.logo_url) {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => { try { extractDominantColor(img, color => { if (color) applyBrandColor(color); }); } catch (e) {} };
+    img.src = p.logo_url;
   }
 
-  /* Hero headline/tagline, About, Services, Areas, Why, Testimonials and
-     FAQs are rendered on the server (api/_lib/page-ssr.js + api/p.js). This
-     script only adds behaviour to that markup — don't redraw them here. */
-
-  /* ── Hero logo + brand color ── */
-  const heroLogoWrap = getEl('heroLogo');
-  const logoImg = getEl('logoImage');
-  if (p.logo_url && logoImg && heroLogoWrap) {
-    // Business has a real logo — load and extract dominant color to override server-side brand color
-    logoImg.crossOrigin = 'anonymous';
-    logoImg.src = p.logo_url;
-    logoImg.alt = `${p.business_name} logo`;
-    logoImg.onload = () => {
-      extractDominantColor(logoImg, color => applyBrandColor(color || '#1a3a2a'));
-      heroLogoWrap.classList.remove('hidden');
-    };
-    logoImg.onerror = () => {
-      // Logo URL failed — show monogram if available, else plain initial
-      if (logoImg.getAttribute('data-monogram')) {
-        logoImg.src = logoImg.getAttribute('data-monogram');
-      } else {
-        heroLogoWrap.innerHTML = `<div class="profile-fallback">${(p.business_name || '?')[0].toUpperCase()}</div>`;
-      }
-      heroLogoWrap.classList.remove('hidden');
-    };
-  } else if (!p.logo_url && heroLogoWrap) {
-    // No logo — server injected monogram SVG as img src, brand color set server-side
-    // Just unhide the element — monogram is already rendered
-    heroLogoWrap.classList.remove('hidden');
-  }
-
-  /* ── Primary CTA button ── */
-  const primaryAction = getEl('primaryAction');
-  const primaryCtaBtn = getEl('primaryCtaButton');
-  if (primaryCtaBtn) primaryCtaBtn.addEventListener('click', () => trackContactClick(p.primary_cta_type || (p.phone ? 'call' : 'primary_cta')));
-  if (p.primary_cta_label && p.primary_cta_type && p.primary_cta_value) {
-    let href = '#contact';
-    if (p.primary_cta_type === 'call') href = `tel:${p.primary_cta_value}`;
-    if (p.primary_cta_type === 'email') href = `mailto:${p.primary_cta_value}`;
-    if (p.primary_cta_type === 'link') href = p.primary_cta_value;
-    primaryCtaBtn.textContent = p.primary_cta_label;
-    primaryCtaBtn.href = href;
-    primaryAction.classList.remove('hidden');
-  } else if (p.phone) {
-    // Server's callCtaLabel(): "free" only when the business offers free estimates.
-    primaryCtaBtn.textContent = p.call_cta_label || 'Call for a quote';
-    primaryCtaBtn.href = `tel:${p.phone}`;
-    primaryAction.classList.remove('hidden');
-  }
-
-  // "Open now" from the parsed hours, checked at view time in the business's
-  // time zone. Mirrors isOpenAt in api/_lib/page-claims.js. No hours, no badge.
-  function isOpenNow(s) {
-    if (!s || !Array.isArray(s.days)) return false;
-    try {
-      const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: s.tz, weekday: 'short', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' })
-        .formatToParts(new Date()).map(x => [x.type, x.value]));
-      const day = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(parts.weekday);
-      const mins = Number(parts.hour) * 60 + Number(parts.minute);
-      return s.days.includes(day) && mins >= s.open && mins < s.close;
-    } catch { return false; }
-  }
-
-  /* ── Hero meta pills ── */
-  const heroMeta = getEl('heroMeta');
-  if (heroMeta) {
-    const pills = [];
-    if (p.city) pills.push(`<span>${p.city}${p.state ? ', ' + p.state : ''}</span>`);
-    if (p.offers_emergency) pills.push('<span class="pill-emergency">⚡ Emergency service</span>');
-    if (isOpenNow(p.open_schedule)) pills.push('<span class="pill-open">● Open now</span>');
-    heroMeta.innerHTML = pills.join('');
-    if (!pills.length) heroMeta.style.display = 'none';
-  }
-
-  /* ── Hero trust strip ── */
-  const heroTrust = getEl('heroTrust');
-  if (heroTrust) {
-    const badges = Array.isArray(p.trust_badges) && p.trust_badges.length ? p.trust_badges : [];
-    const items = [];
-
-    // Trust badges (Licensed & Insured, etc.)
-    // Skip badges that just repeat the location pill (e.g. "Mansfield, MA").
-    const cityLc = String(p.city || '').toLowerCase();
-    badges.filter(b => !(cityLc && String(b).toLowerCase().startsWith(cityLc + ','))).forEach(b => {
-      items.push(`<span class="hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>${b}</span>`);
-    });
-
-    // Owner name
-    if (p.owner_name) items.push(`<span class="hero-trust-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>Owner: ${p.owner_name}</span>`);
-
-    // Availability hours (e.g. "Mon–Sat · 7am–6pm")
-    if (p.hero_availability) items.push(`<span class="hero-trust-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${p.hero_availability}</span>`);
-
-    // Response time (e.g. "Responds within 2 hours")
-    if (p.hero_response_time) items.push(`<span class="hero-trust-item"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.8 19.8 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.8 19.8 0 012.08 4.18 2 2 0 014.06 2h3a2 2 0 012 1.72c.12.86.31 1.7.57 2.5a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.58-1.09a2 2 0 012.11-.45c.8.26 1.64.45 2.5.57A2 2 0 0122 16.92z"/></svg>${p.hero_response_time}</span>`);
-
-    // Add Google rating pill if available
-    // show_rating is decided server-side (isStrongRating): a thin or middling
-    // rating ("4★ from 1 review") does more harm than showing nothing.
-    if (p.show_rating && p.average_rating && p.review_count) {
-      items.unshift(`<span class="hero-trust-item"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor" stroke="none"/></svg>${Number(p.average_rating).toFixed(1)}★ from ${p.review_count} Google reviews</span>`);
-    }
-    if (items.length) { heroTrust.innerHTML = items.join(''); heroTrust.classList.remove('hidden'); }
-  }
-
-  /* ── Social links — with section header and CTA ── */
-  const socialSectionWrap = getEl('socialSectionWrap');
-  const socialLinksEl = getEl('socialLinks');
-  const socialCtaEl = getEl('socialCta');
-  const socials = p.social_links || {};
-  const socialIcons = {
-    facebook: `<svg viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>`,
-    instagram: `<svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>`,
-    twitter: `<svg viewBox="0 0 24 24"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"/></svg>`,
-    linkedin: `<svg viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>`,
-    google: `<svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>`
-  };
-  const socialLinks = Object.entries(socials).filter(([k, v]) => v).map(([platform, url]) => {
-    const icon = socialIcons[platform] || '';
-    const label = platform.charAt(0).toUpperCase() + platform.slice(1);
-    return `<a href="${url}" target="_blank" rel="noopener" class="social-link">${icon}${label}</a>`;
-  });
-  if (socialLinks.length && socialLinksEl) {
-    socialLinksEl.innerHTML = socialLinks.join('');
-    if (socialCtaEl) socialCtaEl.textContent = `Stay up to date with ${p.business_name || 'us'} online.`;
-    socialSectionWrap?.classList.remove('hidden');
-    // Also ensure the about section grid is visible
-    getEl('aboutSection')?.classList.remove('hidden');
-  }
-
-  /* ── Gallery — dynamic title + inline CTA ── */
-  const gallerySection = getEl('gallerySection');
-  const galleryEl = getEl('gallery');
-  const galleryTitle = getEl('galleryTitle');
+  /* ── Recent work: gallery call link; no-photos nudge for the owner ── */
   const galleryCtaBtn = getEl('galleryCtaBtn');
-  const isImageUrl = (url = '') => /\.(png|jpe?g|webp|gif)(\?.*)?$/i.test(url);
-
-  // Dynamic title based on trade
-  const galleryTitleMap = {
-    landscaping: 'Recent Lawn & Garden Work',
-    plumbing: 'Recent Projects',
-    electrical: 'Recent Electrical Work',
-    hvac: 'Recent HVAC Work',
-    cleaning: 'Before & After',
-    contractor: 'Recent Projects',
-    roofing: 'Recent Roofing Work',
-    painting: 'Recent Paint Work',
-    retail: 'Our Products',
-  };
-  // The gallery is only in the HTML when there are photos (page-ssr.js).
-  if (galleryTitle && persona) {
-    galleryTitle.textContent = galleryTitleMap[persona] || 'Recent Work';
-  }
-
-  // Wire gallery CTA button
   if (galleryCtaBtn) {
     if (p.phone) {
-      galleryCtaBtn.href = `tel:${p.phone}`;
+      galleryCtaBtn.href = `tel:${String(p.phone).replace(/[^\d+]/g, '')}`;
+      galleryCtaBtn.setAttribute('data-contact', 'gallery_call');
       galleryCtaBtn.textContent = `Have a project in mind? Call ${p.phone} →`;
     } else {
-      galleryCtaBtn.href = '#contact';
-      galleryCtaBtn.textContent = 'Have a project in mind? Get in touch →';
+      galleryCtaBtn.textContent = 'Have a project in mind? Get a quote →';
     }
   }
-
-  const attachmentImages = Array.isArray(p.attachments)
-    ? p.attachments.map(a => typeof a === 'string' ? { url: a } : a).filter(a => a?.url && isImageUrl(a.url))
-    : [];
-  if (!gallerySection || !attachmentImages.length) {
-    // Show nudge only if this is the owner viewing their own page
+  if (!getEl('gallerySection') && p.business_id) {
+    // Show the nudge only if this is the owner viewing their own page.
     const ownedBizId = p.business_id;
-    if (ownedBizId) {
-      setTimeout(() => {
-        import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm').then(({ createClient }) => {
-          const sb = createClient('https://qhsivcenpnxwmvwznqie.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc');
-          sb.auth.getSession().then(({ data: { session } }) => {
-            if (!session) return;
-            sb.from('business_members').select('business_id').eq('user_id', session.user.id).eq('business_id', ownedBizId).maybeSingle().then(({ data }) => {
-              if (data) {
-                const nudge = getEl('noPhotosNudge');
-                const addLink = getEl('addPhotosLink');
-                if (nudge) nudge.style.display = 'block';
-                if (addLink) addLink.href = `/create?business_id=${ownedBizId}`;
-              }
-            });
+    setTimeout(() => {
+      import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm').then(({ createClient }) => {
+        const sb = createClient('https://qhsivcenpnxwmvwznqie.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc');
+        sb.auth.getSession().then(({ data: { session } }) => {
+          if (!session) return;
+          sb.from('business_members').select('business_id').eq('user_id', session.user.id).eq('business_id', ownedBizId).maybeSingle().then(({ data }) => {
+            if (!data) return;
+            const nudge = getEl('noPhotosNudge');
+            const addLink = getEl('addPhotosLink');
+            if (nudge) nudge.style.display = 'block';
+            if (addLink) addLink.href = `/create?business_id=${ownedBizId}`;
           });
         });
-      }, 800);
-    }
+      }).catch(() => {});
+    }, 800);
   }
 
-  /* ── Before/After slider ── */
-  const baSection = getEl('baSection');
+  /* ── Before/After sliders (section rendered by the server only with photos) ── */
   const baList = getEl('baList');
   let baImages = Array.isArray(p.before_after_images) ? p.before_after_images : [];
-  if (!baImages.length && urlParams.get('demoBA') === '1') baImages = BA_DEMO_IMAGES; // only shows where the server rendered #baSection
-  const validBaImages = baImages.filter(item => item && item.before && item.after);
-  if (baSection && baList && validBaImages.length) {
+  if (!baImages.length && urlParams.get('demoBA') === '1') baImages = BA_DEMO_IMAGES; // only where #baSection exists
+  if (baList && baImages.length) {
     baList.innerHTML = '';
-    validBaImages.forEach(item => baList.appendChild(buildBASlider(item)));
-    baSection.classList.remove('hidden');
+    baImages.filter(item => item && item.before && item.after).forEach(item => baList.appendChild(buildBASlider(item)));
   }
 
-  /* ── Service area map — handled in location section below ── */
-
-  /* ── Services (server-rendered) — wire up the call button ── */
-  const quickCall = getEl('quickCall');
-  if (quickCall) {
-    if (p.phone) { quickCall.href = `tel:${p.phone}`; quickCall.onclick = () => trackContactClick('services_cta_call'); }
-    else if (p.email) { quickCall.href = `mailto:${p.email}`; quickCall.onclick = () => trackContactClick('services_cta_email'); }
-    else { quickCall.href = '#contact'; }
-  }
-
-  /* ── Contact form ── */
+  /* ── Quote form intro + hours note ── */
   const contactIntro = getEl('contactIntro');
   if (contactIntro && p.business_name) {
     contactIntro.textContent = `Tell ${p.business_name} what you need in four quick taps and get a quote back.`;
   }
-  /* ── Testimonials — carousel ── */
-  // The business's own testimonials are rendered on the server. This adds the
-  // carousel to whatever is in the list; renderTestimonials() only writes
-  // markup for the Google-review fallback (see Google data below).
-  let carouselTimer = null;
-  const setupCarousel = () => {
-    const testimonialList = getEl('testimonialList');
-    if (!testimonialList) return 0;
-    const count = testimonialList.querySelectorAll('.testimonial').length;
-    const carouselNav = getEl('carouselNav');
-    const carouselDots = getEl('carouselDots');
-    const prevBtn = getEl('carouselPrev');
-    const nextBtn = getEl('carouselNext');
-    let currentIdx = 0;
-    const showSlide = (idx) => {
-      const cards = testimonialList.querySelectorAll('.testimonial');
-      const dots = carouselDots?.querySelectorAll('.carousel-dot');
-      cards.forEach((c, i) => c.classList.toggle('active', i === idx));
-      dots?.forEach((d, i) => d.classList.toggle('active', i === idx));
-      currentIdx = idx;
-    };
-    if (carouselTimer) { clearInterval(carouselTimer); carouselTimer = null; }
-    if (count > 1) {
-      if (carouselDots) {
-        carouselDots.innerHTML = Array.from({ length: count }, (_, i) =>
-          `<button class="carousel-dot${i === 0 ? ' active' : ''}" data-i="${i}" aria-label="Review ${i+1}"></button>`
-        ).join('');
-        carouselDots.querySelectorAll('.carousel-dot').forEach(dot => {
-          dot.addEventListener('click', () => showSlide(Number(dot.dataset.i)));
-        });
-      }
-      if (prevBtn) prevBtn.onclick = () => showSlide((currentIdx - 1 + count) % count);
-      if (nextBtn) nextBtn.onclick = () => showSlide((currentIdx + 1) % count);
-      carouselTimer = setInterval(() => showSlide((currentIdx + 1) % count), 6000);
-      if (carouselNav) carouselNav.style.display = 'flex';
-    } else if (carouselNav) {
-      carouselNav.style.display = 'none';
-    }
-    return count;
-  };
-  // The server leaves out "What Clients Say" when the business has no
-  // testimonials, with #testimonialsSlot where it would go. Google reviews
-  // fill it here with the same markup as testimonialsAside() in page-ssr.js.
-  const ensureTestimonialsAside = () => {
-    if (getEl('testimonialList')) return true;
-    const slot = getEl('testimonialsSlot');
-    if (!slot) return false;
-    slot.outerHTML = `<aside class="why-sidebar" id="testimonialsWrap">
-    <h2>What Clients Say</h2>
-    <div class="testimonial-carousel" id="testimonialCarousel">
-      <div class="testimonial-carousel-track" id="testimonialList" data-count="0"></div>
-      <div class="carousel-nav" id="carouselNav" style="display:none;">
-        <div class="carousel-dots" id="carouselDots"></div>
-        <div class="carousel-arrows">
-          <button class="carousel-arrow" id="carouselPrev" aria-label="Previous">&#8592;</button>
-          <button class="carousel-arrow" id="carouselNext" aria-label="Next">&#8594;</button>
-        </div>
-      </div>
-    </div>
-  </aside>`;
-    return true;
-  };
-  const renderTestimonials = (testimonials) => {
-    if (!Array.isArray(testimonials) || !testimonials.length || !ensureTestimonialsAside()) return false;
-    const testimonialList = getEl('testimonialList');
-    const testimonialsWrap = getEl('testimonialsWrap');
-    testimonialList.innerHTML = testimonials.map((t, i) => {
-      const initial = (t.author || '?')[0].toUpperCase();
-      const starCount = Math.min(5, Math.max(1, Math.round(Number(t.rating) || 5)));
-      const stars = '★'.repeat(starCount) + '☆'.repeat(5 - starCount);
-      const sourceLabel = t.source === 'google' ? '<span class="testimonial-source">— via Google</span>' : '';
-      return `<div class="testimonial${i === 0 ? ' active' : ''}" data-idx="${i}">
-        <div class="testimonial-accent"></div>
-        <span class="quote-mark">&#8220;</span>
-        <div class="stars">${stars}</div>
-        <p>${escapeHtml(t.quote)}</p>
-        <div class="testimonial-author">
-          <div class="testimonial-avatar">${escapeHtml(initial)}</div>
-          <strong>${escapeHtml(t.author)}</strong>${sourceLabel}
-        </div>
-      </div>`;
-    }).join('');
-    setupCarousel();
-    testimonialsWrap?.classList.remove('hidden');
-    getEl('whyOuterSection')?.classList.remove('hidden');
-    return true;
-  };
-  const hasOwnTestimonials = setupCarousel() > 0;
-
-  /* ── FAQs (server-rendered) — open/close on click ── */
-  getEl('faqList')?.querySelectorAll('.faq-item').forEach(btn => {
-    btn.addEventListener('click', () => btn.classList.toggle('active'));
-  });
-
-  /* ── Google data ── */
-  const locationBand = getEl('locationBand');
-  let google = null;
-  if (p.google_place_id) {
-    try {
-      const r = await fetch(`/api/google-place?place_id=${p.google_place_id}`);
-      if (r.ok) { const text = await r.text(); google = text ? JSON.parse(text) : null; }
-    } catch (e) { console.warn('Google data unavailable', e); }
-  }
-  // Google place map now rendered in placesMapWrap inside Areas We Serve
-  const hoursEl = getEl('hours');
-  if (hoursEl && google?.regularOpeningHours?.weekdayDescriptions) {
-    hoursEl.innerHTML = `<h3>Hours</h3><ul>${google.regularOpeningHours.weekdayDescriptions.map(d => `<li>${d}</li>`).join('')}</ul>`;
-  }
-  const ratingEl = getEl('rating');
-  if (ratingEl && google?.rating) { ratingEl.innerHTML = `${google.rating} <span>on Google (${google.userRatingCount || ''} reviews)</span>`; ratingEl.classList.remove('hidden'); }
-  // Same rules as api/_lib/page-style.js pickReviewQuotes (kept in sync by hand):
-  // 4–5 stars, at least 40 characters, trimmed to ~360.
-  if (!hasOwnTestimonials && google?.reviews?.length) {
-    const quotes = google.reviews
-      .map(r => ({ quote: String(r?.text?.text || '').trim(), author: r?.authorAttribution?.displayName || 'Google reviewer', rating: Number(r?.rating) || 0, source: 'google' }))
-      .filter(r => r.rating >= 4 && r.quote.length >= 40)
-      .sort((a, b) => b.rating - a.rating || Math.abs(a.quote.length - 220) - Math.abs(b.quote.length - 220))
-      .slice(0, 3)
-      .map(r => ({ ...r, quote: r.quote.length > 360 ? r.quote.slice(0, 357).replace(/\s+\S*$/, '') + '…' : r.quote }));
-    renderTestimonials(quotes);
-  }
-  const reviewsEl = getEl('reviews');
-  if (reviewsEl && google?.reviews?.length) {
-    const best = google.reviews.filter(r => r.rating === 5).sort((a, b) => (b.publishTime || 0) - (a.publishTime || 0))[0];
-    if (best) reviewsEl.innerHTML = `<div class="review"><strong>${best.authorAttribution?.displayName || 'Google User'} ⭐ ${best.rating}</strong><p>${truncateText(best.text?.text || '', 320)}</p></div>`;
-  }
-  const hasTowns = Array.isArray(p.service_area) && p.service_area.length;
-  const hasGoogleData = !!google?.rating || !!google?.reviews?.length;
-  // Maps only for a business that works around a home base (isLocalRadius on
-  // the server, which also leaves the map slots out of the HTML otherwise).
-  const isLocal = p.is_local_radius !== false;
-  const hasMap = isLocal && !!p.google_place_id;
-  // Map is now shown inside Areas We Serve section
-  const hasAddressMap = isLocal && !!(p.address || (p.city && p.state));
-  const serviceMapWrap = getEl('serviceMapWrap');
-  const serviceMap = getEl('serviceMap');
-  const placesMapWrap = getEl('placesMapWrap');
-
-  if (hasMap && placesMapWrap) {
-    // Google Place ID available — inject map directly into placesMapWrap
-    const loadPlaceMap = () => {
-      placesMapWrap.innerHTML = `<iframe
-        width="100%" height="280" loading="lazy"
-        referrerpolicy="no-referrer-when-downgrade"
-        style="border:0;border-radius:14px"
-        src="https://www.google.com/maps/embed/v1/place?key=AIzaSyD2DZjVEIuq6luIvl-lVeOaxqd3BG2V7IA&q=place_id:${p.google_place_id}">
-      </iframe>`;
-      placesMapWrap.classList.remove('hidden');
-    };
-    'requestIdleCallback' in window ? requestIdleCallback(loadPlaceMap) : setTimeout(loadPlaceMap, 1200);
-  } else if (hasAddressMap && serviceMapWrap && serviceMap) {
-    // No Place ID — embed address-based map in service area section
-    const mapQuery = p.address
-      ? encodeURIComponent(`${p.address}, ${p.city || ''} ${p.state || ''}`.trim())
-      : encodeURIComponent(`${p.city}, ${p.state}`);
-    const zoom = (Array.isArray(p.service_area) && p.service_area.length > 3) ? 10 : 12;
-    const loadAddrMap = () => {
-      serviceMap.innerHTML = `<iframe
-        width="100%" height="280" loading="lazy"
-        referrerpolicy="no-referrer-when-downgrade"
-        style="border:0;border-radius:14px"
-        src="https://www.google.com/maps/embed/v1/place?key=AIzaSyD2DZjVEIuq6luIvl-lVeOaxqd3BG2V7IA&q=${mapQuery}&zoom=${zoom}">
-      </iframe>`;
-      serviceMapWrap.classList.remove('hidden');
-    };
-    'requestIdleCallback' in window ? requestIdleCallback(loadAddrMap) : setTimeout(loadAddrMap, 1200);
-  }
-
-  /* ── Quote form — hours note below ──
-     The form itself (4 steps, submit, tracking) is public/scripts/quote-form.js
-     on markup from api/_lib/quote-form.js. Its tap-to-call button sits above
-     the form, so the note only adds hours and response time. */
   const quoteWrap = getEl('quoteFormWrap');
   if (quoteWrap) {
     const infoItems = [];
-    if (p.hero_availability) infoItems.push(`<span>🕐 ${escapeHtml(p.hero_availability)}</span>`);
-    if (p.hero_response_time) infoItems.push(`<span>💬 ${escapeHtml(p.hero_response_time)}</span>`);
+    if (p.hero_availability) infoItems.push(`<span>Hours: ${escapeHtml(p.hero_availability)}</span>`);
+    if (p.hero_response_time) infoItems.push(`<span>${escapeHtml(p.hero_response_time)}</span>`);
     if (infoItems.length) {
-      const infoDiv = document.createElement('div');
-      infoDiv.style.cssText = 'display:flex;flex-wrap:wrap;gap:0.75rem;justify-content:center;margin-top:1rem;font-size:0.82rem;color:#6b7280;';
+      const infoDiv = document.createElement('p');
+      infoDiv.className = 'quote-info';
       infoDiv.innerHTML = infoItems.join('');
       quoteWrap.after(infoDiv);
     }
   }
 
-  /* ── Non-image attachments ── */
-  const attachmentsSection = getEl('attachments');
-  const attachmentList = getEl('attachmentList');
-  if (Array.isArray(p.attachments) && p.attachments.length) {
-    const nonImages = p.attachments.map(a => typeof a === 'string' ? { url: a } : a).filter(a => a?.url && !isImageUrl(a.url));
-    if (nonImages.length && attachmentList) {
-      nonImages.forEach(a => {
-        const label = a.label || a.filename || (a.url ? a.url.split('/').pop().split('?')[0] : 'Resource');
-        const li = document.createElement('li');
-        li.innerHTML = `<a href="${a.url}" target="_blank" rel="noopener">${label}</a>`;
-        attachmentList.appendChild(li);
-      });
-      attachmentsSection?.classList.remove('hidden');
-    } else attachmentsSection?.classList.add('hidden');
-  } else attachmentsSection?.classList.add('hidden');
+  /* ── FAQs (server-rendered) — open/close on click ── */
+  getEl('faqList')?.querySelectorAll('.faq-item').forEach(btn => {
+    btn.setAttribute('aria-expanded', 'false');
+    btn.addEventListener('click', () => {
+      const open = btn.classList.toggle('active');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  });
 
-  // enoma-io is a demo page — no special overrides needed
+  /* ── Map, only for local businesses (the server leaves the slots out otherwise) ── */
+  const MAPS_KEY = 'AIzaSyD2DZjVEIuq6luIvl-lVeOaxqd3BG2V7IA';
+  const later = fn => ('requestIdleCallback' in window ? requestIdleCallback(fn) : setTimeout(fn, 1200));
+  const placesMapWrap = getEl('placesMapWrap');
+  const serviceMapWrap = getEl('serviceMapWrap');
+  const serviceMap = getEl('serviceMap');
+  const iframe = src => `<iframe width="100%" height="260" loading="lazy" referrerpolicy="no-referrer-when-downgrade" style="border:0;border-radius:14px" title="Map of ${escapeHtml(p.business_name || 'the business')}" src="${src}"></iframe>`;
+  if (p.is_local_radius && p.google_place_id && placesMapWrap) {
+    later(() => {
+      placesMapWrap.innerHTML = iframe(`https://www.google.com/maps/embed/v1/place?key=${MAPS_KEY}&q=place_id:${encodeURIComponent(p.google_place_id)}`);
+      placesMapWrap.classList.remove('hidden');
+    });
+  } else if (p.is_local_radius && (p.address || (p.city && p.state)) && serviceMapWrap && serviceMap) {
+    const q = encodeURIComponent(p.address ? `${p.address}, ${p.city || ''} ${p.state || ''}`.trim() : `${p.city}, ${p.state}`);
+    const zoom = (p.service_area || []).length > 3 ? 10 : 12;
+    later(() => {
+      serviceMap.innerHTML = iframe(`https://www.google.com/maps/embed/v1/place?key=${MAPS_KEY}&q=${q}&zoom=${zoom}`);
+      serviceMapWrap.classList.remove('hidden');
+    });
+  }
+
 }
 
 document.addEventListener('DOMContentLoaded', loadProfile);
