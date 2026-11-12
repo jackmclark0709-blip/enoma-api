@@ -413,6 +413,13 @@
     .step__options li + li { margin-top: 0.5rem; }
     .step__options strong { color: #f0f6ff; }
 
+    /* Comment-keyword visitors (/page): keep the search box near the top on phones. */
+    @media (max-width: 860px) {
+      body.from-comment .page { gap: 1.5rem; }
+      body.from-comment .copy .subhead, body.from-comment .copy .page-line { margin-bottom: 0.5rem; }
+      body.from-comment .copy .proof-list { display: none; }
+    }
+
     @media (max-width: 860px) {
       .page { grid-template-columns: 1fr; gap: 2.5rem; }
       .copy { position: static; }
@@ -576,6 +583,9 @@
   </div>
 </div>
 
+<!-- Comment-keyword entry (/page → ?src=comment): hero swap + search focus. -->
+<script src="/scripts/comment-entry.js"></script>
+
 <div id="footer"></div>
 <script>fetch('/partials/footer.html').then(r=>r.text()).then(html=>{document.getElementById('footer').innerHTML=html});</script>
 <script src="/scripts/global-cta.js" defer></script>
@@ -594,8 +604,12 @@
       if (attr) {
         out.landing = attr.landing || null;
         if (attr.referrer) out.referrer = attr.referrer;
-        ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'].forEach(function (k) { if (attr[k]) out[k] = attr[k]; });
+        ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'src', 'ch', 'kw'].forEach(function (k) { if (attr[k]) out[k] = attr[k]; });
       }
+      // A comment-keyword visit on this URL (/page → ?src=comment&ch=&kw=)
+      // beats an older stored touch (cleaned again server-side).
+      var c = window.EnomaCommentEntry && EnomaCommentEntry.params(location.search);
+      if (c) { delete out.ch; delete out.kw; Object.assign(out, c); }
     } catch (e) {}
     return out;
   };

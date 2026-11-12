@@ -136,10 +136,12 @@ export default async function handler(req, res) {
 
         // The request is from Stripe, so the visitor's class comes from the
         // business: a real payment is a person unless it's one of Jack's.
-        const { data: biz } = await supabase.from('businesses').select('is_internal').eq('id', business_id).maybeSingle();
+        // first_touch (utm_* / comment src+ch+kw) so payments group by source.
+        const { data: biz } = await supabase.from('businesses').select('is_internal, first_touch').eq('id', business_id).maybeSingle();
         await logFunnelEvent(supabase, req, {
           event: 'subscription_activated', businessId: business_id,
           trafficClass: biz?.is_internal ? 'internal' : 'human',
+          attribution: biz?.first_touch || null,
           referrer: null,
           metadata: { interval: session.metadata?.interval || null, status: fields.status, stripe_session: session.id }
         });
