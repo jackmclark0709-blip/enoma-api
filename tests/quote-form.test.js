@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import {
   renderQuoteForm, serviceChoices, townChoices, reachName, cleanAnswers, answersSummary, answersEmailHtml,
-  safeReturnPath, MAX_SERVICE_CHIPS, SOMETHING_ELSE,
+  safeReturnPath, MAX_SERVICE_CHIPS, SOMETHING_ELSE, askForCompany,
 } from "../api/_lib/quote-form.js";
 import { leadRow, ownerLeadEmail, jackLeadAlert } from "../api/_lib/lead-email.js";
 import { renderSpotlight } from "../api/_lib/spotlight-render.js";
@@ -69,6 +69,37 @@ await test("step 1 chips are the business's own services, max 8, plus Something 
 await test("same service source as #services-grid (service_name || name), deduped", () => {
   assert.deepEqual(serviceChoices({ services: JSON.stringify([{ name: "Drain Cleaning" }, { service_name: "drain cleaning" }]) }), ["Drain Cleaning"]);
   assert.deepEqual(serviceChoices(plumber), []);
+});
+
+// The AssayQuant-style page: a lab services company that works nationwide.
+const nationwideLab = { business_id: "b-3", username: "assayquant-technologies-inc", business_name: "AssayQuant Technologies Inc", primary_category: "Biotechnology company", phone: "(508) 555-0102", city: "Marlborough", state: "MA", services: [{ service_name: "Kinase assays" }], service_area: ["Nationwide"] };
+
+await test("step 3 asks a landscaper where the job is", () => {
+  const html = renderQuoteForm({ ...landscaper, primary_category: "landscaping" });
+  assert.equal(askForCompany({ ...landscaper, primary_category: "landscaping" }), false);
+  assert.match(html, /<legend tabindex="-1">Where's the job\?<\/legend>/);
+  assert.match(html, /name="location"/);
+  assert.doesNotMatch(html, /name="company"/);
+});
+
+await test("step 3 asks a nationwide or no-trade business for the visitor's company instead", () => {
+  assert.equal(askForCompany({ ...landscaper, primary_category: "" }), false, "no category: keep the job question");
+  for (const p of [nationwideLab, { ...nationwideLab, service_area: ["Worcester"] }, { ...landscaper, primary_category: "landscaping", service_area: ["Agawam", "Nationwide"] }]) {
+    assert.equal(askForCompany(p), true);
+    const html = renderQuoteForm(p);
+    assert.match(html, /Your company or organization <span>\(optional\)<\/span>/);
+    assert.match(html, /name="company" autocomplete="organization"/);
+    assert.doesNotMatch(html, /Where's the job|name="location"|name="location_town"/);
+    assert.equal(count(html, /<fieldset class="qf-step" data-step="\d"/g), 4);
+  }
+});
+
+await test("the company answer reaches the owner as \"Company: ...\"", () => {
+  const a = cleanAnswers({ quote_form: "1", services: ["Kinase assays"], timing: "this_month", company: " Acme Bio ", contact_pref: "email" });
+  assert.deepEqual(a, { services: ["Kinase assays"], timing: "this_month", location: null, preference: "email", company: "Acme Bio" });
+  assert.equal(answersSummary(a), "Needs: Kinase assays · When: This month · Company: Acme Bio · Prefers: Email");
+  assert.match(ownerLeadEmail({ bName: "AssayQuant", name: "Pat", email: "p@x.com", answers: a }).html, /<strong>Company:<\/strong> Acme Bio/);
+  assert.match(jackLeadAlert({ bName: "AssayQuant", name: "Pat", email: "p@x.com", answers: a }).text || JSON.stringify(jackLeadAlert({ bName: "AssayQuant", name: "Pat", email: "p@x.com", answers: a })), /Company: Acme Bio/);
 });
 
 await test("step 2 timing choices are single-choice radios", () => {

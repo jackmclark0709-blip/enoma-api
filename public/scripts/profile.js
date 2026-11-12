@@ -139,9 +139,23 @@ function loadClarity() {
    One question on unclaimed preview pages, once per page per browser, after
    the visitor has had a moment with the page. Answers land in the feedback
    table via /api/track. Stays out of the way of the claim form. */
+// The poll asks a stranger "would you use a page like this?". Jack's cold
+// email (?m=<message id>) brings the owner, with the claim box open and
+// prefilled with their address: the poll would sit on top of that, so it
+// stays off for them, and whenever the claim box is open.
+function previewPollAllowed(search, claimBox, claimInput) {
+  let m = null;
+  try { m = new URLSearchParams(search || '').get('m'); } catch (_) {}
+  if (m) return false;
+  if (claimBox && !claimBox.classList.contains('hidden')) return false;
+  if (claimInput && claimInput.value) return false;
+  return true;
+}
 function setupPreviewPoll(pageSlug) {
   const poll = getEl('previewPoll');
   if (!poll || !pageSlug) return;
+  const allowed = () => previewPollAllowed(window.location.search, getEl('claimBox'), getEl('claimEmail'));
+  if (!allowed()) return;
   const key = 'enoma_poll_' + pageSlug;
   try { if (localStorage.getItem(key)) return; } catch (_) {}
   const remember = () => { try { localStorage.setItem(key, '1'); } catch (_) {} };
@@ -153,6 +167,7 @@ function setupPreviewPoll(pageSlug) {
   const show = () => {
     if (shown) return;
     if (claimInput && document.activeElement === claimInput) return; // don't interrupt a claim
+    if (!allowed()) return; // the claim box opened since the page loaded
     shown = true;
     poll.classList.remove('hidden');
     requestAnimationFrame(() => poll.classList.add('is-shown'));
@@ -425,7 +440,8 @@ async function loadProfile() {
     primaryCtaBtn.href = href;
     primaryAction.classList.remove('hidden');
   } else if (p.phone) {
-    primaryCtaBtn.textContent = 'Call for a Free Quote';
+    // Server's callCtaLabel(): "free" only when the business offers free estimates.
+    primaryCtaBtn.textContent = p.call_cta_label || 'Call for a quote';
     primaryCtaBtn.href = `tel:${p.phone}`;
     primaryAction.classList.remove('hidden');
   }
@@ -448,7 +464,6 @@ async function loadProfile() {
   if (heroMeta) {
     const pills = [];
     if (p.city) pills.push(`<span>${p.city}${p.state ? ', ' + p.state : ''}</span>`);
-    if (p.accepting_clients) pills.push('<span>Accepting clients</span>');
     if (p.offers_emergency) pills.push('<span class="pill-emergency">⚡ Emergency service</span>');
     if (isOpenNow(p.open_schedule)) pills.push('<span class="pill-open">● Open now</span>');
     heroMeta.innerHTML = pills.join('');
@@ -530,6 +545,7 @@ async function loadProfile() {
     painting: 'Recent Paint Work',
     retail: 'Our Products',
   };
+  // The gallery is only in the HTML when there are photos (page-ssr.js).
   if (galleryTitle && persona) {
     galleryTitle.textContent = galleryTitleMap[persona] || 'Recent Work';
   }
@@ -548,13 +564,7 @@ async function loadProfile() {
   const attachmentImages = Array.isArray(p.attachments)
     ? p.attachments.map(a => typeof a === 'string' ? { url: a } : a).filter(a => a?.url && isImageUrl(a.url))
     : [];
-  if (galleryEl && attachmentImages.length) {
-    galleryEl.innerHTML = attachmentImages.slice(0, 12).map(a =>
-      `<a href="${a.url}" target="_blank" rel="noopener"><img src="${a.url}" alt="${a.filename || p.business_name || 'Photo'}" loading="lazy" /></a>`
-    ).join('');
-    gallerySection.classList.remove('hidden');
-  } else {
-    gallerySection.classList.add('hidden');
+  if (!gallerySection || !attachmentImages.length) {
     // Show nudge only if this is the owner viewing their own page
     const ownedBizId = p.business_id;
     if (ownedBizId) {
@@ -581,7 +591,7 @@ async function loadProfile() {
   const baSection = getEl('baSection');
   const baList = getEl('baList');
   let baImages = Array.isArray(p.before_after_images) ? p.before_after_images : [];
-  if (!baImages.length && urlParams.get('demoBA') === '1') baImages = BA_DEMO_IMAGES;
+  if (!baImages.length && urlParams.get('demoBA') === '1') baImages = BA_DEMO_IMAGES; // only shows where the server rendered #baSection
   const validBaImages = baImages.filter(item => item && item.before && item.after);
   if (baSection && baList && validBaImages.length) {
     baList.innerHTML = '';
@@ -644,10 +654,32 @@ async function loadProfile() {
     }
     return count;
   };
+  // The server leaves out "What Clients Say" when the business has no
+  // testimonials, with #testimonialsSlot where it would go. Google reviews
+  // fill it here with the same markup as testimonialsAside() in page-ssr.js.
+  const ensureTestimonialsAside = () => {
+    if (getEl('testimonialList')) return true;
+    const slot = getEl('testimonialsSlot');
+    if (!slot) return false;
+    slot.outerHTML = `<aside class="why-sidebar" id="testimonialsWrap">
+    <h2>What Clients Say</h2>
+    <div class="testimonial-carousel" id="testimonialCarousel">
+      <div class="testimonial-carousel-track" id="testimonialList" data-count="0"></div>
+      <div class="carousel-nav" id="carouselNav" style="display:none;">
+        <div class="carousel-dots" id="carouselDots"></div>
+        <div class="carousel-arrows">
+          <button class="carousel-arrow" id="carouselPrev" aria-label="Previous">&#8592;</button>
+          <button class="carousel-arrow" id="carouselNext" aria-label="Next">&#8594;</button>
+        </div>
+      </div>
+    </div>
+  </aside>`;
+    return true;
+  };
   const renderTestimonials = (testimonials) => {
+    if (!Array.isArray(testimonials) || !testimonials.length || !ensureTestimonialsAside()) return false;
     const testimonialList = getEl('testimonialList');
     const testimonialsWrap = getEl('testimonialsWrap');
-    if (!Array.isArray(testimonials) || !testimonials.length || !testimonialList) return false;
     testimonialList.innerHTML = testimonials.map((t, i) => {
       const initial = (t.author || '?')[0].toUpperCase();
       const starCount = Math.min(5, Math.max(1, Math.round(Number(t.rating) || 5)));
@@ -710,9 +742,12 @@ async function loadProfile() {
   }
   const hasTowns = Array.isArray(p.service_area) && p.service_area.length;
   const hasGoogleData = !!google?.rating || !!google?.reviews?.length;
-  const hasMap = !!p.google_place_id;
+  // Maps only for a business that works around a home base (isLocalRadius on
+  // the server, which also leaves the map slots out of the HTML otherwise).
+  const isLocal = p.is_local_radius !== false;
+  const hasMap = isLocal && !!p.google_place_id;
   // Map is now shown inside Areas We Serve section
-  const hasAddressMap = !!(p.address || (p.city && p.state));
+  const hasAddressMap = isLocal && !!(p.address || (p.city && p.state));
   const serviceMapWrap = getEl('serviceMapWrap');
   const serviceMap = getEl('serviceMap');
   const placesMapWrap = getEl('placesMapWrap');

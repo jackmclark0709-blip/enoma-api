@@ -70,7 +70,7 @@
 .quote-form-wrap .qf-chip input:focus-visible + span { outline: 3px solid var(--brand-primary, #1a3a2a); outline-offset: 2px; }
 
 .quote-form-wrap .qf-label { display: block; margin: 0.6rem 0 0.3rem; font-size: 0.88rem; font-weight: 600; color: #374151; }
-.quote-form-wrap .qf-label span { font-weight: 400; color: #9ca3af; }
+.quote-form-wrap .qf-label span, .quote-form-wrap legend span { font-weight: 400; color: #9ca3af; }
 .quote-form-wrap .qf-input {
   display: block; width: 100%; min-height: 48px; padding: 0.7rem 0.9rem; border-radius: 10px;
   border: 1.5px solid #d4e2f4; background: #fff; color: #0a1628; font: inherit; font-size: 1rem;

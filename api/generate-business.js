@@ -17,7 +17,7 @@ import fs from "fs";
 import {
   first, safeJSON, mergeUserServicePrices, normalizeServiceAreas
 } from "./_lib/service-utils.js";
-import { lintCopy, scrubCopy, fixInstructions } from "./_lib/copy-lint.js";
+import { buildAdminPrompt, buildSelfServePrompt, finishGenerated, lintFlagsFor, yearsInBusinessFrom } from "./_lib/generator-prompt.js";
 import { mergeKinds } from "./_lib/photo-kinds.js";
 import { handleSpotlight } from "./_lib/spotlight.js";
 import Stripe from "stripe";
@@ -196,79 +196,38 @@ async function handleAdminGenerate(req, res) {
     created_at: new Date().toISOString(), updated_at: new Date().toISOString()
   });
 
-  const servicesList = services.join(", ") || "general landscaping services";
-  const areasStr = areasServed.join(", ") || town;
-  const yearsStr = yearsInBusiness ? `${yearsInBusiness} years` : "several years";
+  // Prompt and honesty rules: api/_lib/generator-prompt.js (shared with the form path).
+  const adminInput = { businessName, ownerFirstName, trade, phone, town, state, areasServed, yearsInBusiness, services };
+  const prompt = buildAdminPrompt(adminInput);
+  const askAI = async (extra = "") => {
+    const r = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${process.env.OPENAI_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "gpt-4o", temperature: 0.2,
+        messages: [
+          { role: "system", content: "You are a JSON API. Return ONLY valid JSON. No text, no markdown." },
+          { role: "user", content: prompt + extra }
+        ]
+      })
+    });
+    if (!r.ok) throw new Error(`OpenAI error: ${await r.text()}`);
+    return safeJSON(extractJSON((await r.json())?.choices?.[0]?.message?.content), null);
+  };
 
-  const prompt = `You are a copywriter for local trade businesses. Write copy that sounds like it was written by someone who actually knows this business — not a generic template.
-Return ONLY valid JSON (no markdown, no commentary).
-
-JSON SCHEMA:
-{
-  "seo_title": "",
-  "seo_description": "",
-  "hero_headline": "",
-  "hero_tagline": "",
-  "about": "",
-  "why_choose_us": "",
-  "services_intro": "",
-  "trust_badges": [],
-  "faqs": [{ "q": "", "a": "" }],
-  "services": [{ "service_name": "", "service_description": "" }],
-  "primary_cta": { "label": "", "type": "call", "value": "" }
-}
-
-BUSINESS:
-Name: ${businessName}
-Owner first name: ${ownerFirstName || "the owner"}
-Trade: ${trade}
-Phone: ${phone}
-Town: ${town}, ${state}
-Service areas: ${areasStr}
-Years in business: ${yearsStr}
-Services: ${servicesList}
-
-COPY RULES:
-hero_headline: Include town name and trade. Be direct and specific. AVOID: trusted, reliable, professional, quality, dedicated.
-hero_tagline: One sentence. Mention owner name, years in business, towns served. Be factual.
-about: 2 paragraphs separated by \\n\\n. Origin story + who they serve. Use owner name. BANNED: trusted, reliable, professional, quality, dedicated, passionate, commitment, excellence, proud, strive, ensure, seamless.
-why_choose_us: 4-5 lines separated by \\n, no bullet characters. Each line = specific concrete fact, not a vague claim.
-services_intro: One specific sentence about what they do and where.
-faqs: 5 questions real customers ask before hiring. Include pricing, service area, scheduling.
-trust_badges: 3-5 short factual phrases. Years in business, licensed & insured, free estimates.
-seo_title: "[Business Name] — [Trade] in [City], MA | [Short differentiator]"
-seo_description: 1-2 sentences with business name, city, trade, phone.
-primary_cta: type="call", value="${phone}", label="Call for a Free Estimate"`;
-
-  const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${process.env.OPENAI_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "gpt-4o", temperature: 0.2,
-      messages: [
-        { role: "system", content: "You are a JSON API. Return ONLY valid JSON. No text, no markdown." },
-        { role: "user", content: prompt }
-      ]
-    })
-  });
-
-  if (!aiRes.ok) throw new Error(`OpenAI error: ${await aiRes.text()}`);
-  const ai = await aiRes.json();
-  const generatedRaw = safeJSON(extractJSON(ai?.choices?.[0]?.message?.content), null);
+  const generatedRaw = await askAI();
   if (!generatedRaw) throw new Error("AI returned invalid JSON");
-  // Bulk previews skip the AI retry (cost); the deterministic scrub still runs.
-  const generated = scrubCopy(generatedRaw);
-  const adminIssues = lintCopy(generated, { offers_emergency: false });
+  // Same copy check as the form path: lint, one retry if needed, scrub.
+  const { generated, issues: adminIssues } = await finishGenerated(generatedRaw, {
+    flags: lintFlagsFor({ offersEmergency: false, yearsInBusiness: yearsInBusinessFrom(yearsInBusiness), profile: adminInput }),
+    profile: adminInput,
+    retry: askAI,
+    log: m => console.warn(m),
+  });
   if (adminIssues.length) console.warn(`copy-lint [${slug}]:`, adminIssues.map(i => i.message).join(" | "));
 
-  const finalServices = (Array.isArray(generated.services) ? generated.services : [])
-    .filter(s => s?.service_name)
-    .map(s => ({ service_name: String(s.service_name).trim(), service_description: String(s.service_description || "").trim() }));
-
-  const finalFaqs = (Array.isArray(generated.faqs) ? generated.faqs : [])
-    .map(f => ({ q: String(f.q || f.question || "").trim(), a: String(f.a || f.answer || "").trim() }))
-    .filter(f => f.q && f.a);
-
+  const finalServices = generated.services;
+  const finalFaqs = generated.faqs;
   const { error: profileErr } = await supabaseAdmin
     .from("small_business_profiles")
     .upsert({
@@ -285,8 +244,8 @@ primary_cta: type="call", value="${phone}", label="Call for a Free Estimate"`;
       seo_title: generated.seo_title || "",
       seo_description: generated.seo_description || "",
       services: finalServices, faqs: finalFaqs,
-      trust_badges: Array.isArray(generated.trust_badges) ? generated.trust_badges : [],
-      primary_cta_label: generated.primary_cta?.label || "Call for a Free Estimate",
+      trust_badges: generated.trust_badges,
+      primary_cta_label: generated.primary_cta.label,
       primary_cta_type: "call", primary_cta_value: phone || "",
       testimonials: [], attachments: [],
       is_open_now: false, accepting_clients: true, offers_emergency: false,
@@ -647,103 +606,16 @@ export default async function handler(req, res) {
     let primaryCTA = null;
 
     if (shouldRegenerate) {
-      const prompt = `
-You are a copywriter who specializes in local trade businesses. Your job is to write copy that sounds like it was written by someone who actually knows this specific business — not a generic template.
-Return ONLY valid JSON (no markdown, no commentary).
-
-JSON SCHEMA:
-{
-  "seo_title": "",
-  "seo_description": "",
-  "hero_headline": "",
-  "hero_tagline": "",
-  "about": "",
-  "why_choose_us": "",
-  "services_intro": "",
-  "trust_badges": [],
-  "faqs": [{ "question": "", "answer": "" }],
-  "services": [{ "service_name": "", "service_description": "" }],
-  "primary_cta": { "label": "", "type": "call|email|form|link", "value": "" }
-}
-
-BUSINESS INPUT:
-Business name: ${business_name}
-Trade/category: ${["", "other"].includes(first(fields.primary_category)) ? "general local service business (no specific trade given)" : first(fields.primary_category)}
-Tone preference: ${tone}
-Owner notes: ${about_input}
-Services (JSON): ${servicesJSON}
-Address: ${first(fields.address)}
-Phone: ${first(fields.phone)}
-Website: ${first(fields.website)}
-City: ${first(fields.city)}
-State: ${first(fields.state)}
-Service areas: ${first(fields.service_area)}
-Owner name: ${owner_name || "not provided"}
-Existing trust badges: ${first(fields.trust_badges) || "none"}
-Existing testimonials: ${first(fields.testimonials) || "none"}
-Operational flags:
-- Accepting clients: ${toBool(fields.accepting_clients)}
-- Emergency services: ${toBool(fields.offers_emergency)}
-
-HONESTY RULE (applies to every field below): only state facts that were actually
-given in BUSINESS INPUT above — years in business, specific towns, certifications,
-staff size, founding story, etc. If a detail wasn't provided, do not invent a
-specific number, year, town, or claim to fill the gap. Write shorter and more
-general instead. Under-claiming is fine; fabricating a fact a real customer or
-competitor could catch as false is not.
-
-COPY INSTRUCTIONS:
-
-hero_headline:
-- Include the city/town name and trade category for local SEO, but ONLY if a
-  city/town was actually provided in BUSINESS INPUT — if none was given, build
-  the headline from the business name and trade instead of inventing a location
-- Be direct and specific — what makes this business worth calling?
-- AVOID: "trusted," "reliable," "professional," "your go-to," "quality service"
-- GOOD examples: "Plumbing & Heating in Attleboro — Call Brian Today", "North Attleborough Lawn Care Since 2000", "Electricians in Foxboro — Same-Day Service Available"
-
-hero_tagline:
-- One sentence. Include owner name if provided, years in business if known, towns served.
-- AVOID vague promises. Be factual.
-
-about:
-- 2 paragraphs separated by \\n\\n
-- Paragraph 1: the origin story or what makes this business different. Use owner name if provided. Be specific — how long in business, how they started, what they care about.
-- Paragraph 2: who they serve today. Specific towns, types of customers, what the experience of working with them is actually like.
-- BANNED WORDS: trusted, reliable, professional, quality, dedicated, passionate, commitment, excellence, proud, strive, ensure, seamless
-- Write like a person, not a press release. Short sentences are fine.
-
-why_choose_us:
-- 4-5 lines separated by \\n, NO bullet characters or dashes
-- Each line should be a specific, concrete reason — not a vague claim
-- Lead each line with the specific fact, THEN the brief explanation
-- GOOD: "Owner on every job — ${owner_name || "the owner"} is hands-on, not managing from an office"
-- GOOD: "Serving ${first(fields.city) || "the area"} since [year if known] — long enough to have repeat customers and referrals"
-- BAD: "Experienced team", "Quality workmanship", "Customer satisfaction guaranteed"
-
-services_intro:
-- One sentence. Specific to this trade and location. Not "we offer a wide range of services."
-
-faqs:
-- 5 questions a real customer would actually type into Google before hiring this type of business
-- Include at least one about pricing/estimates, one about service area, one about scheduling/availability
-- Answers should be specific to this business where possible
-- Emergency/after-hours: follow the "Emergency services" flag above exactly. If it is
-  false, never say or imply they offer emergency or after-hours work. If it is true,
-  never say they don't. If you write an FAQ about it, the answer must match the flag.
-- Customer type: only say "commercial" or "residential" if BUSINESS INPUT says so, and
-  never both "residential only" in one place and "commercial" in another.
-
-trust_badges:
-- 3-5 short phrases. Include factual ones first: years in business, licensing, rating if known
-- GOOD: "In Business Since 2000", "Licensed & Insured MA", "Free Estimates", "5-Star Google Rating"
-- BAD: "Trusted Professionals", "Quality Work", "Customer First"
-
-seo_title: "[Business Name] — [Trade] in [City], MA | [Short differentiator]"
-seo_description: 1-2 sentences. Include business name, city, trade, phone if provided. Should read like a real search result snippet, not marketing copy.
-
-primary_cta: If phone is provided, set type to "call" and value to the phone number. Label should be action-oriented: "Call for a Free Quote", "Get a Free Estimate", etc.
-`.trim();
+      // Prompt and honesty rules: api/_lib/generator-prompt.js (shared with the admin path).
+      const promptProfile = {
+        business_name, primary_category: first(fields.primary_category), tone, notes: about_input,
+        services_json: servicesJSON, address: first(fields.address), phone: first(fields.phone),
+        website: first(fields.website), city: first(fields.city), state: first(fields.state),
+        service_area: first(fields.service_area), owner_name, trust_badges: first(fields.trust_badges),
+        testimonials: first(fields.testimonials), accepting_clients: toBool(fields.accepting_clients),
+        offers_emergency: toBool(fields.offers_emergency),
+      };
+      const prompt = buildSelfServePrompt(promptProfile);
 
       const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -791,61 +663,30 @@ primary_cta: If phone is provided, set type to "call" and value to the phone num
         });
       }
 
-      if (!Array.isArray(generated.services)) generated.services = [];
-      if (!Array.isArray(generated.faqs)) generated.faqs = [];
-      if (!Array.isArray(generated.trust_badges)) generated.trust_badges = [];
-      if (!generated.primary_cta || typeof generated.primary_cta !== "object") generated.primary_cta = {};
-
-      generated.services = generated.services
-        .filter(s => s && (s.service_name || s.name))
-        .map(s => ({
-          service_name: String(s.service_name || s.name || "").trim(),
-          service_description: String(s.service_description || s.description || "").trim()
-        }))
-        .filter(s => s.service_name);
-
-      generated.faqs = generated.faqs
-        .map(f => ({ q: String(f.q || f.question || "").trim(), a: String(f.a || f.answer || "").trim() }))
-        .filter(f => f.q && f.a);
-
-      // Copy check (copy-lint.js): one AI retry with the problems listed,
-      // kept only if it parses and has fewer problems, then a scrub.
-      const lintFlags = { offers_emergency: toBool(fields.offers_emergency) };
-      const firstIssues = lintCopy(generated, lintFlags);
-      if (firstIssues.length) {
-        try {
-          const retryRes = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${process.env.OPENAI_KEY}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: "gpt-4o", temperature: 0.2,
-              messages: [
-                { role: "system", content: "You are a JSON API. You ONLY return valid JSON. No text." },
-                { role: "user", content: prompt + fixInstructions(firstIssues) }
-              ]
-            })
-          });
-          const retried = retryRes.ok ? safeJSON(extractJSON((await retryRes.json())?.choices?.[0]?.message?.content), null) : null;
-          if (retried && typeof retried === "object" && Array.isArray(retried.services)
-              && lintCopy(retried, lintFlags).length < firstIssues.length) {
-            retried.services = retried.services
-              .filter(sv => sv && (sv.service_name || sv.name))
-              .map(sv => ({ service_name: String(sv.service_name || sv.name || "").trim(), service_description: String(sv.service_description || sv.description || "").trim() }))
-              .filter(sv => sv.service_name);
-            retried.faqs = (Array.isArray(retried.faqs) ? retried.faqs : [])
-              .map(f => ({ q: String(f.q || f.question || "").trim(), a: String(f.a || f.answer || "").trim() }))
-              .filter(f => f.q && f.a);
-            if (!Array.isArray(retried.trust_badges)) retried.trust_badges = [];
-            if (!retried.primary_cta || typeof retried.primary_cta !== "object") retried.primary_cta = generated.primary_cta;
-            generated = retried;
-          }
-        } catch (e) {
-          console.warn("copy-lint retry failed:", e?.message);
-        }
-      }
-      generated = scrubCopy(generated);
-      const leftIssues = lintCopy(generated, lintFlags);
-      if (leftIssues.length) console.warn(`copy-lint [${business_name}]:`, leftIssues.map(i => i.message).join(" | "));
+      // Copy check (copy-lint.js via finishGenerated): one AI retry with the
+      // problems listed, kept only if it parses and has fewer problems, then a scrub.
+      const askAgain = async extra => {
+        const retryRes = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${process.env.OPENAI_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "gpt-4o", temperature: 0.2,
+            messages: [
+              { role: "system", content: "You are a JSON API. You ONLY return valid JSON. No text." },
+              { role: "user", content: prompt + extra }
+            ]
+          })
+        });
+        return retryRes.ok ? safeJSON(extractJSON((await retryRes.json())?.choices?.[0]?.message?.content), null) : null;
+      };
+      const finished = await finishGenerated(generated, {
+        flags: lintFlagsFor({ offersEmergency: toBool(fields.offers_emergency), yearsInBusiness: yearsInBusinessFrom(null, about_input), profile: promptProfile }),
+        profile: promptProfile,
+        retry: askAgain,
+        log: m => console.warn(m),
+      });
+      generated = finished.generated;
+      if (finished.issues.length) console.warn(`copy-lint [${business_name}]:`, finished.issues.map(i => i.message).join(" | "));
 
       primaryCTA = generated.primary_cta || {};
     }
@@ -918,7 +759,7 @@ primary_cta: If phone is provided, set type to "call" and value to the phone num
     if (!finalPrimaryCtaValue) {
       finalPrimaryCtaType = "email";
       finalPrimaryCtaValue = email;
-      finalPrimaryCtaLabel = finalPrimaryCtaLabel === "Contact Us" ? "Email Us" : finalPrimaryCtaLabel;
+      finalPrimaryCtaLabel = finalPrimaryCtaLabel === "Contact Us" || /^call\b/i.test(finalPrimaryCtaLabel) ? "Email Us" : finalPrimaryCtaLabel;
     }
 
     /* ---------- ATTACHMENTS ---------- */

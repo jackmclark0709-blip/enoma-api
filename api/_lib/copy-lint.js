@@ -31,11 +31,39 @@ function serviceList(g) {
   }));
 }
 
+// Claims the AI tends to invent. Only checked when the caller says the fact
+// is unknown or false (flags.offers_free_estimates === false, or
+// flags.years_in_business given as null/0), so other callers are unaffected.
+const FREE_ESTIMATE_RE = /\bfree[\s,-]+(?:no[\s-]obligation\s+|in[\s-]home\s+|on[\s-]site\s+)?(estimates?|quotes?|consultations?|assessments?|inspections?)\b|\b(estimates?|quotes?) (are|is) (always )?free\b|\bno[- ]cost (estimates?|quotes?)\b/i;
+const YEARS_RE = /\b\d+\+?\s*(?:years?|yrs?)\b|\bsince (?:19|20)\d\d\b|\b(?:several|many|over|decades?|a decade)\s+(?:of\s+)?(?:years?|experience)\b|\bdecades?\b|\byears of (?:experience|service)\b/i;
+
+function unsupportedIn(text, flags) {
+  const t = String(text || "");
+  const out = [];
+  if (flags.offers_free_estimates === false && FREE_ESTIMATE_RE.test(t)) out.push("free estimates");
+  if ("years_in_business" in flags && !flags.years_in_business && YEARS_RE.test(t)) out.push("years in business");
+  return out;
+}
+
+// Every generated text field, as [field, text] pairs.
+function allFields(g) {
+  const out = [];
+  for (const f of ["hero_headline", "hero_tagline", "about", "why_choose_us", "services_intro", "seo_title", "seo_description"]) {
+    if (g?.[f]) out.push([f, String(g[f])]);
+  }
+  (Array.isArray(g?.trust_badges) ? g.trust_badges : []).forEach((b, i) => out.push([`trust_badges[${i}]`, String(b || "")]));
+  serviceList(g).forEach((s, i) => out.push([`services[${i}]`, `${s.name} ${s.desc}`]));
+  faqsOf(g).forEach((f, i) => out.push([`faqs[${i}]`, `${f.q} ${f.a}`]));
+  if (g?.primary_cta?.label) out.push(["primary_cta", String(g.primary_cta.label)]);
+  return out;
+}
+
 function faqsOf(g) {
   return (Array.isArray(g?.faqs) ? g.faqs : []).map(f => ({ q: f?.q || f?.question || "", a: f?.a || f?.answer || "" }));
 }
 
-// Returns [{ field, kind, message }]. kind: banned_word | contradiction | vague_service.
+// Returns [{ field, kind, message }]. kind: banned_word | contradiction | vague_service | unsupported_claim.
+// flags: offers_emergency, offers_free_estimates, years_in_business (see unsupportedIn).
 export function lintCopy(g, flags = {}) {
   const issues = [];
   const textFields = ["hero_headline", "hero_tagline", "about", "why_choose_us", "services_intro", "seo_title", "seo_description"];
@@ -58,6 +86,15 @@ export function lintCopy(g, flags = {}) {
   });
 
   const faqs = faqsOf(g);
+  faqs.forEach((f, i) => {
+    const hits = bannedWordsIn(`${f.q} ${f.a}`);
+    if (hits.length) issues.push({ field: `faqs[${i}]`, kind: "banned_word", message: `FAQ "${f.q}" uses: ${hits.join(", ")}` });
+  });
+  for (const [field, text] of allFields(g)) {
+    for (const what of unsupportedIn(text, flags)) {
+      issues.push({ field, kind: "unsupported_claim", message: `${field} mentions ${what}, which the business didn't give us; remove it` });
+    }
+  }
   if (flags.offers_emergency === true && faqDeniesEmergency(faqs)) {
     issues.push({ field: "faqs", kind: "contradiction", message: "FAQ denies emergency service but the business offers it" });
   }
@@ -83,10 +120,29 @@ function stripBanned(text) {
 
 // Deterministic last pass: drop badges with filler words and strip them from
 // short display fields. Longer prose is left to the AI retry.
-export function scrubCopy(g) {
+// Unsupported claims (see unsupportedIn) are removed sentence by sentence
+// everywhere, since a made-up fact is worse than a shorter page.
+export function scrubCopy(g, flags = {}) {
   if (!g || typeof g !== "object") return g;
   const out = { ...g };
-  if (Array.isArray(out.trust_badges)) out.trust_badges = out.trust_badges.filter(b => !bannedWordsIn(b).length);
+  const bad = t => unsupportedIn(t, flags).length > 0;
+  const dropSentences = text => String(text || "").split(/\n/).map(line =>
+    line.split(/(?<=[.!?])\s+/).filter(sn => !bad(sn)).join(" ")
+  ).filter((line, i, arr) => line.trim() || (i > 0 && arr[i - 1].trim())).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  if (Array.isArray(out.trust_badges)) out.trust_badges = out.trust_badges.filter(b => !bannedWordsIn(b).length && !bad(b));
+  for (const f of ["hero_headline", "hero_tagline", "about", "why_choose_us", "services_intro", "seo_title", "seo_description"]) {
+    if (typeof out[f] === "string" && bad(out[f])) out[f] = dropSentences(out[f]);
+  }
+  if (Array.isArray(out.services)) {
+    out.services = out.services.map(sv => (bad(sv?.service_description) ? { ...sv, service_description: dropSentences(sv.service_description) } : sv));
+  }
+  if (Array.isArray(out.faqs)) {
+    out.faqs = out.faqs.map(f => {
+      const q = f?.q ?? f?.question ?? "", a = f?.a ?? f?.answer ?? "";
+      if (bad(q)) return null;
+      return bad(a) ? { ...f, ...("a" in (f || {}) ? { a: dropSentences(a) } : { answer: dropSentences(a) }) } : f;
+    }).filter(f => f && String(f.a ?? f.answer ?? "").trim());
+  }
   for (const f of ["hero_headline", "seo_title"]) {
     if (bannedWordsIn(out[f]).length) out[f] = stripBanned(out[f]);
   }

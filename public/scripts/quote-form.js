@@ -61,8 +61,12 @@
   }
 
   function checked(name) { return form.querySelector('input[name="' + name + '"]:checked'); }
+  // Step 3 is "Where's the job?" (location) or, for businesses that don't work
+  // at the customer's address, an optional "company" field (api/_lib/quote-form.js).
+  var locationInput = form.elements.location || null;
   function locationValue() {
-    var typed = (form.elements.location.value || '').trim();
+    if (!locationInput) return '';
+    var typed = (locationInput.value || '').trim();
     if (typed) return typed;
     var town = checked('location_town');
     return town ? town.value : '';
@@ -71,7 +75,7 @@
   function validate(n) {
     if (n === 1 && !checked('services')) return 'Pick at least one, or "Something else".';
     if (n === 2 && !checked('timing')) return 'Pick one.';
-    if (n === 3 && !locationValue()) { form.elements.location.focus(); return 'Add your town or ZIP.'; }
+    if (n === 3 && locationInput && !locationValue()) { locationInput.focus(); return 'Add your town or ZIP.'; }
     if (n === 4) {
       var name = form.elements.name, phone = form.elements.phone, email = form.elements.email;
       [name, phone, email].forEach(function (el) { el.removeAttribute('aria-invalid'); });
@@ -111,7 +115,7 @@
     if ((e.key === ' ' || e.key === 'Enter') && e.target.type === 'radio' && (e.target.name === 'timing' || e.target.name === 'location_town')) {
       e.preventDefault();
       e.target.checked = true;
-      if (e.target.name === 'location_town') form.elements.location.value = e.target.value;
+      if (e.target.name === 'location_town' && locationInput) locationInput.value = e.target.value;
       next();
     }
   });
@@ -120,13 +124,13 @@
     var t = e.target;
     if (t.type !== 'radio') return;
     var arrow = /^Arrow/.test(lastKey || '');
-    if (t.name === 'location_town') form.elements.location.value = t.value;
+    if (t.name === 'location_town' && locationInput) locationInput.value = t.value;
     if (arrow) return;
     if ((t.name === 'timing' && current === 2) || (t.name === 'location_town' && current === 3)) autoAdvance();
   });
-  form.elements.location.addEventListener('input', function () {
+  if (locationInput) locationInput.addEventListener('input', function () {
     var town = checked('location_town');
-    if (town && town.value !== form.elements.location.value) town.checked = false;
+    if (town && town.value !== locationInput.value) town.checked = false;
   });
   form.addEventListener('click', function (e) {
     if (e.target.closest('[data-next]')) { e.preventDefault(); next(); }
@@ -144,7 +148,7 @@
     var payload = {};
     fd.forEach(function (v, k) { if (k !== 'services' && k !== 'return_path') payload[k] = v; });
     payload.services = fd.getAll('services');
-    payload.location = locationValue();
+    if (locationInput) payload.location = locationValue();
     delete payload.location_town;
     var submit = form.querySelector('.qf-submit');
     submit.disabled = true;
