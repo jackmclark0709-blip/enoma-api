@@ -191,7 +191,7 @@ await test("threads on the original subject, like the first follow-up", () => {
 });
 await test("short last note with the price and a promise not to email again", () => {
   assert.match(e2.text, /^Hi there,\n\nLast note from me about Arno Plumbing & Heating's page: https:\/\/enoma\.io\/api\/ga-metrics\?action=go/);
-  assert.match(e2.text, /first month free, then \$19\.99\/month or \$199\/year/);
+  assert.match(e2.text, /\$1 for your first month, then \$19\.99\/month or \$199\/year\. Cancel anytime\./);
   assert.match(e2.text, /I won't email again/);
   assert.notEqual(e2.text, buildFollowUpEmail(args).text);
   assert.ok(e2.text.split(/\s+/).length < 90, "short");

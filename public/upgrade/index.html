@@ -99,9 +99,20 @@ async function init() {
   let sub = null;
   if (businessId && session) {
     const { data } = await sb
-      .from('subscriptions').select('is_trial, trial_expires_at')
+      .from('subscriptions').select('is_trial, trial_expires_at, pricing_version, stripe_subscription_id, provider')
       .eq('business_id', businessId).maybeSingle();
     sub = data || null;
+    if (!sub) {
+      // Before 20261112_pricing_version.sql is applied: legacy fields only.
+      const { data: legacy } = await sb.from('subscriptions').select('is_trial, trial_expires_at').eq('business_id', businessId).maybeSingle();
+      sub = legacy || null;
+    }
+    // Pricing v2 ($1 first month): the page is a preview until it goes live.
+    if (sub && sub.pricing_version === 'v2_1dollar' && !sub.stripe_subscription_id && sub.provider !== 'comped') {
+      document.getElementById('heroTitle').textContent = 'Go live';
+      document.getElementById('heroSub').textContent =
+        'Show your page on Google and keep it up. $1 for your first month, then $19.99/month or $199/year. Cancel anytime.';
+    }
   }
   window.EnomaPlanPicker.mount(document.getElementById('planPicker'), {
     // Without a business id there's nothing to subscribe; the dashboard picks one.

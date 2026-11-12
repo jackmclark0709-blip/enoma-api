@@ -147,19 +147,20 @@ await test("hero: headline, one-line lede, the 4 selling points and what's alrea
 });
 await test("hero CTAs: claim, Text Jack, Email Jack and subscribe-now, with the right links", () => {
   const hero = html.slice(at("<section class=\"hero"), at("<section class=\"review\""));
-  assert.match(hero, new RegExp(`id="cta-claim" href="/robbins-plumbing\\?claim=1&amp;m=${M}"[^>]*>Claim my page, first month free<`));
+  assert.match(hero, new RegExp(`id="cta-claim" href="/robbins-plumbing\\?claim=1&amp;m=${M}"[^>]*>Claim my page, free<`));
   assert.match(hero, /id="cta-text" type="button" data-panel="hero-text"[^>]*>Text Jack</);
   assert.match(hero, /<form class="panel" id="panel-hero-text" data-kind="text">/);
   assert.match(hero, /id="hero-text-phone"[^>]*value="\(555\) 010-0002"/);
   assert.match(hero, /id="cta-email" href="mailto:jack@enoma\.io\?subject=[^"]+"[^>]*data-email[^>]*>Email Jack</);
-  assert.match(hero, new RegExp(`id="cta-subscribe" href="/robbins-plumbing\\?claim=1&amp;plan=year&amp;m=${M}"[^>]*>Or subscribe now: \\$19\\.99/month or \\$199/year<`));
+  assert.match(hero, new RegExp(`id="cta-subscribe" href="/robbins-plumbing\\?claim=1&amp;plan=year&amp;m=${M}"[^>]*>Or go live now: \\$1 for your first month<`));
   assert.doesNotMatch(hero, /Book 10 minutes/, "booking lives in Talk to Jack, not the hero");
 });
-await test("the price sits right next to 'first month free'", () => {
-  const i = at("Claim my page, first month free");
-  const j = at("First month free, then $19.99/month or $199/year. No contract, cancel anytime.");
+await test("the full price line sits right next to the claim button and the $1", () => {
+  const i = at("Claim my page, free");
+  const j = at("$1 for your first month, then $19.99/month or $199/year. Cancel anytime. No contract.");
   assert.ok(i > 0 && j > i && j - i < 700, "price line under the hero CTAs");
-  assert.match(html, /Your first month is free\.<\/li>\s*<li>Then \$19\.99\/month or \$199\/year/);
+  assert.match(html, /Claiming and editing your page is free, with no card\.<\/li>\s*<li>Going live is \$1 for your first month, then \$19\.99\/month or \$199\/year/);
+  assert.doesNotMatch(html, /first month free|free month/i);
   assert.match(html, /\$9\.99\/month each/);
 });
 await test("every note renders as a numbered comment card, in order, plus a no-JS list", () => {
@@ -181,7 +182,7 @@ await test("notes: bottom bar and sheet for phones, the closing line and CTA", (
   const n = detectCallouts(thin).length;
   assert.ok(html.includes(`Jack's notes (${n})`.replace("'", "&#039;")) || html.includes(`Jack's notes (${n})`));
   assert.match(html, /id="notes-bar" type="button"[^>]*hidden/);
-  assert.match(html, /Each one is a few minutes of your time, and I do the work\.<\/p>\s*<a class="b b-primary" href="[^"]*claim=1[^"]*"[^>]*>Claim my page, first month free</);
+  assert.match(html, /Each one is a few minutes of your time, and I do the work\.<\/p>\s*<a class="b b-primary" href="[^"]*claim=1[^"]*"[^>]*>Claim my page, free</);
 });
 await test("passes the anchors for each note to the page script", () => {
   const m = html.match(/var D = (\{.*?\});\n/);
@@ -192,7 +193,7 @@ await test("passes the anchors for each note to the page script", () => {
 });
 await test("shows the price and the three contact buttons", () => {
   assert.match(html, /\$19\.99/);
-  assert.match(html, /first month is free/);
+  assert.match(html, /\$1 for your first month/);
   assert.match(html, /Email me/);
   assert.match(html, /Text me/);
   assert.match(html, /Book 10 minutes/);
@@ -284,8 +285,8 @@ await test("never mentions the Google listing", () => {
   assert.doesNotMatch(instant, /Google listing/);
 });
 await test("price sits with every 'free' (hero and the catch)", () => {
-  assert.match(instant, /First month free, then \$19\.99\/month or \$199\/year/);
-  assert.match(instant, /\$19\.99<\/b><span>a month after the free month, or \$199\/year/);
+  assert.match(instant, /\$1 for your first month, then \$19\.99\/month or \$199\/year/);
+  assert.match(instant, /\$1<\/b><span>for your first month, then \$19\.99\/month or \$199\/year\. Cancel anytime\./);
 });
 await test("keeps the callouts, the catch and all three contact buttons", () => {
   assert.match(instant, /class="card"/);
@@ -362,8 +363,8 @@ await test("no 'from your listing' copy, one speed claim", () => {
   assert.match(gyw, /Type in your business name and see your page in about 30 seconds/);
   assert.match(gyw, /Not on Google yet, or your info is out of date\? I'll build it with you\./);
 });
-await test("price shows next to the free month in the form header", () => {
-  assert.match(gyw, /Free for a month — no credit card · \$19\.99\/month after the free month/);
+await test("the full price line shows in the form header, next to the free preview", () => {
+  assert.match(gyw, /Free to see your page, no card · \$1 for your first month, then \$19\.99\/month or \$199\/year\. Cancel anytime\./);
 });
 await test("logs place_search_used once per page", () => {
   assert.equal((gyw.match(/enomaTrack\('place_search_used'/g) || []).length, 1);

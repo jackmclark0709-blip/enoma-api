@@ -26,7 +26,7 @@ import { cleanBusinessName, trackedLinks, withUtm, buildOutreachIntro } from "./
 export const SUBJECT_MAX = 45;
 export const BANNED_SUBJECT_RE = /\b(websites?|redesign\w*|built you|free)\b/i;
 
-export const PRICE_LINE = "First month free, then $19.99/month or $199/year. Cancel anytime.";
+export const PRICE_LINE = "$1 for your first month, then $19.99/month or $199/year. Cancel anytime.";
 export const SIGNOFF_LINES = ["Jack", "I'm a real person, and I keep your page updated for you.", "Enoma · jack@enoma.io"];
 
 // ── The split ─────────────────────────────────────────────────────────────

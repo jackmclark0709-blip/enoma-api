@@ -6,6 +6,13 @@
 //   customer.subscription.deleted → canceled
 //   invoice.payment_failed      → mark past_due
 //
+// Pricing v2 ($1 first month): the session carries metadata.pricing_version
+// and first_month_fee. The subscription is "trialing" for 30 days after the
+// $1 charge, which keeps the page live, and the owner gets a confirmation
+// email with the renewal terms. Every completed checkout logs both
+// subscription_activated (existing reports) and checkout_completed, with
+// pricing_version, so claim -> paid can be compared before and after v2.
+//
 // Monthly and yearly subscriptions are stored the same way; billing_interval
 // records which. A subscription started during the free month has a
 // trial_end, so Stripe reports it as "trialing" until the first charge. We
@@ -27,6 +34,51 @@ import { createClient } from '@supabase/supabase-js';
 import { subscriptionFieldsFromStripe } from './_lib/billing.js';
 import { logFunnelEvent } from './_lib/tracking.js';
 import { syncSpotlightQuantity, spotlightItemOf } from './_lib/spotlight-billing.js';
+import { Resend } from 'resend';
+import { PRICING_V2 } from './_lib/pricing.js';
+import { buildFirstMonthConfirmationEmail, buildManageBillingUrl, FIRST_PAID_KIND } from './_lib/trial-reminders.js';
+import { formatAmount } from '../data/plans.mjs';
+import { pageItemOf } from './_lib/billing.js';
+
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+
+// Pricing v2: after the $1 first-month checkout, email the owner the renewal
+// terms. trial_reminders (business_id, 'first_paid') is unique, so a Stripe
+// retry of the same event never sends it twice. Never fails the webhook.
+async function sendFirstMonthConfirmation(session, subscription, business_id) {
+  try {
+    const to = session.customer_details?.email || session.customer_email || null;
+    if (!resend || !to) return;
+    const item = pageItemOf(subscription) || {};
+    const interval = item.price?.recurring?.interval === 'year' ? 'year' : 'month';
+    // The recurring total (page plan + any service pages) Stripe will charge.
+    const cents = (subscription.items?.data || [])
+      .reduce((sum, i) => sum + (i.price?.unit_amount || 0) * (i.quantity || 1), 0);
+    const chargeAt = subscription.trial_end ? subscription.trial_end * 1000 : null;
+    const { data: profile } = await supabase.from('small_business_profiles')
+      .select('business_name, owner_name, username, custom_domain').eq('business_id', business_id).maybeSingle();
+    const email = buildFirstMonthConfirmationEmail({
+      businessName: profile?.business_name,
+      ownerFirstName: (profile?.owner_name || '').trim().split(/\s+/)[0] || null,
+      amount: formatAmount(cents), interval, chargeDate: chargeAt,
+      pageUrl: profile?.custom_domain ? `https://${profile.custom_domain}/` : profile?.username ? `https://enoma.io/${profile.username}` : null,
+      manageUrl: buildManageBillingUrl(business_id),
+      partner: item.price?.lookup_key === 'enoma_page_partner_monthly',
+    });
+    if (!email) return;
+    const { data: row, error: insErr } = await supabase.from('trial_reminders')
+      .insert({ business_id, kind: FIRST_PAID_KIND }).select('id').single();
+    if (insErr) { if (insErr.code !== '23505') console.warn('first_paid slot failed:', insErr.message); return; }
+    const { data: sent, error } = await resend.emails.send({
+      from: 'Jack at Enoma <jack@enoma.io>', to, replyTo: 'jack@enoma.io',
+      subject: email.subject, text: email.text, html: email.html,
+    });
+    if (error) { await supabase.from('trial_reminders').delete().eq('id', row.id); console.warn('first_paid email failed:', error.message); return; }
+    await supabase.from('trial_reminders').update({ resend_id: sent?.id || null }).eq('id', row.id);
+  } catch (e) {
+    console.warn('first_paid email failed:', e?.message || e);
+  }
+}
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const supabase = createClient(
@@ -138,13 +190,26 @@ export default async function handler(req, res) {
         // business: a real payment is a person unless it's one of Jack's.
         // first_touch (utm_* / comment src+ch+kw) so payments group by source.
         const { data: biz } = await supabase.from('businesses').select('is_internal, first_touch').eq('id', business_id).maybeSingle();
-        await logFunnelEvent(supabase, req, {
-          event: 'subscription_activated', businessId: business_id,
-          trafficClass: biz?.is_internal ? 'internal' : 'human',
-          attribution: biz?.first_touch || null,
-          referrer: null,
-          metadata: { interval: session.metadata?.interval || null, status: fields.status, stripe_session: session.id }
-        });
+        const pricingVersion = session.metadata?.pricing_version || 'v1';
+        const funnelMeta = {
+          interval: session.metadata?.interval || null, status: fields.status, stripe_session: session.id,
+          pricing_version: pricingVersion, first_month_fee: session.metadata?.first_month_fee === '1',
+          amount_today: Number.isInteger(session.amount_total) ? session.amount_total : null,
+          source: session.metadata?.checkout_source || null,
+        };
+        for (const event of ['subscription_activated', 'checkout_completed']) {
+          await logFunnelEvent(supabase, req, {
+            event, businessId: business_id,
+            trafficClass: biz?.is_internal ? 'internal' : 'human',
+            attribution: biz?.first_touch || null,
+            referrer: null,
+            metadata: funnelMeta
+          });
+        }
+
+        if (pricingVersion === PRICING_V2 && session.metadata?.first_month_fee === '1') {
+          await sendFirstMonthConfirmation(session, subscription, business_id);
+        }
 
         console.log(`✓ Subscription activated for business ${business_id}`);
         break;

@@ -62,7 +62,8 @@ test("a rendered page has the right title, canonical, price and no old pricing",
   assert.match(html, /<title>Website for Landscapers in Rehoboth, MA \| Enoma<\/title>/);
   assert.ok(html.includes('rel="canonical" href="https://enoma.io/for/website-for-landscapers-rehoboth-ma"'));
   assert.ok(html.includes('"price":"19.99"'));
-  assert.match(html, /First month free/);
+  assert.ok(html.includes('$1 for your first month, then $19.99/month or $199/year'));
+  assert.doesNotMatch(html, /first month free|free month|no credit card|5 minutes/i);
   assert.doesNotMatch(html, /\$49|\$99|free forever|for good/i);
   // valid JSON-LD
   for (const m of html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g)) JSON.parse(m[1]);

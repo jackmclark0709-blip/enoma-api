@@ -45,10 +45,25 @@ export function trialEndFor(sub, now = Date.now()) {
  */
 export function checkoutPlanFor({ referrer = null, interval = "month", sub = null, now = Date.now() } = {}) {
   const lookupKey = pageLookupKeyFor(referrer, interval);
+  const billedInterval = planByLookupKey(lookupKey)?.interval || interval;
+  // Pricing v2 ($1 first month, api/_lib/pricing.js): a one-time $1 item
+  // today and the plan on a 30-day trial, whatever is left of the preview.
+  // Inlined here (not imported) because pricing.js imports this file.
+  if (sub?.pricing_version === "v2_1dollar" && !sub.stripe_subscription_id && sub.provider !== "comped") {
+    return {
+      lookupKey,
+      interval: billedInterval,
+      trialEnd: Math.floor((now + 30 * 24 * 60 * 60 * 1000) / 1000),
+      firstMonthFee: true,
+      pricingVersion: "v2_1dollar",
+    };
+  }
   return {
     lookupKey,
-    interval: planByLookupKey(lookupKey)?.interval || interval,
+    interval: billedInterval,
     trialEnd: trialEndFor(sub, now),
+    firstMonthFee: false,
+    pricingVersion: sub?.pricing_version || null,
   };
 }
 

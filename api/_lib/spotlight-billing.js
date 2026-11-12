@@ -125,12 +125,15 @@ export function checkoutSpotlightLine({ published = 0, billing = { billing: "at_
  * applies to the service pages too. { error } instead when the service pages
  * can't be added (the add-on price for that interval is missing).
  */
-export function checkoutSubscriptionParams({ pagePriceId, published = 0, billing, spotlightPriceId = null, trialEnd = null, metadata = {} }) {
+// firstMonthLine (pricing v2): the one-time $1 line item, charged at checkout
+// while the recurring items wait for trial_end. Stripe Checkout bills one-time
+// prices in subscription mode on the first invoice, so it's paid today.
+export function checkoutSubscriptionParams({ pagePriceId, published = 0, billing, spotlightPriceId = null, trialEnd = null, metadata = {}, firstMonthLine = null }) {
   const spot = checkoutSpotlightLine({ published, billing, spotlightPriceId });
   if (spot.error) return { error: spot.error };
   const spotlightQuantity = spot.line ? spot.line.quantity : 0;
   return {
-    line_items: [{ price: pagePriceId, quantity: 1 }, ...(spot.line ? [spot.line] : [])],
+    line_items: [{ price: pagePriceId, quantity: 1 }, ...(spot.line ? [spot.line] : []), ...(firstMonthLine ? [firstMonthLine] : [])],
     subscription_data: {
       metadata: { ...metadata, spotlight_quantity: String(spotlightQuantity) },
       ...(trialEnd ? { trial_end: trialEnd } : {}),

@@ -35,6 +35,18 @@ export const PLANS = [
     public: false,
   },
   {
+    id: "page_first_month",
+    lookupKey: "enoma_page_first_month",
+    name: "Your Enoma page: first month",
+    // One-time $1 price on the "Enoma Business Website" product (pricing v2,
+    // api/_lib/pricing.js). Added as an extra Checkout line item next to the
+    // recurring plan, which gets a 30-day trial. Not a plan of its own.
+    fallbackAmount: 100,
+    interval: null,
+    oneTime: true,
+    public: false,
+  },
+  {
     id: "spotlight",
     lookupKey: "enoma_spotlight_monthly",
     name: "Service Spotlight page",

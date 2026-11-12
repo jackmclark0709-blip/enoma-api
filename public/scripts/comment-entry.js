@@ -11,7 +11,7 @@
   var COPY = {
     headline: "Here’s the free preview you asked for",
     subhead: "Find your business below and see your page in about a minute.",
-    price: "First month free, then $19.99/month or $199/year. Cancel anytime."
+    price: "$1 for your first month, then $19.99/month or $199/year. Cancel anytime."
   };
 
   // { src: "comment", ch?: "fb"|"ig", kw?: "PAGE" } or null. Same rules as

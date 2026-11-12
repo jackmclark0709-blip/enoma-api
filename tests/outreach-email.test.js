@@ -56,7 +56,7 @@ await test("one link only: the tracked page link (plus unsubscribe)", () => {
 });
 await test("HTML has the reply ask with price and the CAN-SPAM footer", () => {
   assert.match(email.html, /reply <strong>yes<\/strong>/);
-  assert.match(email.html, /\$19\.99\/month, no contract/);
+  assert.match(email.html, /\$1 for your first month, then \$19\.99\/month or \$199\/year\. Cancel anytime, no contract/);
   assert.match(email.html, /183 Fairway Dr/);
   assert.match(email.html, /action=unsubscribe/);
 });

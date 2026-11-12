@@ -466,6 +466,35 @@ body.page-home .query-bar__cursor { display: inline-block; width: 1px; height: 1
 body.page-home .hero__sub { margin-top: 1.75rem; font-size: 1.05rem; color: var(--slate); max-width: 480px; line-height: 1.6; }
 body.page-home .hero__actions { display: flex; gap: .85rem; flex-wrap: wrap; justify-content: center; margin-top: 2.25rem; }
 body.page-home .hero__proof { margin-top: 1.1rem; font-size: .78rem; color: var(--muted); letter-spacing: .03em; }
+/* Hero: "Google" / "Ask AI" tag on the cycling query, trade chips, help line (Nov 2026 homepage refresh) */
+body.page-home .query-bar__kind { flex-shrink: 0; font-family: var(--font-body); font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); background: var(--accent-bg); border-radius: var(--radius-pill); padding: .2rem .55rem; }
+body.page-home .query-bar__kind[data-ai] { color: var(--ink); background: color-mix(in srgb, var(--cta) 14%, var(--surface)); }
+body.page-home .query-bar__text { white-space: normal; line-height: 1.35; }
+body.page-home .trade-chips { margin: 1.4rem auto 0; max-width: 640px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .5rem .6rem; }
+body.page-home .trade-chips__label { font-size: .82rem; color: var(--muted); margin: 0; }
+body.page-home .trade-chips__list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: .45rem; }
+body.page-home .trade-chip { display: inline-block; font-size: .82rem; font-weight: 600; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-pill); padding: .35rem .8rem; text-decoration: none; transition: border-color var(--transition), color var(--transition); }
+body.page-home .trade-chip:hover, body.page-home .trade-chip:focus-visible { border-color: var(--accent); color: var(--accent); }
+body.page-home .trade-chip--more { color: var(--accent); border-style: dashed; }
+body.page-home .hero__help { margin-top: .35rem; font-size: .85rem; color: var(--slate); }
+/* "More than a website" system tiles */
+body.page-home .systemgrid { list-style: none; padding: 0; margin: 2.5rem 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; text-align: left; }
+body.page-home .systemtile { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.3rem 1.3rem 1.4rem; }
+body.page-home .systemtile__title { font-family: var(--font-body); font-size: 1rem; font-weight: 700; color: var(--ink); line-height: 1.3; margin: 0 0 .45rem; }
+body.page-home .systemtile p { font-size: .88rem; color: var(--slate); line-height: 1.55; margin: 0; }
+body.page-home .statline__note { margin-top: 1.25rem; font-size: .82rem; color: var(--muted); }
+/* "Our promises" strip */
+body.page-home .promises { padding-block: 5rem; }
+body.page-home .promises__list { list-style: none; padding: 0; margin: 1.75rem auto 0; max-width: 620px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; text-align: left; }
+body.page-home .promises__list li { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: .9rem 1rem .9rem 2.4rem; font-weight: 600; color: var(--ink); line-height: 1.4; }
+body.page-home .promises__list li::before { content: ""; position: absolute; left: 1rem; top: 1.15rem; width: .7rem; height: .4rem; border-left: 2px solid var(--success); border-bottom: 2px solid var(--success); transform: rotate(-45deg); }
+@media (max-width: 860px) {
+  body.page-home .systemgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  body.page-home .systemgrid, body.page-home .promises__list { grid-template-columns: 1fr; }
+  body.page-home .promises { padding-block: 3.5rem; }
+}
 body.page-home .faq-accordion { max-width: 640px; margin: 2.5rem auto 0; text-align: left; display: flex; flex-direction: column; gap: 1px; background: var(--border); border-radius: 16px; overflow: hidden; border: 1px solid var(--border); }
 body.page-home .faq-row { background: var(--page-bg); padding: 1.35rem 1.5rem; transition: background .18s ease; }
 body.page-home .faq-row:hover { background: color-mix(in srgb, var(--ink) 4.5%, transparent); }
