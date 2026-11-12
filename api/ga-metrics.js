@@ -19,6 +19,7 @@ import { qualifiesForPreview, cheapPreviewGate, isWeakEnoughSite, buildFactsProm
 import { verifyUnsubscribeToken, appendComplianceFooter, buildUnsubscribeUrl, MAILING_ADDRESS } from "./_lib/outreach-footer.js";
 import { buildOutreachEmail, buildOutreachIntro, buildFollowUpEmail, isFollowUpDue, FOLLOW_UP_AFTER_DAYS, FOLLOW_UP_MAX_AGE_DAYS, buildSecondFollowUpEmail, isSecondFollowUpDue, FOLLOW_UP_2_AFTER_FIRST_FOLLOW_UP_DAYS, FOLLOW_UP_2_MIN_AGE_DAYS, FOLLOW_UP_2_MAX_AGE_DAYS, FOLLOW_UP_2_SKIP_PROSPECT_STATUSES, buildOwnerVisitAlert, trackedLinks, replyToFor, slugFromPreviewUrl, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "./_lib/outreach-email.js";
 import { classifyRequest, markBurstPartners, logFunnelEvent } from "./_lib/tracking.js";
+import { buildOutreachIntroB, buildOutreachEmailB, buildFollowUpEmailB, buildSecondFollowUpEmailB, pickFirstEmail, variantForProspect, variantBEnabled, proofLineFromEnv } from "./_lib/outreach-variant-b.js";
 import { classifyTraffic, isHumanOpenLikely } from "./_lib/traffic-classifier.js";
 import { verifyMailbox, checkZeroBounceAccount, mapWithConcurrency } from "./_lib/mailbox-verify.js";
 import { ALERT_TO, ALERT_FROM, ALERT_KEYS, utcDay, alertDueToday, shouldAlertVerifyRetrySpike, buildZeroBounceAlert, buildVerifyRetrySpikeAlert } from "./_lib/system-alerts.js";
@@ -1398,8 +1399,11 @@ async function generateDraftCopy(prospect, instructions) {
   // Preview emails are built from a fixed template around one verified reason
   // (buildOutreachIntro). The model is only used when someone asks for a
   // custom revision, or for prospects without a preview page.
+  // Variant B prospects (outreach-variant-b.js, 50% by prospect id) get the
+  // B intro, so the draft Jack sees is the one that goes out.
   if (prospect.preview_url && !instructions) {
-    const { subject, body } = buildOutreachIntro(prospect);
+    const { subject, body } = variantBEnabled() && variantForProspect(prospect.id) === "b"
+      ? buildOutreachIntroB(prospect) : buildOutreachIntro(prospect);
     return { subject, body };
   }
   // Rules learned the hard way (Sept 2026 review of 128 sends, 0 replies):
@@ -1950,7 +1954,7 @@ async function sendFollowUpsOnce({ maxSends, captureReplies }) {
   if (!maxSends) return { sent: 0, results };
   const now = Date.now();
   const { data: rows, error } = await supabase.from("outreach_messages")
-    .select("id, sent_at, draft_subject, followup_sent_at, response_status, prospects(id, business_name, email, preview_url, status)")
+    .select("id, sent_at, draft_subject, followup_sent_at, response_status, variant, prospects(id, business_name, email, preview_url, status)")
     .eq("channel", "email").eq("status", "sent")
     .is("followup_sent_at", null).is("response_status", null)
     .gte("sent_at", new Date(now - FOLLOW_UP_MAX_AGE_DAYS * 864e5).toISOString())
@@ -1985,8 +1989,9 @@ async function sendFollowUpsOnce({ maxSends, captureReplies }) {
     if (!reserved?.length) continue;
 
     try {
-      const email = buildFollowUpEmail({
-        businessName: p.business_name, originalSubject: row.draft_subject, messageId: row.id, slug,
+      // Follow-ups stay in the variant the first email was sent in.
+      const email = (row.variant === "b" ? buildFollowUpEmailB : buildFollowUpEmail)({
+        businessName: p.business_name, prospectId: p.id, originalSubject: row.draft_subject, messageId: row.id, slug,
         unsubscribeUrl: buildUnsubscribeUrl(p.email), mailingAddress: MAILING_ADDRESS
       });
       const { data: sendData, error: sendErr } = await resend.emails.send({
@@ -2023,7 +2028,7 @@ async function sendSecondFollowUpsOnce({ maxSends, captureReplies }) {
   if (!maxSends) return { sent: 0, results };
   const now = Date.now();
   const { data: rows, error } = await supabase.from("outreach_messages")
-    .select("id, sent_at, draft_subject, followup_sent_at, followup2_sent_at, response_status, preview_visited_at, prospects(id, business_name, email, preview_url, status)")
+    .select("id, sent_at, draft_subject, followup_sent_at, followup2_sent_at, response_status, preview_visited_at, variant, prospects(id, business_name, email, preview_url, status)")
     .eq("channel", "email").eq("status", "sent")
     .not("followup_sent_at", "is", null).is("followup2_sent_at", null)
     .is("response_status", null).is("preview_visited_at", null)
@@ -2063,8 +2068,8 @@ async function sendSecondFollowUpsOnce({ maxSends, captureReplies }) {
 
     try {
       if (!resend) throw new Error("RESEND_API_KEY not configured");
-      const email = buildSecondFollowUpEmail({
-        businessName: p.business_name, originalSubject: row.draft_subject, messageId: row.id, slug,
+      const email = (row.variant === "b" ? buildSecondFollowUpEmailB : buildSecondFollowUpEmail)({
+        businessName: p.business_name, prospectId: p.id, originalSubject: row.draft_subject, messageId: row.id, slug,
         unsubscribeUrl: buildUnsubscribeUrl(p.email), mailingAddress: MAILING_ADDRESS
       });
       const { data: sendData, error: sendErr } = await resend.emails.send({
@@ -2131,7 +2136,7 @@ async function handleSendOutreach(req, res) {
   const { data: prospects, error } = limit > 0
     ? await supabase
       .from("prospects")
-      .select("id, business_name, email, website, draft_subject, draft_body, preview_url")
+      .select("id, business_name, trade, city, state, email, website, site_gaps, raw, draft_subject, draft_body, preview_url")
       .eq("status", "drafted")
       .not("email", "is", null)
       // No page, no email: every send shows the prospect their own page.
@@ -2141,17 +2146,27 @@ async function handleSendOutreach(req, res) {
     : { data: [], error: null };
   if (error) throw error;
 
+  // A or B (outreach-variant-b.js pickFirstEmail): template drafts follow the
+  // 50/50 split, hand-edited drafts go out as written with variant null.
+  const variantBOn = variantBEnabled();
+  const proofLine = proofLineFromEnv();
+  const firstEmailFor = (prospect, messageId, slug, pick = pickFirstEmail(prospect, { enabled: variantBOn })) => {
+    const args = {
+      intro: pick.intro, businessName: prospect.business_name, messageId, slug,
+      unsubscribeUrl: buildUnsubscribeUrl(prospect.email), mailingAddress: MAILING_ADDRESS
+    };
+    const email = pick.variant === "b" ? buildOutreachEmailB({ ...args, proofLine }) : buildOutreachEmail(args);
+    return { ...pick, email };
+  };
+
   // ?dry_run=1 renders the next queued email as HTML (sample message id,
   // nothing written or sent) so the template can be checked in a browser.
   if (req.query.dry_run === "1") {
     const p = (prospects || [])[0];
     if (!p) return res.status(200).json({ success: true, dry_run: true, note: "No drafted prospect with a preview page is queued" });
-    const sample = buildOutreachEmail({
-      intro: p.draft_body, businessName: p.business_name, messageId: "00000000-0000-4000-8000-000000000000",
-      slug: slugFromPreviewUrl(p.preview_url), unsubscribeUrl: buildUnsubscribeUrl(p.email), mailingAddress: MAILING_ADDRESS
-    });
+    const sample = firstEmailFor(p, "00000000-0000-4000-8000-000000000000", slugFromPreviewUrl(p.preview_url));
     res.setHeader("Content-Type", "text/html; charset=utf-8");
-    return res.status(200).send(`<!-- To: ${p.email} | Subject: ${p.draft_subject} -->\n${sample.html}`);
+    return res.status(200).send(`<!-- To: ${p.email} | Subject: ${sample.subject} | Variant: ${sample.variant || "none (hand-edited draft)"} -->\n${sample.email.html}`);
   }
 
   // Counts sends already made today plus sends in flight (message row
@@ -2206,25 +2221,19 @@ async function handleSendOutreach(req, res) {
     let sendAccepted = false;
     try {
       if (!resend) throw new Error("RESEND_API_KEY not configured");
+      const pick = pickFirstEmail(prospect, { enabled: variantBOn });
       const { data: msg, error: msgErr } = await supabase.from("outreach_messages")
-        .insert({ prospect_id: prospect.id, channel: "email", status: "drafted", draft_subject: prospect.draft_subject, draft_body: prospect.draft_body })
+        .insert({ prospect_id: prospect.id, channel: "email", status: "drafted", draft_subject: pick.subject, draft_body: pick.intro, variant: pick.variant })
         .select("id").single();
       if (msgErr) throw msgErr;
       messageId = msg.id;
 
-      const email = buildOutreachEmail({
-        intro: prospect.draft_body,
-        businessName: prospect.business_name,
-        messageId,
-        slug,
-        unsubscribeUrl: buildUnsubscribeUrl(prospect.email),
-        mailingAddress: MAILING_ADDRESS
-      });
+      const { email, subject, variant } = firstEmailFor(prospect, messageId, slug, pick);
       const { data: sendData, error: sendErr } = await resend.emails.send({
         from: SEND_OUTREACH_FROM,
         to: prospect.email,
         replyTo: replyToFor(messageId, { captureReplies }),
-        subject: prospect.draft_subject,
+        subject,
         text: email.text,
         html: email.html,
         headers: { "List-Unsubscribe": `<${buildUnsubscribeUrl(prospect.email)}>` },
@@ -2238,7 +2247,7 @@ async function handleSendOutreach(req, res) {
         .update({ status: "sent", sent_at: sentAt, resend_email_id: sendData?.id || null, updated_at: sentAt })
         .eq("id", messageId);
       await supabase.from("prospects").update({ status: "sent", updated_at: sentAt }).eq("id", prospect.id);
-      results.push({ business_name: prospect.business_name, email: prospect.email, sent: true, message_id: messageId, preview_url: prospect.preview_url });
+      results.push({ business_name: prospect.business_name, email: prospect.email, sent: true, message_id: messageId, preview_url: prospect.preview_url, variant });
     } catch (err) {
       if (sendAccepted) {
         // Resend accepted it; only our bookkeeping failed. Never re-send.
