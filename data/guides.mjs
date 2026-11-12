@@ -15,7 +15,8 @@ export const GUIDES = [
   {
     slug: "why-isnt-my-business-showing-up-on-google",
     published: "2026-10-28",
-    title: "Why Isn't My Business Showing Up on Google? 7 Fixes | Enoma",
+    updated: "2026-11-12",
+    title: "Why Is My Business Not Showing Up on Google? 7 Fixes | Enoma",
     description: "Search your trade and town and you're nowhere? Here are the 7 most common reasons a local service business doesn't show up on Google, and how to fix each one.",
     eyebrow: "Guide for local service business owners",
     h1: "Why isn't my business<br><em>showing up on Google?</em>",
@@ -142,7 +143,8 @@ export const GUIDES = [
   {
     slug: "how-to-get-snow-removal-customers",
     published: "2026-10-28",
-    title: "How to Get Snow Removal Customers Before the First Storm | Enoma",
+    updated: "2026-11-12",
+    title: "How to Get Snow Removal Customers Fast, Before the First Storm | Enoma",
     description: "How snow plowing and removal businesses land seasonal contracts and per-push customers: timing, pricing models, where customers look, and what to put online.",
     eyebrow: "Guide for snow removal and plowing businesses",
     h1: "How to get snow removal customers<br><em>before the first storm</em>",
@@ -195,6 +197,7 @@ export const GUIDES = [
       { q: "How do I get snow plowing contracts?", a: "Start with your existing lawn care or landscaping customers, then target neighbors on the same streets to build dense routes. Reach out to small commercial properties like condo associations, churches and medical offices in the fall, and make it easy to request a seasonal contract online." },
       { q: "Should I charge per push or a seasonal rate?", a: "Many operators offer a seasonal contract as the default for predictable revenue and route planning, and per-push pricing for one-off and storm-day customers. Per-inch tiers are common for commercial lots." },
       { q: "How do people find snow removal companies?", a: "Mostly through referrals and Google, especially \"snow removal near me\" searches on a phone the night before or morning of a storm. Having \"Snow removal service\" as a Google Business Profile category and a page with your towns and phone number helps you show up." },
+      { q: "How do I advertise snow removal services?", a: "Start with the people you already serve: text your lawn care and fall cleanup customers, and leave door hangers on streets where you already plow driveways. Add \"Snow removal service\" as a category on your Google Business Profile and list the towns you plow, since storm-day customers search Google Maps. Then put up a page with your towns, tap-to-call and a seasonal contract form so people can sign up before the first storm." },
       { q: "What does Enoma cost?", a: "Your first month is free, with no credit card. After that it's $19.99 a month to keep your page live, and that includes personal support. No contract; cancel anytime." },
     ],
     ctaH2: "Be the one they find on storm day",
@@ -513,6 +516,7 @@ export const GUIDES = [
   {
     slug: "thumbtack-vs-angi-for-contractors",
     published: "2026-10-28",
+    updated: "2026-11-12",
     title: "Thumbtack vs Angi for Contractors: Which Is Worth It? | Enoma",
     description: "Thumbtack and Angi both charge contractors for leads, in different ways. How each works, what to watch for, and how to tell which one actually books you jobs.",
     eyebrow: "Guide for contractors and home service pros",
@@ -557,6 +561,7 @@ export const GUIDES = [
       { q: "Does Thumbtack charge if the customer doesn't hire me?", a: "Yes. Thumbtack charges when you contact a customer or are automatically matched, whether or not they hire you. A weekly budget caps how much you can spend." },
       { q: "Are Angi leads shared with other contractors?", a: "Angi can send a homeowner's request to more than one pro, so you may be competing with other companies for the same job. Responding quickly improves your chances." },
       { q: "How do I get contractor leads without paying per lead?", a: "Show up where homeowners search: a verified Google Business Profile, a steady flow of Google reviews, and a website that names your services and towns with tap-to-call and a quote form. Those calls come only to you." },
+      { q: "Does Thumbtack check if contractors are insured?", a: "What Thumbtack verifies varies by pro and by location, so a profile on its own doesn't prove a contractor is insured, and careful homeowners will ask. Keep a current certificate of insurance ready to send with your quotes, and say you're licensed and insured on your own page and Google Business Profile. It's a simple way to win jobs over pros who can't show it." },
       { q: "What does Enoma cost?", a: "Your first month is free, with no credit card. After that it's $19.99 a month to keep your page live, and that includes personal support. No contract; cancel anytime." },
     ],
     ctaH2: "Build a source of calls you don't share",
@@ -570,7 +575,8 @@ export const GUIDES = [
   {
     slug: "are-yelp-ads-worth-it-for-contractors",
     published: "2026-10-28",
-    title: "Are Yelp Ads Worth It for Contractors? An Honest Look | Enoma",
+    updated: "2026-11-12",
+    title: "Is Yelp Advertising Worth It for Contractors? An Honest Look | Enoma",
     description: "Yelp ads work for some contractors and drain budgets for others. How Yelp charges, what the free page already does, and how to test ads without getting locked in.",
     eyebrow: "Guide for contractors and home service pros",
     h1: "Are Yelp ads worth it<br><em>for contractors?</em>",
