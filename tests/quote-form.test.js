@@ -6,6 +6,7 @@
 
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { renderCompanyPage } from "../api/_lib/company-page.js";
 import {
   renderQuoteForm, serviceChoices, townChoices, reachName, cleanAnswers, answersSummary, answersEmailHtml,
   safeReturnPath, MAX_SERVICE_CHIPS, SOMETHING_ELSE, askForCompany,
@@ -189,11 +190,14 @@ await test("company page template: same #contact anchor, quote form placeholder,
   const section = tpl.slice(tpl.indexOf('id="contact"'), tpl.indexOf("</section>", tpl.indexOf('id="contact"')));
   assert.ok(section.includes("{{QUOTE_FORM}}"));
   assert.doesNotMatch(tpl, /<form id="contactForm">/); // old blank form gone
-  assert.match(tpl, /href="#contact"/); // quote links still land on it
   assert.match(tpl, /\/scripts\/quote-form\.js/);
   assert.match(tpl, /\/styles\/quote-form\.css/);
-  const pjs = fs.readFileSync(new URL("../api/p.js", import.meta.url), "utf8");
-  assert.match(pjs, /"\{\{QUOTE_FORM\}\}": renderQuoteForm\(profile/);
+  // The page is filled by api/_lib/company-page.js; its quote links land on #contact.
+  const html = renderCompanyPage(tpl, landscaper, { slug: landscaper.username });
+  assert.match(html, /href="#contact"/);
+  assert.match(html, /<form class="quote-form" id="contactForm"/);
+  const lib = fs.readFileSync(new URL("../api/_lib/company-page.js", import.meta.url), "utf8");
+  assert.match(lib, /"\{\{QUOTE_FORM\}\}": renderQuoteForm\(/);
 });
 
 await test("spotlight page: same component, its service preselected, starts on step 2, source/subject kept", () => {

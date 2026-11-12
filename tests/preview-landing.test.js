@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { detectCallouts, workingPoints, validateContactRequest, buildContactAlert, renderLanding, MAX_CALLOUTS, instantPreviewPath, landingSource, CALLOUT_ANCHORS, SELLING_POINTS } from "../api/_lib/preview-landing.js";
 import { bannedWordsIn } from "../api/_lib/copy-lint.js";
+import { renderCompanyPage } from "../api/_lib/company-page.js";
 // Page styles live in the one Enoma stylesheet, scoped to body.page-preview.
 const css = readFileSync(new URL("../public/styles/enoma.css", import.meta.url), "utf8");
 
@@ -262,14 +263,16 @@ await test("has an anchor for every key detectCallouts can return", () => {
     assert.ok(Array.isArray(CALLOUT_ANCHORS[k]) && CALLOUT_ANCHORS[k].length, `anchor for ${k}`);
   }
 });
-await test("every first-choice anchor exists in public/profile.html", () => {
-  // Sections that only render with content (towns, gallery, testimonials) are in page-ssr.js.
-  const profile = readFileSync(new URL("../public/profile.html", import.meta.url), "utf8")
-    + readFileSync(new URL("../api/_lib/page-ssr.js", import.meta.url), "utf8");
-  for (const [k, sels] of Object.entries(CALLOUT_ANCHORS)) {
-    const s = sels[0];
-    const ok = s.startsWith("#") ? profile.includes(`id="${s.slice(1)}"`) : new RegExp(`class="[^"]*\\b${s.slice(1)}\\b`).test(profile);
-    assert.ok(ok, `${k}: ${s}`);
+await test("every first-choice anchor exists on a fully filled company page; the fallbacks on a bare one", () => {
+  const tpl = readFileSync(new URL("../public/profile.html", import.meta.url), "utf8");
+  const has = (html, s) => (s.startsWith("#") ? html.includes(`id="${s.slice(1)}"`) : new RegExp(`class="[^"]*\\b${s.slice(1)}\\b`).test(html));
+  const filled = renderCompanyPage(tpl, { ...full, username: "robbins-plumbing", logo_url: "https://x.example/logo.png",
+    about: "One.\n\nTwo.", attachments: ["https://x.example/a.jpg"], testimonials: [{ quote: "Great", author: "Al" }],
+    service_area: ["Agawam"], hero_tagline: "Fast.", services: [{ service_name: "Drains" }] }, { slug: "robbins-plumbing" });
+  for (const [k, sels] of Object.entries(CALLOUT_ANCHORS)) assert.ok(has(filled, sels[0]), `${k}: ${sels[0]}`);
+  const bare = renderCompanyPage(tpl, { business_name: "Robbins Plumbing", username: "robbins-plumbing" }, { slug: "robbins-plumbing" });
+  for (const k of ["photos", "reviews", "logo", "phone", "response_time"]) {
+    assert.ok(CALLOUT_ANCHORS[k].some(s => has(bare, s)), `${k} still anchors on a bare page`);
   }
 });
 

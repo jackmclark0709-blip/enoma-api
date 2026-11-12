@@ -71,17 +71,15 @@ test("about splits into lead and body", () => {
   assert.deepEqual(splitAbout("One.\n\nTwo.\n\nThree."), { lead: "One.", body: "Two.\n\nThree." });
   assert.deepEqual(splitAbout("Only."), { lead: "Only.", body: "" });
 });
-test("sections render escaped content and visibility classes", () => {
-  const r = renderSections({ about: "A <b>", services: [{ service_name: "Mow & trim" }], service_area: ["Agawam"], why_choose_us: "One fact\nTwo fact", faqs: [{ question: "Q?", answer: "A." }], testimonials: [{ quote: "Great", author: "Pat", source: "google" }] });
+test("sections render escaped content, and nothing for empty sections", () => {
+  const r = renderSections({ about: "A <b>", service_area: ["Agawam"], why_choose_us: "One fact\nTwo fact", faqs: [{ question: "Q?", answer: "A." }] });
   assert.equal(r["{{SSR_ABOUT_LEAD}}"], "A &lt;b&gt;");
-  assert.ok(r["{{SSR_SERVICES}}"].includes("Mow &amp; trim"));
-  assert.equal(r["{{SSR_TOWNS_CLASS}}"], "");
+  assert.match(r["{{SSR_TOWNS_SECTION}}"], /<span class="town">Agawam<\/span>/);
   assert.equal((r["{{SSR_WHY}}"].match(/<li>/g) || []).length, 2);
-  assert.equal(r["{{SSR_FAQS_CLASS}}"], "band");
-  assert.ok(r["{{SSR_TESTIMONIALS}}"].includes("via Google"));
+  assert.match(r["{{SSR_FAQS_SECTION}}"], /id="faqsBand"/);
   const empty = renderSections({});
-  assert.equal(empty["{{SSR_TOWNS_CLASS}}"], "hidden");
-  assert.equal(empty["{{SSR_FAQS_CLASS}}"], "band hidden");
+  assert.equal(empty["{{SSR_TOWNS_SECTION}}"], "");
+  assert.equal(empty["{{SSR_FAQS_SECTION}}"], "");
 });
 test("faq schema only when there are faqs", () => {
   assert.equal(faqSchema({}), null);

@@ -8,36 +8,21 @@
 import fs from "fs";
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
-import { personaFor, pickPalette, splitWordmark, heroPatternSvg, isStrongRating, stripWeakRatingClaims, tidyHeadline } from "./_lib/page-style.js";
-import { renderSections, faqSchema, normalizeProfile } from "./_lib/page-ssr.js";
+import { personaFor, pickPalette, heroPatternSvg, stripWeakRatingClaims, tidyHeadline } from "./_lib/page-style.js";
 import { isGrandfathered } from "./_lib/trial-policy.js";
 import { pageIndexable } from "./_lib/pricing.js";
-import { openSchedule, showEmergencyBadge, ctaNote, isLocalRadius, callCtaLabel } from "./_lib/page-claims.js";
-import { heroPhoto as pickHeroPhoto, visibleAttachments } from "./_lib/photo-kinds.js";
-import { renderSpotlight, fillTemplate, linkServicesToSpotlights } from "./_lib/spotlight-render.js";
+import { heroPhoto as pickHeroPhoto } from "./_lib/photo-kinds.js";
+import { renderSpotlight, fillTemplate } from "./_lib/spotlight-render.js";
 import { REVIEW_SLUG, googleReviewUrl } from "./_lib/reviews.js";
-import { starterLogoSvg, chosenStarterLogoId } from "./_lib/starter-logo.js";
 import { LANDING_SLUG, detectCallouts, workingPoints, renderLanding, landingSource } from "./_lib/preview-landing.js";
 import { logFunnelEvent } from "./_lib/tracking.js";
-import { renderQuoteForm } from "./_lib/quote-form.js";
+import { renderCompanyPage, heroVisual } from "./_lib/company-page.js";
+import { hasLiveStripeSubscription } from "./_lib/billing.js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-const BUSINESS_TYPE_MAP = {
-  landscaping: "LandscapingBusiness",
-  plumber: "Plumber",
-  plumbing: "Plumber",
-  hvac: "HVACBusiness",
-  heating: "HVACBusiness",
-  electrician: "Electrician",
-  locksmith: "Locksmith",
-  painter: "HousePainter",
-  roofing: "RoofingContractor",
-  cleaning: "CleaningService"
-};
 
 function escapeHtml(str = "") {
   return String(str)
@@ -58,12 +43,6 @@ function safeJsonForInlineScript(obj) {
 
 // normalizeProfile (old row shapes → what the renderer reads) lives in
 // api/_lib/page-ssr.js so it can be tested without a database.
-
-function guessSchemaType(primaryCategory) {
-  if (!primaryCategory) return "LocalBusiness";
-  const key = String(primaryCategory).toLowerCase().trim();
-  return BUSINESS_TYPE_MAP[key] || "LocalBusiness";
-}
 
 // Clean "inactive" page shown when trial has expired and no subscription
 function inactivePage(businessName, baseUrl) {
@@ -152,98 +131,6 @@ const TRADE_COLORS = {
 const TRADE_COLORS_OG = Object.fromEntries(
   Object.entries(TRADE_COLORS).map(([k, v]) => [k, { ...v, accent: v.primary }])
 );
-
-/**
- * getTradeColors — returns the color set for a given primary_category.
- */
-function getTradeColors(primaryCategory) {
-  const key = (primaryCategory || "").toLowerCase().trim();
-  return TRADE_COLORS[key] || TRADE_COLORS.default;
-}
-
-/**
- * generateMonogramSvg — creates a branded SVG data URI for businesses without a logo.
- * Uses trade category colors so the monogram matches the page persona.
- * Returns a data: URI string suitable for use as an img src.
- */
-function generateMonogramSvg(businessName, primaryCategory) {
-  const colors = pickPalette(primaryCategory, businessName);
-
-  // Build initials from business name
-  // Priority: acronym first word (BCM, TSP) → long caps → word initials
-  const words = (businessName || "?").trim().split(/\s+/);
-  let initials;
-  const firstWord = words[0];
-  const isAcronym = firstWord === firstWord.toUpperCase() && /^[A-Z]{2,4}$/.test(firstWord);
-  const isLongCaps = firstWord === firstWord.toUpperCase() && /^[A-Z]{5,}$/.test(firstWord);
-  if (isAcronym) {
-    initials = firstWord; // "BCM Landscaping Inc" → "BCM"
-  } else if (isLongCaps) {
-    initials = firstWord.slice(0, 3); // "ARNO Plumbing" → "ARN"
-  } else if (words.length === 1) {
-    initials = firstWord.slice(0, 2).toUpperCase();
-  } else if (words.length === 2) {
-    initials = (firstWord[0] + words[1][0]).toUpperCase();
-  } else {
-    const skip = new Set(["inc", "llc", "co", "corp", "ltd", "the", "and", "&", "of"]);
-    const letters = words
-      .filter(w => !skip.has(w.toLowerCase()) && w.length > 0)
-      .map(w => w[0].toUpperCase())
-      .slice(0, 3);
-    initials = letters.join("") || firstWord[0].toUpperCase();
-  }
-
-  const size = 220;
-  const cx = size / 2;
-  const cy = size / 2;
-  const r = size / 2 - 2;
-  const fontSize = initials.length > 2 ? 64 : 72;
-
-  const svg = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="mg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="${colors.primary}"/>
-      <stop offset="100%" stop-color="${colors.bg}"/>
-    </linearGradient>
-    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="${colors.light}" stop-opacity="0.6"/>
-      <stop offset="100%" stop-color="${colors.primary}" stop-opacity="0.2"/>
-    </linearGradient>
-  </defs>
-  <circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#mg)"/>
-  <circle cx="${cx}" cy="${cy}" r="${r - 6}" fill="none" stroke="url(#ring)" stroke-width="1.5"/>
-  <text
-    x="${cx}" y="${cy}"
-    font-family="system-ui,-apple-system,sans-serif"
-    font-size="${fontSize}"
-    font-weight="800"
-    fill="rgba(255,255,255,0.92)"
-    text-anchor="middle"
-    dominant-baseline="central"
-    letter-spacing="-2"
-  >${initials}</text>
-</svg>`;
-
-  // Return as data URI
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-}
-
-/**
- * renderStarterLogo — the hero's starter logo block for a business with no
- * logo_url. Inline SVG (not an <img>) so it picks up Fraunces from the page.
- * Returns "" on any error so the page keeps the text wordmark + monogram.
- */
-function renderStarterLogo(profile, place) {
-  try {
-    const id = chosenStarterLogoId(profile);
-    const svg = starterLogoSvg(profile, id, { tone: "dark" });
-    const placeHtml = place ? `<div class="starter-logo__place">${escapeHtml(place)}</div>` : "";
-    return `<div class="starter-logo starter-logo--${id}" id="starterLogo" data-starter-logo="${id}">${svg}${placeHtml}</div>`;
-  } catch (e) {
-    console.warn("starter logo failed, using monogram:", e?.message);
-    return "";
-  }
-}
 
 /**
  * getBrandColorStyle — returns a <style> block that sets CSS custom properties
@@ -484,171 +371,41 @@ export default async function handler(req, res) {
     // Pricing v2 pages also stay out until they've gone live through checkout.
     const billingState = profile.business_id ? await billingStateFor(profile.business_id) : { sub: null, isInternal: false };
     const robots = pageIndexable({ profile, ...billingState }) ? "index,follow" : "noindex,nofollow";
+    // Paying customers' pages never carry the "Get your own website" pitch.
+    const paying = hasLiveStripeSubscription(billingState.sub);
 
-    function collectSameAs(p) {
-      const urls = new Set();
-      if (p?.website) urls.add(p.website);
-      const sl = p?.social_links;
-      if (Array.isArray(sl)) {
-        sl.forEach(u => { if (typeof u === "string" && u.trim()) urls.add(u.trim()); });
-      } else if (sl && typeof sl === "object") {
-        Object.values(sl).forEach(u => { if (typeof u === "string" && u.trim()) urls.add(u.trim()); });
-      }
-      if (p?.google_place_id) {
-        urls.add(`https://www.google.com/maps/search/?api=1&query_place_id=${encodeURIComponent(p.google_place_id)}`);
-      }
-      return Array.from(urls).filter(Boolean);
-    }
+    // Published Service Spotlights ("More about <service> →") and approved
+    // review-request reviews (merged with stored Google quotes on the page).
+    const [{ data: spotlights }, { data: approvedReviews }] = profile.business_id
+      ? await Promise.all([
+          supabase.from("service_spotlights").select("service_slug,service_name:content->>service_name")
+            .eq("business_id", profile.business_id).eq("status", "published").order("published_at", { ascending: true }),
+          supabase.from("review_submissions").select("name,rating,quote,created_at,decided_at")
+            .eq("business_id", profile.business_id).eq("status", "approved")
+            .order("decided_at", { ascending: false, nullsFirst: false }).limit(12),
+        ])
+      : [{ data: [] }, { data: [] }];
 
-    const schemaType = guessSchemaType(profile.primary_category);
-    const localBusinessSchema = {
-      "@context": "https://schema.org",
-      "@type": schemaType,
-      "@id": canonical,
-      name: businessName,
-      url: canonical,
-      telephone: profile.phone || undefined,
-      address: (profile.address || profile.city || profile.state)
-        ? {
-            "@type": "PostalAddress",
-            ...(profile.address ? { streetAddress: profile.address } : {}),
-            ...(profile.city ? { addressLocality: profile.city } : {}),
-            ...(profile.state ? { addressRegion: profile.state } : {}),
-            addressCountry: "US"
-          }
-        : undefined,
-      areaServed: Array.isArray(profile.service_area)
-        ? profile.service_area.map(a => ({ "@type": "AdministrativeArea", name: a }))
-        : undefined,
-      sameAs: collectSameAs(profile),
-      priceRange: "$$",
-      image: firstPhoto || profile.logo_url || undefined,
-      ...(Array.isArray(profile.services) && profile.services.length ? {
-        hasOfferCatalog: {
-          "@type": "OfferCatalog",
-          name: `${businessName} Services`,
-          itemListElement: profile.services.map((s, i) => ({
-            "@type": "Offer",
-            itemOffered: {
-              "@type": "Service",
-              name: s.service_name || s.name || "",
-              description: s.service_description || undefined
-            }
-          }))
-        }
-      } : {}),
-      ...(profile.hero_availability ? {
-        openingHoursSpecification: [{
-          "@type": "OpeningHoursSpecification",
-          description: profile.hero_availability
-        }]
-      } : {})
-    };
-
-    // Normalize polymorphic fields before sending to client renderer
-    const normalizedProfile = normalizeProfile(profile);
-
-    // Monogram: only generated when no logo — client-side logo color extraction takes over when logo exists
-    const monogramUri = profile.logo_url
-      ? ""
-      : generateMonogramSvg(profile.business_name, profile.primary_category);
-    // Starter logo: a simple wordmark (api/_lib/starter-logo.js) in place of
-    // the monogram / text card when there's no uploaded logo. The owner's pick
-    // (starter_logo_id) wins; otherwise the "badge" style. If anything throws,
-    // the page falls back to the old text wordmark + monogram.
-
-    // Server-side brand color style — sets --brand-primary from trade on first paint.
-    // Prevents flash of wrong color before JS loads.
-    // When a logo exists, client-side extractDominantColor() overrides these vars.
-    const heroPhoto = firstPhoto && !/\.gif(\?.*)?$/i.test(firstPhoto) ? firstPhoto : null;
-    const brandColorStyle = getBrandColorStyle(profile, heroPhoto);
+    const visual = heroVisual(profile);
     const persona = personaFor(profile.primary_category);
-    const faqSchemaObj = faqSchema(normalizedProfile || {}, canonical);
-    const wordmark = splitWordmark(profile.business_name || slug);
-    const place = [profile.city, profile.state].filter(Boolean).join(", ");
-    const starterLogoHtml = profile.logo_url ? "" : renderStarterLogo(profile, place);
-    const bodyClass = [
-      `persona-${persona}`,
-      profile.logo_url ? "has-logo" : "no-logo",
-      starterLogoHtml ? "has-starter-logo" : "",
-      heroPhoto ? "has-hero-photo" : "",
-    ].filter(Boolean).join(" ");
-    // Only surface a Google rating when it actually helps (see isStrongRating).
-    if (normalizedProfile) normalizedProfile.show_rating = isStrongRating(profile.average_rating, profile.review_count);
-    // Badges are derived from the business's own facts, never stored flags
-    // (page-claims.js): "Open now" is checked in the browser against the
-    // parsed hours; the emergency badge yields to an FAQ that denies it.
-    if (normalizedProfile) {
-      normalizedProfile.open_schedule = openSchedule(profile);
-      normalizedProfile.is_open_now = false;
-      normalizedProfile.offers_emergency = showEmergencyBadge(profile);
-      normalizedProfile.attachments = visibleAttachments(profile);
-      // Read by profile.js: maps only for local businesses, and the fallback
-      // call button's wording ("free" only when offersFreeEstimates).
-      normalizedProfile.is_local_radius = isLocalRadius(profile);
-      normalizedProfile.call_cta_label = callCtaLabel(profile);
-    }
-    const ctaNoteText = ctaNote(profile);
-    // Published Service Spotlights get a link from the company page.
-    const { data: spotLinks } = profile.business_id
-      ? await supabase.from("service_spotlights").select("service_slug,service_name:content->>service_name")
-          .eq("business_id", profile.business_id).eq("status", "published").order("published_at", { ascending: true })
-      : { data: [] };
-    // Each service card links to its spotlight (the card is the link); any
-    // spotlight with no matching service gets a "Learn more" link instead.
-    const { services: linkedServices, unmatched: unmatchedSpots } =
-      linkServicesToSpotlights(normalizedProfile?.services, spotLinks || [], slug);
-    if (normalizedProfile && Array.isArray(normalizedProfile.services)) normalizedProfile.services = linkedServices;
-    const spotlightLinksHtml = unmatchedSpots.length
-      ? `<p class="spotlight-links">Learn more: ${unmatchedSpots.map(sl =>
-          `<a href="/${encodeURIComponent(slug)}/${encodeURIComponent(sl.service_slug)}">${escapeHtml(sl.service_name || sl.service_slug)} →</a>`).join(" ")}</p>`
-      : "";
-
-    const templatePath = path.join(process.cwd(), "public", "profile.html");
-    let html = fs.readFileSync(templatePath, "utf8");
-
-    const replacements = {
-      "{{FINAL_TITLE}}": escapeHtml(seoTitle),
-      "{{FINAL_DESCRIPTION}}": escapeHtml(seoDescription),
-      "{{FINAL_OG_IMAGE}}": escapeHtml(ogImage),
-      "{{FINAL_CANONICAL_URL}}": escapeHtml(canonical),
-      "{{ROBOTS}}": escapeHtml(robots),
-      "{{PROFILE_JSON}}": safeJsonForInlineScript(normalizedProfile || {}),
-      "{{BUSINESS_NAME}}": escapeHtml(profile.business_name || ""),
-      "{{HERO_HEADLINE}}": escapeHtml(profile.hero_headline || ""),
-      "{{HERO_TAGLINE}}": escapeHtml(profile.hero_tagline || ""),
-      "{{ABOUT}}": escapeHtml(profile.about || ""),
-      "{{SERVICES_INTRO}}": escapeHtml(profile.services_intro || ""),
-      "{{LOCAL_BUSINESS_SCHEMA}}": safeJsonForInlineScript(localBusinessSchema),
-      // Monogram URI — data:image/svg+xml string when no logo, empty string when logo exists
-      "{{MONOGRAM_URI}}": monogramUri,
-      // Inline starter-logo SVG (empty when there's a logo or it failed)
-      "{{STARTER_LOGO}}": starterLogoHtml,
-      // Server-side brand colors injected into <head> — no flash on first paint
-      "{{BRAND_COLOR_STYLE}}": brandColorStyle,
-      "{{BODY_CLASS}}": escapeHtml(bodyClass),
-      // Content rendered into the HTML itself so AI crawlers that don't run
-      // JavaScript still see About / Services / Areas / FAQs (page-ssr.js).
-      ...renderSections(normalizedProfile || {}),
-      "{{FAQ_SCHEMA_TAG}}": faqSchemaObj ? `  <script type="application/ld+json">${safeJsonForInlineScript(faqSchemaObj)}</script>` : "",
-      "{{WORDMARK_MAIN}}": escapeHtml(wordmark.main),
-      "{{WORDMARK_DESCRIPTOR}}": escapeHtml(wordmark.descriptor),
-      "{{WORDMARK_PLACE}}": escapeHtml(place),
-      "{{SSR_CTA_NOTE}}": escapeHtml(ctaNoteText),
-      "{{SSR_SPOTLIGHT_LINKS}}": spotlightLinksHtml,
-      "{{SSR_CTA_NOTE_CLASS}}": ctaNoteText ? "services-cta-note" : "services-cta-note hidden",
-      // Multi-step quote form (api/_lib/quote-form.js). Last, so nothing in
-      // visitor-facing business text is re-read as a placeholder after it.
-      "{{QUOTE_FORM}}": renderQuoteForm(profile, {
-        returnPath: `/${slug}`,
-        status: quoteStatus(req),
-        trackContactClick: true,
-      }),
-    };
-
-    for (const [needle, value] of Object.entries(replacements)) {
-      html = html.split(needle).join(value);
-    }
+    const bodyClass = [`persona-${persona}`, profile.logo_url ? "has-logo" : "no-logo"].join(" ");
+    const template = fs.readFileSync(path.join(process.cwd(), "public", "profile.html"), "utf8");
+    const html = renderCompanyPage(template, profile, {
+      slug, canonical, image: firstPhoto || profile.logo_url || undefined,
+      spotlights: spotlights || [], approvedReviews: approvedReviews || [], paying,
+      quoteStatus: quoteStatus(req),
+      head: {
+        "{{FINAL_TITLE}}": escapeHtml(seoTitle),
+        "{{FINAL_DESCRIPTION}}": escapeHtml(seoDescription),
+        "{{FINAL_OG_IMAGE}}": escapeHtml(ogImage),
+        "{{FINAL_CANONICAL_URL}}": escapeHtml(canonical),
+        "{{ROBOTS}}": escapeHtml(robots),
+        "{{HERO_PRELOAD}}": visual ? `  <link rel="preload" as="image" href="${escapeHtml(visual.url)}" fetchpriority="high" />` : "",
+        // Server-side brand colours in <head>: no flash of the wrong colour.
+        "{{BRAND_COLOR_STYLE}}": getBrandColorStyle(profile, null),
+        "{{BODY_CLASS}}": escapeHtml(bodyClass),
+      },
+    });
 
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.setHeader("Cache-Control", "public, max-age=0, s-maxage=300");

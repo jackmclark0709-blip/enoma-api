@@ -37,7 +37,14 @@ export const FUNNEL_EVENTS = new Set([
   "cta_clicked",
   // /<slug>/preview landing (api/_lib/preview-landing.js); metadata carries slug, m, src.
   "landing_comment_seen",
-  "landing_cta_click"
+  "landing_cta_click",
+  // Company page taps (public/scripts/profile.js). Sent with the page slug,
+  // so they land in page_events; listed here so they're known events either
+  // way. Metadata is a type ("call", "sms", "quote", …) or a service slug,
+  // never anything a visitor typed.
+  "contact_click",
+  "service_quote_click",
+  "spotlight_link_click"
 ]);
 
 /** Outreach email times + recent events for the same email, for the timing rules. */

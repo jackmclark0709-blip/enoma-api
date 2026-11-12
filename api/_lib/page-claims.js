@@ -155,12 +155,23 @@ export function ctaNote(profile) {
   return items.slice(0, 3).join(" · ");
 }
 
-// Does the business offer free estimates? There's no field for it yet, so
-// nothing on a page may promise "free" quotes or estimates: CTA labels,
-// headings and the note under "Ready to get started?" all ask this first.
-// When the owner can say so (a form field), read it here and only here.
-export function offersFreeEstimates(profile) { // eslint-disable-line no-unused-vars
-  return false;
+// Does the business offer free estimates? Only the owner's own answer
+// (small_business_profiles.offers_free_estimates, asked in the create form
+// and dashboard) can say yes. Unanswered (null) counts as no: nothing on a
+// page may promise "free" quotes or estimates from AI copy. CTA labels,
+// headings, the proof line and the note under "Ready to get started?" all
+// ask this, and only this.
+export function offersFreeEstimates(profile) {
+  return profile?.offers_free_estimates === true;
+}
+
+// The owner's reply-time answer ("within 2 hours"), tidied for
+// "Usually replies within 2 hours". "" when not given.
+export function responseTime(profile) {
+  return String(profile?.response_time || "").trim()
+    .replace(/\.$/, "")
+    .replace(/^(usually |typically )?(replies|responds|respond|reply)\s+/i, "")
+    .slice(0, 60);
 }
 
 /** "Call for a free estimate" only when the business says so, else "Call for a quote". */

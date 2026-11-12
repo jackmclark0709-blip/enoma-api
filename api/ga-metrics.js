@@ -15,6 +15,7 @@ import { extractEmails, pickBestEmail, classifyEmail, htmlToText, isPrivateOrRes
 import { hasValidMx } from "./_lib/email-verify.js";
 import { siteChecks, decideSiteTier } from "./_lib/site-checks.js";
 import { previousMonth, tallyClicks, buildResultsEmail } from "./_lib/results-email.js";
+import { requestCopy } from "./_lib/page-copy.js";
 import { qualifiesForPreview, cheapPreviewGate, isWeakEnoughSite, buildFactsPrompt, validateGenerated, assembleProfile, slugify, stateAbbr, PREVIEW_TRIAL_DAYS, INBOUND_PREVIEW_DAYS, INBOUND_SOURCE, isValidPlaceId, inboundLimitReason, placeToProspect, isValidSessionToken, placeSuggestions } from "./_lib/preview-generator.js";
 import { verifyUnsubscribeToken, appendComplianceFooter, buildUnsubscribeUrl, MAILING_ADDRESS } from "./_lib/outreach-footer.js";
 import { buildOutreachEmail, buildOutreachIntro, buildFollowUpEmail, isFollowUpDue, FOLLOW_UP_AFTER_DAYS, FOLLOW_UP_MAX_AGE_DAYS, buildSecondFollowUpEmail, isSecondFollowUpDue, FOLLOW_UP_2_AFTER_FIRST_FOLLOW_UP_DAYS, FOLLOW_UP_2_MIN_AGE_DAYS, FOLLOW_UP_2_MAX_AGE_DAYS, FOLLOW_UP_2_SKIP_PROSPECT_STATUSES, buildOwnerVisitAlert, trackedLinks, replyToFor, slugFromPreviewUrl, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "./_lib/outreach-email.js";
@@ -701,17 +702,10 @@ async function generatePreviewForProspect(prospect, { homeHtml, force = false, g
     name: prospect.business_name, trade, city: prospect.city, state: stateAbbr(prospect.state), phone, address,
     siteText: site.text, googleTypes: (place?.types || []).slice(0, 5), hours,
   });
-  const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${process.env.OPENAI_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "gpt-4o", temperature: 0, response_format: { type: "json_object" },
-      messages: [{ role: "system", content: "You are a JSON API. You ONLY return valid JSON." }, { role: "user", content: prompt }]
-    })
-  });
-  const ai = await aiRes.json();
-  if (!aiRes.ok) throw new Error(ai?.error?.message || "OpenAI preview generation failed");
-  const copy = validateGenerated(JSON.parse(ai.choices[0].message.content), { siteText: site.text, phone, address, hours, city: prospect.city, trade });
+  // Shared generator (api/_lib/page-copy.js): structured output, then the
+  // facts-only rules in validateGenerated.
+  const generatedCopy = await requestCopy(prompt, { fetchImpl: fetch, temperature: 0 });
+  const copy = validateGenerated(generatedCopy, { siteText: site.text, phone, address, hours, city: prospect.city, trade });
 
   const slug = await uniqueSlug(slugify(prospect.business_name));
   const profile = assembleProfile({

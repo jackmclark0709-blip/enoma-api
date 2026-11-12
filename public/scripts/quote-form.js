@@ -171,6 +171,28 @@
     }
   });
 
+  // Deep link from a service card / shared link: #quote?service=<slug>
+  // (public/scripts/profile.js). Ticks that service and starts on step 2,
+  // like a Service Spotlight page. Same slug rule as the server's
+  // serviceSlug() in api/_lib/company-page.js. Returns true when it matched.
+  function serviceSlug(t) {
+    return String(t || '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  }
+  function preselectService(slugWanted) {
+    var want = serviceSlug(slugWanted);
+    if (!want || form.classList.contains('is-sent')) return false;
+    var boxes = Array.prototype.slice.call(form.querySelectorAll('input[name="services"]'));
+    var hit = boxes.filter(function (b) { return serviceSlug(b.value) === want; })[0];
+    if (!hit) return false;
+    hit.checked = true;
+    if (current === 1) {
+      if (!completed[1]) { completed[1] = true; track('quote_step_completed', { step: 1, via: 'service_link' }); }
+      show(2, false);
+    }
+    return true;
+  }
+  window.enomaQuoteForm = { preselectService: preselectService, serviceSlug: serviceSlug };
+
   // Go stepped.
   form.classList.add('is-stepped');
   show(startStep, false);

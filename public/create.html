@@ -158,6 +158,18 @@
   <p class="field-hint">Work examples, your truck or equipment, your team — real photos build trust faster than anything else.</p>
   <div id="imagePreview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:0.75rem;"></div>
 
+  <!-- About you (optional): "Meet the owner" on the page. -->
+  <label for="owner_blurb" style="margin-top:1.5rem;">About you <span class="label-hint">optional</span></label>
+  <textarea id="owner_blurb" name="owner_blurb" rows="3" maxlength="700" placeholder="A few sentences in your own words. Who you are, how you got started, how you work. e.g. &quot;I started mowing lawns in town in 2015 and I still do every job myself.&quot;"></textarea>
+  <p class="field-hint">Shown as "Meet the owner" on your page, word for word. Leave it blank to skip that section.</p>
+  <label for="owner_photo">Your photo <span class="label-hint">optional, JPG or PNG</span></label>
+  <input type="file" id="owner_photo" name="owner_photo" accept="image/png,image/jpeg,image/webp" />
+  <input type="hidden" name="owner_photo_url" id="owner_photo_url" />
+  <div id="ownerPhotoCurrent" style="display:none;margin-top:0.5rem;align-items:center;gap:10px;">
+    <img id="ownerPhotoPreview" alt="Your current photo" style="width:64px;height:64px;object-fit:cover;border-radius:12px;" />
+    <label style="display:flex;gap:6px;align-items:center;margin:0;font-size:.85rem;cursor:pointer;"><input type="checkbox" id="ownerPhotoRemove" />Remove this photo</label>
+  </div>
+
   <div id="existingImages" style="margin-top:1rem;display:none;">
     <label>Existing photos <span class="label-hint">tag each one; only job photos show as your work</span></label>
     <div id="existingImagesGrid" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:0.5rem;"></div>
@@ -245,6 +257,50 @@
       </div>
     </label>
   </div>
+</div>
+
+<!-- ── Quick facts (all optional). Shown on the page only when answered:
+     the proof line under your headline, the trust strip and the footer. ── -->
+<div class="form-section" data-step="2" id="quickFacts">
+  <div class="form-section__header">
+    <div class="form-section__icon">
+      <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    </div>
+    <div>
+      <p class="form-section__title">Quick facts <span class="label-hint">optional</span></p>
+      <p class="form-section__desc">Skip anything you'd rather not say. We only show what you fill in.</p>
+    </div>
+  </div>
+  <div class="field-row">
+    <div>
+      <label for="years_in_business">Years in business</label>
+      <input id="years_in_business" name="years_in_business" type="number" inputmode="numeric" min="0" max="150" placeholder="e.g. 8" />
+    </div>
+    <div>
+      <label for="license_number">License number</label>
+      <input id="license_number" name="license_number" maxlength="40" placeholder="e.g. HIC-123456" />
+    </div>
+  </div>
+  <div class="field-row">
+    <div>
+      <label for="is_insured">Are you insured?</label>
+      <select id="is_insured" name="is_insured"><option value="">Skip</option><option value="yes">Yes</option><option value="no">No</option></select>
+    </div>
+    <div>
+      <label for="offers_free_estimates">Free estimates?</label>
+      <select id="offers_free_estimates" name="offers_free_estimates"><option value="">Skip</option><option value="yes">Yes, estimates are free</option><option value="no">No</option></select>
+    </div>
+  </div>
+  <label for="response_time">How fast do you usually reply?</label>
+  <select id="response_time" name="response_time">
+    <option value="">Skip</option>
+    <option value="within an hour">Within an hour</option>
+    <option value="within 2 hours">Within 2 hours</option>
+    <option value="within a few hours">Within a few hours</option>
+    <option value="the same day">The same day</option>
+    <option value="the next business day">The next business day</option>
+  </select>
+  <p class="field-hint">Shown as "Usually replies within 2 hours" next to your call button.</p>
 </div>
 
 <!-- ── SECTION 6: Testimonials (edit-later — no data-step, hidden during
@@ -335,10 +391,14 @@
       <input name="hero_availability" placeholder="Mon–Fri 8am–6pm" />
       <p class="field-hint">Your page shows "Open now" during these hours.</p>
     </div>
-    <div>
-      <label>How fast you reply <span class="label-hint">optional</span></label>
-      <input name="hero_response_time" placeholder="Typically responds within a few hours" />
-    </div>
+    <div></div>
+  </div>
+  <label style="margin-top:1rem;">How it works <span class="label-hint">optional, 3 short steps</span></label>
+  <p class="field-hint">How a customer hires you, in your words. Leave blank and your page shows simple default steps.</p>
+  <div id="howEditor">
+    <div class="field-row"><input class="how-title" maxlength="60" placeholder="Step 1, e.g. Send a photo" /><input class="how-text" maxlength="200" placeholder="e.g. Text us a picture of the job." /></div>
+    <div class="field-row"><input class="how-title" maxlength="60" placeholder="Step 2, e.g. Get a price" /><input class="how-text" maxlength="200" placeholder="e.g. We reply with a price, usually the same day." /></div>
+    <div class="field-row"><input class="how-title" maxlength="60" placeholder="Step 3, e.g. Pick a day" /><input class="how-text" maxlength="200" placeholder="e.g. Choose a day that suits you." /></div>
   </div>
   <label style="margin-top:1rem;">Frequently asked questions</label>
   <div id="faqsEditor"></div>
@@ -483,7 +543,7 @@ if (!editBusinessId && session?.user?.email && !form.email.value) form.email.val
 // field values (not files — those can't be serialized) plus which step the
 // person was on, so returning to /create resumes instead of restarting.
 const DRAFT_KEY = "enoma_create_draft_v1";
-const DRAFT_FIELD_NAMES = ["business_name","google_place_id","city","state","primary_category","industry_display","phone","address","service_area","website","about","tone","accepting_clients","offers_emergency"];
+const DRAFT_FIELD_NAMES = ["business_name","google_place_id","city","state","primary_category","industry_display","phone","address","service_area","website","about","tone","accepting_clients","offers_emergency","years_in_business","license_number","is_insured","offers_free_estimates","response_time","owner_blurb"];
 function saveDraft(step) {
   if (editBusinessId) return;
   try {
@@ -493,11 +553,7 @@ function saveDraft(step) {
       if (!el) return;
       data[name] = el.type === "checkbox" ? el.checked : el.value;
     });
-    data.services = [...servicesEl.querySelectorAll(".block")].map(b => ({
-      service_name: b.querySelector(".service-name")?.value || "",
-      service_description: b.querySelector(".service-description")?.value || "",
-      price: b.querySelector(".service-price")?.value || ""
-    }));
+    data.services = [...servicesEl.querySelectorAll(".block")].map(serviceRowData);
     data.step = step;
     localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
   } catch (e) {}
@@ -518,10 +574,7 @@ function restoreDraft() {
     if (Array.isArray(data.services) && data.services.length) {
       data.services.forEach(s => {
         addService();
-        const last = servicesEl.lastElementChild;
-        last.querySelector(".service-name").value = s.service_name || "";
-        last.querySelector(".service-description").value = s.service_description || "";
-        last.querySelector(".service-price").value = s.price || "";
+        fillServiceRow(servicesEl.lastElementChild, s);
       });
     }
     return Math.min(4, Math.max(1, Number(data.step) || 1));
@@ -710,14 +763,32 @@ async function loadBusinessForEdit(businessId) {
   form.hero_headline.value = data.hero_headline || ""; form.hero_tagline.value = data.hero_tagline || "";
   form.why_choose_us.value = data.why_choose_us || ""; form.services_intro.value = data.services_intro || "";
   form.trust_badges.value = Array.isArray(data.trust_badges) ? data.trust_badges.join("\n") : (data.trust_badges || "");
-  (data.services || []).forEach(s => { addService(); const last = servicesEl.lastElementChild; last.querySelector(".service-name").value = s.service_name || ""; last.querySelector(".service-description").value = s.service_description || ""; last.querySelector(".service-price").value = s.price || ""; });
+  (data.services || []).forEach(s => { addService(); fillServiceRow(servicesEl.lastElementChild, s); });
   (data.testimonials || []).forEach(t => { addTestimonial(); const last = testimonialsEl.lastElementChild; last.querySelector(".testimonial-quote").value = t.quote || ""; last.querySelector(".testimonial-author").value = t.author || ""; if (t.rating) last.dataset.rating = t.rating; if (t.source) last.dataset.source = t.source; });
   if (data.logo_url) { logoUrlInput.value = data.logo_url; setLogoPreview(data.logo_url); }
   // If any manual copy is present, open the advanced panel
   if (data.hero_headline || data.seo_title) toggleAdvanced(true);
   // Hours, FAQs & links
   form.hero_availability.value = data.hero_availability || "";
-  form.hero_response_time.value = data.hero_response_time || "";
+  // Quick facts + about you (all optional).
+  const yn = v => (v === true ? "yes" : v === false ? "no" : "");
+  form.years_in_business.value = data.years_in_business ?? "";
+  form.license_number.value = data.license_number || "";
+  form.is_insured.value = yn(data.is_insured);
+  form.offers_free_estimates.value = yn(data.offers_free_estimates);
+  if (data.response_time && ![...form.response_time.options].some(o => o.value === data.response_time)) form.response_time.add(new Option(data.response_time, data.response_time));
+  form.response_time.value = data.response_time || "";
+  form.owner_blurb.value = data.owner_blurb || "";
+  form.owner_photo_url.value = data.owner_photo_url || "";
+  if (data.owner_photo_url) {
+    document.getElementById("ownerPhotoPreview").src = data.owner_photo_url;
+    document.getElementById("ownerPhotoCurrent").style.display = "flex";
+  }
+  const steps = Array.isArray(data.how_it_works) ? data.how_it_works : [];
+  document.querySelectorAll("#howEditor .field-row").forEach((row, i) => {
+    row.querySelector(".how-title").value = steps[i]?.title || "";
+    row.querySelector(".how-text").value = steps[i]?.text || "";
+  });
   document.getElementById("faqsEditor").innerHTML = "";
   (Array.isArray(data.faqs) ? data.faqs : []).forEach(f => addFaq(f.q || f.question || "", f.a || f.answer || ""));
   const socials = (data.social_links && typeof data.social_links === "object" && !Array.isArray(data.social_links)) ? data.social_links : {};
@@ -800,7 +871,8 @@ if (suggestBtn) suggestBtn.addEventListener("click", async () => {
     const fd = new FormData(form);
     ["images", "logo"].forEach(k => fd.delete(k));       // no uploads for a suggestion
     fd.set("mode", "suggest");
-    fd.set("services", JSON.stringify([...servicesEl.querySelectorAll(".block")].map(b => ({ service_name: b.querySelector(".service-name")?.value.trim(), service_description: b.querySelector(".service-description")?.value.trim(), price: b.querySelector(".service-price")?.value.trim() })).filter(x => x.service_name)));
+    fd.set("services", JSON.stringify([...servicesEl.querySelectorAll(".block")].map(serviceRowData).filter(x => x.service_name)));
+    ["owner_photo"].forEach(k => fd.delete(k));
     const res = await fetch("/api/generate-business", { method: "POST", headers: { Authorization: `Bearer ${session.access_token}` }, body: fd });
     const json = await res.json().catch(() => ({}));
     if (!res.ok || !json.suggestions) { statusEl.textContent = json.message || json.error || "Couldn't get suggestions. Try again."; return; }
@@ -853,11 +925,15 @@ form.addEventListener("submit", async (e) => {
   fd.set("offers_emergency", form.offers_emergency.checked ? "true" : "false");
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) { alert("You must be logged in"); stopProgressMessages(); setSubmitting(false); return; }
-  const servicesData = [...servicesEl.querySelectorAll(".block")].map(b => ({ service_name: b.querySelector(".service-name")?.value.trim(), service_description: b.querySelector(".service-description")?.value.trim(), price: b.querySelector(".service-price")?.value.trim() })).filter(s => s.service_name);
+  const servicesData = [...servicesEl.querySelectorAll(".block")].map(serviceRowData).filter(s => s.service_name);
   // Keep rating/source (e.g. "via Google") that the form doesn't show.
   const testimonialsData = [...testimonialsEl.querySelectorAll(".block")].map(b => ({ quote: b.querySelector(".testimonial-quote")?.value.trim(), author: b.querySelector(".testimonial-author")?.value.trim(), ...(b.dataset.rating ? { rating: Number(b.dataset.rating) } : {}), ...(b.dataset.source ? { source: b.dataset.source } : {}) })).filter(t => t.quote);
   fd.set("services", JSON.stringify(servicesData)); fd.set("testimonials", JSON.stringify(testimonialsData));
+  if (document.getElementById("ownerPhotoRemove")?.checked) fd.set("owner_photo_url", "");
   if (isEdit) {
+    // How it works: all three steps, or none (the page then uses defaults).
+    const howSteps = [...document.querySelectorAll("#howEditor .field-row")].map(r => ({ title: r.querySelector(".how-title").value.trim(), text: r.querySelector(".how-text").value.trim() }));
+    fd.set("how_it_works", howSteps.every(st => st.title) ? JSON.stringify(howSteps) : "");
     fd.set("faqs", JSON.stringify(collectFaqs()));
     fd.set("social_links", JSON.stringify(collectSocials()));
   } else {
@@ -970,9 +1046,29 @@ function addService() {
     + '<input placeholder="e.g. Weekly Mowing" class="service-name"/>'
     + '<label>Description <span class="label-hint">optional — AI will write this if blank</span></label>'
     + '<textarea placeholder="Brief description of this service" class="service-description" rows="2"></textarea>'
-    + '<label>Price <span class="label-hint">optional</span></label>'
-    + '<input placeholder="e.g. From $50, $150+, Call for quote" class="service-price"/>';
+    + '<div class="field-row"><div><label>Starting price <span class="label-hint">optional</span></label>'
+    + '<input placeholder="e.g. $50" class="service-price-from" maxlength="30"/></div>'
+    + '<div><label>How soon <span class="label-hint">optional</span></label>'
+    + '<input placeholder="e.g. Same week" class="service-turnaround" maxlength="40"/></div></div>';
   servicesEl.appendChild(div);
+}
+
+// One service row <-> { service_name, service_description, price_from, turnaround, price }.
+// "price" is the older single price box: a price with a number moves into
+// "Starting price"; anything else ("Call for quote") is kept as it was.
+function fillServiceRow(b, s) {
+  s = s || {};
+  b.querySelector(".service-name").value = s.service_name || "";
+  b.querySelector(".service-description").value = s.service_description || "";
+  var legacy = String(s.price || "").trim();
+  var moved = !s.price_from && /\d/.test(legacy);
+  b.querySelector(".service-price-from").value = s.price_from || (moved ? legacy.replace(/^from\s+/i, "") : "");
+  b.querySelector(".service-turnaround").value = s.turnaround || "";
+  b.dataset.price = moved ? "" : legacy;
+}
+function serviceRowData(b) {
+  var v = function (sel) { var el = b.querySelector(sel); return el ? el.value.trim() : ""; };
+  return { service_name: v(".service-name"), service_description: v(".service-description"), price_from: v(".service-price-from"), turnaround: v(".service-turnaround"), price: b.dataset.price || "" };
 }
 
 function addTestimonial() {

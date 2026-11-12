@@ -18,22 +18,29 @@ export const normalizeServiceKey = name =>
 // whatever price the owner actually typed onto the AI-written services (by
 // name, falling back to position), and never touches a service that already
 // carries a price (the manual/no-regenerate path already has the real value).
+// The owner's own per-service details (price, "From $150", turnaround)
+// survive an AI rewrite of the service list: matched by name, else position.
+const OWNER_SERVICE_FIELDS = ["price", "price_from", "turnaround"];
 export const mergeUserServicePrices = (finalServices, rawUserServicesJSON) => {
   const rawUserServices = safeJSON(rawUserServicesJSON, []);
   if (!Array.isArray(finalServices)) return [];
   if (!Array.isArray(rawUserServices) || !rawUserServices.length) return finalServices;
 
-  const priceByName = new Map();
+  const byName = new Map();
   rawUserServices.forEach(s => {
     const key = normalizeServiceKey(s?.service_name);
-    if (key && s?.price) priceByName.set(key, String(s.price).trim());
+    if (key) byName.set(key, s);
   });
 
   return finalServices.map((s, i) => {
-    if (s.price) return s;
-    const byName = priceByName.get(normalizeServiceKey(s.service_name));
-    const byPosition = rawUserServices[i]?.price ? String(rawUserServices[i].price).trim() : "";
-    return { ...s, price: byName || byPosition || "" };
+    const mine = byName.get(normalizeServiceKey(s.service_name)) || rawUserServices[i] || {};
+    const out = { ...s };
+    for (const f of OWNER_SERVICE_FIELDS) {
+      if (out[f]) continue;
+      const v = mine?.[f] ? String(mine[f]).trim() : "";
+      if (v || f === "price") out[f] = v;
+    }
+    return out;
   });
 };
 
