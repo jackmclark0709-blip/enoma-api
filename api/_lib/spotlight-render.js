@@ -1,4 +1,6 @@
 // api/_lib/spotlight-render.js
+import { renderQuoteForm } from "./quote-form.js";
+
 // Turns a service_spotlights row into HTML for public/spotlight.html. Every
 // block renders server-side (crawlers and AI answer engines read it without
 // JavaScript) and every block hides itself when it has nothing true to say.
@@ -44,7 +46,7 @@ export function priceLine(pricing = {}) {
   return pricing.price;
 }
 
-export function renderSpotlight(spot, profile, { baseUrl, brandStyle, heroPhoto, otherSpotlights = [] }) {
+export function renderSpotlight(spot, profile, { baseUrl, brandStyle, heroPhoto, otherSpotlights = [], quoteStatus = "" }) {
   const c = spot.content || {};
   const hero = c.hero || {};
   const who = c.who || {};
@@ -128,6 +130,17 @@ export function renderSpotlight(spot, profile, { baseUrl, brandStyle, heroPhoto,
     "{{CTA_HEADING}}": esc(cta.heading || `Ready for ${c.service_name}?`),
     "{{CTA_BODY}}": esc(cta.body || ""),
     "{{FORM_SUBJECT_JSON}}": json(`${c.service_name} request`),
+    // Same multi-step form as the company page (api/_lib/quote-form.js), with
+    // this service preselected so it opens on step 2. Source and subject are
+    // what this page's lead form always sent.
+    "{{QUOTE_FORM_HTML}}": renderQuoteForm(profile, {
+      preselect: c.service_name,
+      source: `spotlight:${spot.service_slug}`,
+      subject: `${c.service_name} request`,
+      returnPath: `/${profile.username}/${spot.service_slug}`,
+      status: quoteStatus,
+      submitLabel: ctaLabel,
+    }),
     "{{WHO_CLASS}}": hidden(blocks["{{WHO_HTML}}"]),
     "{{PROBLEM_CLASS}}": hidden(blocks["{{PROBLEM_HTML}}"]),
     "{{STEPS_CLASS}}": hidden(steps.length),

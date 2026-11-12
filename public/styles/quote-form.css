@@ -1,0 +1,117 @@
+/* Multi-step quote form (api/_lib/quote-form.js + public/scripts/quote-form.js).
+   Shared by company pages and Service Spotlight pages. Colours come from the
+   page's brand tokens (--brand-primary etc., set per persona by api/p.js
+   getBrandColorStyle from api/_lib/page-style.js palettes). Selectors are
+   prefixed with .quote-form-wrap so the older `.contact input` / `.contact
+   button` rules on the company page don't leak in. */
+
+.quote-form-wrap {
+  max-width: 560px; margin: 0 auto; text-align: left;
+  background: #fff; border: 1px solid #e3eaf2; border-radius: 18px;
+  padding: 1.25rem; box-shadow: 0 10px 30px rgba(10,22,40,0.06);
+  color: #0a1628; box-sizing: border-box;
+}
+.quote-form-wrap *, .quote-form-wrap *::before, .quote-form-wrap *::after { box-sizing: border-box; }
+
+.quote-form-wrap .qf-call {
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+  min-height: 48px; width: 100%; padding: 0.7rem 1rem; border-radius: 999px;
+  background: var(--brand-primary, #1a3a2a); color: #fff; font-weight: 700; font-size: 1rem;
+  text-decoration: none;
+}
+.quote-form-wrap .qf-call svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; flex-shrink: 0; }
+.quote-form-wrap .qf-call:hover { filter: brightness(1.1); color: #fff; }
+.quote-form-wrap .qf-or { margin: 0.75rem 0 0.25rem; text-align: center; font-size: 0.85rem; color: #6b7280; }
+
+.quote-form-wrap form.quote-form {
+  display: block; background: none; border: 0; padding: 0; margin: 0; box-shadow: none; max-width: none; text-align: left;
+}
+.quote-form-wrap .qf-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; min-height: 0; }
+.quote-form-wrap .qf-progress { margin: 0; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--brand-primary, #1a3a2a); }
+.quote-form-wrap .qf-progress:empty { display: none; }
+.quote-form-wrap button.qf-back {
+  background: none; border: 0; padding: 0 0.25rem; min-height: 44px; min-width: 44px;
+  color: #4b5563; font: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer; border-radius: 8px;
+  transform: none; filter: none;
+}
+.quote-form-wrap button.qf-back:hover { color: var(--brand-primary, #1a3a2a); transform: none; }
+.quote-form-wrap button.qf-back[hidden] { display: none; }
+
+.quote-form-wrap .qf-step { border: 0; margin: 0; padding: 0.75rem 0 0.5rem; min-width: 0; }
+.quote-form-wrap .qf-step + .qf-step { border-top: 1px solid #eef2f6; margin-top: 0.5rem; }
+.quote-form-wrap legend {
+  /* float: keeps the legend below the fieldset's top border, not inside it */
+  float: left; width: 100%;
+  padding: 0; margin: 0 0 0.6rem; font-size: 1.15rem; font-weight: 800; color: #0a1628; line-height: 1.3;
+  font-family: inherit; outline: none;
+}
+.quote-form-wrap legend + * { clear: both; }
+.quote-form-wrap .qf-hint { margin: -0.3rem 0 0.6rem; font-size: 0.82rem; color: #6b7280; }
+
+.quote-form-wrap .qf-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 0.75rem; }
+.quote-form-wrap .qf-chips--stack { flex-direction: column; }
+.quote-form-wrap .qf-chip { position: relative; display: inline-flex; margin: 0; cursor: pointer; }
+.quote-form-wrap .qf-chips--stack .qf-chip { display: flex; }
+/* The real input stays in the page (keyboard + screen readers), visually hidden. */
+.quote-form-wrap .qf-chip input {
+  position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; padding: 0; border: 0; pointer-events: none;
+}
+.quote-form-wrap .qf-chip span {
+  display: inline-flex; align-items: center; gap: 0.4rem; min-height: 44px; width: 100%;
+  padding: 0.55rem 1rem; border-radius: 999px; border: 1.5px solid #d4e2f4; background: #fff;
+  font-size: 0.95rem; font-weight: 600; color: #0a1628; line-height: 1.25; user-select: none;
+}
+.quote-form-wrap .qf-chips--stack .qf-chip span { border-radius: 12px; }
+.quote-form-wrap .qf-chip:hover span { border-color: var(--brand-primary, #1a3a2a); }
+.quote-form-wrap .qf-chip input:checked + span {
+  background: var(--brand-primary-10, rgba(26,58,42,0.1)); border-color: var(--brand-primary, #1a3a2a); color: #0a1628;
+}
+.quote-form-wrap .qf-chip input[type="checkbox"]:checked + span::before { content: "✓"; font-weight: 800; color: var(--brand-primary, #1a3a2a); }
+.quote-form-wrap .qf-chip input:focus-visible + span { outline: 3px solid var(--brand-primary, #1a3a2a); outline-offset: 2px; }
+
+.quote-form-wrap .qf-label { display: block; margin: 0.6rem 0 0.3rem; font-size: 0.88rem; font-weight: 600; color: #374151; }
+.quote-form-wrap .qf-label span { font-weight: 400; color: #9ca3af; }
+.quote-form-wrap .qf-input {
+  display: block; width: 100%; min-height: 48px; padding: 0.7rem 0.9rem; border-radius: 10px;
+  border: 1.5px solid #d4e2f4; background: #fff; color: #0a1628; font: inherit; font-size: 1rem;
+}
+.quote-form-wrap textarea.qf-input { min-height: 88px; resize: vertical; }
+.quote-form-wrap .qf-input:focus { outline: none; border-color: var(--brand-primary, #1a3a2a); box-shadow: 0 0 0 3px var(--brand-primary-10, rgba(26,58,42,0.1)); }
+.quote-form-wrap .qf-input[aria-invalid="true"], .quote-form-wrap .qf-input[aria-invalid="true"]:focus { border-color: #d94040; }
+.quote-form-wrap .qf-pref { margin-top: 0.75rem; }
+.quote-form-wrap .qf-pref .qf-chips { margin: 0; }
+
+.quote-form-wrap button.qf-next, .quote-form-wrap button.qf-submit {
+  display: flex; align-items: center; justify-content: center; width: 100%; min-height: 48px; margin-top: 0.75rem;
+  padding: 0.75rem 1.25rem; border: 0; border-radius: 999px; cursor: pointer;
+  background: var(--brand-primary, #1a3a2a); color: #fff; font: inherit; font-size: 1rem; font-weight: 700;
+}
+.quote-form-wrap button.qf-next:hover, .quote-form-wrap button.qf-submit:hover { filter: brightness(1.1); }
+.quote-form-wrap button.qf-submit[disabled] { opacity: 0.6; cursor: default; }
+.quote-form-wrap button:focus-visible, .quote-form-wrap a:focus-visible { outline: 3px solid var(--brand-primary, #1a3a2a); outline-offset: 2px; }
+
+.quote-form-wrap .qf-status { margin: 0.35rem 0 0; font-size: 0.9rem; color: #4b5563; }
+.quote-form-wrap .qf-status:empty { display: none; }
+.quote-form-wrap .qf-status.is-error { padding: 0.5rem 0.75rem; border-radius: 10px; background: #fef3f2; }
+.quote-form-wrap .qf-status.is-error { color: #b42318; }
+.quote-form-wrap .qf-done { margin: 0.75rem 0 0; padding: 0.85rem 1rem; border-radius: 12px; background: #ecfdf3; color: #067647; font-weight: 600; }
+.quote-form-wrap .qf-error { margin: 0.75rem 0 0; padding: 0.85rem 1rem; border-radius: 12px; background: #fef3f2; color: #b42318; font-weight: 600; }
+
+/* Without JS every step shows, stacked, with one Send button at the end:
+   the Next buttons only make sense when stepping. */
+.quote-form-wrap form:not(.is-stepped) .qf-next { display: none; }
+/* Stepped (JS on): one step at a time. */
+.quote-form-wrap form.is-stepped .qf-step { display: none; border-top: 0; margin-top: 0; }
+.quote-form-wrap form.is-stepped .qf-step.is-current { display: block; }
+.quote-form-wrap form.is-sent .qf-step, .quote-form-wrap form.is-sent .qf-head { display: none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .quote-form-wrap form.is-stepped .qf-step.is-current { animation: qf-in 0.18s ease-out; }
+  .quote-form-wrap .qf-chip span { transition: background 0.12s ease, border-color 0.12s ease; }
+}
+@keyframes qf-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+@media (max-width: 420px) {
+  .quote-form-wrap { padding: 1rem; border-radius: 14px; }
+  .quote-form-wrap .qf-chip span { font-size: 0.92rem; padding: 0.5rem 0.85rem; }
+}

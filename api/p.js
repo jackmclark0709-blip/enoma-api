@@ -16,6 +16,7 @@ import { REVIEW_SLUG, googleReviewUrl } from "./_lib/reviews.js";
 import { starterLogoSvg, chosenStarterLogoId } from "./_lib/starter-logo.js";
 import { LANDING_SLUG, detectCallouts, workingPoints, renderLanding, landingSource } from "./_lib/preview-landing.js";
 import { logFunnelEvent } from "./_lib/tracking.js";
+import { renderQuoteForm } from "./_lib/quote-form.js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -160,6 +161,12 @@ function inactivePage(businessName, baseUrl) {
   </div>
 </body>
 </html>`;
+}
+
+// ?sent=1 / ?sent=0 after the no-JS quote form posts back to the page.
+function quoteStatus(req) {
+  const v = String(req.query?.sent || "");
+  return v === "1" ? "sent" : v === "0" ? "error" : "";
 }
 
 // Is this page live? Grandfathered pages always are; otherwise it needs an
@@ -413,6 +420,7 @@ async function serveSpotlight(req, res, bizSlug, serviceSlug) {
     fs.readFileSync(path.join(process.cwd(), "public", "spotlight.html"), "utf8"),
     renderSpotlight(spot, profile, {
       baseUrl: absoluteBaseUrl(req),
+      quoteStatus: quoteStatus(req),
       brandStyle: getBrandColorStyle(profile, heroPhoto),
       heroPhoto,
       otherSpotlights: others || [],
@@ -670,6 +678,13 @@ export default async function handler(req, res) {
       "{{SSR_CTA_NOTE}}": escapeHtml(ctaNoteText),
       "{{SSR_SPOTLIGHT_LINKS}}": spotlightLinksHtml,
       "{{SSR_CTA_NOTE_CLASS}}": ctaNoteText ? "services-cta-note" : "services-cta-note hidden",
+      // Multi-step quote form (api/_lib/quote-form.js). Last, so nothing in
+      // visitor-facing business text is re-read as a placeholder after it.
+      "{{QUOTE_FORM}}": renderQuoteForm(profile, {
+        returnPath: `/${slug}`,
+        status: quoteStatus(req),
+        trackContactClick: true,
+      }),
     };
 
     for (const [needle, value] of Object.entries(replacements)) {

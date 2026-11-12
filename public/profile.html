@@ -892,6 +892,7 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 .preview-poll .preview-poll__thanks { margin: 0; font-size: 0.92rem; color: #7ab3e0; font-weight: 700; }
 @media (max-width: 768px) { body.has-mobile-call-bar .preview-poll { bottom: 82px; } }
 </style>
+<link rel="stylesheet" href="/styles/quote-form.css" />
 {{BRAND_COLOR_STYLE}}
 <script src="/scripts/ref-capture.js"></script>
 </head>
@@ -1107,21 +1108,12 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 <div class="band">
 <section class="section contact" id="contact" style="border:none;padding-top:1.75rem;padding-bottom:1.75rem;">
   <div class="contact-inner">
-    <h2>Get in Touch</h2>
+    <h2>Get a Free Quote</h2>
     <p class="contact-intro" id="contactIntro">
-      Have a question or ready for a quote? Send us a message and we'll get back to you quickly.
+      Tell us what you need in four quick taps and we'll get back to you with a quote.
     </p>
   </div>
-  <form id="contactForm">
-    <!-- Honeypot: hidden from people; bots that fill it are ignored (api/send-contact.js) -->
-    <input name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" />
-    <input name="name" placeholder="Your name" required />
-    <input name="email" type="email" placeholder="Your email" required />
-    <input name="phone" type="tel" placeholder="Your phone (optional)" />
-    <textarea name="message" placeholder="Describe what you need — we'll follow up shortly" required></textarea>
-    <button type="submit">Send message →</button>
-  </form>
-  <p id="contactStatus"></p>
+  {{QUOTE_FORM}}
 </section>
 </div>
 
@@ -1161,6 +1153,7 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 </div>
 
 <script src="/scripts/profile.js"></script>
+<script src="/scripts/quote-form.js" defer></script>
 
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());function enomaGaConfig(c){try{var m=location.search.match(/[?&]internal=([01])(?:&|$)/);if(m)localStorage.setItem('enoma_internal',m[1]);if(localStorage.getItem('enoma_internal')==='1')c.traffic_type='internal'}catch(e){}try{if(/(?:^|; )enoma_internal=1(?:;|$)/.test(document.cookie))c.traffic_type='internal'}catch(e){}if(navigator.webdriver)window['ga-disable-G-S8XTG72Y2Y']=true;return c};gtag('config','G-S8XTG72Y2Y',enomaGaConfig({}));</script>
