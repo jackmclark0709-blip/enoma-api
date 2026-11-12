@@ -147,6 +147,7 @@
     { "source": "/widget.html", "destination": "/widget", "permanent": true },
     { "source": "/case-studies/conways-landscaping", "destination": "/examples", "permanent": false },
     { "source": "/case-studies/conways-landscaping.html", "destination": "/examples", "permanent": false },
+    { "source": "/page", "destination": "/get-your-website?src=comment", "permanent": false },
     { "source": "/get-started.html", "destination": "/get-your-website?ref=get-started", "permanent": true },
     { "source": "/get-started", "destination": "/get-your-website?ref=get-started", "permanent": true },
     { "source": "/claim.html", "destination": "/claim", "permanent": true },

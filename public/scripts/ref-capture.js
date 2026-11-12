@@ -11,25 +11,50 @@
 // "enoma_first_touch" is the same first landing + utm_* but never expires or
 // gets replaced; claim.html sends it with the claim and it ends up in
 // businesses.first_touch and the Stripe metadata (api/_lib/attribution.js).
+// Comment-keyword visits (/page → /get-your-website?src=comment&ch=fb&kw=PAGE)
+// are carried the same way: src/ch/kw go into both stored touches. A browser
+// that already has a stored touch keeps it, but gains src/ch/kw if it has no
+// src yet, so a returning visitor who came back through a comment DM is still
+// attributed to the comment (api/_lib/attribution.js cleanCommentParams).
 (function () {
   try {
     var q = new URLSearchParams(location.search);
     var now = Date.now();
+    var comment = null;
+    if ((q.get("src") || "").toLowerCase() === "comment") {
+      comment = { src: "comment" };
+      var ch = (q.get("ch") || "").toLowerCase();
+      if (ch === "fb" || ch === "ig") comment.ch = ch;
+      var kw = (q.get("kw") || "").trim().toUpperCase().slice(0, 30);
+      if (/^[A-Z0-9_-]+$/.test(kw)) comment.kw = kw;
+    }
     var touch = function () {
       var attr = { t: now, landing: location.pathname, referrer: (document.referrer || "").slice(0, 200) };
       ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"].forEach(function (k) {
         var v = q.get(k);
         if (v) attr[k] = v.slice(0, 80);
       });
+      if (comment) Object.assign(attr, comment);
       return JSON.stringify(attr);
+    };
+    var addComment = function (key) {
+      if (!comment) return;
+      try {
+        var cur = JSON.parse(localStorage.getItem(key) || "null");
+        if (cur && !cur.src) localStorage.setItem(key, JSON.stringify(Object.assign(cur, comment)));
+      } catch (e) {}
     };
     var existing = null;
     try { existing = JSON.parse(localStorage.getItem("enoma_attr") || "null"); } catch (e) {}
     if (!existing || !existing.t || now - existing.t > 90 * 864e5) {
       localStorage.setItem("enoma_attr", touch());
+    } else {
+      addComment("enoma_attr");
     }
     if (!localStorage.getItem("enoma_first_touch")) {
       localStorage.setItem("enoma_first_touch", touch());
+    } else {
+      addComment("enoma_first_touch");
     }
     if (q.get("from")) {
       localStorage.setItem("enoma_cta", JSON.stringify({ t: now, from: q.get("from").slice(0, 80), cta: (q.get("cta") || "").slice(0, 40) }));

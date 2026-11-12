@@ -40,15 +40,35 @@ const escText = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").repl
 const jsonLd = obj => `<script type="application/ld+json">${JSON.stringify(obj).replace(/</g, "\\u003c")}</script>`;
 const stripTags = s => s.replace(/<br\s*\/?>/g, " ").replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
 
+export const faqSchema = faqs => ({
+  "@context": "https://schema.org", "@type": "FAQPage",
+  mainEntity: faqs.map(f => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
+});
+
+export function renderFaqSection(faqs, headline) {
+  return `<section class="lp-faq">
+  <div class="lp-faq__inner">
+    <p class="lp-faq__label">Common questions</p>
+    <h2 class="lp-faq__h2">${headline}: common questions</h2>
+    <div class="lp-faq__list">
+${faqs.map(f => `      <div class="lp-faq__item">
+        <h3 class="lp-faq__q">${escText(f.q)}</h3>
+        <p class="lp-faq__a">${escText(f.a)}</p>
+      </div>`).join("\n")}
+    </div>
+  </div>
+</section>
+`;
+}
+
 export function renderGuide(g) {
   const url = `${SITE}/for/${g.slug}`;
   const headline = stripTags(g.h1);
   const dateLabel = new Date(g.published + "T12:00:00Z").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
 
-  const faqSchema = {
-    "@context": "https://schema.org", "@type": "FAQPage",
-    mainEntity: g.faqs.map(f => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
-  };
+  // FAQs are optional. FAQPage schema is emitted only for FAQs rendered
+  // visibly on the page, so a guide with no FAQs gets neither.
+  const faqs = (g.faqs || []).filter(f => f && f.q && f.a);
   const articleSchema = {
     "@context": "https://schema.org", "@type": "Article",
     headline, description: g.description, url, mainEntityOfPage: url,
@@ -96,8 +116,7 @@ export function renderGuide(g) {
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
   <script src="/scripts/clarity.js" defer></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());function enomaGaConfig(c){try{var m=location.search.match(/[?&]internal=([01])(?:&|$)/);if(m)localStorage.setItem('enoma_internal',m[1]);if(localStorage.getItem('enoma_internal')==='1')c.traffic_type='internal'}catch(e){}try{if(/(?:^|; )enoma_internal=1(?:;|$)/.test(document.cookie))c.traffic_type='internal'}catch(e){}if(navigator.webdriver)window['ga-disable-G-S8XTG72Y2Y']=true;return c};gtag('config','G-S8XTG72Y2Y',enomaGaConfig({content_group:'guide'}));</script>
-  ${jsonLd(faqSchema)}
-  ${jsonLd(articleSchema)}
+${faqs.length ? `  ${jsonLd(faqSchema(faqs))}\n` : ""}  ${jsonLd(articleSchema)}
   ${jsonLd(breadcrumbSchema)}
 </head>
 <body data-page="${g.slug}">
@@ -134,20 +153,7 @@ ${g.article.trim()}
   </div>
 </article>
 
-<section class="lp-faq">
-  <div class="lp-faq__inner">
-    <p class="lp-faq__label">Common questions</p>
-    <h2 class="lp-faq__h2">${headline}: common questions</h2>
-    <div class="lp-faq__list">
-${g.faqs.map(f => `      <div class="lp-faq__item">
-        <h3 class="lp-faq__q">${escText(f.q)}</h3>
-        <p class="lp-faq__a">${escText(f.a)}</p>
-      </div>`).join("\n")}
-    </div>
-  </div>
-</section>
-
-<section class="lp-cta">
+${faqs.length ? renderFaqSection(faqs, headline) + "\n" : ""}<section class="lp-cta">
   <div class="lp-cta__inner">
     <h2 class="lp-cta__h2">${g.ctaH2}</h2>
     <p class="lp-cta__sub">${g.ctaSub}</p>
