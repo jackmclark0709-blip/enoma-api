@@ -4,249 +4,37 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Enoma — Get Found Online. Get More Calls.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/styles/enoma.css">
+  <link rel="icon" href="/brand/favicon.ico" sizes="any">
+  <link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#0A1628">
+  <meta property="og:image" content="https://enoma.io/brand/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://enoma.io/brand/og-image.png">
   <meta name="description" content="Get your business found online. Enoma gives landscapers, plumbers, HVAC and other local trades a page made to show up when homeowners search and send the call straight to you. See yours in about 30 seconds. First month free, then $19.99/month. Cancel anytime." />
   <link rel="canonical" href="https://enoma.io/" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Enoma" />
   <meta property="og:title" content="Enoma — Get Found Online. Get More Calls." />
   <meta property="og:description" content="Get your business found online. A page for your trade and your town, built to make your phone ring. See yours in about 30 seconds. First month free, then $19.99/month. Cancel anytime." />
-  <meta property="og:image" content="https://enoma.io/assets/og/enoma-default-v2.png" />
   <meta property="og:url" content="https://enoma.io/" />
-  <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Enoma — Get Found Online. Get More Calls." />
   <meta name="twitter:description" content="Get your business found online. See your page in about 30 seconds. First month free, then $19.99/month. Cancel anytime." />
-  <meta name="twitter:image" content="https://enoma.io/assets/og/enoma-default-v2.png" />
-  <link rel="stylesheet" href="/styles/enoma.css" />
-  <link rel="icon" href="/favicon.ico" sizes="any" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
   <script src="/scripts/clarity.js" defer></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());function enomaGaConfig(c){try{var m=location.search.match(/[?&]internal=([01])(?:&|$)/);if(m)localStorage.setItem('enoma_internal',m[1]);if(localStorage.getItem('enoma_internal')==='1')c.traffic_type='internal'}catch(e){}try{if(/(?:^|; )enoma_internal=1(?:;|$)/.test(document.cookie))c.traffic_type='internal'}catch(e){}if(navigator.webdriver)window['ga-disable-G-S8XTG72Y2Y']=true;return c};gtag('config','G-S8XTG72Y2Y',enomaGaConfig({}));</script>
 
-  <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-
-    :root{
-      --void:#F6F8FB; --panel:#FFFFFF; --panel-border:#DCE3ED;
-      --sky:#1F5FBF; --sky-light:#1F5FBF; --sky-dim:rgba(31,95,191,0.10);
-      --text-1:#0B1B33; --text-2:#3B4A63; --text-3:#55647D;
-    }
-
-    html{scroll-behavior:smooth}
-    body{
-      background:var(--void); color:var(--text-1); font-family:'Instrument Sans',-apple-system,sans-serif;
-      -webkit-font-smoothing:antialiased; position:relative; overflow-x:hidden;
-    }
-    .display{font-family:'Fraunces','Georgia',serif;font-optical-sizing:auto;}
-
-    /* ---------- persistent atmosphere: grain + drifting glows + particle canvas ---------- */
-    body::before{
-      content:''; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.35;
-      background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
-    }
-    #bgcanvas{position:fixed;inset:0;z-index:0;width:100%;height:100%;opacity:.5;pointer-events:none;}
-    .glow{position:fixed;border-radius:50%;pointer-events:none;z-index:0;filter:blur(10px);}
-    .glow--a{width:56vw;height:56vw;top:-18vw;left:-14vw;background:radial-gradient(circle,rgba(56,130,220,.16),transparent 70%);}
-    .glow--b{width:46vw;height:46vw;bottom:8vw;right:-16vw;background:radial-gradient(circle,rgba(90,168,240,.13),transparent 70%);}
-    .glow--c{width:40vw;height:40vw;top:60vh;left:30vw;background:radial-gradient(circle,rgba(56,130,220,.10),transparent 70%);}
-
-    .stage{position:relative;z-index:1;}
-    .scene{max-width:760px;margin-inline:auto;padding:9rem 1.5rem;text-align:center;}
-    .scene--wide{max-width:1040px;}
-    .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:.72rem;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--sky-light);margin-bottom:1.25rem;opacity:.9;}
-    .scene h2{font-family:'Fraunces',serif;font-optical-sizing:auto;font-size:clamp(1.9rem,4.2vw,3rem);font-weight:600;letter-spacing:-.02em;line-height:1.12;color:var(--text-1);margin-bottom:1.1rem;}
-    .scene p.lead{font-size:1.05rem;color:var(--text-2);line-height:1.65;max-width:560px;margin-inline:auto;}
-    .reveal{opacity:0;transform:translateY(26px);}
-
-    /* ---------- HERO ---------- */
-    .hero{min-height:92vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:7rem 1.5rem 4rem;position:relative;}
-    .hero__eyebrow{font-family:'IBM Plex Mono',monospace;font-size:.74rem;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--sky-light);margin-bottom:1.5rem;}
-    .hero h1{font-family:'Fraunces',serif;font-optical-sizing:auto;font-size:clamp(2.2rem,5.6vw,3.8rem);font-weight:600;letter-spacing:-.025em;line-height:1.08;color:var(--text-1);max-width:820px;}
-    .hero h1 em{font-style:normal;color:var(--sky-light);}
-
-    .query-bar{
-      margin:2.25rem auto 0; max-width:560px; display:flex; align-items:center; gap:.7rem;
-      background:rgba(11,27,51,0.05); border:1px solid var(--panel-border); border-radius:999px;
-      padding:.9rem 1.4rem; backdrop-filter:blur(6px);
-    }
-    .query-bar svg{width:17px;height:17px;stroke:var(--text-3);fill:none;stroke-width:2;flex-shrink:0;}
-    .query-bar__text{font-family:'IBM Plex Mono',monospace;font-size:.92rem;color:var(--text-2);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .query-bar__cursor{display:inline-block;width:1px;height:1em;background:var(--sky-light);vertical-align:-2px;animation:blink 1s step-end infinite;margin-left:1px;}
-    @keyframes blink{50%{opacity:0;}}
-
-    .hero__sub{margin-top:1.75rem;font-size:1.05rem;color:var(--text-2);max-width:480px;line-height:1.6;}
-    .hero__actions{display:flex;gap:.85rem;flex-wrap:wrap;justify-content:center;margin-top:2.25rem;}
-    .hero__proof{margin-top:1.1rem;font-size:.78rem;color:var(--text-3);letter-spacing:.03em;}
-
-    /* ---------- faq (namespaced faq-accordion/faq-row — enoma.css already owns .faq-list/.faq-item for a light-theme component) ---------- */
-    .faq-accordion{max-width:640px;margin:2.5rem auto 0;text-align:left;display:flex;flex-direction:column;gap:1px;background:var(--panel-border);border-radius:16px;overflow:hidden;border:1px solid var(--panel-border);}
-    .faq-row{background:var(--void);padding:1.35rem 1.5rem;transition:background .18s ease;}
-    .faq-row:hover{background:rgba(11,27,51,.045);}
-    .faq-row summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:1rem;font-weight:600;font-size:.98rem;color:var(--text-1);}
-    .faq-row summary::-webkit-details-marker{display:none;}
-    .faq-chevron{width:14px;height:14px;flex-shrink:0;stroke:var(--sky-light);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s ease;}
-    .faq-row[open] .faq-chevron{transform:rotate(90deg);}
-    .faq-row p{margin-top:.75rem;font-size:.9rem;color:var(--text-2);line-height:1.6;}
-
-    /* ---------- what enoma is: inline stat row ---------- */
-    .statline{display:flex;gap:2.5rem;justify-content:center;flex-wrap:wrap;margin-top:2.75rem;}
-    .statline__item{text-align:center;}
-    .statline__num{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:1.7rem;color:var(--sky-light);letter-spacing:-.02em;}
-    .statline__label{font-size:.76rem;color:var(--text-3);margin-top:.2rem;letter-spacing:.02em;}
-
-    /* ---------- proof ---------- */
-    .proof-card{
-      margin-top:2.25rem;display:inline-flex;align-items:center;gap:1.5rem;text-align:left;
-      background:var(--panel);border:1px solid var(--panel-border);border-radius:18px;padding:1.5rem 1.85rem;
-    }
-    .proof-card__num{font-family:'Fraunces',serif;font-optical-sizing:auto;font-weight:700;font-size:2.6rem;color:var(--sky-light);line-height:1;flex-shrink:0;}
-    .proof-card__text{font-size:.92rem;color:var(--text-2);line-height:1.5;max-width:340px;}
-    .proof-card__cta{margin-top:2rem;}
-    @media(max-width:560px){.proof-card{flex-direction:column;text-align:center;}}
-
-    /* ---------- how it works ---------- */
-    .how-grid{display:grid;grid-template-columns:0.85fr 1fr;gap:3rem;align-items:center;max-width:980px;margin:3rem auto 0;text-align:left;}
-    .steps2{display:flex;flex-direction:column;gap:2.5rem;max-width:460px;margin:0;}
-    .step2{display:flex;gap:1.5rem;align-items:baseline;cursor:default;transition:opacity .2s ease;}
-    .step2[data-inactive]{opacity:.45;}
-    .step2__num{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:1.6rem;color:var(--text-3);flex-shrink:0;width:2.2rem;transition:color .2s ease;}
-    .step2[data-active] .step2__num{color:var(--sky-light);}
-    .step2__title{font-weight:700;font-size:1.05rem;color:var(--text-1);margin-bottom:.3rem;}
-    .step2__desc{font-size:.9rem;color:var(--text-2);line-height:1.55;}
-    @media(max-width:900px){ .how-grid{grid-template-columns:1fr;gap:2.25rem;} .steps2{max-width:520px;margin-inline:auto;} }
-
-    /* ---------- how it works: live carousel ---------- */
-    .howcar{position:relative;}
-    .howcar__frame{background:#FFFFFF;border:1px solid var(--panel-border);border-radius:16px;overflow:hidden;box-shadow:0 30px 70px -30px rgba(11,27,51,.12);}
-    .howcar__bar{display:flex;align-items:center;gap:6px;padding:10px 14px;background:rgba(11,27,51,.04);}
-    .howcar__bar .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-    .howcar__bar .url{flex:1;margin-left:6px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .howcar__time{flex-shrink:0;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;color:var(--sky-light);background:rgba(56,130,220,.14);border:1px solid rgba(56,130,220,.3);padding:2px 8px;border-radius:999px;}
-    .howcar__stage{position:relative;min-height:300px;}
-    .howcar__slide{position:absolute;inset:0;opacity:0;transform:translateY(8px);transition:opacity .4s ease,transform .4s ease;pointer-events:none;padding:1.25rem 1.35rem 1.4rem;}
-    .howcar__slide[data-active]{opacity:1;transform:translateY(0);pointer-events:auto;}
-    .howcar__dots{display:flex;justify-content:center;gap:.5rem;margin-top:1.1rem;}
-    .howcar__dots button{width:7px;height:7px;border-radius:50%;background:rgba(11,27,51,.16);border:none;padding:0;cursor:pointer;transition:background .2s,width .2s,border-radius .2s;}
-    .howcar__dots button[data-active]{background:var(--sky-light);width:20px;border-radius:999px;}
-    @media (prefers-reduced-motion: reduce){ .howcar__slide{transition:opacity .15s ease;transform:none !important;} }
-
-    /* shared mini form/atoms inside the howcar slides */
-    .hc-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:.6rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--sky-light);margin:0 0 .4rem;}
-    .hc-h{font-family:'Fraunces',serif;font-size:1.2rem;font-weight:700;letter-spacing:-.02em;margin:0 0 .5rem;color:var(--text-1);}
-    .hc-p{font-size:.8rem;color:var(--text-2);line-height:1.5;margin:0 0 .9rem;}
-    .hc-label{font-size:.62rem;font-weight:700;color:var(--text-2);letter-spacing:.03em;text-transform:uppercase;display:block;margin:.6rem 0 .25rem;}
-    .hc-field{width:100%;padding:.5rem .65rem;border-radius:8px;font-size:.78rem;border:1.5px solid var(--panel-border);background:rgba(11,27,51,.05);color:var(--text-1);}
-    .hc-row2{display:grid;grid-template-columns:1fr 1fr;gap:0 .7rem;}
-    .hc-progress-label{display:flex;justify-content:space-between;font-size:.68rem;font-weight:600;color:var(--text-2);margin-bottom:.35rem;}
-    .hc-progress-label strong{color:var(--text-1);}
-    .hc-progress-track{height:4px;border-radius:999px;background:rgba(11,27,51,.08);overflow:hidden;margin-bottom:1rem;}
-    .hc-progress-fill{height:100%;border-radius:999px;background:var(--sky);}
-    .hc-btn{display:inline-flex;align-items:center;gap:.4rem;background:var(--sky);color:#fff;font-weight:700;font-size:.8rem;border:none;border-radius:999px;padding:.6rem 1.2rem;margin-top:1rem;font-family:'Instrument Sans',sans-serif;}
-    .hc-card{max-width:280px;margin:.3rem auto 0;background:rgba(11,27,51,.035);border:1px solid var(--panel-border);border-radius:12px;padding:1.15rem 1.25rem;}
-    .hc-center{text-align:center;}
-    .hc-check{width:40px;height:40px;background:rgba(56,130,220,.15);border:1px solid rgba(56,130,220,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto .7rem;}
-    .hc-url-pill{display:inline-flex;align-items:center;gap:.4rem;background:rgba(11,27,51,.06);border:1.5px solid var(--panel-border);border-radius:9px;padding:.4rem .7rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;margin:.6rem 0;}
-    .hc-biz-hero{border-radius:12px;overflow:hidden;border:1px solid var(--panel-border);}
-    .hc-biz-top{background:#fff;padding:.55rem .8rem;display:flex;align-items:center;justify-content:space-between;}
-    .hc-biz-wordmark{font-family:'Fraunces',serif;font-weight:800;font-size:.72rem;color:#1f5c2c;line-height:1;}
-    .hc-biz-wordmark small{display:block;font-family:'Instrument Sans',sans-serif;font-weight:700;font-size:.44rem;letter-spacing:.05em;color:#3a8a4a;margin-top:1px;}
-    .hc-biz-call{background:#1f5c2c;color:#fff;font-size:.6rem;font-weight:700;padding:.3rem .6rem;border-radius:999px;}
-    .hc-biz-main{background:linear-gradient(160deg,#142f1a,#0c1f10);padding:1.15rem .95rem 1rem;}
-    .hc-biz-main h3{font-family:'Fraunces',serif;color:#fff;font-size:1.02rem;line-height:1.2;margin:0 0 .4rem;letter-spacing:-.01em;}
-    .hc-biz-main p{color:rgba(255,255,255,.7);font-size:.68rem;line-height:1.5;margin:0;max-width:260px;}
-    .hc-biz-badges{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.6rem;}
-    .hc-biz-badge{font-size:.56rem;font-weight:600;padding:.24rem .5rem;border-radius:999px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.12);}
-    .hc-biz-badge.live{background:rgba(94,201,122,.18);color:#8fe0a5;border-color:rgba(94,201,122,.3);}
-
-    /* ---------- interactive: product preview ---------- */
-    .preview-panel{
-      margin-top:2.5rem;text-align:left;background:#FFFFFF;border:1px solid var(--panel-border);
-      border-radius:16px;overflow:hidden;box-shadow:0 30px 70px -30px rgba(11,27,51,.12);
-    }
-    .preview-panel__bar{display:flex;align-items:center;gap:6px;padding:10px 14px;background:rgba(11,27,51,.04);}
-    .preview-panel__bar .dot{width:7px;height:7px;border-radius:50%;}
-    .preview-panel__bar .url{margin-left:6px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-3);}
-    .preview-panel__body{padding:1.5rem;}
-    .preview-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1.25rem;}
-    .preview-kpi{background:rgba(11,27,51,.03);border:1px solid var(--panel-border);border-radius:10px;padding:.85rem;position:relative;cursor:default;}
-    .preview-kpi__value{font-family:'Fraunces',serif;font-weight:700;font-size:1.35rem;color:var(--text-1);}
-    .preview-kpi__label{font-size:.68rem;color:var(--text-3);margin-top:.15rem;line-height:1.3;}
-    .preview-kpi[data-tip]::after{
-      content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%) translateY(4px);
-      background:#0B1B33;color:#FFFFFF;font-size:.68rem;padding:5px 9px;border-radius:6px;white-space:nowrap;
-      opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;border:1px solid var(--panel-border);
-    }
-    .preview-kpi:hover[data-tip]::after{opacity:1;transform:translateX(-50%) translateY(0);}
-    .preview-chart{display:flex;align-items:flex-end;gap:4px;height:70px;}
-    .preview-chart-col{flex:1;background:linear-gradient(var(--sky-light),var(--sky));border-radius:2px 2px 0 0;transform:scaleY(0);transform-origin:bottom;animation:chartGrow .8s ease forwards;animation-delay:calc(var(--i) * 0.02s);}
-    @keyframes chartGrow{to{transform:scaleY(1);}}
-    .preview-caption{font-size:.7rem;color:var(--text-3);margin-top:.6rem;}
-
-    /* ---------- the math: cost anchor ---------- */
-    .costgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:2.5rem;text-align:left;}
-    .costcard{background:var(--panel);border:1px solid var(--panel-border);border-radius:16px;padding:1.4rem 1.4rem 1.5rem;}
-    .costcard__name{font-size:.8rem;font-weight:600;color:var(--text-3);letter-spacing:.02em;}
-    .costcard__price{font-family:'Fraunces',serif;font-weight:700;font-size:1.45rem;color:var(--text-1);margin:.35rem 0 .6rem;}
-    .costcard p{font-size:.88rem;color:var(--text-2);line-height:1.55;}
-    .costcard--us{border:2px solid var(--sky);box-shadow:0 20px 50px -28px rgba(31,95,191,.45);}
-    .costcard--us .costcard__price{color:var(--sky);}
-    @media(max-width:820px){.costgrid{grid-template-columns:1fr;}}
-
-    /* ---------- dashboard preview ---------- */
-    .dash{display:grid;grid-template-columns:1.15fr 1fr;gap:1rem;background:#F6F8FB;}
-    .dash__col{display:flex;flex-direction:column;gap:1rem;min-width:0;}
-    .dash__card{background:#fff;border:1px solid var(--panel-border);border-radius:12px;padding:1rem 1.1rem;}
-    .dash__title{display:flex;align-items:center;justify-content:space-between;gap:.5rem;font-weight:700;font-size:.85rem;color:var(--text-1);margin-bottom:.75rem;}
-    .dash__badge{font-size:.66rem;font-weight:700;color:#1e5ca8;background:rgba(56,130,220,.1);border:1px solid rgba(56,130,220,.2);padding:.15rem .55rem;border-radius:999px;}
-    .dash__muted{font-size:.7rem;font-weight:400;color:var(--text-3);}
-    .dash__msg{border-top:1px solid var(--panel-border);padding:.7rem 0 .2rem;}
-    .dash__msg:first-of-type{border-top:none;padding-top:0;}
-    .dash__msg-top{display:flex;justify-content:space-between;gap:.5rem;font-size:.78rem;color:var(--text-1);}
-    .dash__msg-top span{color:var(--text-3);font-size:.7rem;}
-    .dash__msg p{font-size:.78rem;color:var(--text-2);line-height:1.5;margin-top:.25rem;}
-    .dash__hint{font-size:.78rem;color:var(--text-2);line-height:1.5;}
-    .dash__metrics{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.9rem;}
-    .dash__metrics>div{background:#F6F8FB;border:1px solid var(--panel-border);border-radius:10px;padding:.7rem;}
-    .dash__label{font-size:.68rem;color:var(--text-3);}
-    .dash__value{font-family:'Fraunces',serif;font-weight:700;font-size:1.4rem;color:var(--text-1);}
-    .dash__sub{font-size:.62rem;color:var(--text-3);}
-    .dash__sources{list-style:none;display:flex;flex-direction:column;gap:.55rem;}
-    .dash__sources li{display:flex;align-items:center;gap:.6rem;font-size:.76rem;}
-    .dash__sources span{color:var(--text-2);width:9.5rem;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .dash__sources i{flex:1;height:5px;border-radius:999px;background:linear-gradient(90deg,var(--sky) var(--w),#E8F0F8 var(--w));}
-    .dash__sources strong{color:var(--text-1);width:2rem;text-align:right;}
-    @media(max-width:760px){.dash{grid-template-columns:1fr;}.dash__sources span{width:7.5rem;}}
-
-    /* ---------- founder ---------- */
-    .founder__photo{width:112px;height:112px;border-radius:50%;object-fit:cover;margin:0 auto 1.5rem;display:block;border:3px solid #fff;box-shadow:0 12px 30px -12px rgba(11,27,51,.3);}
-    .howcar__note{text-align:center;font-size:.7rem;color:var(--text-3);margin-top:.5rem;}
-
-    /* ---------- final cta ---------- */
-    .finale h2{font-size:clamp(2rem,4.6vw,3rem);}
-    .finale .hero__actions{margin-top:2rem;}
-
-    @media(max-width:640px){
-      .scene{padding:6rem 1.25rem;}
-      .query-bar__text{font-size:.8rem;}
-    }
-
-    @media (prefers-reduced-motion: reduce){
-      html{scroll-behavior:auto;}
-      .query-bar__cursor,.preview-chart-col{animation:none;}
-    }
-  
-    /* ---------- light theme (Nov 2026): no grain, glow or particle field ---------- */
-    body::before{display:none}
-    .glow,#bgcanvas{display:none}
-    a.btn-primary:hover,.pricing-cta-btn:hover{background:#163F7F}
-    .btn-secondary{color:#22314A;border-color:#C9D3E0;background:#FFFFFF}
-    .btn-secondary:hover{color:#0B1B33;border-color:#1F5FBF;background:#EEF4FD}
-</style>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Enoma","applicationCategory":"BusinessApplication","description":"Enoma builds one-page websites for local service businesses — landscapers, plumbers, HVAC, contractors — built to show up in local search and send customer calls and quote requests directly to the business. First month free.","operatingSystem":"Web","url":"https://enoma.io","offers":{"@type":"Offer","price":"19.99","priceCurrency":"USD"},"audience":{"@type":"Audience","audienceType":"Local Service Businesses"}}</script>
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Will this actually get me on Google?", "acceptedAnswer": {"@type": "Answer", "text": "No one can honestly promise you a ranking. What we can do is give Google exactly what it looks for from a local business — your trade, your towns, your services and your number, on a page built the way search engines read it. That's why the first month is free: you see real results before you pay."}}, {"@type": "Question", "name": "What does it cost?", "acceptedAnswer": {"@type": "Answer", "text": "The first month is free, with no credit card. After that it's $19.99/month to keep your page live, and that includes personalized support from our team. Month-to-month, cancel anytime."}}, {"@type": "Question", "name": "I already have a Google Business Profile. Isn't that enough?", "acceptedAnswer": {"@type": "Answer", "text": "It's a great start, and you should keep it. But a Business Profile shows competitors right next to you, and it gives Google very little to go on. A page of your own gives Google (and AI assistants like ChatGPT) more to understand about what you do and where — and gives homeowners one place to call you from."}}, {"@type": "Question", "name": "I already have a website. Why do I need this too?", "acceptedAnswer": {"@type": "Answer", "text": "If your current site is already sending you calls every week, you're ahead of most local businesses — you probably don't need Enoma. If it isn't, the problem usually isn't the design; it's that it was never built to be found or to get someone to call. That's the part Enoma does."}}, {"@type": "Question", "name": "How is this different from Yelp or Angi?", "acceptedAnswer": {"@type": "Answer", "text": "Directory listings put competitors right next to you and often sell the same lead to several businesses, and you pay per lead or per click whether you win the job or not. Your Enoma page is only about you — no competitor ads, no shared leads, one flat monthly price. The customer calls you directly."}}, {"@type": "Question", "name": "Do I have to write the page myself?", "acceptedAnswer": {"@type": "Answer", "text": "No. If we build it for you, it takes a 10-minute call. If you build it yourself, you fill in your services and area and AI writes the first draft. Either way you can change anything, anytime."}}]}</script>
 </head>
-<body>
+<body class="page-home">
 
 <script src="/scripts/ref-capture.js"></script>
 <script type="module" src="/partials/nav.js"></script>
@@ -271,8 +59,8 @@
     <p class="hero__sub">Someone is searching for a business like yours right now. Enoma gives you a page built for your trade and your town, made to show up in that search and send the call straight to you. See yours in 30 seconds, free. Not techy? We'll set it up with you.</p>
 
     <div class="hero__actions">
-      <a href="/get-your-website" class="btn-primary">See your page in 30 seconds →</a>
-      <a href="/examples" class="btn-secondary">See live examples</a>
+      <a href="/get-your-website" class="btn btn--primary">See your page in 30 seconds →</a>
+      <a href="/examples" class="btn btn--secondary">See live examples</a>
     </div>
     <p class="hero__proof">Free to start &nbsp;·&nbsp; First month free, then $19.99/mo flat &nbsp;·&nbsp; No per-lead fees &nbsp;·&nbsp; No contract</p>
   </section>
@@ -345,7 +133,7 @@
       <div class="howcar" id="howcar">
         <div class="howcar__frame">
           <div class="howcar__bar">
-            <div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#ffbd2e"></div><div class="dot" style="background:#27c93f"></div>
+            <div class="dot" style="background:var(--mock-dot-red)"></div><div class="dot" style="background:var(--mock-dot-amber)"></div><div class="dot" style="background:var(--mock-dot-green)"></div>
             <div class="url" id="howcarUrl">enoma.io/signup</div>
             <div class="howcar__time" id="howcarTime">0:00</div>
           </div>
@@ -380,11 +168,11 @@
 
             <div class="howcar__slide">
               <div class="hc-center">
-                <div class="hc-check"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7ab3e0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+                <div class="hc-check"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="color:var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
                 <p class="hc-eyebrow">Live</p>
                 <h3 class="hc-h">Your website is live 🎉</h3>
                 <p class="hc-p">Share this link anywhere your business name appears.</p>
-                <div class="hc-url-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#7ab3e0" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/></svg>enoma.io/maple-ridge-lawn-care</div>
+                <div class="hc-url-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="color:var(--accent)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/></svg>enoma.io/maple-ridge-lawn-care</div>
                 <br>
                 <button class="hc-btn">View my website →</button>
               </div>
@@ -415,8 +203,8 @@
       </div>
     </div>
     <div class="hero__actions" style="margin-top:2.5rem;">
-      <a href="/get-your-website" class="btn-primary">See your page in 30 seconds →</a>
-      <a href="/examples" class="btn-secondary">See live examples</a>
+      <a href="/get-your-website" class="btn btn--primary">See your page in 30 seconds →</a>
+      <a href="/examples" class="btn btn--secondary">See live examples</a>
     </div>
   </section>
 
@@ -427,7 +215,7 @@
     <p class="lead">See who reached out, where they found you, and which new reviews are waiting for your OK. No guessing whether it's working.</p>
     <div class="preview-panel">
       <div class="preview-panel__bar">
-        <div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#ffbd2e"></div><div class="dot" style="background:#27c93f"></div>
+        <div class="dot" style="background:var(--mock-dot-red)"></div><div class="dot" style="background:var(--mock-dot-amber)"></div><div class="dot" style="background:var(--mock-dot-green)"></div>
         <div class="url">enoma.io/dashboard</div>
       </div>
       <div class="preview-panel__body dash">
@@ -473,7 +261,7 @@
     <p class="eyebrow">Who's behind Enoma</p>
     <img class="founder__photo" src="/assets/jack-headshot.jpg" alt="Jack Clark, founder of Enoma" width="112" height="112" loading="lazy">
     <h2>A real person, not a call center.</h2>
-    <p class="lead">I'm Jack Clark. I build Enoma pages for plumbers, landscapers, HVAC techs and other trades across the country, from Attleboro, Massachusetts. If you'd rather talk than fill out a form, email me at <a href="mailto:jack@enoma.io" style="color:var(--sky-light)">jack@enoma.io</a> and I'll call you back.</p>
+    <p class="lead">I'm Jack Clark. I build Enoma pages for plumbers, landscapers, HVAC techs and other trades across the country, from Attleboro, Massachusetts. If you'd rather talk than fill out a form, email me at <a href="mailto:jack@enoma.io" style="color:var(--accent)">jack@enoma.io</a> and I'll call you back.</p>
   </section>
 
   <!-- ============ FAQ — objection handling right before the ask ============ -->
@@ -514,8 +302,8 @@
     <h2>Stop losing jobs to whoever shows up first.</h2>
     <p class="lead">See your page in 30 seconds, or let us set it up with you, usually within a day. First month free, then $19.99/mo flat. No contract, no per-lead fees.</p>
     <div class="hero__actions">
-      <a href="/get-your-website" class="btn-primary">See your page in 30 seconds →</a>
-      <a href="/examples" class="btn-secondary">See live examples</a>
+      <a href="/get-your-website" class="btn btn--primary">See your page in 30 seconds →</a>
+      <a href="/examples" class="btn btn--secondary">See live examples</a>
     </div>
   </section>
 
@@ -655,6 +443,8 @@
         };
       });
     }
+    // Canvas can't read CSS variables directly, so take the token's value once.
+    var dotColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-on-dark').trim();
     function frame(){
       ctx.clearRect(0, 0, w, h);
       nodes.forEach(function(n){
@@ -667,14 +457,14 @@
           var a = nodes[i], b = nodes[j];
           var d = Math.hypot(a.x - b.x, a.y - b.y);
           if (d < 140){
-            ctx.strokeStyle = 'rgba(90,168,240,' + (0.10 * (1 - d / 140)) + ')';
+            ctx.strokeStyle = dotColor; ctx.globalAlpha = 0.10 * (1 - d / 140);
             ctx.lineWidth = 1;
             ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
           }
         }
       }
       nodes.forEach(function(n){
-        ctx.fillStyle = 'rgba(90,168,240,.4)';
+        ctx.fillStyle = dotColor; ctx.globalAlpha = 0.4;
         ctx.beginPath(); ctx.arc(n.x, n.y, 1.3, 0, Math.PI * 2); ctx.fill();
       });
       if (!reduced) requestAnimationFrame(frame);

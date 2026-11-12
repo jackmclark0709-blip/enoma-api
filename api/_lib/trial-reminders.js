@@ -16,7 +16,7 @@
 // expiring cards are Stripe's own emails), so anyone with a live Stripe
 // subscription is skipped.
 
-import { escapeHtml, wrapEmailHtml } from "./email-html.js";
+import { escapeHtml, wrapEmailHtml, emailButtonHtml } from "./email-html.js";
 import { hasLiveStripeSubscription } from "./billing.js";
 import { isGrandfathered } from "./trial-policy.js";
 
@@ -90,7 +90,7 @@ function priceSentence(monthlyPrice, yearlyPrice) {
 }
 
 function buttonHtml(label, url) {
-  return `<p style="margin:8px 0 24px;"><a href="${escapeHtml(url)}" style="display:inline-block;background:#1a73e8;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:6px;">${escapeHtml(label)}</a></p>`;
+  return `<p style="margin:8px 0 24px;">${emailButtonHtml(label, url)}</p>`;
 }
 
 function paragraphHtml(text) {
@@ -160,7 +160,7 @@ export function buildTrialReminderEmail({
     ...(unsubscribeUrl
       ? [`<p style="margin:24px 0 0;font-size:12px;color:#777777;">Don't want these reminders? <a href="${escapeHtml(unsubscribeUrl)}" style="color:#777777;">Unsubscribe</a></p>`]
       : []),
-  ].join("\n"));
+  ].join("\n"), { logo: true });
 
   return { subject, text, html };
 }

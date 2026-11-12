@@ -7,6 +7,7 @@
 // ("Needs: … · When: … · Where: … · Prefers: …") and may be phone-only.
 
 import { answersSummary, answersEmailHtml } from "./quote-form.js";
+import { emailLogoHtml } from "./email-html.js";
 
 // Visitor-typed text goes into email HTML: escape it so nobody can plant
 // links or markup in an owner's inbox.
@@ -44,6 +45,7 @@ export function ownerLeadEmail({ bName, name, email, phone, subject, message, an
     subject: `New message from ${name} via your Enoma page`,
     html: `
           <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a;">
+            <div style="padding:0 0 14px;">${emailLogoHtml()}</div>
             <div style="background:#0a1628;padding:24px 28px;border-radius:12px 12px 0 0;">
               <p style="margin:0;font-size:13px;font-weight:700;color:rgba(220,238,255,0.7);letter-spacing:0.1em;text-transform:uppercase;">New message</p>
               <p style="margin:6px 0 0;font-size:20px;font-weight:800;color:#fff;">${esc(bName)}</p>
@@ -60,8 +62,8 @@ export function ownerLeadEmail({ bName, name, email, phone, subject, message, an
                 <p style="margin:0;font-size:14px;line-height:1.65;color:#374151;">${esc(message).replace(/\n/g, "<br>")}</p>
               </div>` : ""}
               ${email
-                ? `<a href="mailto:${esc(email)}?subject=Re: Your enquiry to ${esc(bName)}" style="display:inline-block;background:#0a1628;color:#fff;padding:10px 20px;border-radius:999px;font-weight:700;font-size:13px;text-decoration:none;">Reply to ${esc(name)} →</a>`
-                : `<a href="tel:${esc(tel)}" style="display:inline-block;background:#0a1628;color:#fff;padding:10px 20px;border-radius:999px;font-weight:700;font-size:13px;text-decoration:none;">Call ${esc(name)} at ${esc(phone)} →</a>`}
+                ? `<a href="mailto:${esc(email)}?subject=Re: Your enquiry to ${esc(bName)}" style="display:inline-block;background:#C84A12;color:#fff;padding:10px 20px;border-radius:999px;font-weight:700;font-size:13px;text-decoration:none;">Reply to ${esc(name)} →</a>`
+                : `<a href="tel:${esc(tel)}" style="display:inline-block;background:#C84A12;color:#fff;padding:10px 20px;border-radius:999px;font-weight:700;font-size:13px;text-decoration:none;">Call ${esc(name)} at ${esc(phone)} →</a>`}
               <p style="margin:20px 0 0;font-size:12px;color:#9ca3af;">This message was sent through your Enoma business page. <a href="https://enoma.io/dashboard" style="color:#7ab3e0;">View your dashboard →</a></p>
             </div>
           </div>

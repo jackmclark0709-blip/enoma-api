@@ -4,48 +4,25 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Sign in — Enoma</title>
-  <link rel="stylesheet" href="/styles/enoma.css" />
-  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/styles/enoma.css">
+  <link rel="icon" href="/brand/favicon.ico" sizes="any">
+  <link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#0A1628">
+  <meta property="og:image" content="https://enoma.io/brand/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://enoma.io/brand/og-image.png">
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
   <script src="/scripts/clarity.js" defer></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());function enomaGaConfig(c){try{var m=location.search.match(/[?&]internal=([01])(?:&|$)/);if(m)localStorage.setItem('enoma_internal',m[1]);if(localStorage.getItem('enoma_internal')==='1')c.traffic_type='internal'}catch(e){}try{if(/(?:^|; )enoma_internal=1(?:;|$)/.test(document.cookie))c.traffic_type='internal'}catch(e){}if(navigator.webdriver)window['ga-disable-G-S8XTG72Y2Y']=true;return c};gtag('config','G-S8XTG72Y2Y',enomaGaConfig({}));</script>
-  <style>
-    body { background: #f0f6ff; min-height: 100vh; display: flex; flex-direction: column; }
-    .auth-page { flex: 1; display: flex; align-items: center; justify-content: center; padding: 3rem 1.5rem; }
-    .auth-card {
-      width: 100%; max-width: 440px;
-      background: #fff; border: 1px solid #d4e2f4;
-      border-radius: 20px; padding: 2.5rem;
-      box-shadow: 0 12px 40px rgba(10,22,40,0.10);
-    }
-    .auth-eyebrow { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #3882dc; margin-bottom: 0.5rem; }
-    .auth-card h1 { font-family: 'DM Sans', sans-serif; font-size: 1.75rem; font-weight: 800; color: #0a1628; letter-spacing: -0.02em; margin: 0 0 0.4rem; }
-    .auth-subtitle { font-size: 0.9rem; color: #5a7a9a; margin: 0 0 1.75rem; line-height: 1.5; }
-    .field { margin-bottom: 1rem; }
-    .field label { display: block; font-size: 0.85rem; font-weight: 600; color: #2a4060; margin-bottom: 0.35rem; }
-    .field input {
-      width: 100%; padding: 0.75rem 1rem;
-      border: 1.5px solid #d4e2f4; border-radius: 10px;
-      font-size: 0.95rem; font-family: inherit; color: #0a1628;
-      background: #f7faff; box-sizing: border-box;
-      transition: border-color 0.15s ease, box-shadow 0.15s ease;
-    }
-    .field input:focus { outline: none; border-color: #3882dc; box-shadow: 0 0 0 3px rgba(56,130,220,0.15); background: #fff; }
-    .submit-btn {
-      width: 100%; padding: 0.9rem; margin-top: 0.5rem;
-      background: #0a1628; color: #fff;
-      border: none; border-radius: 999px;
-      font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 1rem;
-      cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-    .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(10,22,40,0.25); }
-    .error-msg { color: #d94040; font-size: 0.85rem; margin-top: 0.5rem; min-height: 1.2em; }
-    .auth-links { font-size: 0.85rem; color: #5a7a9a; margin-top: 1.25rem; text-align: center; }
-    .auth-links a { color: #3882dc; font-weight: 600; text-decoration: none; }
-    #site-footer { margin-top: auto; }
-  </style>
 </head>
-<body>
+<body class="page-login">
 <script src="/scripts/ref-capture.js"></script>
 <script type="module" src="/partials/nav.js"></script>
 

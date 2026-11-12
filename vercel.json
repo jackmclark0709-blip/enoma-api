@@ -39,7 +39,7 @@
     { "source": "/for/website-builder-for-contractors", "destination": "/for/website-builder-for-contractors.html" },
     { "source": "/for/:slug", "destination": "/for/:slug.html" },
     {
-      "source": "/((?!favicon|(?:assets|api|dashboard|styles|scripts|partials|website-live|pricing|examples|contact|request|privacy|terms|index|upgrade|for|case-studies|feedback)(?:/|\\.|$)).*)",
+      "source": "/((?!favicon|site\\.webmanifest|(?:assets|brand|api|dashboard|styles|scripts|partials|website-live|pricing|examples|contact|request|privacy|terms|index|upgrade|for|case-studies|feedback)(?:/|\\.|$)).*)",
       "destination": "/api/p?slug=$1"
     }
   ],

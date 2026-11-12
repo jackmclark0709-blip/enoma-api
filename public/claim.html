@@ -4,26 +4,26 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Claim your business — Enoma</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/styles/enoma.css">
+  <link rel="icon" href="/brand/favicon.ico" sizes="any">
+  <link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#0A1628">
+  <meta property="og:image" content="https://enoma.io/brand/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://enoma.io/brand/og-image.png">
   <meta name="robots" content="noindex,nofollow" />
-  <link rel="stylesheet" href="/styles/enoma.css" />
-  <link rel="icon" href="/favicon.ico" sizes="any" />
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
   <script src="/scripts/clarity.js" defer></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());function enomaGaConfig(c){try{var m=location.search.match(/[?&]internal=([01])(?:&|$)/);if(m)localStorage.setItem('enoma_internal',m[1]);if(localStorage.getItem('enoma_internal')==='1')c.traffic_type='internal'}catch(e){}try{if(/(?:^|; )enoma_internal=1(?:;|$)/.test(document.cookie))c.traffic_type='internal'}catch(e){}if(navigator.webdriver)window['ga-disable-G-S8XTG72Y2Y']=true;return c};gtag('config','G-S8XTG72Y2Y',enomaGaConfig({}));</script>
-  <style>
-    body { background: #f0f6ff; min-height: 100vh; display: flex; flex-direction: column; }
-    .auth-page { flex: 1; display: flex; align-items: center; justify-content: center; padding: 3rem 1.5rem; }
-    .auth-card { width: 100%; max-width: 440px; background: #fff; border: 1px solid #d4e2f4; border-radius: 20px; padding: 2.5rem; text-align: center; box-shadow: 0 12px 40px rgba(10,22,40,0.10); }
-    .auth-eyebrow { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #3882dc; margin-bottom: 0.75rem; }
-    .auth-card h1 { font-family: 'DM Sans', sans-serif; font-size: 1.5rem; font-weight: 800; color: #0a1628; letter-spacing: -0.02em; margin: 0 0 0.5rem; }
-    .auth-subtitle { font-size: 0.9rem; color: #5a7a9a; margin: 0; line-height: 1.6; }
-    .spinner { width: 32px; height: 32px; border: 3px solid #d4e2f4; border-top-color: #3882dc; border-radius: 50%; margin: 0 auto 1.25rem; animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .claim-link { display: inline-block; margin-top: 1.25rem; font-size: 0.9rem; font-weight: 700; color: #3882dc; text-decoration: none; }
-    #site-footer { margin-top: auto; }
-  </style>
 </head>
-<body>
+<body class="page-claim">
 <script src="/scripts/ref-capture.js"></script>
 <script type="module" src="/partials/nav.js"></script>
 
@@ -50,7 +50,7 @@ function setStatus(heading, message, isError) {
   document.getElementById('claim-heading').textContent = heading;
   var msgEl = document.getElementById('claim-message');
   msgEl.textContent = message;
-  msgEl.style.color = isError ? '#d94040' : '#5a7a9a';
+  msgEl.style.color = isError ? 'var(--danger)' : 'var(--muted)';
 }
 
 // First landing + utm_* stored by /scripts/ref-capture.js (never replaced).

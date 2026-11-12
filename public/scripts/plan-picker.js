@@ -38,30 +38,6 @@
     return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
   }
 
-  var CSS =
-    ".epp{--epp-fg:#0a1628;--epp-muted:#5a7a9a;--epp-line:#d4e2f4;--epp-card:#fff;--epp-on:#0a1628;--epp-on-bg:#f0f6ff;--epp-btn:#0a1628;--epp-btn-fg:#fff;--epp-save:#0f7a3d;--epp-save-bg:#e3f6ea;display:flex;flex-direction:column;gap:.75rem;width:100%;text-align:left;font-family:inherit}" +
-    ".epp--dark{--epp-fg:#fff;--epp-muted:rgba(220,238,255,.75);--epp-line:rgba(255,255,255,.22);--epp-card:rgba(255,255,255,.04);--epp-on:#7ab3e0;--epp-on-bg:rgba(122,179,224,.14);--epp-btn:#fff;--epp-btn-fg:#0a1628;--epp-save:#0a1628;--epp-save-bg:#9be3b4}" +
-    ".epp-choices{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;border:0;margin:0;padding:0;min-width:0}" +
-    "@media (max-width:520px){.epp-choices{grid-template-columns:1fr}}" +
-    ".epp-opt{position:relative;display:flex;flex-direction:column;gap:.3rem;padding:.8rem .9rem .85rem 2.4rem;border:1.5px solid var(--epp-line);border-radius:14px;background:var(--epp-card);cursor:pointer;color:var(--epp-fg);min-width:0}" +
-    ".epp-opt:has(input:checked){border-color:var(--epp-on);background:var(--epp-on-bg)}" +
-    ".epp-opt:has(input:focus-visible){outline:2px solid var(--epp-on);outline-offset:2px}" +
-    ".epp-opt input{position:absolute;left:.9rem;top:.95rem;margin:0;width:1rem;height:1rem;accent-color:var(--epp-on)}" +
-    ".epp-opt__head{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;font-weight:700;font-size:.95rem}" +
-    ".epp-save{font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--epp-save);background:var(--epp-save-bg);border-radius:999px;padding:.12rem .5rem}" +
-    ".epp-opt__price{font-size:.86rem;color:var(--epp-fg);line-height:1.4}" +
-    ".epp-opt__perk{font-size:.8rem;color:var(--epp-muted);line-height:1.45}" +
-    ".epp-btn{width:100%;padding:.85rem 1rem;border:none;border-radius:999px;background:var(--epp-btn);color:var(--epp-btn-fg);font:inherit;font-weight:700;font-size:.95rem;cursor:pointer}" +
-    ".epp-btn:disabled{opacity:.6;cursor:wait}" +
-    ".epp-note{margin:0;font-size:.82rem;color:var(--epp-muted);text-align:center;line-height:1.45}";
-
-  function injectCss() {
-    if (document.getElementById("epp-css")) return;
-    var s = document.createElement("style");
-    s.id = "epp-css";
-    s.textContent = CSS;
-    document.head.appendChild(s);
-  }
 
   // "year" | "month" if the owner picked a plan before claiming (the preview
   // landing's "subscribe now" link, saved by public/scripts/profile.js), else null.
@@ -77,7 +53,6 @@
   var seq = 0;
   function mount(el, opts) {
     if (!el || !opts || !opts.businessId) return null;
-    injectCss();
     var name = "epp-interval-" + ++seq;
     var chargeOn = firstChargeDate(opts.sub);
     el.innerHTML =

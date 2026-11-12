@@ -25,7 +25,7 @@ async function loadNav() {
         <a href="/examples">Examples</a>
         <a href="/contact">Contact</a>
         <a href="/dashboard">Dashboard</a>
-        <button id="logout-btn" class="btn-primary" style="font-size:0.85rem;padding:0.45rem 1.1rem;">Log out</button>
+        <button id="logout-btn" class="btn btn--secondary btn--sm">Log out</button>
       `;
       document.getElementById("logout-btn")?.addEventListener("click", async () => {
         await supabase.auth.signOut();
@@ -37,7 +37,7 @@ async function loadNav() {
         <a href="/examples">Examples</a>
         <a href="/contact">Contact</a>
         <a href="/login" class="site-nav__login">Sign in</a>
-        <a href="/get-your-website?cta=nav" class="btn-primary" style="font-size:0.85rem;padding:0.45rem 1.1rem;">See your page</a>
+        <a href="/get-your-website?cta=nav" class="btn btn--primary btn--sm">See your page</a>
       `;
     }
 

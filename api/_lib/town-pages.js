@@ -136,49 +136,28 @@ export function renderTownPage(p, { pairs, asOf, asOfLabel }) {
   <meta property="og:site_name" content="Enoma" />
   <meta property="og:title" content="${esc(title)}" />
   <meta property="og:description" content="${esc(desc)}" />
-  <meta property="og:image" content="https://enoma.io/assets/og/enoma-default-v2.png" />
   <meta property="og:url" content="${url}" />
-  <link rel="stylesheet" href="/styles/enoma.css" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700;9..40,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/styles/enoma.css">
+  <link rel="icon" href="/brand/favicon.ico" sizes="any">
+  <link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#0A1628">
+  <meta property="og:image" content="https://enoma.io/brand/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://enoma.io/brand/og-image.png">
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8XTG72Y2Y"></script>
   <script src="/scripts/clarity.js" defer></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());function enomaGaConfig(c){try{var m=location.search.match(/[?&]internal=([01])(?:&|$)/);if(m)localStorage.setItem('enoma_internal',m[1]);if(localStorage.getItem('enoma_internal')==='1')c.traffic_type='internal'}catch(e){}try{if(/(?:^|; )enoma_internal=1(?:;|$)/.test(document.cookie))c.traffic_type='internal'}catch(e){}if(navigator.webdriver)window['ga-disable-G-S8XTG72Y2Y']=true;return c};gtag('config','G-S8XTG72Y2Y',enomaGaConfig({}));</script>
   <script type="application/ld+json">${JSON.stringify(schema)}</script>
   <script type="application/ld+json">${JSON.stringify(faq)}</script>
-  <style>
-    body{background:#f0f6ff;font-family:'Inter',system-ui,sans-serif;color:#0a1628}
-    h1,h2,h3{font-family:'DM Sans',sans-serif;letter-spacing:-0.02em}
-    .tp-hero{background:#0a1628;color:#f0f6ff;padding:4.5rem 1.5rem 3.5rem}
-    .tp-wrap{max-width:860px;margin-inline:auto}
-    .tp-eyebrow{font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#7ab3e0;margin-bottom:.8rem}
-    .tp-hero h1{font-size:clamp(1.9rem,4.4vw,2.8rem);font-weight:800;line-height:1.08;margin:0 0 1rem;color:#f0f6ff}
-    .tp-hero h1 em{font-style:normal;color:#5aa8f0}
-    .tp-hero p{color:rgba(240,246,255,.7);font-size:1.05rem;line-height:1.6;max-width:600px;margin:0 0 1.75rem}
-    .tp-actions{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center}
-    .tp-proof{margin-top:1rem;font-size:.8rem;color:rgba(240,246,255,.45)}
-    .tp-sec{padding:3.5rem 1.5rem}
-    .tp-sec--white{background:#fff;border-top:1px solid #d4e2f4;border-bottom:1px solid #d4e2f4}
-    .tp-label{font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#3882dc;margin-bottom:.5rem}
-    .tp-sec h2{font-size:clamp(1.4rem,3vw,1.9rem);font-weight:800;margin:0 0 1rem}
-    .tp-sec p{color:#2a4060;line-height:1.7;margin:0 0 .9rem;max-width:680px}
-    .tp-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin:1.5rem 0}
-    .tp-stat{background:#f0f6ff;border:1px solid #d4e2f4;border-radius:12px;padding:1.1rem}
-    .tp-stat b{display:block;font-family:'DM Sans',sans-serif;font-size:2rem;font-weight:800;color:#0a1628}
-    .tp-stat span{font-size:.85rem;color:#5a7a9a}
-    .tp-source{font-size:.78rem;color:#5a7a9a}
-    .tp-list{margin:0 0 1rem;padding-left:1.1rem;color:#2a4060;line-height:1.8}
-    .tp-chip{display:inline-block;margin:0 .4rem .5rem 0;padding:.4rem .85rem;border-radius:999px;background:#e6f1fb;border:1px solid #c5d8f0;color:#0c447c;font-weight:600;font-size:.88rem;text-decoration:none}
-    .tp-faq h3{font-size:1.05rem;margin:1.25rem 0 .35rem}
-    .tp-cta{background:#0a1628;color:#f0f6ff;text-align:center;padding:4rem 1.5rem}
-    .tp-cta h2{font-size:clamp(1.6rem,3.4vw,2.2rem);font-weight:800;margin:0 0 .75rem;color:#f0f6ff}
-    .tp-cta p{color:rgba(240,246,255,.65);margin:0 auto 1.75rem;max-width:520px}
-    .tp-cta .tp-actions{justify-content:center}
-    @media(max-width:640px){.tp-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
-  </style>
 </head>
-<body>
+<body class="page-guide page-town">
 <script src="/scripts/ref-capture.js"></script>
 <script type="module" src="/partials/nav.js"></script>
 
@@ -188,8 +167,8 @@ export function renderTownPage(p, { pairs, asOf, asOfLabel }) {
     <h1>A website that gets ${esc(p.city)} homeowners <em>calling you</em></h1>
     <p>A one-page site for your ${esc(t.business)}, built for one job: turning a local Google search into a call or a quote request. Build it in about 5 minutes, or we'll set it up for you.</p>
     <div class="tp-actions">
-      <a href="/get-your-website" class="btn-primary">See your page in 30 seconds →</a>
-      <a href="/get-your-website" class="btn-secondary">Have us set it up</a>
+      <a href="/get-your-website" class="btn btn--primary">See your page in 30 seconds →</a>
+      <a href="/get-your-website" class="btn btn--on-dark">Have us set it up</a>
     </div>
     <p class="tp-proof">First month free &nbsp;·&nbsp; No credit card &nbsp;·&nbsp; Then $19.99/mo with personal support</p>
   </div>
@@ -245,8 +224,8 @@ ${sibs.length ? `
     <h2>Get your ${esc(p.city)} ${esc(t.business)} found</h2>
     <p>Your page can be live today. If it isn't bringing in calls after your free month, walk away. No contract.</p>
     <div class="tp-actions">
-      <a href="/get-your-website" class="btn-primary">See your page in 30 seconds →</a>
-      <a href="/examples" class="btn-secondary">See live examples</a>
+      <a href="/get-your-website" class="btn btn--primary">See your page in 30 seconds →</a>
+      <a href="/examples" class="btn btn--on-dark">See live examples</a>
     </div>
   </div>
 </section>

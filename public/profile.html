@@ -16,7 +16,7 @@
   <meta name="twitter:title" content="{{FINAL_TITLE}}" />
   <meta name="twitter:description" content="{{FINAL_DESCRIPTION}}" />
   <meta name="twitter:image" content="{{FINAL_OG_IMAGE}}" />
-  <link rel="stylesheet" href="/styles/enoma.css" />
+  <link rel="stylesheet" href="/styles/business-base.css" />
   <!-- Shared by every Enoma business page (company page + service spotlights) -->
   <link rel="stylesheet" href="/styles/business-pages.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -272,7 +272,7 @@ body.has-starter-logo .wordmark { display: none !important; }
 .band > .faq-wrap { padding: 3rem 1.5rem; max-width: 860px; margin: 0 auto; }
 
 /* ── About — single clean section, no sub-cards ──
-   (enoma.css has a legacy `#aboutSection p` rule that boxes every <p>
+   (business-base.css has a legacy `#aboutSection p` rule that boxes every <p>
    in this section, including the "Follow Us" sub-text — reset that
    base case before the more specific lead/body rules below.) */
 .page-content #aboutSection p {
@@ -328,7 +328,7 @@ body.has-starter-logo .wordmark { display: none !important; }
 .no-photos-nudge a:hover { text-decoration: underline; }
 
 /* ── Services — linear rows, not cards ──
-   (enoma.css has its own legacy .service-card card styles with a
+   (business-base.css has its own legacy .service-card card styles with a
    border/shadow/first-child highlight — this fully resets every
    property it sets, not just the ones we want to change, so nothing
    leaks through.) */
@@ -416,7 +416,7 @@ body.has-starter-logo .wordmark { display: none !important; }
 }
 
 /* ── Testimonials — pull-quote style, not cards ──
-   (enoma.css has a legacy .testimonial card with its own ::before
+   (business-base.css has a legacy .testimonial card with its own ::before
    quote mark, border-left accent and shadow — reset all of it and
    render the quote mark as a real element in the JS template instead
    of a pseudo-element, so there's only ever one.) */
@@ -460,7 +460,7 @@ body.has-starter-logo .wordmark { display: none !important; }
 }
 
 /* ── FAQs ──
-   (enoma.css has a legacy #faqs rule adding its own "Quick answers"
+   (business-base.css has a legacy #faqs rule adding its own "Quick answers"
    eyebrow + spacing, and a .faq-item-wrapper card with a full border/
    radius/shadow — both fully reset below.) */
 .faq-wrap { max-width: 860px; margin: 0 auto; padding: 3rem 0; border-bottom: 1px solid #e8f0f8; }
@@ -522,7 +522,7 @@ body.has-starter-logo .wordmark { display: none !important; }
 }
 .contact-inner h2 { text-align: center; }
 .contact-inner .contact-intro { text-align: center; margin-bottom: 1.5rem; }
-/* enoma.css puts a white card (background/padding/border/shadow) around
+/* business-base.css puts a white card (background/padding/border/shadow) around
    this form by default — reset it so the fields sit directly on the page. */
 .page-content .contact form {
   background: none; padding: 0; border: none; border-radius: 0; box-shadow: none;
@@ -579,7 +579,7 @@ body.has-starter-logo .wordmark { display: none !important; }
 }
 
 /* ── Why, then Testimonials — stacked in one column, not a sidebar ──
-   enoma.css has a legacy #whySection rule (this div's id, not just its
+   business-base.css has a legacy #whySection rule (this div's id, not just its
    .why-main class) that adds 5rem of padding, a centered heading, and
    a centered ::before bar — an ID beats any number of classes, so it
    was winning over everything below. Reset it with an equally-ID'd
@@ -777,7 +777,9 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 .hidden { display: none !important; }
 #contact { scroll-margin-top: 80px; }
 
-/* ── Unclaimed-page banner ── */
+/* ── Unclaimed-page banner ──
+   Enoma chrome shown to the owner, not the business theme: uses Enoma brand
+   values (ink #0A1628, CTA orange #C84A12) because this page does not load enoma.css. */
 .unclaimed-banner {
   background: #fff7e6;
   border-bottom: 1px solid #f0d9a8;
@@ -788,7 +790,7 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 .unclaimed-cta { font-weight: 700; color: #0a1628; text-decoration: underline; white-space: nowrap; margin-left: 0.4rem; }
 .unclaimed-cta:hover { color: var(--brand-primary, #1a3a2a); }
 .claim-box { max-width: 560px; margin: 0.25rem auto 0.35rem; text-align: left; }
-.unclaimed-banner.is-new { background: #0d1f0f; border-bottom-color: #0d1f0f; padding: 1.1rem 1.25rem 1.2rem; }
+.unclaimed-banner.is-new { background: #0A1628; border-bottom-color: #0A1628; padding: 1.1rem 1.25rem 1.2rem; }
 .unclaimed-banner.is-new .claim-box__title { color: #f0f6ff; }
 .unclaimed-banner.is-new .claim-box__sub, .unclaimed-banner.is-new .claim-box__label, .unclaimed-banner.is-new .claim-box__msg { color: rgba(240,246,255,0.75); }
 .claim-box__title { margin: 0 0 0.25rem; font-size: 1.05rem; font-weight: 800; color: #0a1628; letter-spacing: -0.01em; }
@@ -796,7 +798,9 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 .claim-box__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .claim-box__form { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .claim-box__form input { flex: 1 1 220px; min-width: 0; padding: 0.7rem 0.85rem; border: 1px solid #d4c08a; border-radius: 10px; font: inherit; font-size: 0.95rem; background: #fff; color: #0a1628; }
-.claim-box__form button { flex: 0 0 auto; padding: 0.7rem 1.1rem; border: 0; border-radius: 10px; background: #4a9e3a; color: #0a1628; font: inherit; font-weight: 800; font-size: 0.92rem; cursor: pointer; }
+.claim-box__form button { flex: 0 0 auto; padding: 0.7rem 1.1rem; border: 0; border-radius: 10px; background: #C84A12; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 0.92rem; cursor: pointer; }
+.claim-box__form button:hover { background: #A63C0E; }
+.claim-box__form button:focus-visible { outline: 2px solid #3B9BE8; outline-offset: 2px; }
 .claim-box__form button:disabled { opacity: 0.6; cursor: wait; }
 .claim-box__msg { margin: 0.6rem 0 0; font-size: 0.88rem; color: #7a5a10; line-height: 1.5; }
 .claim-box__msg.is-error { color: #d94040 !important; }
@@ -808,10 +812,10 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 .owner-progress { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 0.75rem 0.85rem; margin: 0 0 0.7rem; }
 .unclaimed-banner .owner-progress .owner-progress__title { margin: 0 0 0.45rem; font-weight: 800; color: #f0f6ff; font-size: 0.92rem; }
 .owner-progress__bar { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.15); overflow: hidden; margin-bottom: 0.6rem; }
-.owner-progress__bar span { display: block; height: 100%; background: #4a9e3a; border-radius: 999px; }
+.owner-progress__bar span { display: block; height: 100%; background: #2A9D6F; border-radius: 999px; }
 .owner-progress__list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.35rem; }
 .owner-progress__list li { font-size: 0.8rem; padding: 0.2rem 0.55rem; border-radius: 999px; border: 1px solid rgba(255,255,255,0.18); color: rgba(240,246,255,0.75); }
-.owner-progress__list li.is-done { border-color: rgba(74,158,58,0.6); color: #cfe8c8; }
+.owner-progress__list li.is-done { border-color: rgba(42,157,111,0.6); color: #D1F0E4; }
 .owner-progress__list li.is-done::before { content: "\2713  "; }
 .owner-progress__list li:not(.is-done)::before { content: "\25CB  "; }
 .unclaimed-banner .owner-extras .owner-extras__note { margin: 0; color: rgba(240,246,255,0.75); font-size: 0.85rem; }
@@ -880,16 +884,16 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 }
 
 /* ── Preview-page poll (unclaimed pages only) ── */
-.preview-poll { position: fixed; right: 16px; bottom: 16px; z-index: 60; width: min(340px, calc(100vw - 32px)); background: #0a1628; color: #f0f6ff; border-radius: 16px; padding: 1rem 1rem 0.9rem; box-shadow: 0 14px 40px rgba(10,22,40,0.35); font-family: 'DM Sans', system-ui, sans-serif; transform: translateY(12px); opacity: 0; transition: opacity .25s ease, transform .25s ease; }
+.preview-poll { position: fixed; right: 16px; bottom: 16px; z-index: 60; width: min(340px, calc(100vw - 32px)); background: #0a1628; color: #F6F8FB; border-radius: 16px; padding: 1rem 1rem 0.9rem; box-shadow: 0 14px 40px rgba(10,22,40,0.35); font-family: 'DM Sans', system-ui, sans-serif; transform: translateY(12px); opacity: 0; transition: opacity .25s ease, transform .25s ease; }
 .preview-poll.is-shown { transform: none; opacity: 1; }
-.preview-poll__close { position: absolute; top: 6px; right: 8px; background: none; border: 0; color: rgba(240,246,255,0.6); font-size: 1.3rem; line-height: 1; cursor: pointer; padding: 4px 6px; }
-.preview-poll .preview-poll__q { color: #f0f6ff; margin: 0 1.5rem 0.75rem 0; font-size: 0.95rem; font-weight: 700; line-height: 1.4; }
+.preview-poll__close { position: absolute; top: 6px; right: 8px; background: none; border: 0; color: rgba(246,248,251,0.6); font-size: 1.3rem; line-height: 1; cursor: pointer; padding: 4px 6px; }
+.preview-poll .preview-poll__q { color: #F6F8FB; margin: 0 1.5rem 0.75rem 0; font-size: 0.95rem; font-weight: 700; line-height: 1.4; }
 .preview-poll__opts { display: flex; gap: 0.4rem; }
-.preview-poll__opts button { flex: 1; padding: 0.6rem 0.4rem; border: 1px solid rgba(122,179,224,0.45); border-radius: 10px; background: rgba(56,130,220,0.12); color: #f0f6ff; font: inherit; font-size: 0.88rem; font-weight: 700; cursor: pointer; }
-.preview-poll__opts button:hover, .preview-poll__opts button:focus-visible { background: #3882dc; border-color: #3882dc; outline: none; }
-.preview-poll textarea { width: 100%; box-sizing: border-box; min-height: 70px; margin: 0 0 0.5rem; padding: 0.6rem 0.7rem; border-radius: 10px; border: 1px solid rgba(122,179,224,0.45); background: #fff; color: #0a1628; font: inherit; font-size: 0.9rem; resize: vertical; }
-.preview-poll__send { width: 100%; padding: 0.6rem; border: 0; border-radius: 10px; background: #3882dc; color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
-.preview-poll .preview-poll__thanks { margin: 0; font-size: 0.92rem; color: #7ab3e0; font-weight: 700; }
+.preview-poll__opts button { flex: 1; padding: 0.6rem 0.4rem; border: 1px solid rgba(59,155,232,0.45); border-radius: 10px; background: rgba(59,155,232,0.12); color: #F6F8FB; font: inherit; font-size: 0.88rem; font-weight: 700; cursor: pointer; }
+.preview-poll__opts button:hover, .preview-poll__opts button:focus-visible { background: #0A72C4; border-color: #0A72C4; outline: none; }
+.preview-poll textarea { width: 100%; box-sizing: border-box; min-height: 70px; margin: 0 0 0.5rem; padding: 0.6rem 0.7rem; border-radius: 10px; border: 1px solid rgba(59,155,232,0.45); background: #fff; color: #0a1628; font: inherit; font-size: 0.9rem; resize: vertical; }
+.preview-poll__send { width: 100%; padding: 0.6rem; border: 0; border-radius: 10px; background: #C84A12; color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.preview-poll .preview-poll__thanks { margin: 0; font-size: 0.92rem; color: #3B9BE8; font-weight: 700; }
 @media (max-width: 768px) { body.has-mobile-call-bar .preview-poll { bottom: 82px; } }
 </style>
 <link rel="stylesheet" href="/styles/quote-form.css" />
@@ -1130,7 +1134,7 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
   <div class="enoma-footer-inner">
     <div class="enoma-footer-left">
       <a href="https://enoma.io" target="_blank" rel="noopener" class="enoma-footer-logo" aria-label="Enoma">
-        <img src="/assets/logos/enoma-white-name-tagline.png" alt="Enoma" loading="lazy" />
+        <img src="/brand/enoma-wordmark-ondark-cropped.svg" alt="Enoma" width="93" height="26" loading="lazy" />
       </a>
       <span class="enoma-description">Powered by Enoma</span>
     </div>

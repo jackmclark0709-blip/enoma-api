@@ -8,6 +8,7 @@ import { Resend } from 'resend';
 import { cleanReview, escHtml } from './_lib/reviews.js';
 import { cleanAnswers, safeReturnPath } from './_lib/quote-form.js';
 import { leadRow, ownerLeadEmail, jackLeadAlert } from './_lib/lead-email.js';
+import { emailLogoHtml } from './_lib/email-html.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -135,8 +136,8 @@ export default async function handler(req, res) {
         subject: `Thanks — we'll be in touch`,
         html: `
           <div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#1a1a1a;">
-            <div style="background:#0f172a;padding:24px 28px;border-radius:12px 12px 0 0;">
-              <p style="margin:0;font-size:22px;font-weight:800;color:#fff;">🌿 enoma</p>
+            <div style="background:#ffffff;padding:20px 28px;border:1px solid #DCE3ED;border-bottom:none;border-radius:12px 12px 0 0;">
+              ${emailLogoHtml()}
             </div>
             <div style="background:#fff;border:1px solid #e4edf5;border-top:none;border-radius:0 0 12px 12px;padding:28px;">
               <p style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 12px;">Thanks for reaching out!</p>
@@ -144,7 +145,7 @@ export default async function handler(req, res) {
                 We got your email — I'll personally follow up shortly to see how Enoma can help your business grow.
                 Questions in the meantime? Just reply to this email.<br><br>
                 — Jack<br>
-                <a href="https://enoma.io" style="color:#3882dc;">enoma.io</a>
+                <a href="https://enoma.io" style="color:#0A72C4;">enoma.io</a>
               </p>
             </div>
           </div>
@@ -229,8 +230,8 @@ export default async function handler(req, res) {
         subject: `We got your request — page coming within 24 hours`,
         html: `
           <div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#1a1a1a;">
-            <div style="background:#0f172a;padding:24px 28px;border-radius:12px 12px 0 0;">
-              <p style="margin:0;font-size:22px;font-weight:800;color:#fff;">🌿 enoma</p>
+            <div style="background:#ffffff;padding:20px 28px;border:1px solid #DCE3ED;border-bottom:none;border-radius:12px 12px 0 0;">
+              ${emailLogoHtml()}
             </div>
             <div style="background:#fff;border:1px solid #e4edf5;border-top:none;border-radius:0 0 12px 12px;padding:28px;">
               <p style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 12px;">Hey, we got your request!</p>
@@ -243,7 +244,7 @@ export default async function handler(req, res) {
               <p style="font-size:14px;color:#374151;margin:0;">
                 Any questions? Just reply to this email.<br><br>
                 — Jack<br>
-                <a href="https://enoma.io" style="color:#3882dc;">enoma.io</a>
+                <a href="https://enoma.io" style="color:#0A72C4;">enoma.io</a>
               </p>
             </div>
           </div>
@@ -327,8 +328,8 @@ export default async function handler(req, res) {
         subject: `One more step to get ${name}'s page live`,
         html: `
           <div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#1a1a1a;">
-            <div style="background:#0f172a;padding:24px 28px;border-radius:12px 12px 0 0;">
-              <p style="margin:0;font-size:22px;font-weight:800;color:#fff;">🌿 enoma</p>
+            <div style="background:#ffffff;padding:20px 28px;border:1px solid #DCE3ED;border-bottom:none;border-radius:12px 12px 0 0;">
+              ${emailLogoHtml()}
             </div>
             <div style="background:#fff;border:1px solid #e4edf5;border-top:none;border-radius:0 0 12px 12px;padding:28px;">
               <p style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 12px;">Thanks for starting your free page!</p>
@@ -339,7 +340,7 @@ export default async function handler(req, res) {
                 <li><strong>Build it myself</strong> — our AI writes your page copy instantly, live in about 5 minutes.</li>
                 <li><strong>Have Jack build it</strong> — tell us a bit more and we'll build it by hand, ready within 1 business day.</li>
               </ul>
-              <a href="${continueUrl}" style="display:inline-block;background:#3882dc;color:#fff;padding:11px 22px;border-radius:999px;font-weight:700;font-size:13px;text-decoration:none;">Pick up where you left off →</a>
+              <a href="${continueUrl}" style="display:inline-block;background:#C84A12;color:#fff;padding:11px 22px;border-radius:999px;font-weight:700;font-size:13px;text-decoration:none;">Pick up where you left off →</a>
               <p style="font-size:13px;color:#9ca3af;margin:20px 0 0;">Questions? Just reply to this email.<br>— Jack</p>
             </div>
           </div>
@@ -373,10 +374,11 @@ export default async function handler(req, res) {
           to: biz.email,
           subject: `New ${checked.value.rating}-star review for ${biz.business_name}`,
           html: `<div style="font-family:sans-serif;max-width:520px;color:#1a1a1a">
+            <div style="margin:0 0 16px;">${emailLogoHtml()}</div>
             <p style="font-size:16px;font-weight:700">${escHtml(checked.value.name)} left you ${'★'.repeat(checked.value.rating)}</p>
-            <blockquote style="margin:0 0 16px;padding:12px 16px;background:#f7faff;border-left:3px solid #3882dc">${escHtml(checked.value.quote)}</blockquote>
+            <blockquote style="margin:0 0 16px;padding:12px 16px;background:#f7faff;border-left:3px solid #0A72C4">${escHtml(checked.value.quote)}</blockquote>
             <p>It goes on your page once you approve it.</p>
-            <a href="https://enoma.io/dashboard" style="display:inline-block;background:#0a1628;color:#fff;padding:10px 20px;border-radius:999px;font-weight:700;text-decoration:none">Approve in your dashboard →</a>
+            <a href="https://enoma.io/dashboard" style="display:inline-block;background:#C84A12;color:#fff;padding:10px 20px;border-radius:999px;font-weight:700;text-decoration:none">Approve in your dashboard →</a>
           </div>`,
         });
       } catch (e) { console.error('review notify error:', e.message); }

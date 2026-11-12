@@ -401,7 +401,7 @@ export const GUIDES = [
 
 <h2>Do the math that actually matters: cost per booked job</h2>
 <p>Cost per lead hides the real number. A cheap lead you lose to three other pros isn't cheap. Put in last month's numbers from any lead site to see what each job really cost you.</p>
-<div class="lp-calc" style="border:1px solid rgba(127,127,127,.3);border-radius:12px;padding:1.25rem;margin:1.5rem 0;">
+<div class="lp-calc" style="border:1px solid var(--border-strong);border-radius:12px;padding:1.25rem;margin:1.5rem 0;">
   <label style="display:block;margin-bottom:.75rem;">What you spent on leads or ads last month ($)<br><input id="calcSpend" type="number" min="0" step="1" inputmode="decimal" placeholder="e.g. 400" style="width:100%;max-width:240px;padding:.5rem;margin-top:.25rem;font-size:1rem;"></label>
   <label style="display:block;margin-bottom:.75rem;">Jobs you actually booked from them<br><input id="calcJobs" type="number" min="0" step="1" inputmode="numeric" placeholder="e.g. 3" style="width:100%;max-width:240px;padding:.5rem;margin-top:.25rem;font-size:1rem;"></label>
   <p id="calcOut" aria-live="polite" style="margin:0;font-weight:600;">Enter both numbers to see your cost per booked job.</p>

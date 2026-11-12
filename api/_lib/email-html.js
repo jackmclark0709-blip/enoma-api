@@ -49,12 +49,27 @@ export function plainTextToHtml(text) {
     .join("\n");
 }
 
-export function wrapEmailHtml(bodyHtml) {
+// Brand values for email. Email clients need inline styles and real hex values,
+// so these mirror the tokens in public/styles/enoma.css (--ink, --cta, --accent).
+export const EMAIL_COLORS = { ink: "#0A1628", slate: "#2A3F5F", muted: "#5A6B80", accent: "#0A72C4", cta: "#C84A12", ctaText: "#FFFFFF", border: "#DCE3ED" };
+export const EMAIL_LOGO_URL = "https://enoma.io/brand/enoma-wordmark-blue.png";
+
+// The Enoma wordmark as a hosted PNG (1929x855), shown at 120px wide.
+export function emailLogoHtml() {
+  return `<img src="${EMAIL_LOGO_URL}" alt="Enoma" width="120" height="53" style="display:block;border:0;outline:none;width:120px;height:auto;">`;
+}
+
+// Primary action button for emails: burnt orange with white text.
+export function emailButtonHtml(label, url) {
+  return `<a href="${escapeHtml(url)}" style="display:inline-block;background:${EMAIL_COLORS.cta};color:${EMAIL_COLORS.ctaText};text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:999px;">${escapeHtml(label)}</a>`;
+}
+
+export function wrapEmailHtml(bodyHtml, { logo = false } = {}) {
   return `<!doctype html>
 <html>
 <body style="margin:0;padding:0;background:#ffffff;">
 <div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#222222;max-width:560px;margin:0 auto;padding:24px 16px;">
-${bodyHtml}
+${logo ? `<div style="margin:0 0 20px;">${emailLogoHtml()}</div>\n` : ""}${bodyHtml}
 </div>
 </body>
 </html>`;
