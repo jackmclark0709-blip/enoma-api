@@ -263,7 +263,9 @@ await test("has an anchor for every key detectCallouts can return", () => {
   }
 });
 await test("every first-choice anchor exists in public/profile.html", () => {
-  const profile = readFileSync(new URL("../public/profile.html", import.meta.url), "utf8");
+  // Sections that only render with content (towns, gallery, testimonials) are in page-ssr.js.
+  const profile = readFileSync(new URL("../public/profile.html", import.meta.url), "utf8")
+    + readFileSync(new URL("../api/_lib/page-ssr.js", import.meta.url), "utf8");
   for (const [k, sels] of Object.entries(CALLOUT_ANCHORS)) {
     const s = sels[0];
     const ok = s.startsWith("#") ? profile.includes(`id="${s.slice(1)}"`) : new RegExp(`class="[^"]*\\b${s.slice(1)}\\b`).test(profile);

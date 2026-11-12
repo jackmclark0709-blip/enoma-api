@@ -145,11 +145,42 @@ export function townsLine(profile) {
 }
 
 // Note under "Ready to get started?": only promises the business has made.
+// "Free estimates" comes from the business's own answer (offersFreeEstimates),
+// never from AI copy that happens to say it. "Local to" only for local trades.
 export function ctaNote(profile) {
   const items = [];
-  const t = allCopy(profile);
-  if (/free (estimate|quote)/.test(t)) items.push("Free estimates");
+  if (offersFreeEstimates(profile)) items.push("Free estimates");
   if (profile?.hero_response_time) items.push(String(profile.hero_response_time).trim().replace(/\.$/, ""));
-  if (profile?.city) items.push(`Local to ${profile.city}`);
+  if (profile?.city && isLocalRadius(profile)) items.push(`Local to ${profile.city}`);
   return items.slice(0, 3).join(" · ");
+}
+
+// Does the business offer free estimates? There's no field for it yet, so
+// nothing on a page may promise "free" quotes or estimates: CTA labels,
+// headings and the note under "Ready to get started?" all ask this first.
+// When the owner can say so (a form field), read it here and only here.
+export function offersFreeEstimates(profile) { // eslint-disable-line no-unused-vars
+  return false;
+}
+
+/** "Call for a free estimate" only when the business says so, else "Call for a quote". */
+export function callCtaLabel(profile) {
+  return offersFreeEstimates(profile) ? "Call for a free estimate" : "Call for a quote";
+}
+
+function serviceAreaList(profile) {
+  const v = profile?.service_area;
+  let list = v;
+  if (typeof v === "string") { try { list = JSON.parse(v); } catch { list = v.split(","); } }
+  return (Array.isArray(list) ? list : []).map(t => String(t || "").trim()).filter(Boolean);
+}
+
+/**
+ * A business that works within driving distance of a home base: 1–15 named
+ * areas, none of them "nationwide", "statewide", "remote" or "online". Only
+ * these get the map and the "Local to <town>" line; everyone keeps the area chips.
+ */
+export function isLocalRadius(profile) {
+  const areas = serviceAreaList(profile);
+  return areas.length >= 1 && areas.length <= 15 && !areas.some(a => /nationwide|statewide|remote|online/i.test(a));
 }

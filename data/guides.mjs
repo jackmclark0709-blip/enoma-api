@@ -442,7 +442,7 @@ export const GUIDES = [
 </ol>
 `,
     faqs: [
-      { q: "Is Enoma a lead marketplace like Angi or Thumbtack?", a: "No. Enoma doesn't sell leads. It builds a one-page website for your business, and every call or quote request from that page goes only to you. You pay $19.99 a month after a free first month, with no per-lead fees." },
+      { q: "Is Enoma a lead marketplace like Angi or Thumbtack?", a: "No. Enoma doesn't sell leads. It builds a one-page website for your business, and every call or quote request from that page goes only to you. It's $1 for your first month, then $19.99/month or $199/year. Cancel anytime. No per-lead fees." },
       { q: "Should I cancel Angi or Thumbtack if I get an Enoma page?", a: "Not right away. Keep anything that books jobs profitably, track cost per booked job for each source for a month or two, and cut the ones that cost the most per job as calls from your own page and Google listing grow." },
       { q: "Do I still need a Google Business Profile if I have an Enoma page?", a: "Yes. Your Google Business Profile is where most local searches start. Link it to your Enoma page so Google and customers find the same services, towns and phone number in both places." },
       { q: "Why does cost per booked job matter more than cost per lead?", a: "Because you can pay for a lead and never win the job, especially when the same homeowner hears from several pros. Dividing what you spent by the jobs you actually booked shows what each customer really cost." },
@@ -554,7 +554,7 @@ export const GUIDES = [
 
 <h2>The alternative: calls only you get</h2>
 <p>Every lead these platforms sell started as a homeowner searching. Showing up in that search yourself means the call comes straight to you. That takes a complete Google Business Profile, steady reviews, and a page that names your services and towns.</p>
-<div class="lp-callout">An Enoma page does that last part for $19.99/mo after a free first month, with no per-lead fees and no sharing. <a href="/get-your-website" data-cta="inline">See your page in 30 seconds</a>.</div>
+<div class="lp-callout">An Enoma page does that last part, with no per-lead fees and no sharing: $1 for your first month, then $19.99/month or $199/year. Cancel anytime. <a href="/get-your-website" data-cta="inline">See your page in 30 seconds</a>.</div>
 `,
     faqs: [
       { q: "Is Thumbtack or Angi better for contractors?", a: "It depends on your trade and area. The only reliable test is cost per booked job: divide last month's spend on each platform by the jobs you actually booked from it, and keep the one that costs less per job." },
@@ -617,7 +617,7 @@ export const GUIDES = [
 
 <h2>The part Yelp can't give you</h2>
 <p>Your Yelp page is Yelp's page: other businesses can advertise on it unless you pay to remove them, and it lives on Yelp's site. A page of your own, linked from your Google Business Profile, shows only your business and sends every call straight to you.</p>
-<div class="lp-callout">That's what an Enoma page is: your services, your towns, tap-to-call and a quote form, with no competitor ads. $19.99/mo after a free first month. <a href="/get-your-website" data-cta="inline">See your page in 30 seconds</a>.</div>
+<div class="lp-callout">That's what an Enoma page is: your services, your towns, tap-to-call and a quote form, with no competitor ads. $1 for your first month, then $19.99/month or $199/year. Cancel anytime. <a href="/get-your-website" data-cta="inline">See your page in 30 seconds</a>.</div>
 `,
     faqs: [
       { q: "Are Yelp ads worth it for contractors?", a: "They can be in cities and trades where people search Yelp heavily, and when you answer leads within minutes. Test with a small capped budget and judge it on cost per booked job, not clicks." },

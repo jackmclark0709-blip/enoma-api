@@ -100,7 +100,7 @@ test("removes thin rating claims from generated preview copy", () => {
     trust_badges: ["Mansfield, MA", "4★ from 1 Google review"],
     why_choose_us: ["Based in Mansfield, MA", "4★ rating from 1 Google review"],
   });
-  assert.equal(out.hero_tagline, "Landscaping and lawn care in Mansfield, MA — call for a free, no-obligation quote.");
+  assert.equal(out.hero_tagline, "Landscaping and lawn care in Mansfield, MA — call for a quote.");
   assert.deepEqual(out.trust_badges, ["Mansfield, MA"]);
   assert.deepEqual(out.why_choose_us, ["Based in Mansfield, MA"]);
 });

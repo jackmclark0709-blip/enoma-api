@@ -9,10 +9,10 @@ import fs from "fs";
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
 import { personaFor, pickPalette, splitWordmark, heroPatternSvg, isStrongRating, stripWeakRatingClaims, tidyHeadline } from "./_lib/page-style.js";
-import { renderSections, faqSchema } from "./_lib/page-ssr.js";
+import { renderSections, faqSchema, normalizeProfile } from "./_lib/page-ssr.js";
 import { isGrandfathered } from "./_lib/trial-policy.js";
 import { pageIndexable } from "./_lib/pricing.js";
-import { openSchedule, showEmergencyBadge, townsLine, ctaNote } from "./_lib/page-claims.js";
+import { openSchedule, showEmergencyBadge, ctaNote, isLocalRadius, callCtaLabel } from "./_lib/page-claims.js";
 import { heroPhoto as pickHeroPhoto, visibleAttachments } from "./_lib/photo-kinds.js";
 import { renderSpotlight, fillTemplate, linkServicesToSpotlights } from "./_lib/spotlight-render.js";
 import { REVIEW_SLUG, googleReviewUrl } from "./_lib/reviews.js";
@@ -56,79 +56,8 @@ function safeJsonForInlineScript(obj) {
   return JSON.stringify(obj).replace(/<\//g, "<\\/");
 }
 
-/**
- * normalizeProfile — standardize polymorphic fields before sending to client.
- *
- * The DB schema allows some fields to be stored as either a plain string
- * OR a JSON object/array (depending on how the record was created).
- * The frontend JS renderer only handles the string format for why_choose_us
- * and expects {q,a} or {question,answer} keys for faqs.
- * This function normalizes everything so the renderer always gets a consistent shape.
- */
-function normalizeProfile(p) {
-  if (!p) return p;
-  const out = { ...p };
-
-  // ── why_choose_us ──
-  // Accept: string | [{title,description}] | [{title}] | any array
-  // Emit:   newline-separated string
-  if (Array.isArray(out.why_choose_us)) {
-    out.why_choose_us = out.why_choose_us
-      .map(item => {
-        if (typeof item === "string") return item.trim();
-        if (item && typeof item === "object") {
-          const title = item.title || item.name || "";
-          const desc  = item.description || item.text || "";
-          return desc ? `${title} — ${desc}` : title;
-        }
-        return String(item);
-      })
-      .filter(Boolean)
-      .join("\n");
-  }
-
-  // ── faqs ──
-  // Accept: [{question,answer}] | [{q,a}] | string
-  // Emit:   [{q, a}] array (what the renderer uses)
-  if (Array.isArray(out.faqs)) {
-    out.faqs = out.faqs.map(f => {
-      if (!f || typeof f !== "object") return null;
-      return {
-        q: f.q || f.question || "",
-        a: f.a || f.answer   || "",
-      };
-    }).filter(Boolean);
-  }
-
-  // ── testimonials ──
-  // Accept: [{quote,author}] | [{text,name}] | string
-  // Emit:   [{quote, author}] array
-  if (Array.isArray(out.testimonials)) {
-    out.testimonials = out.testimonials.map(t => {
-      if (!t || typeof t !== "object") return null;
-      return {
-        quote:  t.quote  || t.text    || t.review || "",
-        author: t.author || t.name    || t.reviewer || "Customer",
-        ...(t.rating ? { rating: t.rating } : {}),
-        ...(t.source ? { source: t.source } : {}),
-      };
-    }).filter(t => t && t.quote);
-  }
-
-  // ── services ──
-  // Normalize price: strip "Call for quote" if present — renderer shows it,
-  // but it's visually cleaner to omit the redundant label
-  if (Array.isArray(out.services)) {
-    out.services = out.services.map(s => ({
-      ...s,
-      service_name: s.service_name || s.name || "",
-      service_description: s.service_description || s.description || "",
-      price: (s.price === "Call for quote" || s.price === "call for quote") ? "" : (s.price || ""),
-    }));
-  }
-
-  return out;
-}
+// normalizeProfile (old row shapes → what the renderer reads) lives in
+// api/_lib/page-ssr.js so it can be tested without a database.
 
 function guessSchemaType(primaryCategory) {
   if (!primaryCategory) return "LocalBusiness";
@@ -654,6 +583,10 @@ export default async function handler(req, res) {
       normalizedProfile.is_open_now = false;
       normalizedProfile.offers_emergency = showEmergencyBadge(profile);
       normalizedProfile.attachments = visibleAttachments(profile);
+      // Read by profile.js: maps only for local businesses, and the fallback
+      // call button's wording ("free" only when offersFreeEstimates).
+      normalizedProfile.is_local_radius = isLocalRadius(profile);
+      normalizedProfile.call_cta_label = callCtaLabel(profile);
     }
     const ctaNoteText = ctaNote(profile);
     // Published Service Spotlights get a link from the company page.
@@ -701,7 +634,6 @@ export default async function handler(req, res) {
       "{{WORDMARK_MAIN}}": escapeHtml(wordmark.main),
       "{{WORDMARK_DESCRIPTOR}}": escapeHtml(wordmark.descriptor),
       "{{WORDMARK_PLACE}}": escapeHtml(place),
-      "{{SSR_TOWNS_SUB}}": escapeHtml(townsLine(profile)),
       "{{SSR_CTA_NOTE}}": escapeHtml(ctaNoteText),
       "{{SSR_SPOTLIGHT_LINKS}}": spotlightLinksHtml,
       "{{SSR_CTA_NOTE_CLASS}}": ctaNoteText ? "services-cta-note" : "services-cta-note hidden",

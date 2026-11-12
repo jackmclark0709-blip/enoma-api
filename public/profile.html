@@ -918,7 +918,7 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
     <p class="claim-box__msg hidden" id="claimMsg" role="status"></p>
     <p class="claim-box__help"><a id="claimHelp" href="#">Questions? Talk to Jack</a></p>
     <div class="owner-extras hidden" id="ownerExtras">
-      <p class="owner-extras__price">Free for the first month, then $19.99/month or $199/year. No card now, no contract.</p>
+      <p class="owner-extras__price">Seeing and claiming your page is free, no card. To go live: $1 for your first month, then $19.99/month or $199/year. Cancel anytime. No contract.</p>
       <div class="owner-progress">
         <p class="owner-progress__title"><span id="ownerPercent"></span></p>
         <div class="owner-progress__bar"><span id="ownerBar"></span></div>
@@ -1013,22 +1013,8 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
   </aside>
 </section>
 
-<!-- AREAS SERVED + MAP — elevated near top -->
-<div class="{{SSR_TOWNS_CLASS}}" id="townsWrap">
-  <section class="section" id="towns" style="border-bottom:1px solid #e8f0f8;">
-    <h2>Areas We Serve</h2>
-    <p class="towns-sub" id="townsSub">{{SSR_TOWNS_SUB}}</p>
-    <div id="townList" style="margin-bottom:1.25rem;">{{SSR_TOWNS}}</div>
-    <!-- Map — Google Place ID takes priority, falls back to address -->
-    <div id="serviceMapWrap" class="service-map-wrap hidden">
-      <div id="serviceMap" class="service-map"></div>
-    </div>
-    <!-- Google Place map slot (used when place_id available) -->
-    <div id="placesMapWrap" class="service-map-wrap hidden" style="margin-top:0.75rem;">
-      <div id="map" style="width:100%;height:280px;border-radius:14px;overflow:hidden;"></div>
-    </div>
-  </section>
-</div>
+<!-- AREAS SERVED + MAP (map only for local businesses) — rendered by api/_lib/page-ssr.js, absent when there are no areas -->
+{{SSR_TOWNS_SECTION}}
 
 <!-- SERVICES — tinted band for visual rhythm -->
 <div class="band">
@@ -1040,7 +1026,7 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
   <div class="services-cta-card">
     <h3>Ready to get started?</h3>
     <div class="services-cta-actions">
-      <a id="quickCall" class="primary-cta">Call for a Free Quote</a>
+      <a id="quickCall" class="primary-cta">{{SSR_CALL_LABEL}}</a>
       <a href="#contact" class="secondary-cta">Send a message instead</a>
     </div>
     <p class="{{SSR_CTA_NOTE_CLASS}}">{{SSR_CTA_NOTE}}</p>
@@ -1048,22 +1034,9 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 </section>
 </div>
 
-<!-- GALLERY — after services, with its own inline CTA -->
-<div class="gallery-section hidden" id="gallerySection">
-  <div class="gallery-header">
-    <h2 id="galleryTitle">Recent Work</h2>
-    <a href="#contact" class="gallery-cta-btn" id="galleryCtaBtn">Have a project in mind? →</a>
-  </div>
-  <div id="gallery" class="image-grid"></div>
-</div>
-
-<!-- BEFORE / AFTER SLIDER -->
-<div class="ba-section hidden" id="baSection">
-  <div class="ba-header">
-    <h2>Before &amp; After</h2>
-  </div>
-  <div id="baList" class="ba-list"></div>
-</div>
+<!-- GALLERY, then BEFORE / AFTER — rendered by page-ssr.js only when there are photos -->
+{{SSR_GALLERY_SECTION}}
+{{SSR_BA_SECTION}}
 
 <!-- No-photos nudge for business owner -->
 <div class="no-photos-nudge hidden" id="noPhotosNudge">
@@ -1071,34 +1044,11 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
   <a href="/create" id="addPhotosLink">+ Add photos to your website →</a>
 </div>
 
-<!-- WHY CHOOSE US + TESTIMONIALS SIDEBAR — 2-col layout -->
-<section class="section why-with-testimonials" id="whyOuterSection">
-  <div class="why-main{{SSR_WHY_HIDDEN}}" id="whySection">
-    <h2>Why Choose Us</h2>
-    <ul class="why-list" id="why">{{SSR_WHY}}</ul>
-  </div>
-  <aside class="{{SSR_TESTIMONIALS_CLASS}}" id="testimonialsWrap">
-    <h2>What Clients Say</h2>
-    <div class="testimonial-carousel" id="testimonialCarousel">
-      <div class="testimonial-carousel-track" id="testimonialList" data-count="{{SSR_TESTIMONIALS_COUNT}}">{{SSR_TESTIMONIALS}}</div>
-      <div class="carousel-nav" id="carouselNav" style="display:none;">
-        <div class="carousel-dots" id="carouselDots"></div>
-        <div class="carousel-arrows">
-          <button class="carousel-arrow" id="carouselPrev" aria-label="Previous">&#8592;</button>
-          <button class="carousel-arrow" id="carouselNext" aria-label="Next">&#8594;</button>
-        </div>
-      </div>
-    </div>
-  </aside>
-</section>
+<!-- WHY CHOOSE US + TESTIMONIALS SIDEBAR — 2-col layout, rendered by page-ssr.js (each part only when it has content) -->
+{{SSR_WHY_SECTION}}
 
-<!-- FAQs — tinted band -->
-<div class="{{SSR_FAQS_CLASS}}" id="faqsBand">
-<div class="faq-wrap" id="faqs" style="border-bottom:none;">
-  <h2 class="faq-heading">Frequently Asked Questions</h2>
-  <div class="faq-list" id="faqList">{{SSR_FAQS}}</div>
-</div>
-</div>
+<!-- FAQs — tinted band, rendered by page-ssr.js only when there are FAQs -->
+{{SSR_FAQS_SECTION}}
 
 <!-- hidden data holders for Google Places data (rating/hours/reviews) ——>
 <div style="display:none">
@@ -1112,7 +1062,7 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 <div class="band">
 <section class="section contact" id="contact" style="border:none;padding-top:1.75rem;padding-bottom:1.75rem;">
   <div class="contact-inner">
-    <h2>Get a Free Quote</h2>
+    <h2>{{SSR_QUOTE_HEADING}}</h2>
     <p class="contact-intro" id="contactIntro">
       Tell us what you need in four quick taps and we'll get back to you with a quote.
     </p>

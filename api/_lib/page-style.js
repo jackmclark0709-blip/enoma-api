@@ -202,12 +202,13 @@ export function stripWeakRatingClaims(profile) {
   const out = { ...profile };
   const tradeWord = {
     landscaping: "Landscaping and lawn care", plumbing: "Plumbing and heating", hvac: "Heating and cooling",
-    electrical: "Electrical work", cleaning: "Cleaning", painting: "Painting", contractor: "Quality work",
-  }[personaFor(out.primary_category)] || "Local, reliable service";
+    electrical: "Electrical work", cleaning: "Cleaning", painting: "Painting", contractor: "Building and repair work",
+  }[personaFor(out.primary_category)] || "Local service";
   const where = out.city ? ` in ${out.city}${out.state ? ", " + stateCode(out.state) : ""}` : "";
 
   if (ratingClaimIsWeak(out.hero_tagline)) {
-    out.hero_tagline = `${tradeWord}${where} — call for a free, no-obligation quote.`;
+    // No "free": that's only for a business that offers free estimates.
+    out.hero_tagline = `${tradeWord}${where} — call for a quote.`;
   }
   if (Array.isArray(out.trust_badges)) {
     out.trust_badges = out.trust_badges.filter(b => !ratingClaimIsWeak(b));

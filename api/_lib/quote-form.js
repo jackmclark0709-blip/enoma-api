@@ -12,6 +12,13 @@
 // that goes at the top of the owner's lead email and Jack's alert
 // ("Needs: Spring cleanup, Mulching · When: This week · Where: Agawam · Prefers: Text").
 // Pure functions, no network, no DB (tests/quote-form.test.js).
+//
+// Step 3 depends on the business: on-site trades ask "Where's the job?";
+// a business whose work isn't at the customer's address (no trade persona, or
+// a nationwide service area) asks for the visitor's company instead, which
+// reaches the owner as "Company: ..." (askForCompany).
+
+import { personaFor } from "./page-style.js";
 
 const esc = s => String(s == null ? "" : s)
   .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -68,6 +75,18 @@ export function townChoices(profile) {
   return [...new Set(towns)].slice(0, MAX_TOWN_CHIPS);
 }
 
+/**
+ * True when step 3 should ask for the visitor's company rather than where the
+ * job is: the business's category has no trade persona (personaFor() is
+ * "default"), or its service area includes "Nationwide".
+ */
+export function askForCompany(profile) {
+  const areas = (parseMaybeJson(profile?.service_area) || []).map(t => String(t || ""));
+  // No category at all is unknown, not "not a trade": keep the job question.
+  const category = String(profile?.primary_category || "").trim();
+  return (!!category && personaFor(category) === "default") || areas.some(a => /nationwide/i.test(a));
+}
+
 /** "How should Mike reach you?" — owner's first name, else the business name. */
 export function reachName(profile) {
   const first = String(profile?.owner_name || "").trim().split(/\s+/)[0];
@@ -77,7 +96,7 @@ export function reachName(profile) {
 /**
  * Normalise what a visitor sent (JSON from the stepped form, or
  * form-urlencoded from the no-JS form) into
- *   { services: string[], timing, location, preference }
+ *   { services: string[], timing, location, preference[, company] }
  * Returns null when the submission carries no quote-form answers at all
  * (old cached pages, other sources) so nothing changes for them.
  */
@@ -90,8 +109,9 @@ export function cleanAnswers(body = {}) {
   const location = text(body.location, 80) || text(body.location_town, 80) || null;
   const prefRaw = text(body.contact_pref, 20);
   const preference = PREFERENCE_OPTIONS.some(o => o.value === prefRaw) ? prefRaw : null;
-  if (!services.length && !timing && !location && !preference && body.quote_form == null) return null;
-  return { services, timing, location, preference };
+  const company = text(body.company, 120) || null;
+  if (!services.length && !timing && !location && !preference && !company && body.quote_form == null) return null;
+  return { services, timing, location, preference, ...(company ? { company } : {}) };
 }
 
 /** Labelled pairs for the summary, in order, skipping blanks. */
@@ -101,11 +121,12 @@ export function answerLabels(a) {
   if (a.services?.length) out.push(["Needs", a.services.join(", ")]);
   if (a.timing) out.push(["When", TIMING_SHORT[a.timing] || a.timing]);
   if (a.location) out.push(["Where", a.location]);
+  if (a.company) out.push(["Company", a.company]);
   if (a.preference) out.push(["Prefers", PREFERENCE_OPTIONS.find(o => o.value === a.preference)?.short || a.preference]);
   return out;
 }
 
-/** "Needs: Spring cleanup, Mulching · When: This week · Where: Agawam · Prefers: Text" */
+/** "Needs: Spring cleanup, Mulching · When: This week · Where: Agawam · Prefers: Text" (or "Company: Acme Labs" in place of Where) */
 export function answersSummary(a) {
   return answerLabels(a).map(([k, v]) => `${k}: ${v}`).join(" · ");
 }
@@ -134,7 +155,8 @@ export function renderQuoteForm(profile, opts = {}) {
   const p = profile || {};
   const services = serviceChoices(p, opts.preselect);
   const preKey = slugify(opts.preselect);
-  const towns = townChoices(p);
+  const company = askForCompany(p);
+  const towns = company ? [] : townChoices(p);
   const phone = String(p.phone || "").trim();
   const tel = phone.replace(/[^\d+]/g, "");
   const startStep = opts.preselect && services.length ? 2 : 1;
@@ -186,7 +208,12 @@ export function renderQuoteForm(profile, opts = {}) {
       </div>
     </fieldset>
 
-    <fieldset class="qf-step" data-step="3">
+    ${company ? `<fieldset class="qf-step" data-step="3" data-optional>
+      <legend tabindex="-1">Your company or organization <span>(optional)</span></legend>
+      <label class="qf-label" for="qfCompany">Company name</label>
+      <input class="qf-input" id="qfCompany" name="company" autocomplete="organization" maxlength="120" />
+      <button type="button" class="qf-next" data-next>Next →</button>
+    </fieldset>` : `<fieldset class="qf-step" data-step="3">
       <legend tabindex="-1">Where's the job?</legend>
       ${towns.length ? `<div class="qf-chips" data-town-chips>
         ${towns.map(t => chip("radio", "location_town", t, t, false)).join("\n        ")}
@@ -194,7 +221,7 @@ export function renderQuoteForm(profile, opts = {}) {
       <label class="qf-label" for="qfLocation">${towns.length ? "Or type your town or ZIP" : "Town or ZIP"}</label>
       <input class="qf-input" id="qfLocation" name="location" autocomplete="postal-code" placeholder="e.g. ${esc(towns[0] || p.city || "your town")} or 01001" maxlength="80" />
       <button type="button" class="qf-next" data-next>Next →</button>
-    </fieldset>
+    </fieldset>`}
 
     <fieldset class="qf-step" data-step="4">
       <legend tabindex="-1">How should ${esc(reachName(p))} reach you?</legend>
