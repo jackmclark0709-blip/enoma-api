@@ -7,16 +7,17 @@
   <meta name="robots" content="noindex,nofollow" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=DM+Sans:opsz,wght@9..40,600;9..40,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@85..100,600..800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <!-- Shared by every Enoma business page -->
   <link rel="stylesheet" href="/styles/business-pages.css" />
   {{BRAND_STYLE}}
   <style>
 *, *::before, *::after { box-sizing: border-box; }
-body { margin: 0; font-family: Inter, system-ui, sans-serif; color: #1c2a22; line-height: 1.55; }
+body { margin: 0; font-family: var(--biz-font-body); color: #1c2a22; line-height: 1.55; }
 .hidden { display: none !important; }
 .rv { max-width: 520px; margin: 0 auto; padding: 32px 20px 48px; }
-.rv h1 { font-family: 'Fraunces', Georgia, serif; font-size: clamp(1.6rem, 6vw, 2.1rem); line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 .4rem; color: #0a1628; }
+.rv h1 { font-family: var(--biz-font-display); font-weight: 800; font-stretch: var(--biz-heading-stretch, 85%); letter-spacing: -0.01em; font-size: clamp(1.6rem, 6vw, 2.1rem); line-height: 1.1; margin: 0 0 .4rem; color: #0a1628; }
 .rv p.lead { color: #46554d; margin: 0 0 1.4rem; }
 .card { background: #fff; border: 1px solid #e3eae3; border-radius: 16px; padding: 20px; }
 .stars { display: flex; gap: 6px; margin: 0 0 1rem; }
@@ -28,7 +29,7 @@ input, textarea { width: 100%; font: inherit; padding: .7rem .8rem; border: 1.5p
 textarea { min-height: 110px; resize: vertical; }
 .primary-cta { width: 100%; justify-content: center; margin-top: 1rem; cursor: pointer; }
 .msg { min-height: 1.2em; margin: .6rem 0 0; font-size: .9rem; }
-.thanks h2 { font-family: 'Fraunces', Georgia, serif; margin: 0 0 .4rem; }
+.thanks h2 { font-family: var(--biz-font-display); font-weight: 800; font-stretch: var(--biz-heading-stretch, 85%); letter-spacing: -0.01em; margin: 0 0 .4rem; }
 .google { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; width: 100%; margin-top: 1rem; padding: .8rem 1rem; border-radius: 999px; border: 1.5px solid #d6e0d6; background: #fff; font-weight: 700; color: #0a1628; text-decoration: none; }
   </style>
 </head>

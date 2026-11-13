@@ -100,7 +100,10 @@ test("every option is well-formed, self-contained SVG", () => {
     assert.ok(w > 40 && w < 460 && h > 30 && h < 220, `size ${w}x${h}`);
     // No external fonts, images, links or scripts.
     assert.ok(!/<image|<script|<foreignObject|href=|url\(|@import|@font-face|https?:\/\/(?!www\.w3\.org\/2000\/svg)/i.test(o.svg), o.id);
-    for (const t of all(svg, "text")) assert.match(t.attrs["font-family"], /(serif|sans-serif)$/, "font stack ends in a generic family");
+    for (const t of all(svg, "text")) {
+      assert.match(t.attrs["font-family"], /^Archivo, .*sans-serif$/, "Archivo (the customer-page font) with a system sans fallback");
+      assert.doesNotMatch(t.attrs["font-family"], /Fraunces|DM Sans|Georgia/);
+    }
     // No ids, so three inline SVGs on one page can't collide.
     assert.ok(!/\sid="/.test(o.svg));
   }

@@ -2,11 +2,15 @@
    BUSINESS PAGE BASE: customer pages only (profile.html, via api/p.js).
    This is the pre-refresh enoma.css, frozen so every customer page keeps
    exactly the look it has today. Enoma's own pages use /styles/enoma.css.
-   Each business's colors still come from --brand-primary (api/p.js,
-   public/scripts/profile.js) and /styles/business-pages.css.
+   Each business's colors come from api/p.js (page-style.js brandColorStyle)
+   in three buckets: --brand-cta* for filled call-to-action buttons only,
+   --brand-primary (identity) for small accents only, and the neutral
+   --ink / --line / --chip-bg tokens for everything else.
    Former title: ENOMA MASTER STYLESHEET — v3.0
    Design: Clean Navy / Sky Blue (Direction C)
-   Fonts:  DM Sans (headings) · Inter (body)
+   Fonts:  Archivo (headings) · Inter (body). Families are the
+           --biz-font-display / --biz-font-body properties in
+           business-pages.css; the font <link> is in profile.html.
    
    SECTIONS:
    1.  Design Tokens (CSS variables)
@@ -37,8 +41,6 @@
 /* ============================================================
    1. DESIGN TOKENS
    ============================================================ */
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=Inter:wght@400;500;600&display=swap');
-
 :root {
   /* ── Enoma brand palette ────────────────────────────────── */
   --navy:        #0a1628;   /* page hero bg, footer bg      */
@@ -94,6 +96,19 @@
   --brand-primary-30:       rgba(10,22,40,0.18);
   --brand-surface:          var(--brand-primary-10);
   --brand-border-soft:      var(--brand-primary-30);
+
+  /* ── Call to action + neutrals (api/p.js sets the same names per page;
+     these defaults keep a page without the injected block working) ── */
+  --brand-cta:        #F2A93B;   /* filled CTA buttons only */
+  --brand-cta-text:   #1a1714;
+  --brand-cta-hover:  color-mix(in srgb, #F2A93B, black 10%);
+  --ink:              #1a1714;
+  --ink-muted:        #4a4540;
+  --ink-faint:        #6b655d;
+  --line:             #e6e1d9;
+  --line-strong:      #cfc7bb;
+  --chip-bg:          #ebe5dc;
+  --biz-heading-stretch: 85%;
 }
 
 
@@ -105,7 +120,7 @@
 html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 
 body {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--biz-font-body);
   font-size: 1rem;
   line-height: 1.65;
   color: var(--text-primary);
@@ -125,10 +140,10 @@ button { cursor: pointer; font-family: inherit; }
    3. TYPOGRAPHY
    ============================================================ */
 h1, h2, h3, h4, h5 {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--biz-font-display);
   font-weight: 700;
   line-height: 1.15;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   color: var(--text-primary);
 }
 
@@ -283,7 +298,7 @@ p { color: var(--text-secondary); line-height: 1.7; }
   gap: 0.4rem;
   background: var(--sky);
   color: #ffffff;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--biz-font-display);
   font-weight: 700;
   font-size: 0.95rem;
   padding: 0.8rem 1.75rem;
@@ -362,9 +377,9 @@ p { color: var(--text-secondary); line-height: 1.7; }
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: var(--brand-primary);
-  color: var(--brand-primary-contrast);
-  font-weight: 700;
+  background: var(--brand-cta);
+  color: var(--brand-cta-text);
+  font-weight: 800;
   font-size: 0.9rem;
   padding: 0.5rem 1.25rem;
   height: 38px;
@@ -376,8 +391,8 @@ p { color: var(--text-secondary); line-height: 1.7; }
 .primary-cta:hover {
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
-  background: color-mix(in srgb, var(--brand-primary), black 10%);
-  color: var(--brand-primary-contrast);
+  background: var(--brand-cta-hover);
+  color: var(--brand-cta-text);
 }
 
 /* Proof strip under hero CTAs */
@@ -456,8 +471,8 @@ p { color: var(--text-secondary); line-height: 1.7; }
 }
 
 .contact button {
-  background: var(--brand-primary);
-  color: var(--brand-primary-contrast);
+  background: var(--ink);   /* legacy form; the quote form's own buttons are the CTA */
+  color: #fff;
   padding: 0.8rem;
   border-radius: var(--radius-md);
   font-weight: 700;
@@ -540,7 +555,7 @@ p { color: var(--text-secondary); line-height: 1.7; }
 
 .section h2 {
   font-size: 1.55rem;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--biz-font-display);
   margin-bottom: 0.75rem;
 }
 
@@ -601,7 +616,7 @@ p { color: var(--text-secondary); line-height: 1.7; }
 }
 #whySection h2 {
   text-align: center;
-  color: var(--brand-primary);
+  color: var(--ink);
   margin-bottom: 1rem;
 }
 #whySection h2::after {
@@ -615,7 +630,7 @@ p { color: var(--text-secondary); line-height: 1.7; }
 #whySection .container { max-width: 860px; }
 
 .why-supporting {
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--biz-font-display);
   font-weight: 600;
   max-width: 620px;
   font-size: 1.1rem;
@@ -750,9 +765,9 @@ p { color: var(--text-secondary); line-height: 1.7; }
   border-bottom: 1px solid rgba(240,246,255,0.12);
 }
 .site-footer__cta-title {
-  font-family: 'Fraunces', serif;
+  font-family: var(--biz-font-display);
   font-size: 1.15rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-on-dark);
   margin-bottom: 0.25rem;
 }
@@ -834,8 +849,8 @@ body.dashboard {
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--dash-text);
-  font-family: 'DM Sans', sans-serif;
-  letter-spacing: -0.02em;
+  font-family: var(--biz-font-display);
+  letter-spacing: -0.01em;
 }
 
 .dashboard .sub {
@@ -873,7 +888,7 @@ body.dashboard {
   font-size: 2.25rem;
   font-weight: 800;
   color: var(--dash-text);
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--biz-font-display);
   line-height: 1;
   letter-spacing: -0.03em;
 }

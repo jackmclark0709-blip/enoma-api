@@ -7,12 +7,14 @@
 //   action=choose   -> save starter_logo_id (and, when the owner picks a
 //                      starter logo over an uploaded one, clear logo_url)
 //   action=upload   -> store an uploaded PNG/JPEG in the business-images
-//                      bucket, set logo_url, clear starter_logo_id
+//                      bucket, set logo_url, clear starter_logo_id, and
+//                      save the logo's color as brand_color (logo-color.js)
 //
 // Starter logos are part of the page: there is no price and nothing to buy.
 
 import { starterLogoOptions, chosenStarterLogoId, isStarterLogoId } from "./starter-logo.js";
 import { pickPalette } from "./page-style.js";
+import { logoBrandColor, saveBrandColor } from "./logo-color.js";
 
 export const ADMIN_ID = "b2f87fe4-4d1e-4038-8754-5ab64969e975";
 export const BUCKET = "business-images";
@@ -48,7 +50,7 @@ export function decodeLogoUpload(data) {
   return { ok: true, buffer: buf, ext: png ? "png" : "jpg", contentType: png ? "image/png" : "image/jpeg" };
 }
 
-export async function handleLogo(req, res, { supabaseAdmin, now = () => Date.now() }) {
+export async function handleLogo(req, res, { supabaseAdmin, now = () => Date.now(), readLogoColor = logoBrandColor }) {
   const token = String(req.headers?.authorization || "").replace(/^Bearer\s+/i, "");
   if (!token) return res.status(401).json({ error: "Please log in." });
   const { data: { user } = {} } = await supabaseAdmin.auth.getUser(token);
@@ -94,6 +96,8 @@ export async function handleLogo(req, res, { supabaseAdmin, now = () => Date.now
     if (profile.logo_url) update.logo_url = null;
     const { error } = await supabaseAdmin.from("small_business_profiles").update(update).eq("business_id", businessId);
     if (error) return res.status(500).json({ error: "Couldn't save your logo choice. Try again." });
+    // The page no longer shows the uploaded logo, so its color goes too.
+    if (profile.logo_url) await saveBrandColor(supabaseAdmin, businessId, null);
     return res.status(200).json({ ok: true, chosen: id, logo_url: null });
   }
 
@@ -111,7 +115,11 @@ export async function handleLogo(req, res, { supabaseAdmin, now = () => Date.now
       .update({ logo_url: logoUrl, starter_logo_id: null, updated_at: new Date(now()).toISOString() })
       .eq("business_id", businessId);
     if (error) return res.status(500).json({ error: "Couldn't save your logo. Try again." });
-    return res.status(200).json({ ok: true, logo_url: logoUrl, chosen: null });
+    // The page's identity color from the logo (null if it can't be read, so
+    // an older logo's color never sticks around).
+    const brandColor = await readLogoColor(file.buffer);
+    await saveBrandColor(supabaseAdmin, businessId, brandColor);
+    return res.status(200).json({ ok: true, logo_url: logoUrl, chosen: null, brand_color: brandColor });
   }
 
   return res.status(400).json({ error: `Unknown action ${action}` });
