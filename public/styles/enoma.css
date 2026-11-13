@@ -618,7 +618,24 @@ body.page-home .dash__sources strong { color: var(--ink); width: 2rem; text-alig
   body.page-home .dash { grid-template-columns: 1fr; }
   body.page-home .dash__sources span { width: 7.5rem; }
 }
-body.page-home .founder__photo { width: 112px; height: 112px; border-radius: 50%; object-fit: cover; margin: 0 auto 1.5rem; display: block; border: 3px solid var(--white); box-shadow: 0 12px 30px -12px color-mix(in srgb, var(--ink) 30%, transparent); }
+/* Founder: photo beside the story on wide screens, stacked on phones */
+body.page-home .founder { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: clamp(2rem, 5vw, 4.5rem); align-items: center; text-align: left; }
+body.page-home .founder__media { margin: 0; position: relative; }
+body.page-home .founder__photo { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; object-position: 50% 30%; border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); }
+body.page-home .founder__caption { position: absolute; left: 1rem; bottom: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: .55rem .85rem; font-size: .78rem; color: var(--muted); line-height: 1.35; box-shadow: var(--shadow-sm); }
+body.page-home .founder__caption strong { display: block; color: var(--ink); font-size: .9rem; }
+body.page-home .founder__intro { font-size: 1.05rem; color: var(--slate); line-height: 1.65; margin-bottom: 1.75rem; }
+body.page-home .founder__points { display: grid; gap: 1.1rem; margin: 0 0 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+body.page-home .founder__points dt { font-family: var(--font-mono); font-size: .7rem; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin-bottom: .3rem; }
+body.page-home .founder__points dd { margin: 0; color: var(--slate); line-height: 1.6; }
+body.page-home .founder__contact { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+body.page-home .founder__contact p { font-size: .9rem; color: var(--muted); max-width: 22rem; }
+@media(max-width:760px) {
+  body.page-home .founder { grid-template-columns: 1fr; gap: 2rem; }
+  body.page-home .founder__media { max-width: 240px; width: 100%; }
+  body.page-home .founder__photo { aspect-ratio: 1 / 1; }
+  body.page-home .founder__contact .btn { width: 100%; }
+}
 body.page-home .howcar__note { text-align: center; font-size: .7rem; color: var(--muted); margin-top: .5rem; }
 body.page-home .finale h2 { font-size: clamp(2rem,4.6vw,3rem); }
 body.page-home .finale .hero__actions { margin-top: 2rem; }
