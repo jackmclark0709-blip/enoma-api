@@ -2,22 +2,23 @@
 // "Starter logos": three simple, deterministic wordmarks for a business that
 // has no logo yet (small_business_profiles.logo_url empty). Each one is the
 // business name set in type, an optional small trade icon, and the page's
-// brand palette (page-style.js pickPalette). Not an image generator: no
+// brand identity color (page-style.js brandTokens). Not an image generator: no
 // network, no paid APIs, no pictures. Pure functions, unit-tested in
 // tests/starter-logo.test.js.
 //
-// Fonts: the name is set in Fraunces (already served on business pages from
-// Google Fonts) with a Georgia/serif fallback, so an SVG used outside the page
-// (or inside an <img>, which can't load web fonts) still looks deliberate.
+// Fonts: the name is set in Archivo, the customer-page font (already loaded
+// on every business page from Google Fonts), with a system sans fallback, so
+// an SVG used outside the page (or inside an <img>, which can't load web
+// fonts) still looks deliberate.
 // The trade icons are original line drawings made for Enoma (24x24 grid).
 
-import { personaFor, pickPalette, splitWordmark } from "./page-style.js";
+import { personaFor, brandTokens, splitWordmark } from "./page-style.js";
 
 export const STARTER_LOGO_IDS = ["badge", "stacked", "wordmark"];
 export const DEFAULT_STARTER_LOGO_ID = "badge";
 
-const SERIF = "Fraunces, Georgia, 'Times New Roman', serif";
-const SANS = "'DM Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif";
+const SANS = "Archivo, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif";
+const DISPLAY = SANS;
 
 // ── Trade icons: stroke-only paths on a 24x24 grid, drawn with
 // stroke-width 2, round caps and joins. Keep them simple enough to read at 20px.
@@ -239,7 +240,7 @@ function badgeSvg(t, icon, c) {
   const body =
     `<rect x="0" y="${r1(chipY)}" width="${chip}" height="${chip}" rx="15" fill="${c.chip}"/>` +
     iconGroup(icon, { x: 16, y: chipY + 16, size: 32, color: c.chipIcon, width: 2 }) +
-    `<text font-family="${SERIF}" font-weight="700" font-size="${size}" letter-spacing="-0.4" fill="${c.ink}">${nameTspans(t.lines, { x: x0, y0, lineHeight: lh })}</text>` +
+    `<text font-family="${DISPLAY}" font-weight="800" font-size="${size}" letter-spacing="-0.4" fill="${c.ink}">${nameTspans(t.lines, { x: x0, y0, lineHeight: lh })}</text>` +
     (t.descriptor ? `<text x="${x0}" y="${r1(descY)}" font-family="${SANS}" font-weight="700" font-size="${descSize}" letter-spacing="${tracking}" fill="${c.accent}">${escapeXml(t.descriptor.toUpperCase())}</text>` : "");
   return { w, h, body };
 }
@@ -259,7 +260,7 @@ function stackedSvg(t, icon, c) {
   const h = (t.descriptor ? descY : lastY) + 6;
   const body =
     iconGroup(icon, { x: cx - iconSize / 2, y: 2, size: iconSize, color: c.soft, width: 1.8 }) +
-    `<text text-anchor="middle" font-family="${SERIF}" font-weight="700" font-size="${size}" letter-spacing="-0.4" fill="${c.ink}">${nameTspans(t.lines, { x: cx, y0, lineHeight: lh })}</text>` +
+    `<text text-anchor="middle" font-family="${DISPLAY}" font-weight="800" font-size="${size}" letter-spacing="-0.4" fill="${c.ink}">${nameTspans(t.lines, { x: cx, y0, lineHeight: lh })}</text>` +
     (t.descriptor
       ? `<rect x="${r1(cx - 14)}" y="${r1(lastY + 9)}" width="28" height="1.5" fill="${c.accent}" opacity=".7"/>` +
         `<text x="${r1(cx)}" y="${r1(descY + 4)}" text-anchor="middle" font-family="${SANS}" font-weight="700" font-size="${descSize}" letter-spacing="${tracking}" fill="${c.accent}">${escapeXml(t.descriptor.toUpperCase())}</text>`
@@ -279,7 +280,7 @@ function wordmarkSvg(t, c) {
   const h = (t.descriptor ? descY : lastY) + 8;
   const body =
     `<rect x="1" y="0" width="34" height="${barH}" rx="2.5" fill="${c.accent}"/>` +
-    `<text font-family="${SERIF}" font-weight="700" font-size="${size}" letter-spacing="-0.6" fill="${c.ink}">${nameTspans(t.lines, { x: 0, y0, lineHeight: lh })}</text>` +
+    `<text font-family="${DISPLAY}" font-weight="800" font-size="${size}" letter-spacing="-0.6" fill="${c.ink}">${nameTspans(t.lines, { x: 0, y0, lineHeight: lh })}</text>` +
     (t.descriptor ? `<text x="1" y="${r1(descY)}" font-family="${SANS}" font-weight="700" font-size="${descSize}" letter-spacing="${tracking}" fill="${c.accent}">${escapeXml(t.descriptor.toUpperCase())}</text>` : "");
   return { w, h, body };
 }
@@ -288,7 +289,8 @@ function wordmarkSvg(t, c) {
 // a normal logo); "dark" = white ink for the page's dark hero.
 export function starterLogoSvg(profile, id = DEFAULT_STARTER_LOGO_ID, { tone = "light" } = {}) {
   const p = profile || {};
-  const palette = pickPalette(p.primary_category, p.business_name);
+  // The page's identity color: the palette primary, or brand_color when set.
+  const palette = brandTokens(p);
   const c = colorsFor(palette, tone);
   const t = logoText(p.business_name);
   const icon = tradeIconFor(p.primary_category);

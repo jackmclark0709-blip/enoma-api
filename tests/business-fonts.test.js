@@ -21,7 +21,7 @@ function test(name, fn) {
   catch (err) { console.error(`  FAIL - ${name}`); console.error(err); process.exitCode = 1; }
 }
 
-const BIZ_FONTS_HREF = "https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Inter:wght@400;500;600&display=swap";
+const BIZ_FONTS_HREF = "https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@85..100,600..800&family=Inter:wght@400;500;600&display=swap";
 const CUSTOMER_TEMPLATES = ["public/profile.html", "public/spotlight.html", "public/review.html"];
 const CUSTOMER_CSS = ["public/styles/business-base.css", "public/styles/business-pages.css", "public/styles/quote-form.css"];
 const OLD_FONTS = /Fraunces|DM Sans|DM\+Sans/;

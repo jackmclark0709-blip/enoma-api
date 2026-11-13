@@ -24,6 +24,7 @@ import { handleSpotlight } from "./_lib/spotlight.js";
 import Stripe from "stripe";
 import { handleReviews } from "./_lib/reviews.js";
 import { handleLogo } from "./_lib/logo-settings.js";
+import { logoBrandColor, saveBrandColor } from "./_lib/logo-color.js";
 import { logFunnelEvent } from "./_lib/tracking.js";
 import { selfServeFirstTouch } from "./_lib/attribution.js";
 
@@ -493,6 +494,7 @@ export default async function handler(req, res) {
 
     /* ---------- LOGO UPLOAD ---------- */
     let uploadedLogo = false; // a real logo replaces any starter logo pick
+    let logoBuffer = null;    // read for its brand color after the profile is saved
     try {
       const logoFile = files?.logo
         ? (Array.isArray(files.logo) ? files.logo[0] : files.logo)
@@ -517,7 +519,7 @@ export default async function handler(req, res) {
             });
           if (!upErr) {
             const { data: pub } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(storagePath);
-            if (pub?.publicUrl) { logo_url = pub.publicUrl; uploadedLogo = true; }
+            if (pub?.publicUrl) { logo_url = pub.publicUrl; uploadedLogo = true; logoBuffer = buffer; }
           }
         }
       }
@@ -814,6 +816,9 @@ export default async function handler(req, res) {
       .upsert(profilePayload, { onConflict: "business_id" });
 
     if (profileError) throw profileError;
+
+    // A new logo: store its color so the page renders in it from first paint.
+    if (uploadedLogo) await saveBrandColor(supabaseAdmin, business_id, await logoBrandColor(logoBuffer));
 
     try {
       await supabaseAdmin

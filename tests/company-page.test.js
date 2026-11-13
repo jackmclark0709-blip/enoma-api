@@ -90,9 +90,9 @@ await test("trust strip: the same facts plus the service-area summary", () => {
   for (const t of ["4.9 · 37 Google reviews", "Licensed MA #HIC-12345", "Insured", "12 years in business", "Free estimates", "Serving Agawam, Westfield and Feeding Hills"]) assert.ok(strip.includes(t), t);
   assert.ok(!strip.includes("★ 4.9"), "no double star next to the star icon");
 });
-await test("services as cards: description, From / turnaround, Get a quote deep link, More about → when a spotlight exists", () => {
-  assert.match(full, /<h3>Weekly Mowing<\/h3>\s*<p class="service-desc">Mowing, edging and blowing\.<\/p>\s*<p class="service-meta"><span>From \$45<\/span><span>Starts next week<\/span><\/p>/);
-  assert.match(full, /<a class="service-quote" href="#quote\?service=weekly-mowing" data-service-quote="weekly-mowing">Get a quote<\/a>/);
+await test("services as cards: the whole card links to the quote form, with a Get a quote → text link; More about → when a spotlight exists", () => {
+  assert.match(full, /<a class="service-card__link" href="#quote\?service=weekly-mowing" data-service-quote="weekly-mowing">\s*<h3>Weekly Mowing<\/h3>\s*<p class="service-desc">Mowing, edging and blowing\.<\/p>\s*<p class="service-meta"><span>From \$45<\/span><span>Starts next week<\/span><\/p>\s*<span class="service-quote">Get a quote →<\/span>\s*<\/a>/);
+  assert.doesNotMatch(full, /<a class="service-quote"/, "no filled Get a quote button on the cards");
   assert.match(full, /<a class="service-more" href="\/green-acres\/spring-cleanup" data-spotlight-link="spring-cleanup">More about Spring Cleanup →<\/a>/);
   assert.equal((full.match(/class="service-more"/g) || []).length, 1);
 });
@@ -161,7 +161,7 @@ await test("no photo at all: no card, the headline takes the full width", () => 
   assert.equal(heroVisual(BARE), null);
 });
 await test("still there with no data: header name, hero headline, how it works defaults, quote form, footer", () => {
-  assert.match(bare, /<span id="businessName" class="brand-text">Arno Plumbing<\/span>/);
+  assert.match(bare, /<span id="businessName" class="brand-logo"><svg class="nav-starter-logo"[^>]* role="img" aria-label="Arno Plumbing">/);
   assert.match(bare, /<h1 id="heroHeadline" class="hero-headline">Arno Plumbing<\/h1>/);
   assert.ok(bareIds.has("howItWorks") && bareIds.has("contactForm") && bareIds.has("siteFooter"));
 });

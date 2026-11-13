@@ -2,7 +2,7 @@
    Shared look for every Enoma business page: the company page
    (public/profile.html) and Service Spotlight pages (public/spotlight.html).
    Change the shared nav, buttons, type and footer here so the two page
-   types can't drift apart. Brand variables (--brand-primary, --hero-bg, …)
+   types can't drift apart. Brand variables (--brand-cta, --brand-primary, --hero-bg, …)
    are injected per business by api/p.js.
 
    Type: Archivo (headings 800 at 85% width; names, card titles, buttons
@@ -27,13 +27,13 @@
   margin-top: 0.9rem;
 }
 .hero-meta span {
-  background: var(--brand-primary-10);
-  color: var(--brand-primary);
+  background: var(--chip-bg);
+  color: var(--ink);
   padding: 0.4rem 0.85rem;
   border-radius: var(--radius-pill);
   font-size: 0.8rem;
   font-weight: 600;
-  border: 1px solid var(--brand-primary-30);
+  border: 1px solid var(--line-strong);
   white-space: nowrap;
 }
 
@@ -46,7 +46,7 @@
   color: var(--text-muted);
 }
 .hero-status span {
-  background: var(--brand-primary-30);
+  background: rgba(255,255,255,0.1);
   padding: 0.3rem 0.75rem;
   border-radius: var(--radius-pill);
   font-weight: 600;
@@ -137,17 +137,18 @@
   transition: background var(--transition), color var(--transition), transform var(--transition);
 }
 .contact-pill:hover {
-  background: var(--brand-primary);
-  color: var(--brand-primary-contrast);
+  background: var(--chip-bg);
+  color: var(--ink);
   transform: translateY(-1px);
 }
 .contact-pill.call {
-  background: var(--brand-primary);
-  color: var(--brand-primary-contrast);
+  background: var(--brand-cta);
+  color: var(--brand-cta-text);
+  font-weight: 800;
   box-shadow: var(--shadow-sm);
 }
 .contact-pill.call:hover {
-  background: color-mix(in srgb, var(--brand-primary), black 10%);
+  background: var(--brand-cta-hover);
 }
 .contact-pill .icon {
   width: 16px;
@@ -218,7 +219,7 @@
   font-weight: 800;
   margin-bottom: 0.5rem;
   font-family: var(--biz-font-display);
-  font-stretch: 85%;
+  font-stretch: var(--biz-heading-stretch, 85%);
   letter-spacing: -0.01em;
   color: var(--text-primary);
 }
@@ -234,7 +235,7 @@
 .hero-headline {
   font-family: var(--biz-font-display);
   font-weight: 800;
-  font-stretch: 85%;
+  font-stretch: var(--biz-heading-stretch, 85%);
   font-size: clamp(1.8rem, 4vw, 2.4rem);
   line-height: 1.15;
   letter-spacing: -0.01em;
@@ -244,7 +245,7 @@
 
 .hero-actions { margin-bottom: 1.25rem; }
 
-.hero-pill { background: var(--brand-primary-10); }
+.hero-pill { background: var(--chip-bg); }
 
 .rating {
   display: flex;
@@ -274,7 +275,7 @@
   display: block;
   font-size: 1.1rem;
   font-weight: 700;
-  color: var(--brand-primary);
+  color: var(--ink);
   margin-bottom: 0.75rem;
 }
 
@@ -308,7 +309,7 @@
 .testimonial::before {
   content: "\201C";
   font-size: 3rem;
-  color: var(--brand-primary);
+  color: var(--line-strong);
   display: block;
   margin-bottom: -0.5rem;
   font-family: var(--biz-font-display);
@@ -342,16 +343,17 @@
   gap: 0.5rem;
   border-radius: var(--radius-pill);
   padding: 0.5rem 0.9rem;
-  border: 1px solid var(--brand-primary-30);
-  background: var(--brand-primary-10);
+  border: 1px solid var(--line-strong);
+  background: #fff;
   font-weight: 500;
   text-decoration: none;
-  color: var(--sky);
+  color: var(--ink);
   transition: background var(--transition), color var(--transition);
 }
 .social-link:hover {
-  background: var(--brand-primary);
-  color: var(--brand-primary-contrast);
+  background: #fff;
+  color: var(--ink);
+  text-decoration: underline;
 }
 
 
@@ -394,9 +396,9 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  background: var(--brand-primary-10);
-  color: var(--brand-primary);
-  border: 1px solid var(--brand-primary-30);
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius-pill);
   padding: 0.4rem 0.9rem;
   font-size: 0.85rem;
@@ -441,7 +443,7 @@
   position: absolute;
   left: 0; top: 0; bottom: 0;
   width: 3px;
-  background: var(--brand-primary);
+  background: var(--line-strong);
 }
 
 .faq-question {
@@ -476,7 +478,7 @@
 }
 .faq-item.active .faq-icon {
   transform: rotate(45deg);
-  color: var(--brand-primary);
+  color: var(--ink-faint);
 }
 
 .faq-answer {
@@ -558,15 +560,15 @@
 
 
 
-/* Page background: a faint tint of the business's brand color. */
+/* Page background: a warm neutral (the brand color is kept for accents). */
 html body {
-  background: color-mix(in srgb, var(--brand-primary, #1a3a2a) 5%, #f8faf6);
+  background: #faf8f5;
 }
 
 /* Headings */
 .bp-h2, .section h2, .sp-section h2 {
-  font-family: var(--biz-font-display); font-weight: 800; font-stretch: 85%;
-  letter-spacing: -0.01em; color: #0a1628;
+  font-family: var(--biz-font-display); font-weight: 800; font-stretch: var(--biz-heading-stretch, 85%);
+  letter-spacing: -0.01em; color: var(--ink);
 }
 
 /* Sticky nav: logo + business name + Call / Request a Quote pills */
@@ -589,7 +591,7 @@ html body {
 .brand-text {
   font-family: var(--biz-font-display);
   font-weight: 700; font-stretch: 100%; font-size: 1rem;
-  letter-spacing: -0.01em; color: #0a1628;
+  letter-spacing: -0.01em; color: var(--ink);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   display: block;
 }
@@ -604,33 +606,33 @@ html body {
   padding: 0.45rem 1.1rem; height: 38px;
   border-radius: 999px; font-family: var(--biz-font-display); font-weight: 700; font-stretch: 100%; font-size: 0.88rem;
   text-decoration: none; border: 1px solid #d4e2f4;
-  background: #fff; color: #0a1628;
+  background: #fff; color: var(--ink); border-color: var(--line-strong);
   transition: all 0.15s ease;
 }
-.contact-pill:hover { background: var(--brand-primary, #1a3a2a); color: #fff; border-color: transparent; transform: translateY(-1px); }
-.contact-pill.call { background: var(--brand-primary, #1a3a2a); color: #fff; border-color: transparent; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-.contact-pill.call:hover { filter: brightness(1.1); }
+/* Text / Get a quote: outlined secondary actions. Call: the filled CTA. */
+.contact-pill:hover { background: var(--chip-bg); color: var(--ink); transform: translateY(-1px); }
+.contact-pill.call { background: var(--brand-cta); color: var(--brand-cta-text); font-weight: 800; border-color: transparent; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+.contact-pill.call:hover { background: var(--brand-cta-hover); color: var(--brand-cta-text); }
 .contact-pill .icon { width: 15px; height: 15px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 2; }
 
-/* Primary button (brand pill) */
+/* Primary button: the page's filled call to action */
 .primary-cta {
   display: inline-flex; align-items: center; gap: 0.5rem;
-  background: var(--brand-primary, #1a3a2a);
-  color: #ffffff;
-  font-family: var(--biz-font-display); font-weight: 700; font-stretch: 100%; font-size: 0.95rem;
+  background: var(--brand-cta);
+  color: var(--brand-cta-text);
+  font-family: var(--biz-font-display); font-weight: 800; font-stretch: 100%; font-size: 0.95rem;
   padding: 0.75rem 1.75rem; height: 44px;
   border-radius: 999px; border: none; text-decoration: none;
   box-shadow: 0 8px 24px rgba(0,0,0,0.3);
   transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
 }
 .primary-cta:hover {
-  color: #ffffff; transform: translateY(-2px);
+  background: var(--brand-cta-hover); color: var(--brand-cta-text); transform: translateY(-2px);
   box-shadow: 0 14px 36px rgba(0,0,0,0.4);
-  filter: brightness(1.12);
 }
 
 /* Enoma footer */
-.enoma-footer { background: #0e1c2e; color: rgba(220,235,255,0.7); padding: 1.75rem 1.5rem; margin-top: 3rem; }
+.enoma-footer { background: var(--hero-bg, #0e1c2e); color: rgba(220,235,255,0.7); padding: 1.75rem 1.5rem; margin-top: 3rem; }
 .enoma-footer-inner { max-width: 1040px; margin-inline: auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; }
 .enoma-footer-left { display: flex; align-items: center; gap: 0.75rem; font-size: 0.82rem; }
 .enoma-footer-logo img { height: 22px; width: auto; opacity: 0.8; }

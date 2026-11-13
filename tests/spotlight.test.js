@@ -188,7 +188,7 @@ await test("service cards link to matching published spotlights", () => {
 await test("a service with a published spotlight gets a \"More about\" link on its card", () => {
   const html = renderBlocks({ username: "conways-landscaping", services: [{ service_name: "Mowing" }, { service_name: "Snow Removal" }] },
     { slug: "conways-landscaping", spotlights: [{ service_slug: "snow-removal", service_name: "Snow Removal" }] })["{{BLOCK_SERVICES}}"];
-  assert.match(html, /<article class="service-card service-card--primary" id="service-mowing">\s*<h3>Mowing/);
+  assert.match(html, /<article class="service-card service-card--primary" id="service-mowing">\s*<a class="service-card__link" href="#quote\?service=mowing" data-service-quote="mowing">\s*<h3>Mowing/);
   assert.match(html, /<a class="service-more" href="\/conways-landscaping\/snow-removal" data-spotlight-link="snow-removal">More about Snow Removal →<\/a>/);
   assert.equal((html.match(/class="service-more"/g) || []).length, 1, "only the service with a spotlight");
 });

@@ -17,6 +17,7 @@
 
 import { renderSections, normalizeProfile, faqSchema } from "./page-ssr.js";
 import { personaFor, isStrongRating } from "./page-style.js";
+import { starterLogoSvg, chosenStarterLogoId } from "./starter-logo.js";
 import {
   offersFreeEstimates, responseTime, isLocalRadius, openSchedule, parseAvailability,
   showEmergencyBadge, callCtaLabel,
@@ -124,6 +125,15 @@ export function mergeReviews(testimonials, approved = [], max = MAX_REVIEWS) {
     out.push({ quote, author: t.author || t.name || "Customer", rating: Number(t.rating) || null, source: t.source || null, at: null });
   }
   return out.slice(0, max);
+}
+
+/**
+ * Hero chips when there's no strong Google rating to lead with: up to 3 of
+ * the owner's own trust_badges. Never invented; none when there are none.
+ */
+export function heroBadges(p = {}, max = 3) {
+  if (isStrongRating(Number(p.average_rating), Number(p.review_count))) return [];
+  return list(p.trust_badges).map(b => String(b || "").trim()).filter(Boolean).slice(0, max);
 }
 
 /** "Usually replies within 2 hours" or "". */
@@ -254,11 +264,28 @@ const ICON = {
 };
 const FACT_ICON = { rating: ICON.star, area: ICON.pin };
 
+/**
+ * No uploaded logo: the chosen starter logo (starter_logo_id, default
+ * "badge") inline, dark ink for the white header, named for screen readers
+ * by the business name. Falls back to the name as text if drawing fails.
+ */
+export function headerLogo(p = {}) {
+  const name = esc(p.business_name || "");
+  if (httpUrl(p.logo_url)) return `<img id="navLogo" class="nav-logo" src="${esc(p.logo_url)}" alt="${name}" width="140" height="30" />`;
+  try {
+    const svg = starterLogoSvg(p, chosenStarterLogoId(p), { tone: "light" })
+      .replace(/^<svg /, `<svg class="nav-starter-logo" focusable="false" `)
+      .replace(/ role="img" aria-label="[^"]*"/, ` role="img" aria-label="${name}"`)
+      .replace(/<title>[\s\S]*?<\/title>/, `<title>${name}</title>`);
+    return `<span id="businessName" class="brand-logo">${svg}</span>`;
+  } catch {
+    return `<span id="businessName" class="brand-text">${name}</span>`;
+  }
+}
+
 function headerBlock(p) {
   const name = esc(p.business_name || "");
-  const brand = httpUrl(p.logo_url)
-    ? `<img id="navLogo" class="nav-logo" src="${esc(p.logo_url)}" alt="${name}" width="140" height="30" />`
-    : `<span id="businessName" class="brand-text">${name}</span>`;
+  const brand = headerLogo(p);
   const phone = String(p.phone || "").trim();
   return `<header class="contact-strip site-header" id="contactStrip">
   <div class="contact-strip-inner">
@@ -291,6 +318,7 @@ function heroButtons(p) {
 function heroBlock(p) {
   const visual = heroVisual(p);
   const proof = proofFacts(p);
+  const badges = heroBadges(p);
   const reply = replyLine(p);
   const schedule = openSchedule(p);
   const status = [
@@ -309,6 +337,7 @@ function heroBlock(p) {
       <div class="hero-content">
         <h1 id="heroHeadline" class="hero-headline">${esc(p.hero_headline || p.business_name || "")}</h1>
         ${p.hero_tagline ? `<p id="tagline" class="hero-tagline">${esc(p.hero_tagline)}</p>` : ""}
+        ${badges.length ? `<ul class="hero-badges" id="heroBadges" aria-label="Why customers choose us">${badges.map(b => `<li class="hero-badge"><span class="hero-badge__check" aria-hidden="true">✓</span>${esc(b)}</li>`).join("")}</ul>` : ""}
         ${proof.length ? `<p class="proof-line" id="proofLine">${proof.map(f => `<span class="proof-fact proof-fact--${f.key}">${esc(f.text)}</span>`).join('<span class="proof-sep" aria-hidden="true"> · </span>')}</p>` : ""}
         ${heroButtons(p)}
         ${status.length ? `<p class="hero-status" id="heroStatus">${status.join("")}</p>` : ""}
@@ -333,15 +362,17 @@ function serviceCard(s, i) {
     s.price_from ? `From ${String(s.price_from).replace(/^from\s+/i, "")}` : (s.price ? String(s.price) : ""),
     s.turnaround ? String(s.turnaround) : "",
   ].filter(Boolean);
+  // The whole card is one link to the quote form (preselecting this
+  // service). The "More about" link sits outside it: links can't nest.
   return `
       <article class="service-card${i === 0 ? " service-card--primary" : ""}" id="service-${esc(slug)}">
-        <h3>${esc(name)}</h3>
-        ${s.service_description ? `<p class="service-desc">${esc(s.service_description)}</p>` : ""}
-        ${meta.length ? `<p class="service-meta">${meta.map(m => `<span>${esc(m)}</span>`).join("")}</p>` : ""}
-        <div class="service-actions">
-          <a class="service-quote" href="#quote?service=${esc(slug)}" data-service-quote="${esc(slug)}">Get a quote</a>
-          ${s.spotlight_url ? `<a class="service-more" href="${esc(s.spotlight_url)}" data-spotlight-link="${esc(slug)}">More about ${esc(name)} →</a>` : ""}
-        </div>
+        <a class="service-card__link" href="#quote?service=${esc(slug)}" data-service-quote="${esc(slug)}">
+          <h3>${esc(name)}</h3>
+          ${s.service_description ? `<p class="service-desc">${esc(s.service_description)}</p>` : ""}
+          ${meta.length ? `<p class="service-meta">${meta.map(m => `<span>${esc(m)}</span>`).join("")}</p>` : ""}
+          <span class="service-quote">Get a quote →</span>
+        </a>
+        ${s.spotlight_url ? `<a class="service-more" href="${esc(s.spotlight_url)}" data-spotlight-link="${esc(slug)}">More about ${esc(name)} →</a>` : ""}
       </article>`;
 }
 
@@ -543,6 +574,7 @@ export function clientProfile(rawProfile = {}) {
     primary_category: p.primary_category || null,
     phone: p.phone || null,
     logo_url: p.logo_url || null,
+    brand_color: p.brand_color || null,
     is_claimed: p.is_claimed,
     google_place_id: p.google_place_id || null,
     address: p.address || null,

@@ -8,7 +8,7 @@
 import fs from "fs";
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
-import { personaFor, pickPalette, heroPatternSvg, stripWeakRatingClaims, tidyHeadline } from "./_lib/page-style.js";
+import { personaFor, pickPalette, stripWeakRatingClaims, tidyHeadline, brandColorStyle } from "./_lib/page-style.js";
 import { isGrandfathered } from "./_lib/trial-policy.js";
 import { pageIndexable } from "./_lib/pricing.js";
 import { heroPhoto as pickHeroPhoto } from "./_lib/photo-kinds.js";
@@ -133,29 +133,14 @@ const TRADE_COLORS_OG = Object.fromEntries(
 );
 
 /**
- * getBrandColorStyle — returns a <style> block that sets CSS custom properties
- * from trade category when no logo is present.
- * When a logo IS present, the client-side JS will override these via extractDominantColor().
+ * getBrandColorStyle: the <style> block of brand CSS variables, server-side so
+ * the page never loads in one color and shifts to another. Palette colors,
+ * or the logo's own color when brand_color was read from an uploaded logo
+ * (api/_lib/page-style.js brandColorStyle). Also used by Service Spotlight
+ * and review pages; /<slug>/preview embeds the company page itself.
  */
 function getBrandColorStyle(profile, heroPhoto) {
-  const persona = personaFor(profile.primary_category);
-  const c = pickPalette(profile.primary_category, profile.business_name);
-  const pattern = heroPatternSvg(persona, c, (profile.business_name || "").length * 7919);
-  // CSS url() inside a custom property: quote it and escape any quotes.
-  const cssUrl = u => `url("${String(u).replace(/"/g, '%22')}")`;
-  return `<style id="server-brand-colors">
-  :root {
-    --brand-primary: ${c.primary};
-    --brand-light: ${c.light};
-    --brand-primary-10: color-mix(in srgb, ${c.primary} 10%, white);
-    --brand-primary-30: color-mix(in srgb, ${c.primary} 28%, white);
-    --brand-rgb: ${c.rgb};
-    --hero-bg: ${c.bg};
-    --hero-bg2: ${c.bg2};
-    --hero-pattern: ${cssUrl(pattern)};
-    ${heroPhoto ? `--hero-photo: ${cssUrl(heroPhoto)};` : ""}
-  }
-</style>`;
+  return brandColorStyle(profile, heroPhoto);
 }
 
 function generateOgSvg(profile) {
