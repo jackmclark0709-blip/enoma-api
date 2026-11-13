@@ -268,7 +268,7 @@ export function renderLanding(profile, { callouts = [], working = [], slug, m = 
 <meta name="twitter:image" content="https://enoma.io/brand/og-image.png">
 </head>
 <body class="page-preview">
-<header class="top"><div class="wrap"><a class="brand" href="/" aria-label="Enoma home"><img src="/brand/enoma-wordmark-blue-notagline-cropped.svg" alt="Enoma" width="125" height="24"></a><div class="top-right"><span class="from">From Jack at Enoma</span><a class="top-cta" href="${esc(links.claim)}" data-cta="claim" data-where="nav">Claim my page</a></div></div></header>
+<header class="top"><div class="wrap"><a class="brand" href="/" aria-label="Enoma home"><img src="/brand/enoma-wordmark-blue-notagline-cropped.svg" alt="Enoma" width="125" height="24"></a><div class="top-right"><span class="from">From Jack at Enoma</span><a class="top-cta" href="${esc(links.claim)}" data-cta="claim" data-where="nav">Keep my page for $1</a></div></div></header>
 
 <main>
   <section class="hero wrap" aria-labelledby="hero-h">
@@ -287,12 +287,12 @@ export function renderLanding(profile, { callouts = [], working = [], slug, m = 
       </div>
       <div class="hero-ctas">
         <div class="cta-row">
-          <a class="b b-primary" id="cta-claim" href="${esc(links.claim)}" data-cta="claim" data-where="hero">Claim my page, free</a>
+          <a class="b b-primary" id="cta-claim" href="${esc(links.claim)}" data-cta="claim" data-where="hero">Keep my page: $1 first month</a>
           <button class="b b-secondary" id="cta-text" type="button" data-panel="hero-text" data-cta="text" data-where="hero">Text Jack</button>
           <a class="b b-secondary" id="cta-email" href="${esc(mailto)}" data-email data-cta="email" data-where="hero">Email Jack</a>
         </div>
         <p class="fine">$1 for your first month, then $19.99/month or $199/year. Cancel anytime. No contract.</p>
-        <a class="sub-link" id="cta-subscribe" href="${esc(links.subscribe)}" data-cta="subscribe" data-where="hero">Or go live now: $1 for your first month</a>
+        <a class="sub-link" id="cta-subscribe" href="${esc(links.subscribe)}" data-cta="subscribe" data-where="hero">Prefer to pay yearly? $199/year</a>
 ${textForm("hero-text")}
       </div>
     </div>
@@ -319,7 +319,7 @@ ${textForm("hero-text")}
     </div>
     <div class="notes-after">
       <p>Each one is a few minutes of your time, and I do the work.</p>
-      <a class="b b-primary" href="${esc(links.claim)}" data-cta="claim" data-where="notes">Claim my page, free</a>
+      <a class="b b-primary" href="${esc(links.claim)}" data-cta="claim" data-where="notes">Keep my page: $1 first month</a>
     </div>
     <button class="notes-bar" id="notes-bar" type="button" aria-haspopup="dialog" aria-controls="notes-sheet" hidden><span class="av" aria-hidden="true">J</span>Jack's notes (${n})</button>
     <div class="sheet-back" id="sheet-back" hidden></div>
@@ -336,7 +336,7 @@ ${textForm("hero-text")}
     <div>
       <h2 id="catch-h">What's the catch?</h2>
       <ul>
-        <li>Claiming and editing your page is free, with no card.</li>
+        <li>Look it over and tell me what to change first. You don't enter a card until you go live.</li>
         <li>Going live is $1 for your first month, then $19.99/month or $199/year, with me as your account manager: your changes go live within two business days.</li>
         <li>No per-lead fees, no contract. Cancel anytime.</li>
         <li>A page for any extra service you want found for: $9.99/month each.</li>
@@ -368,7 +368,7 @@ ${textForm("text")}
       <p class="msg" role="status" aria-live="polite"></p>
     </form>
 
-    <p class="keep">Ready already? <a href="${esc(links.claim)}" data-cta="claim" data-where="contact">Keep this page</a></p>
+    <p class="keep">Ready already? <a href="${esc(links.claim)}" data-cta="claim" data-where="contact">Keep this page for $1</a></p>
   </section>
   </div>
 </main>

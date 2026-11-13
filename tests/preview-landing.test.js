@@ -129,10 +129,10 @@ await test("has every section in order", () => {
   order.forEach((i, n) => assert.ok(i > 0, `section ${n} missing`));
   assert.deepEqual([...order].sort((a, b) => a - b), order);
 });
-await test("nav: Enoma logo home, From Jack, and a small Claim my page button", () => {
+await test("nav: Enoma logo home, From Jack, and a small 'Keep my page for $1' button", () => {
   assert.match(html, /<a class="brand" href="\/"[^>]*><img src="\/brand\/enoma-wordmark-blue-notagline-cropped\.svg"/);
   assert.match(html, /<span class="from">From Jack at Enoma<\/span>/);
-  assert.match(html, new RegExp(`class="top-cta" href="/robbins-plumbing\\?claim=1&amp;m=${M}"[^>]*>Claim my page<`));
+  assert.match(html, new RegExp(`class="top-cta" href="/robbins-plumbing\\?claim=1&amp;m=${M}"[^>]*>Keep my page for \\$1<`));
 });
 await test("hero: headline, one-line lede, the 4 selling points and what's already on it", () => {
   assert.match(html, /<h1 id="hero-h">Here's your page, Robbins &lt;Plumbing&gt;<\/h1>/);
@@ -148,19 +148,19 @@ await test("hero: headline, one-line lede, the 4 selling points and what's alrea
 });
 await test("hero CTAs: claim, Text Jack, Email Jack and subscribe-now, with the right links", () => {
   const hero = html.slice(at("<section class=\"hero"), at("<section class=\"review\""));
-  assert.match(hero, new RegExp(`id="cta-claim" href="/robbins-plumbing\\?claim=1&amp;m=${M}"[^>]*>Claim my page, free<`));
+  assert.match(hero, new RegExp(`id="cta-claim" href="/robbins-plumbing\\?claim=1&amp;m=${M}"[^>]*>Keep my page: \\$1 first month<`));
   assert.match(hero, /id="cta-text" type="button" data-panel="hero-text"[^>]*>Text Jack</);
   assert.match(hero, /<form class="panel" id="panel-hero-text" data-kind="text">/);
   assert.match(hero, /id="hero-text-phone"[^>]*value="\(555\) 010-0002"/);
   assert.match(hero, /id="cta-email" href="mailto:jack@enoma\.io\?subject=[^"]+"[^>]*data-email[^>]*>Email Jack</);
-  assert.match(hero, new RegExp(`id="cta-subscribe" href="/robbins-plumbing\\?claim=1&amp;plan=year&amp;m=${M}"[^>]*>Or go live now: \\$1 for your first month<`));
+  assert.match(hero, new RegExp(`id="cta-subscribe" href="/robbins-plumbing\\?claim=1&amp;plan=year&amp;m=${M}"[^>]*>Prefer to pay yearly\\? \\$199/year<`));
   assert.doesNotMatch(hero, /Book 10 minutes/, "booking lives in Talk to Jack, not the hero");
 });
 await test("the full price line sits right next to the claim button and the $1", () => {
-  const i = at("Claim my page, free");
+  const i = at("Keep my page: $1 first month");
   const j = at("$1 for your first month, then $19.99/month or $199/year. Cancel anytime. No contract.");
   assert.ok(i > 0 && j > i && j - i < 700, "price line under the hero CTAs");
-  assert.match(html, /Claiming and editing your page is free, with no card\.<\/li>\s*<li>Going live is \$1 for your first month, then \$19\.99\/month or \$199\/year/);
+  assert.match(html, /Look it over and tell me what to change first\. You don't enter a card until you go live\.<\/li>\s*<li>Going live is \$1 for your first month, then \$19\.99\/month or \$199\/year/);
   assert.doesNotMatch(html, /first month free|free month/i);
   assert.match(html, /\$9\.99\/month each/);
 });
@@ -183,7 +183,7 @@ await test("notes: bottom bar and sheet for phones, the closing line and CTA", (
   const n = detectCallouts(thin).length;
   assert.ok(html.includes(`Jack's notes (${n})`.replace("'", "&#039;")) || html.includes(`Jack's notes (${n})`));
   assert.match(html, /id="notes-bar" type="button"[^>]*hidden/);
-  assert.match(html, /Each one is a few minutes of your time, and I do the work\.<\/p>\s*<a class="b b-primary" href="[^"]*claim=1[^"]*"[^>]*>Claim my page, free</);
+  assert.match(html, /Each one is a few minutes of your time, and I do the work\.<\/p>\s*<a class="b b-primary" href="[^"]*claim=1[^"]*"[^>]*>Keep my page: \$1 first month</);
 });
 await test("passes the anchors for each note to the page script", () => {
   const m = html.match(/var D = (\{.*?\});\n/);
@@ -249,6 +249,54 @@ await test("no copy says the page was built from the Google listing, and names n
   assert.doesNotMatch(html, /conway/i);
   for (const c of detectCallouts(thin)) assert.doesNotMatch(c.body, /Google listing/, c.key);
   for (const w of workingPoints({ ...thin, website: "https://x" })) assert.doesNotMatch(w, /Google listing/);
+});
+
+console.log("renderLanding CTAs lead with $1, not free");
+// Every claim/subscribe link, in both landing flavors (cold email and instant).
+const ctas = h => [...h.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/g)]
+  .filter(([, attrs]) => /data-cta="(claim|subscribe)"/.test(attrs))
+  .map(([, attrs, label]) => ({
+    cta: attrs.match(/data-cta="([^"]+)"/)[1], where: attrs.match(/data-where="([^"]+)"/)[1],
+    href: attrs.match(/href="([^"]+)"/)[1], label: label.replace(/<[^>]+>/g, "").trim(),
+  }));
+const instantPage = renderLanding(thin, { slug: "robbins-plumbing", src: "instant", callouts: detectCallouts(thin), working: workingPoints(thin) });
+for (const [flavor, page] of [["cold email", html], ["instant", instantPage]]) {
+  await test(`${flavor}: no "Claim my page, free" and no old $1 sub-link anywhere`, () => {
+    assert.doesNotMatch(page, /Claim my page, free/);
+    assert.doesNotMatch(page, /go live now: \$1/i);
+  });
+  await test(`${flavor}: no claim CTA says "free"; every claim CTA says $1`, () => {
+    const all = ctas(page);
+    const claims = all.filter(c => c.cta === "claim");
+    assert.deepEqual(claims.map(c => c.where).sort(), ["contact", "hero", "nav", "notes"]);
+    for (const c of all) assert.doesNotMatch(c.label, /\bfree\b/i, `${c.where}: ${c.label}`);
+    for (const c of claims) assert.ok(c.label.includes("$1"), `${c.where}: ${c.label}`);
+  });
+  await test(`${flavor}: the plan=year link is labelled $199/year, not $1/month`, () => {
+    const year = ctas(page).filter(c => /[?&](amp;)?plan=year/.test(c.href));
+    assert.equal(year.length, 1);
+    assert.equal(year[0].cta, "subscribe");
+    assert.ok(year[0].label.includes("$199/year"), year[0].label);
+    assert.doesNotMatch(year[0].label, /\$1 for|\/month/);
+  });
+}
+
+console.log("customer page claim box (profile.html, profile.js) leads with $1");
+const profileHtml = readFileSync(new URL("../public/profile.html", import.meta.url), "utf8");
+const profileJs = readFileSync(new URL("../public/scripts/profile.js", import.meta.url), "utf8");
+const claimSub = profileHtml.match(/id="claimSub">([^<]*)</)[1];
+const extrasPrice = profileHtml.match(/class="owner-extras__price">([^<]*)</)[1];
+const outreachSub = profileJs.match(/sub\.textContent = "([^"]*)"/)[1];
+await test("claim box sub line and go-live price lead with $1, never free", () => {
+  assert.equal(claimSub, "Keep it for $1 your first month, then $19.99/month or $199/year. Cancel anytime. We'll email you a link: tap it and the page is yours to edit. No card until you go live.");
+  assert.equal(extrasPrice, "To go live: $1 for your first month, then $19.99/month or $199/year. Cancel anytime. No contract.");
+  for (const line of [claimSub, extrasPrice, outreachSub]) {
+    assert.doesNotMatch(line, /^\s*(claiming|seeing)?[^.]{0,20}\bfree\b/i, line);
+    assert.ok(line.includes("$1 "), line);
+  }
+});
+await test("the ?m= outreach branch says $1 your first month, like the static copy", () => {
+  assert.match(outreachSub, /Keep it for \$1 your first month/);
 });
 
 console.log("CALLOUT_ANCHORS");

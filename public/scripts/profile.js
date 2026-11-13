@@ -34,7 +34,7 @@ function setupClaimBox(pageSlug, businessName) {
   if (!banner || !box || !form || !pageSlug) return;
   const qs = new URLSearchParams(window.location.search);
   const outreachMsg = qs.get('m') || '';
-  // "Or subscribe now: $199/year" on the preview landing claims with
+  // "Prefer to pay yearly? $199/year" on the preview landing claims with
   // ?plan=year. Checkout only happens after the claim, so remember the choice
   // for this tab and the dashboard's plan picker preselects it.
   const planIntent = qs.get('plan');
@@ -52,7 +52,7 @@ function setupClaimBox(pageSlug, businessName) {
     banner.classList.add('is-new'); open();
     const t = getEl('claimTitle'), sub = getEl('claimSub');
     if (t) t.textContent = `Hi, it's Jack. This page is for ${businessName || 'you'}.`;
-    if (sub) sub.textContent = "Here's a first draft of your page. Keep it and I'll make it better with you.";
+    if (sub) sub.textContent = "Here's a first draft of your page. Keep it for $1 your first month and I'll make it better with you.";
     submit.textContent = 'Keep my page';
     // What's done and what's still missing, from this page's own data, so
     // $19.99 reads as "it keeps getting better", not just "it stays up".
