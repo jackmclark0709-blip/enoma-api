@@ -14,7 +14,8 @@
   <meta property="og:url" content="{{CANONICAL}}" />
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=DM+Sans:opsz,wght@9..40,500;9..40,600;9..40,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <!-- Shared by every Enoma business page (company page + service spotlights) -->
   <link rel="stylesheet" href="/styles/business-pages.css" />
   <link rel="stylesheet" href="/styles/quote-form.css" />
@@ -26,10 +27,10 @@
    Brand variables (--brand-primary, --hero-bg, …) come from api/p.js. */
 *, *::before, *::after { box-sizing: border-box; }
 html { overflow-x: clip; }
-body { margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, sans-serif; color: #1c2a22; line-height: 1.6; }
-h1, h2 { font-family: 'Fraunces', Georgia, serif; font-optical-sizing: auto; letter-spacing: -0.02em; line-height: 1.15; margin: 0 0 .6rem; color: #0a1628; }
+body { margin: 0; font-family: var(--biz-font-body); color: #1c2a22; line-height: 1.6; }
+h1, h2 { font-family: var(--biz-font-display); font-weight: 800; font-stretch: 85%; letter-spacing: -0.01em; line-height: 1.08; margin: 0 0 .6rem; color: #0a1628; }
 h2 { font-size: clamp(1.5rem, 3.2vw, 2rem); }
-h3 { font-size: 1.02rem; font-family: 'DM Sans', sans-serif; font-weight: 700; letter-spacing: -0.01em; color: #0a1628; margin: 0 0 .4rem; }
+h3 { font-size: 1.05rem; font-family: var(--biz-font-display); font-weight: 700; font-stretch: 100%; letter-spacing: -0.01em; color: #0a1628; margin: 0 0 .4rem; }
 p { margin: 0 0 .9rem; }
 a { color: var(--brand-primary, #2d6a2d); }
 .hidden { display: none !important; }
@@ -53,7 +54,7 @@ body.has-hero-photo .sp-hero {
 .sp-hero h1 { color: #fff; font-size: clamp(2rem, 5.2vw, 3.2rem); max-width: 18ch; }
 .sp-hero .sp-sub { font-size: clamp(1.02rem, 2vw, 1.2rem); color: rgba(255,255,255,.86); max-width: 52ch; }
 .sp-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 1.4rem; align-items: center; }
-.btn { display: inline-flex; align-items: center; height: 44px; font-family: 'DM Sans', sans-serif; font-weight: 700; text-decoration: none; padding: 0 1.4rem; border-radius: 999px; border: 0; cursor: pointer; font-size: .95rem; }
+.btn { display: inline-flex; align-items: center; height: 44px; font-family: var(--biz-font-display); font-weight: 700; font-stretch: 100%; text-decoration: none; padding: 0 1.4rem; border-radius: 999px; border: 0; cursor: pointer; font-size: .95rem; }
 .sp-cta-phone { color: #fff; font-weight: 700; }
 .btn-ghost { color: #fff; border: 1.5px solid rgba(255,255,255,.4); }
 .sp-hero-meta { margin-top: 1.1rem; font-size: .88rem; color: rgba(255,255,255,.7); }
@@ -86,7 +87,7 @@ body.has-hero-photo .sp-hero {
 .sp-facts p { margin: 0 0 .5rem; }
 
 .sp-quote { margin: 0 0 1.2rem; background: #fff; border-left: 4px solid var(--brand-primary, #2d6a2d); border-radius: 0 14px 14px 0; padding: 18px 20px; }
-.sp-quote blockquote { margin: 0 0 .5rem; font-family: Fraunces, Georgia, serif; font-size: 1.2rem; color: #13201a; }
+.sp-quote blockquote { margin: 0 0 .5rem; font-family: var(--biz-font-display); font-weight: 600; font-size: 1.15rem; line-height: 1.45; color: #13201a; }
 .sp-quote figcaption { color: #5a6a61; font-size: .9rem; }
 .sp-story { max-width: 680px; }
 .sp-creds { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; margin: .8rem 0 0; }

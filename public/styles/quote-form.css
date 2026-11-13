@@ -16,7 +16,7 @@
 .quote-form-wrap .qf-call {
   display: flex; align-items: center; justify-content: center; gap: 0.5rem;
   min-height: 48px; width: 100%; padding: 0.7rem 1rem; border-radius: 999px;
-  background: var(--brand-primary, #1a3a2a); color: #fff; font-weight: 700; font-size: 1rem;
+  background: var(--brand-primary, #1a3a2a); color: #fff; font-family: var(--biz-font-display, inherit); font-weight: 700; font-size: 1rem;
   text-decoration: none;
 }
 .quote-form-wrap .qf-call svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; flex-shrink: 0; }
@@ -84,7 +84,7 @@
 .quote-form-wrap button.qf-next, .quote-form-wrap button.qf-submit {
   display: flex; align-items: center; justify-content: center; width: 100%; min-height: 48px; margin-top: 0.75rem;
   padding: 0.75rem 1.25rem; border: 0; border-radius: 999px; cursor: pointer;
-  background: var(--brand-primary, #1a3a2a); color: #fff; font: inherit; font-size: 1rem; font-weight: 700;
+  background: var(--brand-primary, #1a3a2a); color: #fff; font: inherit; font-family: var(--biz-font-display, inherit); font-size: 1rem; font-weight: 700;
 }
 .quote-form-wrap button.qf-next:hover, .quote-form-wrap button.qf-submit:hover { filter: brightness(1.1); }
 .quote-form-wrap button.qf-submit[disabled] { opacity: 0.6; cursor: default; }

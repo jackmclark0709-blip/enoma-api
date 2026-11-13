@@ -6,7 +6,9 @@
    public/scripts/profile.js) and /styles/business-pages.css.
    Former title: ENOMA MASTER STYLESHEET — v3.0
    Design: Clean Navy / Sky Blue (Direction C)
-   Fonts:  DM Sans (headings) · Inter (body)
+   Fonts:  Archivo (headings) · Inter (body). Families are the
+           --biz-font-display / --biz-font-body properties in
+           business-pages.css; the font <link> is in profile.html.
    
    SECTIONS:
    1.  Design Tokens (CSS variables)
@@ -37,8 +39,6 @@
 /* ============================================================
    1. DESIGN TOKENS
    ============================================================ */
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=Inter:wght@400;500;600&display=swap');
-
 :root {
   /* ── Enoma brand palette ────────────────────────────────── */
   --navy:        #0a1628;   /* page hero bg, footer bg      */
@@ -105,7 +105,7 @@
 html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 
 body {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--biz-font-body);
   font-size: 1rem;
   line-height: 1.65;
   color: var(--text-primary);
@@ -125,10 +125,10 @@ button { cursor: pointer; font-family: inherit; }
    3. TYPOGRAPHY
    ============================================================ */
 h1, h2, h3, h4, h5 {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--biz-font-display);
   font-weight: 700;
   line-height: 1.15;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   color: var(--text-primary);
 }
 
@@ -283,7 +283,7 @@ p { color: var(--text-secondary); line-height: 1.7; }
   gap: 0.4rem;
   background: var(--sky);
   color: #ffffff;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--biz-font-display);
   font-weight: 700;
   font-size: 0.95rem;
   padding: 0.8rem 1.75rem;
@@ -540,7 +540,7 @@ p { color: var(--text-secondary); line-height: 1.7; }
 
 .section h2 {
   font-size: 1.55rem;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--biz-font-display);
   margin-bottom: 0.75rem;
 }
 
@@ -615,7 +615,7 @@ p { color: var(--text-secondary); line-height: 1.7; }
 #whySection .container { max-width: 860px; }
 
 .why-supporting {
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--biz-font-display);
   font-weight: 600;
   max-width: 620px;
   font-size: 1.1rem;
@@ -750,9 +750,9 @@ p { color: var(--text-secondary); line-height: 1.7; }
   border-bottom: 1px solid rgba(240,246,255,0.12);
 }
 .site-footer__cta-title {
-  font-family: 'Fraunces', serif;
+  font-family: var(--biz-font-display);
   font-size: 1.15rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-on-dark);
   margin-bottom: 0.25rem;
 }
@@ -834,8 +834,8 @@ body.dashboard {
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--dash-text);
-  font-family: 'DM Sans', sans-serif;
-  letter-spacing: -0.02em;
+  font-family: var(--biz-font-display);
+  letter-spacing: -0.01em;
 }
 
 .dashboard .sub {
@@ -873,7 +873,7 @@ body.dashboard {
   font-size: 2.25rem;
   font-weight: 800;
   color: var(--dash-text);
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--biz-font-display);
   line-height: 1;
   letter-spacing: -0.03em;
 }
