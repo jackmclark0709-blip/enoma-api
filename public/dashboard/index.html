@@ -110,6 +110,20 @@
       <!-- LEFT COLUMN -->
       <div style="display:flex;flex-direction:column;gap:1rem;">
 
+        <!-- Managed service upsell (first card in the main column) -->
+        <div class="card upsell-card">
+          <p class="upsell-eyebrow">Managed by Enoma</p>
+          <p class="upsell-title">Want hands-on help?</p>
+          <p class="upsell-desc">We'll optimize your page, manage updates, add new photos, and make sure your page always puts your best foot forward.</p>
+          <ul class="upsell-features">
+            <li>Monthly page reviews &amp; copy updates</li>
+            <li>We upload photos when you send them</li>
+            <li>Seasonal content (spring cleanups, etc.)</li>
+            <li>Priority support from Jack</li>
+          </ul>
+          <a href="/contact?ref=dashboard_managed" class="upsell-cta">Get in touch with an expert →</a>
+        </div>
+
         <!-- Live preview -->
         <div class="card preview-card">
           <div class="preview-header">
@@ -205,20 +219,6 @@
           </div>
           <a class="btn" id="textReviewLink" href="#" style="margin-top:0.5rem;">Text it to a customer</a>
           <ul class="mini-list" id="reviewList" style="margin-top:0.75rem;"></ul>
-        </div>
-
-        <!-- Managed service upsell -->
-        <div class="card upsell-card">
-          <p class="upsell-eyebrow">Managed by Enoma</p>
-          <p class="upsell-title">Want hands-on help?</p>
-          <p class="upsell-desc">We'll optimize your page, manage updates, add new photos, and make sure your page always puts your best foot forward.</p>
-          <ul class="upsell-features">
-            <li>Monthly page reviews &amp; copy updates</li>
-            <li>We upload photos when you send them</li>
-            <li>Seasonal content (spring cleanups, etc.)</li>
-            <li>Priority support from Jack</li>
-          </ul>
-          <a href="/contact?ref=dashboard_managed" class="upsell-cta">Get in touch with an expert →</a>
         </div>
 
         <!-- Quick share -->
@@ -450,12 +450,42 @@ async function loadDashboard(profile, session) {
 
       // Pricing v2 ($1 first month, api/_lib/pricing.js): the page is a free
       // preview until the owner goes live through checkout.
+      // Checked first: an unpaid preview is never shown as "Active".
       const v2Preview = sub.pricing_version === 'v2_1dollar' && !sub.stripe_subscription_id && sub.provider !== 'comped';
+      // Billing dates are Stripe's trial_end: 23:59 Eastern (api/_lib/billing.js).
+      const fmtET = (d, opts) => d.toLocaleDateString('en-US', Object.assign({ timeZone: 'America/New_York' }, opts));
       const PRICE_LINE = '$1 for your first month, then $19.99/month or $199/year. Cancel anytime.';
+      // v2, paid the $1, in the first month: Stripe "trialing" with a subscription.
+      const v2FirstMonth = sub.pricing_version === 'v2_1dollar' && subscribedInFreeMonth;
 
-      if (sub.status === 'active') {
+      if (v2Preview && !trialExpired) {
+        const endsFmt = fmtET(trialExpiry, { month: 'long', day: 'numeric' });
+        statusEl.textContent = 'Preview'; statusEl.className = 'pill trial';
+        renewalEl.textContent = `Not on Google yet · Preview available until ${fmtET(trialExpiry, { month: 'short', day: 'numeric', year: 'numeric' })}`;
+        bannerTxt.innerHTML = `<strong>Your page is a preview.</strong> Edit anything you like. When you're happy, go live: your page goes on Google and stays up after ${endsFmt}. ${PRICE_LINE}`;
+        upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
+        upgradeBtn.textContent = 'Go live →';
+        showPlanPicker(sub);
+        bannerEl.style.display = 'flex';
+
+      } else if (v2Preview) {
+        statusEl.textContent = '● Preview ended'; statusEl.className = 'pill expired';
+        renewalEl.textContent = 'Not on Google';
+        bannerTxt.innerHTML = `<strong>Your preview has ended.</strong> Go live and your page is back up right away. ${PRICE_LINE}`;
+        upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
+        upgradeBtn.textContent = 'Go live →';
+        showPlanPicker(sub);
+        bannerEl.style.display = 'flex';
+
+      } else if (sub.status === 'active') {
         statusEl.textContent = '● Active'; statusEl.className = 'pill active';
-        if (periodEnd) renewalEl.textContent = `${yearly ? 'Yearly plan · renews' : 'Renews'} ${periodEndFmt}`;
+        renewalEl.textContent = 'Live on Google' + (periodEnd ? ` · ${yearly ? 'Yearly plan · renews' : 'Renews'} ${periodEndFmt}` : '');
+
+      } else if (v2FirstMonth) {
+        // "● Live on Google · Paid $1 for your first month · Next charge $19.99 on Dec 13, 2026"
+        statusEl.textContent = '● Live on Google'; statusEl.className = 'pill active';
+        firstMonth = { chargeOn: periodEnd, yearly, fmtET };
+        renderFirstMonthLine(renewalEl, firstMonth, null);
 
       } else if (subscribedInFreeMonth) {
         statusEl.textContent = '● Active'; statusEl.className = 'pill active';
@@ -479,25 +509,6 @@ async function loadDashboard(profile, session) {
         renewalEl.textContent = `Canceled — active until ${periodEndFmt}`;
         bannerTxt.innerHTML = `<strong>Your subscription is canceled.</strong> Your page stays live until ${periodEndFmt}, then it will go offline.`;
         upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
-        showPlanPicker(sub);
-        bannerEl.style.display = 'flex';
-
-      } else if (v2Preview && !trialExpired) {
-        const endsFmt = trialExpiry.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-        statusEl.textContent = 'Preview'; statusEl.className = 'pill trial';
-        renewalEl.textContent = `Not live on Google yet · preview up until ${endsFmt}`;
-        bannerTxt.innerHTML = `<strong>Your page is a preview.</strong> Edit anything you like. When you're happy, go live: your page is shown to Google and stays up after ${endsFmt}. ${PRICE_LINE}`;
-        upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
-        upgradeBtn.textContent = 'Go live →';
-        showPlanPicker(sub);
-        bannerEl.style.display = 'flex';
-
-      } else if (v2Preview) {
-        statusEl.textContent = '● Preview ended'; statusEl.className = 'pill expired';
-        renewalEl.textContent = '';
-        bannerTxt.innerHTML = `<strong>Your preview has ended.</strong> Go live and your page is back up right away. ${PRICE_LINE}`;
-        upgradeBtn.href = `/upgrade?business_id=${profile.business_id}`;
-        upgradeBtn.textContent = 'Go live →';
         showPlanPicker(sub);
         bannerEl.style.display = 'flex';
 
@@ -704,16 +715,32 @@ function per(b) { return b?.spotlight_interval === 'year' ? 'year' : 'month'; }
 function spotlightPrice(b) {
   return money(Number.isInteger(b?.spotlight_amount) ? b.spotlight_amount : 999);
 }
+// v2 owners who paid the $1 and are in their first month (set by
+// loadDashboard): { chargeOn: Date (Stripe trial_end), yearly, fmtET }.
+let firstMonth = null;
+// "Paid $1 for your first month · Next charge $19.99 on Dec 13, 2026" ($199 on
+// yearly). The amount is the live plan price once the billing summary is in.
+function renderFirstMonthLine(el, fm, pageAmountCents) {
+  if (!el || !fm) return;
+  const amount = Number.isInteger(pageAmountCents) ? money(pageAmountCents) : (fm.yearly ? '$199' : '$19.99');
+  el.textContent = fm.chargeOn
+    ? `Paid $1 for your first month · Next charge ${amount} on ${fm.fmtET(fm.chargeOn, { month: 'short', day: 'numeric', year: 'numeric' })}`
+    : 'Paid $1 for your first month';
+}
 function renderMonthlyTotal(b) {
   const el = document.getElementById('monthly-total');
   if (!el) return;
   el.style.display = 'none';
+  if (firstMonth && b && Number.isInteger(b.page_amount)) renderFirstMonthLine(document.getElementById('renewal-date'), firstMonth, b.page_amount);
   if (!b || b.billing === 'never' || !Number.isInteger(b.total)) return;
   const n = b.published;
   const pages = n ? ` + ${n} service page${n === 1 ? '' : 's'} × ${spotlightPrice(b)}` : '';
   const yearly = b.total_interval === 'year';
   const label = b.billing === 'at_checkout' ? 'When you subscribe' : (yearly ? 'Yearly total' : 'Monthly total');
-  el.textContent = `${label}: ${money(b.total)}/${yearly ? 'year' : 'month'} (${money(b.page_amount)} page${pages})`;
+  // First month (paid $1): the total starts when the plan does.
+  const starting = firstMonth && firstMonth.chargeOn ? `starting ${firstMonth.fmtET(firstMonth.chargeOn, { month: 'short', day: 'numeric' })}` : '';
+  const detail = n ? `${money(b.page_amount)} page${pages}${starting ? ', ' + starting : ''}` : (starting || `${money(b.page_amount)} page`);
+  el.textContent = `${label}: ${money(b.total)}/${yearly ? 'year' : 'month'} (${detail})`;
   el.style.display = 'block';
 }
 

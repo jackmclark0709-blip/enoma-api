@@ -169,9 +169,21 @@ test("public/scripts/plan-picker.js shows a first-charge date exactly when check
   }
 });
 
-test("plan picker: yearly is the default and the copy matches the decisions", () => {
+test("plan picker: monthly is the default (yearly only when the owner picked it) and the copy matches the decisions", () => {
   const src = fs.readFileSync(path.join(path.dirname(new URL(import.meta.url).pathname), "../public/scripts/plan-picker.js"), "utf8");
-  assert.match(src, /value="year" checked/);
+  assert.match(src, /value="month" checked/);
+  assert.doesNotMatch(src, /value="year" checked/);
+  assert.doesNotMatch(src, /Yearly is the default/);
+  assert.match(src, /c\.value : "month"/, "nothing checked falls back to monthly");
+  assert.match(src, /v2 \? V2_BUTTON : PLANS\.month\.button/);
+  // ?plan=year (saved as planIntent) still preselects yearly.
+  const ctx = { window: {} };
+  vm.runInNewContext(src, ctx);
+  const store = (v) => ({ getItem: () => v });
+  assert.equal(ctx.window.EnomaPlanPicker.planIntent(store("year")), "year");
+  assert.equal(ctx.window.EnomaPlanPicker.planIntent(store(null)), null);
+  assert.match(src, /if \(intent\) \{\s*var pick = el\.querySelector\('input\[name="' \+ name \+ '"\]\[value="' \+ intent \+ '"\]'\);/);
+  assert.equal(normalizeInterval(undefined), "month", "server default is monthly too");
   assert.ok(src.includes("$199/year — about $16.58 a month, saves $40.88"));
   assert.ok(src.includes('"$19.99/month"'));
   assert.ok(src.includes("A real person as your account manager: text or email Jack any change and it’s on your page within two business days."));

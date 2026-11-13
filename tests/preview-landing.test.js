@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { detectCallouts, workingPoints, validateContactRequest, buildContactAlert, renderLanding, MAX_CALLOUTS, instantPreviewPath, landingSource, CALLOUT_ANCHORS, SELLING_POINTS } from "../api/_lib/preview-landing.js";
+import { detectCallouts, workingPoints, validateContactRequest, buildContactAlert, renderLanding, MAX_CALLOUTS, instantPreviewPath, landingSource, CALLOUT_ANCHORS, SELLING_POINTS, NOT_ON_GOOGLE } from "../api/_lib/preview-landing.js";
 import { bannedWordsIn } from "../api/_lib/copy-lint.js";
 import { renderCompanyPage } from "../api/_lib/company-page.js";
 // Page styles live in the one Enoma stylesheet, scoped to body.page-preview.
@@ -285,15 +285,41 @@ console.log("customer page claim box (profile.html, profile.js) leads with $1");
 const profileHtml = readFileSync(new URL("../public/profile.html", import.meta.url), "utf8");
 const profileJs = readFileSync(new URL("../public/scripts/profile.js", import.meta.url), "utf8");
 const claimSub = profileHtml.match(/id="claimSub">([^<]*)</)[1];
-const extrasPrice = profileHtml.match(/class="owner-extras__price">([^<]*)</)[1];
+const claimPrice = profileHtml.match(/id="claimPrice">([^<]*)</)[1];
 const outreachSub = profileJs.match(/sub\.textContent = "([^"]*)"/)[1];
-await test("claim box sub line and go-live price lead with $1, never free", () => {
-  assert.equal(claimSub, "Keep it for $1 your first month, then $19.99/month or $199/year. Cancel anytime. We'll email you a link: tap it and the page is yours to edit. No card until you go live.");
-  assert.equal(extrasPrice, "To go live: $1 for your first month, then $19.99/month or $199/year. Cancel anytime. No contract.");
-  for (const line of [claimSub, extrasPrice, outreachSub]) {
-    assert.doesNotMatch(line, /^\s*(claiming|seeing)?[^.]{0,20}\bfree\b/i, line);
-    assert.ok(line.includes("$1 "), line);
+await test("claim box: one price line under the form, leading with $1, never free", () => {
+  assert.equal(claimPrice, "$1 for your first month, then $19.99/month or $199/year. Cancel anytime. No contract.");
+  assert.equal(claimSub, "We'll email you a 6-digit code and a link. Use either one and the page is yours to edit. No card until you go live.");
+  for (const line of [claimSub, claimPrice, outreachSub]) assert.doesNotMatch(line, /^\s*(claiming|seeing)?[^.]{0,20}\bfree\b/i, line);
+  for (const line of [claimPrice, outreachSub]) assert.ok(line.includes("$1 "), line);
+  const box = profileHtml.slice(profileHtml.indexOf('id="claimBox"'), profileHtml.indexOf("<!-- PREVIEW POLL"));
+  assert.equal((box.match(/\$19\.99/g) || []).length, 1, "the price is said once");
+});
+await test("claim box: no '% done' progress block (#ownerExtras), in the page or the script", () => {
+  for (const src of [profileHtml, profileJs]) {
+    assert.doesNotMatch(src, /ownerExtras|owner-extras|owner-progress|ownerPercent|ownerBar|% done/);
   }
+});
+await test("claim box: orange 'Keep my page' primary, outlined 'Questions? Talk to Jack first' secondary to /<slug>/preview#contact", () => {
+  assert.match(profileHtml, /<button type="submit" id="claimSubmit">Keep my page<\/button>/);
+  assert.match(profileHtml, /\.claim-box__form button \{[^}]*background: #C84A12/);
+  assert.match(profileHtml, /<a class="claim-box__help" id="claimHelp" href="#">Questions\? Talk to Jack first<\/a>/);
+  const help = profileHtml.match(/\.claim-box__help \{([^}]*)\}/)[1];
+  assert.match(help, /min-height: 44px/);
+  assert.match(help, /border: 1\.5px solid rgba\(255,255,255,0\.7\)/);
+  assert.match(help, /color: #FFFFFF/);
+  assert.match(help, /background: transparent/);
+  const fn = new Function(profileJs.match(/function helpHref\(slug, m\) \{([\s\S]*?)\n\}/)[1].replace(/^/, "const [slug, m] = arguments;"));
+  assert.equal(fn("robbins-plumbing", ""), "/robbins-plumbing/preview#contact");
+  assert.equal(fn("robbins-plumbing", "abc-123"), "/robbins-plumbing/preview?m=abc-123#contact");
+  assert.match(html, /<section class="contact" id="contact" aria-labelledby="contact-h">/, "#contact anchor on the preview landing");
+});
+await test("claim box and preview landing say 'Not on Google yet'", () => {
+  const line = "Preview only. Not on Google yet: it goes on Google when you start your $1 month.";
+  assert.equal(NOT_ON_GOOGLE, line);
+  assert.ok(profileHtml.slice(profileHtml.indexOf('id="claimBox"'), profileHtml.indexOf("<!-- PREVIEW POLL")).includes(line), "claim box");
+  assert.ok(profileHtml.slice(profileHtml.indexOf('id="unclaimedLine"')).includes(line), "unclaimed banner");
+  assert.ok(html.includes(`<p class="fine" id="not-on-google">${line}</p>`), "preview landing hero");
 });
 await test("the ?m= outreach branch says $1 your first month, like the static copy", () => {
   assert.match(outreachSub, /Keep it for \$1 your first month/);

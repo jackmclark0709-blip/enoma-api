@@ -178,6 +178,11 @@ export const CALLOUT_ANCHORS = {
   phone: ["#contact"],
 };
 
+// Unpaid v2 pages are noindex (api/_lib/pricing.js pageIndexable). Said
+// plainly wherever an owner looks at an unclaimed preview: here, and the
+// claim box / banner on the page itself (public/profile.html).
+export const NOT_ON_GOOGLE = "Preview only. Not on Google yet: it goes on Google when you start your $1 month.";
+
 export const SELLING_POINTS = [
   { icon: "search", text: "Built to be found on Google and AI assistants" },
   { icon: "phone", text: "Tap-to-call and a quote form on every page" },
@@ -292,6 +297,7 @@ export function renderLanding(profile, { callouts = [], working = [], slug, m = 
           <a class="b b-secondary" id="cta-email" href="${esc(mailto)}" data-email data-cta="email" data-where="hero">Email Jack</a>
         </div>
         <p class="fine">$1 for your first month, then $19.99/month or $199/year. Cancel anytime. No contract.</p>
+        <p class="fine" id="not-on-google">${esc(NOT_ON_GOOGLE)}</p>
         <a class="sub-link" id="cta-subscribe" href="${esc(links.subscribe)}" data-cta="subscribe" data-where="hero">Prefer to pay yearly? $199/year</a>
 ${textForm("hero-text")}
       </div>
@@ -345,7 +351,7 @@ ${textForm("hero-text")}
     <div class="price"><b>$1</b><span>for your first month, then $19.99/month or $199/year. Cancel anytime.</span></div>
   </section>
 
-  <section class="contact" aria-labelledby="contact-h">
+  <section class="contact" id="contact" aria-labelledby="contact-h">
     <h2 id="contact-h">Talk to Jack</h2>
     <p class="sub">Pick whatever's easiest. I'm a real person and I'll get back to you.</p>
     <div class="buttons">
