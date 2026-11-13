@@ -5,7 +5,9 @@
 // page after a setup call), so both end at the same checkout.
 //
 // Pricing v2 (api/_lib/pricing.js): a v2 account that has never subscribed
-// gets a one-time $1 line item today and the plan on a 30-day trial.
+// gets a one-time $1 line item today and the plan on a trial that ends at
+// 23:59 Eastern 30 days out (Checkout shows "30 days free"), with a line
+// above the pay button saying what the $1 covers and when the plan starts.
 // Partner sign-ups get the same: $1 today, then $9.99/month.
 // Everyone else keeps the old rules (api/_lib/billing.js checkoutPlanFor).
 
@@ -13,7 +15,7 @@ import { LOOKUP_KEYS } from "../../data/plans.mjs";
 import { checkoutPlanFor, hasLiveStripeSubscription, spotlightLookupKeyFor } from "./billing.js";
 import { loadSpotlightBillingState, spotlightBilling, checkoutSubscriptionParams } from "./spotlight-billing.js";
 import { utmMetadata } from "./attribution.js";
-import { firstMonthLineItem, FIRST_MONTH_CENTS, FIRST_MONTH_LOOKUP_KEY } from "./pricing.js";
+import { firstMonthLineItem, FIRST_MONTH_CENTS, FIRST_MONTH_LOOKUP_KEY, checkoutSubmitMessage } from "./pricing.js";
 
 const OPENING_SHORTLY = "Subscriptions are opening shortly. Email jack@enoma.io and we'll keep your page live in the meantime.";
 
@@ -150,6 +152,16 @@ export async function createPageCheckoutSession({
     success_url: `https://enoma.io/dashboard?${successParams.toString()}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `https://enoma.io/dashboard?business_id=${businessId}`,
     metadata,
+    // v2: say what today's $1 is and when the plan starts, above the pay
+    // button. The date is trial_end (23:59 Eastern, 30 days out).
+    ...(plan.firstMonthFee ? {
+      custom_text: { submit: { message: checkoutSubmitMessage({
+        interval: plan.interval,
+        partner: plan.lookupKey === "enoma_page_partner_monthly",
+        chargeDate: plan.trialEnd,
+        amountCents: pageAmountCents,
+      }) } },
+    } : {}),
   });
 
   return { status: 200, url: session.url, session, plan, utm };

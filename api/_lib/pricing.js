@@ -22,12 +22,11 @@
 //     $199/year, or the $9.99/month partner price) on a 30-day trial, so the
 //     first full charge is 30 days after checkout.
 
-import { hasLiveStripeSubscription } from "./billing.js";
+import { hasLiveStripeSubscription, firstMonthTrialEndUnix, FIRST_MONTH_DAYS } from "./billing.js";
 
 export const PRICING_V2 = "v2_1dollar";
 export const FIRST_MONTH_CENTS = 100;
-export const FIRST_MONTH_DAYS = 30;
-const DAY_MS = 24 * 60 * 60 * 1000;
+export { FIRST_MONTH_DAYS };
 
 // The standing price line (Operating Doc): wherever a price or "$1" appears,
 // this full line is in the same view.
@@ -96,9 +95,13 @@ export function priceLineFor({ partner = false } = {}) {
   return partner ? "$1 for your first month, then $9.99/month. Cancel anytime." : PRICE_LINE;
 }
 
-/** Unix seconds of the first full charge for a checkout started at `now`. */
+/**
+ * Unix seconds of the first full charge for a checkout started at `now`:
+ * 23:59 Eastern on the 30th calendar day (api/_lib/billing.js). This is
+ * Stripe's trial_end, so Checkout says "30 days free".
+ */
 export function firstFullChargeUnix(now = Date.now()) {
-  return Math.floor((now + FIRST_MONTH_DAYS * DAY_MS) / 1000);
+  return firstMonthTrialEndUnix(now);
 }
 
 /** "December 12, 2026" in Eastern time. */
@@ -118,6 +121,23 @@ export function checkoutTermsLine({ interval = "month", chargeDate, monthlyPrice
   const when = formatChargeDate(chargeDate);
   const then = interval === "year" ? `${yearlyPrice}/year` : `${monthlyPrice}/month`;
   return `$1 today. Then ${then} starting ${when}. Cancel anytime from your dashboard.`;
+}
+
+function dollars(cents) {
+  return cents % 100 === 0 ? `$${cents / 100}` : `$${(cents / 100).toFixed(2)}`;
+}
+
+/**
+ * The line Stripe Checkout shows above the pay button on a $1 first-month
+ * checkout (custom_text.submit.message):
+ *   "$1 today covers your first month. Then $19.99/month starting December 13, 2026. Cancel anytime from your dashboard."
+ * Yearly "$199/year", partner "$9.99/month". amountCents is the live plan
+ * price when known, so a price change in Stripe changes the text too.
+ */
+export function checkoutSubmitMessage({ interval = "month", partner = false, chargeDate, amountCents = null } = {}) {
+  const fallback = interval === "year" ? 19900 : partner ? 999 : 1999;
+  const amount = dollars(Number.isInteger(amountCents) && amountCents > 0 ? amountCents : fallback);
+  return `$1 today covers your first month. Then ${amount}/${interval === "year" ? "year" : "month"} starting ${formatChargeDate(chargeDate)}. Cancel anytime from your dashboard.`;
 }
 
 /**

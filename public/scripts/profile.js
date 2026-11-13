@@ -17,9 +17,12 @@ function enomaIsInternal() {
 const getEl = id => document.getElementById(id);
 const escapeHtml = s => String(s == null ? '' : s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-/* ── Claim by email link (no password) ──
-   The owner gets a Supabase sign-in link that lands on /claim, which claims
-   the page with the new session. Fresh instant previews (?new=1) open the
+/* ── Claim by email code or link (no password) ──
+   The owner gets one email with a 6-digit code and a button. The code is
+   typed right here; the button opens /claim, which confirms on a click (so
+   email link scanners can't use it up). Both end on /claim with a session,
+   which claims the page and opens the dashboard. Helpers and the reasons:
+   public/scripts/claim-login.js. Fresh instant previews (?new=1) open the
    form straight away; other unclaimed previews open it from the banner. */
 // The funnel's anonymous browser id (public/scripts/funnel-track.js), so a
 // claim request joins up with the instant-preview events before it.
@@ -39,11 +42,14 @@ function setupClaimBox(pageSlug, businessName) {
   // for this tab and the dashboard's plan picker preselects it.
   const planIntent = qs.get('plan');
   if (planIntent === 'year' || planIntent === 'month') { try { sessionStorage.setItem('enoma_plan_intent', planIntent); } catch (_) {} }
-  const open = () => { box.classList.remove('hidden'); line.classList.add('hidden'); };
-  // "Questions? Talk to Jack" goes to the preview landing (email, text or book
-  // 10 minutes). Cold-email owners keep their message id for attribution.
+  // The claim box is always the dark Enoma panel (white secondary button).
+  const open = () => { banner.classList.add('is-new'); box.classList.remove('hidden'); line.classList.add('hidden'); };
+  const L = window.EnomaClaimLogin;
+  // "Questions? Talk to Jack first" goes to the preview landing's Talk to
+  // Jack section (email, text or book 10 minutes). Cold-email owners keep
+  // their message id for attribution.
   const help = getEl('claimHelp');
-  if (help) help.href = '/' + encodeURIComponent(pageSlug) + '/preview' + (outreachMsg ? '?m=' + encodeURIComponent(outreachMsg) : '');
+  if (help) help.href = helpHref(pageSlug, outreachMsg);
   if (qs.get('claim') === '1') { banner.classList.add('is-new'); open(); }
   // The owner arrived from Jack's email (?m=<message id>): greet them, open
   // the claim box and say plainly what keeping it costs. Jack's contact only
@@ -51,29 +57,8 @@ function setupClaimBox(pageSlug, businessName) {
   if (outreachMsg) {
     banner.classList.add('is-new'); open();
     const t = getEl('claimTitle'), sub = getEl('claimSub');
-    if (t) t.textContent = `Hi, it's Jack. This page is for ${businessName || 'you'}.`;
+    if (t) t.textContent = L ? L.outreachTitle(businessName) : `Hi, it's Jack. This page is for ${businessName || 'you'}`;
     if (sub) sub.textContent = "Here's a first draft of your page. Keep it for $1 your first month and I'll make it better with you.";
-    submit.textContent = 'Keep my page';
-    // What's done and what's still missing, from this page's own data, so
-    // $19.99 reads as "it keeps getting better", not just "it stays up".
-    const extras = getEl('ownerExtras');
-    if (extras) {
-      extras.classList.remove('hidden');
-      import('/scripts/page-checklist.js').then(({ pageChecklist, nextSteps }) => {
-        const c = pageChecklist(window.__PROFILE__ || {});
-        getEl('ownerPercent').textContent = `Your page is ${c.percent}% done`;
-        getEl('ownerBar').style.width = `${c.percent}%`;
-        const list = getEl('ownerList');
-        list.innerHTML = '';
-        // Missing items first, most useful first: they're the point.
-        [...nextSteps(window.__PROFILE__ || {}), ...c.items.filter(i => i.done)].forEach(i => {
-          const li = document.createElement('li');
-          li.textContent = i.label;
-          if (i.done) li.className = 'is-done';
-          list.appendChild(li);
-        });
-      }).catch(() => { extras.querySelector('.owner-progress')?.remove(); });
-    }
     // This visitor is the owner, so the "Call Now" bar would only call
     // themselves; hide it and give the claim box the room.
     const bar = getEl('mobileCallBar');
@@ -91,31 +76,52 @@ function setupClaimBox(pageSlug, businessName) {
   }
   if (cta) cta.addEventListener('click', e => { e.preventDefault(); open(); input.focus(); });
   const say = (text, isError) => { msg.textContent = text; msg.classList.remove('hidden'); msg.classList.toggle('is-error', !!isError); };
-  const loadSupabase = () => window.supabase ? Promise.resolve() : new Promise((resolve, reject) => {
-    const sc = document.createElement('script');
-    sc.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
-    sc.onload = resolve; sc.onerror = reject; document.head.appendChild(sc);
-  });
+  let sb = null;
+  const getClient = async () => { if (!sb) { await L.loadSupabase(window); sb = L.client(window); } return sb; };
+  let sentTo = '';
   form.addEventListener('submit', async e => {
     e.preventDefault();
     const email = input.value.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { say('Please enter a valid email address.', true); input.focus(); return; }
     submit.disabled = true; submit.textContent = 'Sending…';
     try {
-      await loadSupabase();
-      const sb = window.supabase.createClient('https://qhsivcenpnxwmvwznqie.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc');
-      const redirect = 'https://enoma.io/claim?business=' + encodeURIComponent(pageSlug) + (outreachMsg ? '&m=' + encodeURIComponent(outreachMsg) : '');
-      const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: redirect, shouldCreateUser: true } });
+      const { error } = await L.sendCode(await getClient(), { email, slug: pageSlug, m: outreachMsg });
       if (error) throw error;
+      sentTo = email;
       form.classList.add('hidden');
-      say(`Check your inbox at ${email}. Tap the link in the email and the page is yours. (It can take a minute; check spam if you don't see it.)`);
+      say(L.sentCopy(email));
+      codeForm.classList.remove('hidden');
+      try { codeInput.focus(); } catch (_) {}
       try { fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true, body: JSON.stringify({ event: 'claim_link_requested', anon_id: anonId(), business_id: (window.__PROFILE__ || {}).business_id || null, metadata: { slug: pageSlug } }) }); } catch (_) {}
       if (window.gtag) try { gtag('event', 'claim_link_requested', { page_slug: pageSlug, transport_type: 'beacon' }); } catch (_) {}
     } catch (err) {
       submit.disabled = false; submit.textContent = submitLabel;
-      say(/rate|seconds/i.test(err?.message || '') ? 'We just sent a link. Please wait a minute before asking for another.' : 'Something went wrong sending your link. Try again, or email jack@enoma.io.', true);
+      say(/rate|seconds/i.test(err?.message || '') ? 'We just sent you a code. Please wait a minute before asking for another.' : 'Something went wrong sending your code. Try again, or email jack@enoma.io.', true);
     }
   });
+  // The 6-digit code from the email: verify here, then /claim (signed in)
+  // claims the page and opens the dashboard, same as the email's button.
+  const codeForm = getEl('claimCodeForm'), codeInput = getEl('claimCode'), codeSubmit = getEl('claimCodeSubmit');
+  if (codeForm) codeForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const code = L.normalizeCode(codeInput.value);
+    if (!code) { say('Type the 6-digit code from the email.', true); codeInput.focus(); return; }
+    codeSubmit.disabled = true; codeSubmit.textContent = 'Checking…';
+    try {
+      const { data, error } = await L.verifyCode(await getClient(), sentTo, code);
+      if (error || !data?.session) throw error || new Error('no session');
+      say("That's it. Keeping your page…");
+      window.location.href = L.claimPath(pageSlug, outreachMsg);
+    } catch (err) {
+      codeSubmit.disabled = false; codeSubmit.textContent = 'Keep my page';
+      say(L.verifyErrorMessage(err), true);
+    }
+  });
+}
+
+/** /<slug>/preview#contact (with ?m= for Jack's outreach), the "Talk to Jack" section. */
+function helpHref(slug, m) {
+  return '/' + encodeURIComponent(slug) + '/preview' + (m ? '?m=' + encodeURIComponent(m) : '') + '#contact';
 }
 
 /* Session recording (Microsoft Clarity) only on unclaimed previews, never on

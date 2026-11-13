@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Claim your business — Enoma</title>
+  <title>Keep your page — Enoma</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -30,107 +30,77 @@
 <div class="auth-page">
   <div class="auth-card">
     <div class="spinner" id="claim-spinner"></div>
-    <p class="auth-eyebrow">Claim this page</p>
-    <h1 id="claim-heading">Confirming your account…</h1>
-    <p class="auth-subtitle" id="claim-message">Just a moment.</p>
-    <a class="claim-link" id="claim-link" style="display:none;">Go to your dashboard →</a>
+    <p class="auth-eyebrow">Keep your page</p>
+    <h1 id="claim-heading">Just a moment…</h1>
+    <p class="auth-subtitle" id="claim-message"></p>
+
+    <!-- The email's button lands here with token_hash. Nothing is verified
+         until this button is clicked, so email link scanners can't use it up. -->
+    <div class="claim-confirm" id="confirm-view" hidden>
+      <button type="button" class="btn btn--primary claim-btn" id="confirm-btn">Confirm and keep my page</button>
+    </div>
+
+    <!-- The 6-digit code from the same email. -->
+    <div class="claim-code" id="code-view" hidden>
+      <form id="code-form" novalidate>
+        <label for="code-email">Email</label>
+        <input id="code-email" type="email" autocomplete="email" placeholder="you@yourbusiness.com" required />
+        <label for="code-input">6-digit code</label>
+        <input id="code-input" class="code-input" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="7" placeholder="123456" required />
+        <button type="submit" class="btn btn--primary claim-btn" id="code-submit">Keep my page</button>
+      </form>
+      <p class="code-msg" id="code-msg" role="status" hidden></p>
+      <p class="code-alt"><button type="button" class="link-like" id="code-resend">Send a new code</button> · <a id="password-link" href="/login">Sign in with a password</a></p>
+    </div>
+
+    <a class="claim-link" id="claim-link" hidden>Go to your dashboard →</a>
   </div>
 </div>
 
+<style>
+body.page-claim [hidden] { display: none !important; }
+body.page-claim .auth-subtitle.is-error { color: var(--danger); }
+body.page-claim .claim-confirm { margin-top: 1.5rem; }
+body.page-claim .claim-btn { width: 100%; min-height: 48px; justify-content: center; font-size: 1rem; }
+body.page-claim .claim-code { margin-top: 1.25rem; text-align: left; }
+body.page-claim .claim-code label { display: block; font-size: 0.82rem; font-weight: 700; color: var(--ink); margin: 0.75rem 0 0.3rem; }
+body.page-claim .claim-code input { width: 100%; min-height: 46px; padding: 0.65rem 0.8rem; border: 1px solid var(--border-strong); border-radius: 10px; font: inherit; font-size: 1rem; box-sizing: border-box; }
+body.page-claim .claim-code .code-input { font-family: var(--font-mono); font-size: 1.4rem; letter-spacing: 0.3em; text-align: center; }
+body.page-claim .claim-code .claim-btn { margin-top: 1rem; }
+body.page-claim .code-msg { font-size: 0.88rem; color: var(--muted); margin: 0.75rem 0 0; line-height: 1.5; }
+body.page-claim .code-msg.is-error { color: var(--danger); }
+body.page-claim .code-alt { font-size: 0.85rem; color: var(--muted); margin: 1rem 0 0; text-align: center; }
+body.page-claim .code-alt a, body.page-claim .link-like { color: var(--accent); font-weight: 600; text-decoration: none; background: none; border: 0; padding: 0; font: inherit; cursor: pointer; }
+</style>
+
+<script src="/scripts/claim-login.js"></script>
 <script>
-var SUPABASE_URL = 'https://qhsivcenpnxwmvwznqie.supabase.co';
-var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc';
-
-var params = new URLSearchParams(window.location.search);
-var slug = params.get('business') || '';
-var outreachMsg = params.get('m') || '';
-
-function setStatus(heading, message, isError) {
-  document.getElementById('claim-spinner').style.display = 'none';
-  document.getElementById('claim-heading').textContent = heading;
-  var msgEl = document.getElementById('claim-message');
-  msgEl.textContent = message;
-  msgEl.style.color = isError ? 'var(--danger)' : 'var(--muted)';
+function start() {
+  var L = window.EnomaClaimLogin;
+  L.initClaimPage({
+    doc: document,
+    search: window.location.search,
+    hash: window.location.hash,
+    sb: L.client(window),
+    fetch: window.fetch.bind(window),
+    go: function (url) { window.location.href = url; },
+    storage: window.localStorage,
+    gtag: window.gtag,
+  });
 }
-
-// First landing + utm_* stored by /scripts/ref-capture.js (never replaced).
-function firstTouch() {
-  try { return JSON.parse(localStorage.getItem('enoma_first_touch') || 'null'); } catch (e) { return null; }
+function failed() {
+  document.getElementById('claim-spinner').hidden = true;
+  document.getElementById('claim-heading').textContent = 'Failed to load';
+  document.getElementById('claim-message').textContent = 'Please refresh the page and try again.';
 }
-
-function showDashboardLink(businessId) {
-  var link = document.getElementById('claim-link');
-  link.href = '/dashboard?business_id=' + encodeURIComponent(businessId);
-  link.style.display = 'inline-block';
-}
-
-async function run() {
-  if (!slug) {
-    setStatus('Missing business', 'No business was specified to claim.', true);
-    return;
-  }
-
-  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  var sessionRes = await sb.auth.getSession();
-  var session = sessionRes.data && sessionRes.data.session;
-
-  if (!session) {
-    setStatus('Please sign in', 'Redirecting you to sign in first…', false);
-    var next = '/claim?business=' + encodeURIComponent(slug) + (outreachMsg ? '&m=' + encodeURIComponent(outreachMsg) : '');
-    setTimeout(function () {
-      window.location.href = '/login?next=' + encodeURIComponent(next);
-    }, 1200);
-    return;
-  }
-
-  try {
-    var res = await fetch('/api/claim-business', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
-      body: JSON.stringify({
-        slug: slug, m: outreachMsg || undefined, first_touch: firstTouch(),
-        anon_id: (function () { try { return localStorage.getItem('enoma_anon_id'); } catch (e) { return null; } })()
-      })
-    });
-    var data = await res.json();
-    if (!res.ok) {
-      setStatus('Could not claim this page', data.error || 'Something went wrong.', true);
-      return;
-    }
-    try { gtag('event', 'business_claimed', { slug: slug, transport_type: 'beacon' }); } catch (e) {}
-    setStatus(
-      data.already_claimed_by_you ? 'You already claimed this page' : 'Page claimed!',
-      'Redirecting to your dashboard…',
-      false
-    );
-    showDashboardLink(data.business_id);
-    setTimeout(function () {
-      window.location.href = '/dashboard?business_id=' + encodeURIComponent(data.business_id);
-    }, 1500);
-  } catch (e) {
-    setStatus('Something went wrong', 'Please refresh and try again, or contact support.', true);
-  }
-}
-
 function loadScript(src, onload, onerror) {
   var s = document.createElement('script');
-  s.src = src;
-  s.onload = onload;
-  s.onerror = onerror;
+  s.src = src; s.onload = onload; s.onerror = onerror;
   document.head.appendChild(s);
 }
-
-loadScript(
-  'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js',
-  run,
-  function () {
-    loadScript(
-      'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js',
-      run,
-      function () { setStatus('Failed to load', 'Please refresh the page and try again.', true); }
-    );
-  }
-);
+loadScript('https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js', start, function () {
+  loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js', start, failed);
+});
 </script>
 
 <div id="site-footer"></div>

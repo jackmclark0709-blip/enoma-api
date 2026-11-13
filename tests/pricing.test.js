@@ -12,7 +12,7 @@ import { Readable } from "node:stream";
 import {
   PRICING_V2, PRICE_LINE, FIRST_MONTH_LOOKUP_KEY, pricingVersionForNewSignup, writeNewSubscription,
   firstMonthOfferApplies, needsCheckoutToGoLive, pageIndexable, checkoutTermsLine, firstMonthLineItem,
-  firstFullChargeUnix, priceLineFor,
+  firstFullChargeUnix, priceLineFor, checkoutSubmitMessage, formatChargeDate,
 } from "../api/_lib/pricing.js";
 import { checkoutPlanFor } from "../api/_lib/billing.js";
 import { createPageCheckoutSession, _resetPriceCache } from "../api/_lib/page-checkout.js";
@@ -103,7 +103,8 @@ await test("search engines: v2 previews are noindex until checkout; legacy claim
 await test("checkoutPlanFor: v2 gets the $1 item and a 30-day trial; re-subscribers and legacy don't", () => {
   const m = checkoutPlanFor({ interval: "month", sub: v2Preview, now: NOW });
   assert.deepEqual(m, { lookupKey: "enoma_page_monthly", interval: "month", trialEnd: firstFullChargeUnix(NOW), firstMonthFee: true, pricingVersion: PRICING_V2 });
-  assert.equal(m.trialEnd, Math.floor((NOW + 30 * DAY) / 1000));
+  // 23:59 Eastern on Dec 12 (30 calendar days after Nov 12), not now + 30 days to the second.
+  assert.equal(m.trialEnd, Date.parse("2026-12-13T04:59:00Z") / 1000);
   const y = checkoutPlanFor({ interval: "year", sub: v2Preview, now: NOW });
   assert.equal(y.lookupKey, "enoma_page_annual");
   assert.equal(y.firstMonthFee, true);
@@ -192,7 +193,10 @@ for (const interval of ["month", "year"]) {
       { price: interval === "year" ? "price_annual" : "price_monthly", quantity: 1 },
       { price: "price_first", quantity: 1 },
     ]);
-    assert.equal(s.subscription_data.trial_end, Math.floor((NOW + 30 * DAY) / 1000));
+    assert.equal(s.subscription_data.trial_end, Date.parse("2026-12-13T04:59:00Z") / 1000, "end of day 30, Eastern");
+    assert.equal(s.custom_text.submit.message, interval === "year"
+      ? "$1 today covers your first month. Then $199/year starting December 12, 2026. Cancel anytime from your dashboard."
+      : "$1 today covers your first month. Then $19.99/month starting December 12, 2026. Cancel anytime from your dashboard.");
     assert.equal(s.metadata.pricing_version, PRICING_V2);
     assert.equal(s.metadata.first_month_fee, "1");
     assert.equal(s.metadata.interval, interval);
@@ -207,6 +211,7 @@ await test("v2 partner checkout: $1 today, then the $9.99/month partner price", 
   assert.equal(r.status, 200);
   assert.deepEqual(stripe.created[0].line_items, [{ price: "price_partner", quantity: 1 }, { price: "price_first", quantity: 1 }]);
   assert.ok(stripe.created[0].subscription_data.trial_end);
+  assert.equal(stripe.created[0].custom_text.submit.message, "$1 today covers your first month. Then $9.99/month starting December 12, 2026. Cancel anytime from your dashboard.");
 });
 
 await test("v2 checkout refuses (503) rather than charge full price if the $1 price is missing", async () => {
@@ -226,6 +231,34 @@ await test("legacy checkout is unaffected: no $1 line, trial_end = end of the fr
   assert.equal(stripe.created[0].subscription_data.trial_end, Math.floor(Date.parse(legacyFreeMonth.trial_expires_at) / 1000));
   assert.equal(stripe.created[0].metadata.pricing_version, "v1");
   assert.equal(stripe.created[0].metadata.first_month_fee, "0");
+  assert.equal(stripe.created[0].custom_text, undefined, "no $1 text on a legacy checkout");
+});
+
+// Jack's Nov 13 walkthrough: Checkout said "29 days free" because trial_end
+// was now + 30 days to the second. It now ends the 30th calendar day.
+await test("v2 monthly checkout started Nov 13: $1 line, trial_end Dec 13 23:59 Eastern, custom text with price and date", async () => {
+  _resetPriceCache();
+  const stripe = mockStripe();
+  const at = Date.parse("2026-11-13T19:42:17Z"); // 2:42pm Eastern
+  const r = await createPageCheckoutSession({ stripe, supabase: mockSupabase(tablesFor(v2Preview)), businessId: BIZ, interval: "month", now: at });
+  assert.equal(r.status, 200);
+  const s = stripe.created[0];
+  assert.deepEqual(s.line_items, [{ price: "price_monthly", quantity: 1 }, { price: "price_first", quantity: 1 }]);
+  assert.equal(s.subscription_data.trial_end, Date.parse("2026-12-14T04:59:00Z") / 1000);
+  assert.ok((s.subscription_data.trial_end * 1000 - at) / DAY > 30, "Checkout rounds down: more than 30 full days reads as 30 days free");
+  assert.equal(s.custom_text.submit.message, "$1 today covers your first month. Then $19.99/month starting December 13, 2026. Cancel anytime from your dashboard.");
+  assert.ok(s.custom_text.submit.message.length <= 1200, "Stripe's limit");
+});
+
+await test("first full charge is 23:59 Eastern on the 30th calendar day, across late-night and DST", () => {
+  const iso = (t) => new Date(firstFullChargeUnix(Date.parse(t)) * 1000).toISOString();
+  assert.equal(iso("2026-11-13T15:00:00Z"), "2026-12-14T04:59:00.000Z"); // Dec 13 23:59 EST
+  assert.equal(iso("2026-11-14T03:30:00Z"), "2026-12-14T04:59:00.000Z"); // still Nov 13 in New York
+  assert.equal(iso("2026-10-10T12:00:00Z"), "2026-11-10T04:59:00.000Z"); // EDT -> EST: Nov 9 23:59 EST
+  assert.equal(iso("2026-02-20T12:00:00Z"), "2026-03-23T03:59:00.000Z"); // EST -> EDT: Mar 22 23:59 EDT
+  assert.equal(formatChargeDate(firstFullChargeUnix(Date.parse("2026-11-13T15:00:00Z"))), "December 13, 2026");
+  assert.equal(checkoutSubmitMessage({ interval: "month", chargeDate: Date.parse("2026-12-14T04:59:00Z") / 1000, amountCents: 1999 }),
+    "$1 today covers your first month. Then $19.99/month starting December 13, 2026. Cancel anytime from your dashboard.");
 });
 
 await test("already subscribed (v2 in its $1 month) can't check out twice", async () => {
@@ -258,6 +291,10 @@ await test("plan picker (browser) shows the same terms, with the date computed f
   assert.match(p.termsLine("year", NOW), /^\$1 today\. Then \$199\/year starting December 12, 2026\. Cancel anytime from your dashboard\.$/);
   assert.equal(p.PRICE_LINE, PRICE_LINE);
   assert.doesNotMatch(src, /starting (January|February|March|April|May|June|July|August|September|October|November|December) \d/, "no hard-coded date");
+  // Same instant as Stripe's trial_end, whatever time of day it is.
+  for (const t of [NOW, Date.parse("2026-11-14T03:30:00Z"), Date.parse("2026-10-10T12:00:00Z"), Date.parse("2026-02-20T12:00:00Z")]) {
+    assert.equal(p.firstFullChargeDate(t).getTime() / 1000, firstFullChargeUnix(t), new Date(t).toISOString());
+  }
 });
 
 // ── Reminder 3 days before the first full charge ──

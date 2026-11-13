@@ -38,6 +38,40 @@ export function trialEndFor(sub, now = Date.now()) {
   return Math.floor(ends / 1000);
 }
 
+// The $1 first month (pricing v2) ends at 23:59 Eastern on the 30th calendar
+// day after checkout. "now + 30 days" to the second made Stripe Checkout say
+// "29 days free" (it rounds down); ending the day instead gives "30 days
+// free", and every place that shows the date (plan picker, checkout text,
+// reminder emails via current_period_end) shows the same day. The plan
+// picker (public/scripts/plan-picker.js) mirrors this; tests check they agree.
+export const FIRST_MONTH_DAYS = 30;
+export const BILLING_TZ = "America/New_York";
+
+// Minutes that `tz` is ahead of UTC at instant `ms` (negative for the US).
+function tzOffsetMinutes(ms, tz) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", {
+    timeZone: tz, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric",
+  }).formatToParts(new Date(ms)).map((x) => [x.type, x.value]));
+  const asUtc = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second);
+  return Math.round((asUtc - Math.floor(ms / 1000) * 1000) / 60000);
+}
+
+/** Unix seconds of 23:59:00 Eastern, `days` calendar days after today (Eastern). */
+export function endOfDayUnix(now = Date.now(), days = FIRST_MONTH_DAYS, tz = BILLING_TZ) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: tz, year: "numeric", month: "numeric", day: "numeric" })
+    .formatToParts(new Date(now)).map((x) => [x.type, x.value]));
+  const wall = Date.UTC(+p.year, +p.month - 1, +p.day + days, 23, 59, 0);
+  // Wall-clock 23:59 in tz -> UTC; a second pass settles a DST change between today and then.
+  let ms = wall - tzOffsetMinutes(wall, tz) * 60000;
+  ms = wall - tzOffsetMinutes(ms, tz) * 60000;
+  return Math.floor(ms / 1000);
+}
+
+/** trial_end for a v2 first-month checkout started at `now`. */
+export function firstMonthTrialEndUnix(now = Date.now()) {
+  return endOfDayUnix(now, FIRST_MONTH_DAYS);
+}
+
 /**
  * What create-checkout charges: the lookup key, the interval actually billed
  * (the partner price is monthly-only, whatever was picked) and the trial_end
@@ -53,7 +87,7 @@ export function checkoutPlanFor({ referrer = null, interval = "month", sub = nul
     return {
       lookupKey,
       interval: billedInterval,
-      trialEnd: Math.floor((now + 30 * 24 * 60 * 60 * 1000) / 1000),
+      trialEnd: firstMonthTrialEndUnix(now),
       firstMonthFee: true,
       pricingVersion: "v2_1dollar",
     };

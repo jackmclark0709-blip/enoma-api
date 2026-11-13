@@ -132,9 +132,12 @@ function initSupabase() {
           email: email,
           password: password,
           options: {
+            // The confirm email's button (supabase/templates/confirm_signup.html)
+            // appends &token_hash=…&type=email, so this must carry a "?".
+            // /claim confirms on a button click, then claims or goes to /create.
             emailRedirectTo: __claimSlug
               ? ('https://enoma.io/claim?business=' + encodeURIComponent(__claimSlug))
-              : 'https://enoma.io/create',
+              : 'https://enoma.io/claim?next=create',
             data: {
               pending_business_name: __pendingName || undefined,
               pending_city: __pendingCity || undefined

@@ -340,21 +340,19 @@ footer.site-footer .enoma-powered { color: rgba(225,238,255,0.6); text-decoratio
 .claim-box__form button:disabled { opacity: 0.6; cursor: wait; }
 .claim-box__msg { margin: 0.6rem 0 0; font-size: 0.88rem; color: #7a5a10; line-height: 1.5; }
 .claim-box__msg.is-error { color: #d94040 !important; }
-.claim-box__help { margin: 0.5rem 0 0; font-size: 0.82rem; }
-.claim-box__help a { color: inherit; opacity: 0.85; text-decoration: underline; }
-.owner-extras { margin-top: 0.7rem; color: rgba(240,246,255,0.8); font-size: 0.85rem; line-height: 1.5; }
-.unclaimed-banner .owner-extras .owner-extras__price { margin: 0 0 0.75rem; font-weight: 700; color: #f0f6ff; }
-.owner-progress { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 0.75rem 0.85rem; margin: 0 0 0.7rem; }
-.unclaimed-banner .owner-progress .owner-progress__title { margin: 0 0 0.45rem; font-weight: 800; color: #f0f6ff; font-size: 0.92rem; }
-.owner-progress__bar { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.15); overflow: hidden; margin-bottom: 0.6rem; }
-.owner-progress__bar span { display: block; height: 100%; background: #2A9D6F; border-radius: 999px; }
-.owner-progress__list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.35rem; }
-.owner-progress__list li { font-size: 0.8rem; padding: 0.2rem 0.55rem; border-radius: 999px; border: 1px solid rgba(255,255,255,0.18); color: rgba(240,246,255,0.75); }
-.owner-progress__list li.is-done { border-color: rgba(42,157,111,0.6); color: #D1F0E4; }
-.owner-progress__list li.is-done::before { content: "\2713  "; }
-.owner-progress__list li:not(.is-done)::before { content: "\25CB  "; }
-.unclaimed-banner .owner-extras .owner-extras__note { margin: 0; color: rgba(240,246,255,0.75); font-size: 0.85rem; }
-@media (max-width: 480px) { .claim-box__form button { flex: 1 1 100%; } }
+/* "Questions? Talk to Jack first": the secondary action, next to the orange "Keep my page". */
+.claim-box__help { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; margin: 0.5rem 0 0; padding: 0.6rem 1.1rem; border: 1.5px solid rgba(255,255,255,0.7); border-radius: 10px; background: transparent; color: #FFFFFF; font-weight: 700; font-size: 0.92rem; text-decoration: none; box-sizing: border-box; }
+.claim-box__help:hover { background: rgba(255,255,255,0.08); border-color: #FFFFFF; color: #FFFFFF; }
+.claim-box__help:focus-visible { outline: 2px solid #FFFFFF; outline-offset: 2px; }
+.claim-box__code { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.6rem; }
+.claim-box__code input { flex: 1 1 160px; min-width: 0; min-height: 44px; padding: 0.6rem 0.85rem; border: 1px solid #d4c08a; border-radius: 10px; font: inherit; font-size: 1.3rem; letter-spacing: 0.3em; text-align: center; background: #fff; color: #0a1628; font-variant-numeric: tabular-nums; }
+.claim-box__code button { flex: 0 0 auto; min-height: 44px; padding: 0.7rem 1.1rem; border: 0; border-radius: 10px; background: #C84A12; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 0.92rem; cursor: pointer; }
+.claim-box__code button:hover { background: #A63C0E; }
+.claim-box__code button:disabled { opacity: 0.6; cursor: wait; }
+.unclaimed-banner .claim-box__price { margin: 0.7rem 0 0; font-size: 0.85rem; font-weight: 700; line-height: 1.5; color: #f0f6ff; }
+.unclaimed-banner .claim-box__google { margin: 0.3rem 0 0; font-size: 0.82rem; line-height: 1.5; color: rgba(240,246,255,0.75); }
+.unclaimed-google { display: block; font-size: 0.8rem; margin-top: 0.15rem; }
+@media (max-width: 480px) { .claim-box__form button, .claim-box__code button, .claim-box__help { flex: 1 1 100%; width: 100%; } }
 
 /* ── Preview-page poll (unclaimed pages only) ── */
 .preview-poll { position: fixed; right: 16px; bottom: 16px; z-index: 60; width: min(340px, calc(100vw - 32px)); background: #0a1628; color: #F6F8FB; border-radius: 16px; padding: 1rem 1rem 0.9rem; box-shadow: 0 14px 40px rgba(10,22,40,0.35); font-family: var(--biz-font-body); transform: translateY(12px); opacity: 0; transition: opacity .25s ease, transform .25s ease; }
@@ -387,26 +385,24 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 
 <!-- UNCLAIMED PAGE BANNER -->
 <div class="unclaimed-banner hidden" id="unclaimedBanner">
-  <p id="unclaimedLine"><span id="unclaimedText"></span><a id="unclaimedCta" class="unclaimed-cta" href="#">Claim this page →</a></p>
+  <p id="unclaimedLine"><span id="unclaimedText"></span><a id="unclaimedCta" class="unclaimed-cta" href="#">Claim this page →</a><span class="unclaimed-google">Preview only. Not on Google yet: it goes on Google when you start your $1 month.</span></p>
   <div class="claim-box hidden" id="claimBox">
-    <p class="claim-box__title" id="claimTitle">This is your page. Claim it to keep it live.</p>
-    <p class="claim-box__sub" id="claimSub">Keep it for $1 your first month, then $19.99/month or $199/year. Cancel anytime. We'll email you a link: tap it and the page is yours to edit. No card until you go live.</p>
+    <p class="claim-box__title" id="claimTitle">This is your page. Keep it live.</p>
+    <p class="claim-box__sub" id="claimSub">We'll email you a 6-digit code and a link. Use either one and the page is yours to edit. No card until you go live.</p>
     <form class="claim-box__form" id="claimForm" novalidate>
       <label class="claim-box__label" for="claimEmail">Your email</label>
       <input id="claimEmail" type="email" autocomplete="email" placeholder="you@yourbusiness.com" required />
-      <button type="submit" id="claimSubmit">Email me my claim link</button>
+      <button type="submit" id="claimSubmit">Keep my page</button>
     </form>
     <p class="claim-box__msg hidden" id="claimMsg" role="status"></p>
-    <p class="claim-box__help"><a id="claimHelp" href="#">Questions? Talk to Jack</a></p>
-    <div class="owner-extras hidden" id="ownerExtras">
-      <p class="owner-extras__price">To go live: $1 for your first month, then $19.99/month or $199/year. Cancel anytime. No contract.</p>
-      <div class="owner-progress">
-        <p class="owner-progress__title"><span id="ownerPercent"></span></p>
-        <div class="owner-progress__bar"><span id="ownerBar"></span></div>
-        <ul class="owner-progress__list" id="ownerList"></ul>
-      </div>
-      <p class="owner-extras__note">Keep it and I'll fill in the rest with you, make changes whenever you ask, and help add it to your Google listing. Questions? Reply to my email or write to jack@enoma.io.</p>
-    </div>
+    <form class="claim-box__code hidden" id="claimCodeForm" novalidate>
+      <label class="claim-box__label" for="claimCode">6-digit code</label>
+      <input id="claimCode" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="7" placeholder="123456" />
+      <button type="submit" id="claimCodeSubmit">Keep my page</button>
+    </form>
+    <a class="claim-box__help" id="claimHelp" href="#">Questions? Talk to Jack first</a>
+    <p class="claim-box__price" id="claimPrice">$1 for your first month, then $19.99/month or $199/year. Cancel anytime. No contract.</p>
+    <p class="claim-box__google">Preview only. Not on Google yet: it goes on Google when you start your $1 month.</p>
   </div>
 </div>
 
@@ -473,6 +469,7 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 {{BLOCK_MOBILE_BAR}}
 
 <script src="/scripts/brand-color.js"></script>
+<script src="/scripts/claim-login.js"></script>
 <script src="/scripts/profile.js"></script>
 <script src="/scripts/quote-form.js" defer></script>
 

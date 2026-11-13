@@ -15,7 +15,8 @@
 //
 // Pricing v2 ($1 first month, api/_lib/pricing.js): accounts with
 // subscriptions.pricing_version = 'v2_1dollar' that have never subscribed get
-// a one-time $1 line item today and the plan on a 30-day trial. The session
+// a one-time $1 line item today and the plan on a trial ending 23:59 Eastern
+// on the 30th calendar day (Checkout shows "30 days free"). The session
 // itself is built in api/_lib/page-checkout.js (shared with Jack's
 // "send checkout link" in api/ga-metrics.js).
 // Called from the dashboard, /upgrade and /website-live (public/scripts/plan-picker.js).

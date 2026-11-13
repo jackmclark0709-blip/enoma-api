@@ -9,8 +9,10 @@
 //     onSignedOut: () => {},      // optional; default sends them to /login
 //   });
 //
-// Yearly is the default (or the plan the owner picked before claiming; see
-// planIntent). It posts { business_id, interval } to
+// Monthly is the default: it matches "$1 for your first month, then
+// $19.99/month" everywhere else. Yearly is preselected only when the owner
+// picked it before claiming ("Prefer to pay yearly?" -> ?plan=year, saved as
+// planIntent). The server defaults to monthly too (billing.js normalizeInterval). It posts { business_id, interval } to
 // /api/create-checkout. "Your first charge is on …" shows only when the
 // server will set a trial_end: the same rule as api/_lib/billing.js
 // trialEndFor (free month running, more than 48 hours left). Keep the two in
@@ -37,15 +39,33 @@
 
   // Pricing v2 ($1 first month; api/_lib/pricing.js firstMonthOfferApplies):
   // a v2 account that has never subscribed pays $1 today and the plan starts
-  // 30 days later. Keep in step with the server; tests/pricing.test.js checks.
+  // at 23:59 Eastern on the 30th calendar day (api/_lib/billing.js
+  // firstMonthTrialEndUnix, Stripe's trial_end). Keep in step with the
+  // server; tests/pricing.test.js checks they give the same instant.
   var FIRST_MONTH_DAYS = 30;
+  var TZ = "America/New_York";
   var PRICE_LINE = "$1 for your first month, then $19.99/month or $199/year. Cancel anytime.";
   function firstMonthOffer(sub) {
     return !!sub && sub.pricing_version === "v2_1dollar" && !sub.stripe_subscription_id && sub.provider !== "comped";
   }
+  function partsIn(ms, opts) {
+    var out = {};
+    new Intl.DateTimeFormat("en-US", Object.assign({ timeZone: TZ }, opts)).formatToParts(new Date(ms))
+      .forEach(function (x) { out[x.type] = x.value; });
+    return out;
+  }
+  function offsetMin(ms) {
+    var p = partsIn(ms, { hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric" });
+    var asUtc = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second);
+    return Math.round((asUtc - Math.floor(ms / 1000) * 1000) / 60000);
+  }
   function firstFullChargeDate(now) {
     if (now === undefined) now = Date.now();
-    return new Date(now + FIRST_MONTH_DAYS * 24 * 60 * 60 * 1000);
+    var p = partsIn(now, { year: "numeric", month: "numeric", day: "numeric" });
+    var wall = Date.UTC(+p.year, +p.month - 1, +p.day + FIRST_MONTH_DAYS, 23, 59, 0);
+    var ms = wall - offsetMin(wall) * 60000;
+    ms = wall - offsetMin(ms) * 60000;
+    return new Date(ms);
   }
   // "$1 today. Then $19.99/month starting {date 30 days from today}. Cancel anytime from your dashboard."
   function termsLine(interval, now) {
@@ -54,7 +74,7 @@
   }
 
   function fmtDate(d) {
-    return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: TZ });
   }
 
 
@@ -78,23 +98,23 @@
     el.innerHTML =
       '<div class="epp' + (opts.theme === "dark" ? " epp--dark" : "") + '">' +
       '<fieldset class="epp-choices"><legend class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Billing</legend>' +
-      '<label class="epp-opt"><input type="radio" name="' + name + '" value="year" checked>' +
+      '<label class="epp-opt"><input type="radio" name="' + name + '" value="month" checked>' +
+      '<span class="epp-opt__head">' + PLANS.month.label + "</span>" +
+      '<span class="epp-opt__price">' + PLANS.month.price + "</span></label>" +
+      '<label class="epp-opt"><input type="radio" name="' + name + '" value="year">' +
       '<span class="epp-opt__head">' + PLANS.year.label + ' <span class="epp-save">Save $40.88</span></span>' +
       '<span class="epp-opt__price">' + PLANS.year.price + "</span>" +
       '<span class="epp-opt__perk">' + ACCOUNT_MANAGER + "</span></label>" +
-      '<label class="epp-opt"><input type="radio" name="' + name + '" value="month">' +
-      '<span class="epp-opt__head">' + PLANS.month.label + "</span>" +
-      '<span class="epp-opt__price">' + PLANS.month.price + "</span></label>" +
       "</fieldset>" +
-      '<button type="button" class="epp-btn">' + (v2 ? V2_BUTTON : PLANS.year.button) + "</button>" +
+      '<button type="button" class="epp-btn">' + (v2 ? V2_BUTTON : PLANS.month.button) + "</button>" +
       (v2
-        ? '<p class="epp-note epp-terms">' + termsLine("year") + "</p>" +
+        ? '<p class="epp-note epp-terms">' + termsLine("month") + "</p>" +
           '<p class="epp-note epp-priceline">' + PRICE_LINE + "</p>"
         : '<p class="epp-note">' + (chargeOn ? "Your first charge is on " + fmtDate(chargeOn) + ". Cancel anytime." : "Cancel anytime.") + "</p>") +
       "</div>";
 
     var btn = el.querySelector(".epp-btn");
-    var chosen = function () { var c = el.querySelector('input[name="' + name + '"]:checked'); return c ? c.value : "year"; };
+    var chosen = function () { var c = el.querySelector('input[name="' + name + '"]:checked'); return c ? c.value : "month"; };
     var label = function () { return v2 ? V2_BUTTON : PLANS[chosen()].button; };
     var terms = el.querySelector(".epp-terms");
     var refresh = function () { btn.textContent = label(); if (terms) terms.textContent = termsLine(chosen()); };
