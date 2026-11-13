@@ -20,7 +20,8 @@
   <!-- Shared by every Enoma business page (company page + service spotlights) -->
   <link rel="stylesheet" href="/styles/business-pages.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
 {{HERO_PRELOAD}}
   <script type="application/ld+json">{{LOCAL_BUSINESS_SCHEMA}}</script>
@@ -69,8 +70,8 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--brand-light, #5
 .hero-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; text-align: left; align-items: start; }
 .hero-status span { background: none; padding: 0; border-radius: 0; }
 .hero-wrapper .hero-headline {
-  font-family: 'Fraunces', Georgia, serif; font-optical-sizing: auto;
-  font-size: clamp(1.75rem, 7vw, 2.9rem); font-weight: 600; line-height: 1.08; letter-spacing: -0.02em;
+  font-family: var(--biz-font-display); font-weight: 800; font-stretch: 85%; letter-spacing: -0.01em;
+  font-size: clamp(1.75rem, 7vw, 2.9rem); line-height: 1.05;
   color: #fff !important; margin: 0 0 0.6rem; overflow-wrap: anywhere;
 }
 .hero-wrapper .hero-tagline { font-size: 1.02rem; line-height: 1.6; color: rgba(225,238,255,0.85) !important; margin: 0 0 1rem; max-width: 600px; }
@@ -84,7 +85,7 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--brand-light, #5
 .hero-actions .primary-cta .icon { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
 .secondary-btn {
   display: inline-flex; align-items: center; gap: 0.5rem; border-radius: 999px;
-  font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 0.95rem; text-decoration: none;
+  font-family: var(--biz-font-display); font-weight: 700; font-stretch: 100%; font-size: 0.95rem; text-decoration: none;
   color: #fff; background: rgba(255,255,255,0.1); border: 1.5px solid rgba(255,255,255,0.45);
 }
 .secondary-btn:hover { background: rgba(255,255,255,0.2); color: #fff; }
@@ -121,14 +122,14 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--brand-light, #5
 .page-content #whySection { background: none; padding: 0; position: static; }
 .page-content #whySection h3 { text-align: left; color: #0a1628; }
 .section h2, .faq-heading, .gallery-header h2, .ba-header h2 {
-  font-family: 'Fraunces', Georgia, serif; font-optical-sizing: auto;
-  font-size: clamp(1.4rem, 5vw, 1.75rem); font-weight: 600; color: #0a1628; letter-spacing: -0.02em; margin: 0 0 1rem;
+  font-family: var(--biz-font-display); font-weight: 800; font-stretch: 85%; letter-spacing: -0.01em;
+  font-size: clamp(1.5rem, 5.5vw, 1.9rem); line-height: 1.1; color: #0a1628; margin: 0 0 1rem;
 }
 .section h2::before, .faq-heading::before {
   content: ''; display: block; width: 32px; height: 3px; background: var(--brand-primary, #1a3a2a); border-radius: 999px; margin-bottom: 0.8rem;
 }
 .section p { font-size: 0.98rem; line-height: 1.7; color: #374151; }
-.section h3 { font-family: 'DM Sans', sans-serif; font-size: 1.02rem; font-weight: 700; color: #0a1628; margin: 0 0 0.35rem; }
+.section h3 { font-family: var(--biz-font-display); font-weight: 700; font-stretch: 100%; font-size: 1.05rem; color: #0a1628; margin: 0 0 0.35rem; }
 
 /* ── Services: cards ── */
 .services-intro { margin: 0 0 1rem; color: #4b5563; }
@@ -145,7 +146,7 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--brand-light, #5
 .service-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 1rem; margin-top: auto; padding-top: 0.5rem; }
 .service-quote {
   display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0.55rem 1.1rem;
-  border-radius: 999px; background: var(--brand-primary, #1a3a2a); color: #fff; font-weight: 700; font-size: 0.9rem; text-decoration: none;
+  border-radius: 999px; background: var(--brand-primary, #1a3a2a); color: #fff; font-family: var(--biz-font-display); font-weight: 700; font-stretch: 100%; font-size: 0.9rem; text-decoration: none;
 }
 .service-quote:hover { filter: brightness(1.1); color: #fff; }
 .service-more { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; font-size: 0.9rem; color: var(--brand-primary, #1a3a2a); text-decoration: none; }
@@ -159,7 +160,7 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--brand-light, #5
 .how-step { display: flex; gap: 0.85rem; align-items: flex-start; }
 .how-step__n {
   flex: 0 0 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
-  background: var(--brand-primary, #1a3a2a); color: #fff; font-weight: 800; font-family: 'DM Sans', sans-serif;
+  background: var(--brand-primary, #1a3a2a); color: #fff; font-weight: 800; font-family: var(--biz-font-display);
 }
 .how-step p { margin: 0; font-size: 0.93rem; }
 
@@ -281,7 +282,7 @@ footer.site-footer .enoma-powered { color: rgba(225,238,255,0.6); text-decoratio
   }
   .mobile-call-bar a {
     flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 0.35rem;
-    min-height: 48px; border-radius: 999px; font-weight: 700; font-size: 0.92rem; text-decoration: none; white-space: nowrap;
+    min-height: 48px; border-radius: 999px; font-family: var(--biz-font-display); font-weight: 700; font-stretch: 100%; font-size: 0.92rem; text-decoration: none; white-space: nowrap;
     background: #f0f5fb; color: #0a1628; border: 1.5px solid #d4e2f4;
   }
   .mobile-call-bar .mcb-call { background: var(--brand-primary, #1a3a2a); color: #fff; border-color: transparent; }
@@ -328,7 +329,7 @@ footer.site-footer .enoma-powered { color: rgba(225,238,255,0.6); text-decoratio
 @media (max-width: 480px) { .claim-box__form button { flex: 1 1 100%; } }
 
 /* ── Preview-page poll (unclaimed pages only) ── */
-.preview-poll { position: fixed; right: 16px; bottom: 16px; z-index: 60; width: min(340px, calc(100vw - 32px)); background: #0a1628; color: #F6F8FB; border-radius: 16px; padding: 1rem 1rem 0.9rem; box-shadow: 0 14px 40px rgba(10,22,40,0.35); font-family: 'DM Sans', system-ui, sans-serif; transform: translateY(12px); opacity: 0; transition: opacity .25s ease, transform .25s ease; }
+.preview-poll { position: fixed; right: 16px; bottom: 16px; z-index: 60; width: min(340px, calc(100vw - 32px)); background: #0a1628; color: #F6F8FB; border-radius: 16px; padding: 1rem 1rem 0.9rem; box-shadow: 0 14px 40px rgba(10,22,40,0.35); font-family: var(--biz-font-body); transform: translateY(12px); opacity: 0; transition: opacity .25s ease, transform .25s ease; }
 .preview-poll.is-shown { transform: none; opacity: 1; }
 .preview-poll__close { position: absolute; top: 6px; right: 8px; background: none; border: 0; color: rgba(246,248,251,0.6); font-size: 1.3rem; line-height: 1; cursor: pointer; min-width: 44px; min-height: 44px; }
 .preview-poll .preview-poll__q { color: #F6F8FB; margin: 0 2rem 0.75rem 0; font-size: 0.95rem; font-weight: 700; line-height: 1.4; }

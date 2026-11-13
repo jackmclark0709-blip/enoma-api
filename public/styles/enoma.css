@@ -6,6 +6,9 @@
 
    Fonts: Fraunces (headings) · Instrument Sans (body) ·
           IBM Plex Mono (small uppercase labels), from Google Fonts.
+          "&" in display text is drawn from "Enoma Amp", a self-hosted
+          Instrument Sans 600 subset to U+0026 (scripts/build-amp-font.py),
+          so headings get a plain ampersand instead of Fraunces' swash one.
 
    SECTIONS
    1.  Design tokens
@@ -27,6 +30,14 @@
 /* ============================================================
    1. DESIGN TOKENS
    ============================================================ */
+@font-face {
+  font-family: "Enoma Amp";
+  src: url("/fonts/instrument-sans-amp.woff2") format("woff2");
+  font-weight: 400 800;
+  unicode-range: U+0026;
+  font-display: swap;
+}
+
 :root {
   /* Ink: headings, body text, dark sections */
   --ink: #0A1628;            /* headings, primary text, dark bands, footer */
@@ -73,7 +84,7 @@
   --mock-biz-live-text: #8FE0A5;
 
   /* Type */
-  --font-display: 'Fraunces', Georgia, serif;
+  --font-display: "Enoma Amp", 'Fraunces', Georgia, serif;
   --font-body: 'Instrument Sans', -apple-system, system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
