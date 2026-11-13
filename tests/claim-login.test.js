@@ -32,7 +32,7 @@ function fakeDoc(ids) {
   }
   return { els, getElementById: (id) => els[id] || null };
 }
-const IDS = ["claim-spinner", "claim-heading", "claim-message", "claim-link", "confirm-view", "confirm-btn",
+const IDS = ["claim-spinner", "claim-eyebrow", "claim-heading", "claim-message", "claim-link", "confirm-view", "confirm-btn",
   "code-view", "code-form", "code-email", "code-input", "code-submit", "code-resend", "code-msg", "password-link"];
 
 function fakeSb({ session = null, verify = { data: { session: { access_token: "tok" } }, error: null } } = {}) {
@@ -175,6 +175,70 @@ await test("/claim?next=create (password sign-up confirm, no page to claim): con
   await p.doc.els["confirm-btn"].fire("click");
   assert.deepEqual(p.went, ["/create"]);
   assert.equal(p.fetched.filter((f) => f.url === "/api/claim-business").length, 0);
+});
+
+// ── /claim?next=dashboard: the login email's button (sendLoginCode) ──
+await test("/claim?next=dashboard with token_hash: one 'Sign in to my dashboard' button, no verify on load; click verifies, then /dashboard (nothing claimed)", async () => {
+  const p = page({ search: "?next=dashboard&token_hash=pkce_login&type=email" });
+  await tick(); await tick();
+  assert.equal(p.sb.calls.verifyOtp.length, 0, "no verify on load");
+  assert.equal(p.doc.els["confirm-view"].hidden, false);
+  assert.equal(p.doc.els["code-view"].hidden, true);
+  assert.equal(p.doc.els["confirm-btn"].textContent, "Sign in to my dashboard");
+  assert.equal(p.doc.els["claim-heading"].textContent, "Sign in to Enoma");
+  assert.equal(p.doc.els["claim-eyebrow"].textContent, "Sign in");
+  assert.equal(p.fetched.length, 0, "no business lookup, nothing claimed");
+  await p.doc.els["confirm-btn"].fire("click");
+  assert.deepEqual(JSON.parse(JSON.stringify(p.sb.calls.verifyOtp)), [{ token_hash: "pkce_login", type: "email" }]);
+  assert.deepEqual(p.went, ["/dashboard"]);
+  assert.equal(p.fetched.filter((f) => f.url === "/api/claim-business").length, 0);
+});
+
+await test("/claim?next=dashboard, used-up link: code fallback signs in to /dashboard; resend never creates an account", async () => {
+  let verifyCalls = 0;
+  const sb = fakeSb();
+  sb.auth.verifyOtp = async (args) => {
+    sb.calls.verifyOtp.push(args);
+    return ++verifyCalls === 1 ? { data: { session: null }, error: { message: "Email link is invalid or has expired" } } : { data: { session: { access_token: "tok" } }, error: null };
+  };
+  const p = page({ search: "?next=dashboard&token_hash=used&type=email", sb });
+  await tick();
+  await p.doc.els["confirm-btn"].fire("click");
+  assert.equal(p.doc.els["code-view"].hidden, false);
+  assert.equal(p.doc.els["code-submit"].textContent, "Sign in");
+  assert.equal(p.doc.els["password-link"].href, "/login");
+  p.doc.els["code-email"].value = "owner@example.com";
+  await p.doc.els["code-resend"].fire("click");
+  assert.equal(sb.calls.signInWithOtp[0].options.shouldCreateUser, false);
+  assert.equal(sb.calls.signInWithOtp[0].options.emailRedirectTo, "https://enoma.io/claim?next=dashboard");
+  p.doc.els["code-input"].value = "654321";
+  await p.doc.els["code-form"].fire("submit");
+  assert.deepEqual(p.went, ["/dashboard"]);
+});
+
+await test("/claim?next=dashboard signed in already: straight to /dashboard", async () => {
+  const p = page({ search: "?next=dashboard", sb: fakeSb({ session: { access_token: "tok" } }) });
+  assert.equal(await p.done, "dashboard");
+  assert.deepEqual(p.went, ["/dashboard"]);
+});
+
+await test("routing unchanged: business= still claims (even with next=dashboard), next=create still goes to /create", async () => {
+  const a = page({ search: "?business=assayquant&token_hash=h&type=email" });
+  await tick();
+  assert.equal(a.doc.els["confirm-btn"].textContent, "", "claim.html's own 'Confirm and keep my page' label is left alone");
+  assert.equal(a.doc.els["claim-eyebrow"].textContent, "");
+  await a.doc.els["confirm-btn"].fire("click");
+  assert.deepEqual(a.went, ["/dashboard?business_id=biz-1"]);
+  const b = page({ search: "?business=assayquant&next=dashboard", sb: fakeSb({ session: { access_token: "tok" } }) });
+  await b.done;
+  assert.deepEqual(b.went, ["/dashboard?business_id=biz-1"], "a business always means claim");
+  const c = page({ search: "?next=create&token_hash=h&type=email" });
+  await tick();
+  assert.equal(c.doc.els["confirm-btn"].textContent, "Confirm my email");
+  await c.doc.els["confirm-btn"].fire("click");
+  assert.deepEqual(c.went, ["/create"]);
+  const d = page({ search: "" });
+  assert.equal(await d.done, "missing");
 });
 
 // ── The pages use it ──

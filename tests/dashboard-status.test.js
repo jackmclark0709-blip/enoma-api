@@ -72,12 +72,14 @@ test("paid: 'Live on Google' next to the status; first month replaces 'First cha
   assert.match(html, /Canceled — active until/, "canceled copy kept");
 });
 
-test("'Managed by Enoma' card is the first card in the main column, above 'Your live page'", () => {
+test("'Managed by Enoma' is the first always-on card in the main column, above 'Your live page' (only the optional 'Set a password' card is above it)", () => {
   const main = html.slice(html.indexOf("<!-- LEFT COLUMN -->"), html.indexOf("<!-- RIGHT COLUMN"));
   const upsell = main.indexOf('class="card upsell-card"');
   assert.ok(upsell > 0, "in the main column");
   assert.ok(upsell < main.indexOf("Your live page"));
-  assert.equal(main.indexOf('class="card'), upsell, "first card");
+  assert.equal(main.indexOf('class="card'), main.indexOf('class="card pw-card" id="pw-card" hidden'), "password card first, hidden until password-card.js shows it");
+  const afterPw = main.slice(main.indexOf('id="pw-card"'));
+  assert.equal(afterPw.search(/<div class="card[ "]/), afterPw.indexOf('<div class="card upsell-card"'), "then Managed by Enoma");
   assert.match(main, /Want hands-on help\?/);
   assert.equal((html.match(/upsell-card"/g) || []).length, 1, "moved, not copied");
 });
