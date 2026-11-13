@@ -213,43 +213,34 @@ function trackContactClick(type) {
   fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true, body: JSON.stringify({ slug: window.profileData.username, event: 'contact_click', metadata: { type }, internal: enomaIsInternal() || undefined }) }).catch(() => {});
 }
 
-/* ── Brand color extraction from logo ── */
-function luminance(r, g, b) {
-  const a = [r, g, b].map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
-  return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
-}
-function ensureUsableBrandColor([r, g, b]) {
-  let lum = luminance(r, g, b);
-  while (lum > 0.55) { r *= 0.88; g *= 0.88; b *= 0.88; lum = luminance(r, g, b); }
-  return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
-}
-function applyBrandColor(color) {
+/* ── Brand color from the logo (fallback) ──
+   The server reads an uploaded logo's colour into brand_color and p.js sets
+   the CSS variables before paint. This only runs for a logo uploaded before
+   that existed (logo_url set, brand_color empty). Colour rules live in
+   /scripts/brand-color.js, shared with the server's tests. */
+function applyBrandColor(hex) {
+  const BC = window.EnomaBrandColor;
+  const rgb = BC && BC.hexToRgb(hex);
+  if (!rgb) return;
   const root = document.documentElement;
-  root.style.setProperty('--brand-primary', color);
-  root.style.setProperty('--brand-primary-10', `color-mix(in srgb, ${color} 10%, white)`);
-  root.style.setProperty('--brand-primary-30', `color-mix(in srgb, ${color} 28%, white)`);
-  // Extract RGB components for use in radial glows
-  const m = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
-  if (m) root.style.setProperty('--brand-rgb', `${m[1]},${m[2]},${m[3]}`);
+  root.style.setProperty('--brand-primary', hex);
+  root.style.setProperty('--brand-primary-10', `color-mix(in srgb, ${hex} 10%, white)`);
+  root.style.setProperty('--brand-primary-30', `color-mix(in srgb, ${hex} 28%, white)`);
+  root.style.setProperty('--brand-rgb', rgb.join(','));
+  const cta = BC.ctaFor(hex);
+  root.style.setProperty('--brand-cta', cta.cta);
+  root.style.setProperty('--brand-cta-text', cta.ctaText);
+  root.style.setProperty('--brand-cta-hover', `color-mix(in srgb, ${cta.cta}, black 10%)`);
 }
 function extractDominantColor(img, callback) {
+  const BC = window.EnomaBrandColor;
+  if (!BC) { callback(null); return; }
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   const size = 64;
   canvas.width = canvas.height = size;
   ctx.drawImage(img, 0, 0, size, size);
-  const data = ctx.getImageData(0, 0, size, size).data;
-  const colors = {};
-  for (let i = 0; i < data.length; i += 4) {
-    const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
-    if (a < 200 || (r > 235 && g > 235 && b > 235)) continue;
-    const key = `${Math.round(r/16)*16},${Math.round(g/16)*16},${Math.round(b/16)*16}`;
-    colors[key] = (colors[key] || 0) + 1;
-  }
-  const dominant = Object.entries(colors).sort((a, b) => b[1] - a[1])[0];
-  if (!dominant) { callback(null); return; }
-  const [r, g, b] = dominant[0].split(',').map(Number);
-  callback(ensureUsableBrandColor([r, g, b]));
+  callback(BC.dominantColorFromPixels(ctx.getImageData(0, 0, size, size).data));
 }
 
 /* ── Before/After slider ── */
@@ -399,8 +390,8 @@ async function loadProfile() {
     if (isOpenNow(schedule)) openEl.hidden = false; else openEl.remove();
   }
 
-  /* ── Brand colour from the real logo (the server sets the palette first) ── */
-  if (p.logo_url) {
+  /* ── Brand colour from the real logo, only when the server hasn't stored it ── */
+  if (p.logo_url && !p.brand_color) {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => { try { extractDominantColor(img, color => { if (color) applyBrandColor(color); }); } catch (e) {} };
