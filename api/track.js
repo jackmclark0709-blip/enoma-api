@@ -2,11 +2,19 @@ import { createClient } from "@supabase/supabase-js";
 import { parseFeedback } from "./_lib/feedback.js";
 import { FUNNEL_EVENTS, classifyRequest, markBurstPartners, funnelRow } from "./_lib/tracking.js";
 import { INTERNAL_COOKIE } from "./_lib/traffic-classifier.js";
+import { recordSignal, recordVisit } from "./_lib/signal-store.js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// Signal ledger (api/_lib/signal-store.js): human views of a prospect's
+// unclaimed preview become preview_visit / repeat_visit signals; a human
+// gyw_submitted / preview_shown with no email captured is recorded as
+// preview_started_no_email (no follow-up possible, it feeds retargeting).
+const VISIT_EVENTS = new Set(["page_view", "landing_view"]);
+const NO_EMAIL_START_EVENTS = new Set(["gyw_submitted", "preview_shown"]);
 
 // Every event is stored with a traffic_class (api/_lib/traffic-classifier.js);
 // Jack's own devices are kept too, as is_internal / traffic_class 'internal',
@@ -92,6 +100,9 @@ export default async function handler(req, res) {
     }
 
     if (slug) {
+      if (VISIT_EVENTS.has(event) && c.trafficClass === "human") {
+        await recordVisit({ supabase }, { slug: String(slug).toLowerCase(), at, trafficClass: c.trafficClass, messageId });
+      }
       const { error } = await supabase.from("page_events").insert({
         slug,
         event,
@@ -117,6 +128,13 @@ export default async function handler(req, res) {
         attribution: req.body.attribution
       }));
       if (error) throw error;
+      if (NO_EMAIL_START_EVENTS.has(event) && c.trafficClass === "human" && typeof anon_id === "string" && anon_id) {
+        await recordSignal({ supabase }, {
+          type: "preview_started_no_email", source: "track", trafficClass: c.trafficClass, at,
+          keyParts: { anonId: anon_id.slice(0, 64) },
+          payload: { anon_id: anon_id.slice(0, 64), event, path: typeof meta.path === "string" ? meta.path.slice(0, 40) : null, first_touch: req.body.attribution || null }
+        });
+      }
     } else {
       return res.status(400).json({ error: "Missing slug or unrecognized event" });
     }

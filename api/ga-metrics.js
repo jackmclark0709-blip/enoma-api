@@ -42,6 +42,8 @@ import {
 import { createPageCheckoutSession } from "./_lib/page-checkout.js";
 import { pageLookupKeyFor, planByLookupKey, formatAmount } from "../data/plans.mjs";
 import { lintCopy } from "./_lib/copy-lint.js";
+import { recordSignal, recordVisit, runSignalQueue, markHandled } from "./_lib/signal-store.js";
+import { followupsMode, isScannerClick } from "./_lib/signals.js";
 import {
   TEXT_DAILY_CAP, TEXT_REMIND_AFTER_DAYS, NEVER_TEXT_STATUSES, normalizeUsPhone, assessPageQuality,
   assessRenderedPage, buildTextMessage, buildTextBatchEmail, verifyTextMarkToken,
@@ -54,6 +56,8 @@ import {
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 // Same guard for Stripe (charge reminders and Jack's checkout links).
 const stripeClient = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
+// The signal ledger (api/_lib/signal-store.js) reuses this file's clients.
+const signalDeps = () => ({ supabase, resend, stripe: stripeClient });
 
 const client = new BetaAnalyticsDataClient({
   credentials: {
@@ -1950,10 +1954,69 @@ async function prepareOutreachOnce({ limit = PREPARE_MAX_PER_RUN, deadline = Dat
   return finish(extra);
 }
 
+// prepare_outreach is the cron that runs most often (hourly, 12:05-22:05
+// UTC), so the signal follow-up queue rides along: due follow-ups, the
+// time-based signals and the 14-day close sweep, inside an 8 s budget, first,
+// so a long prepare run can't starve it. A failure there never stops prepare.
+const SIGNAL_QUEUE_BUDGET_MS = 8000;
 async function handlePrepareOutreach(req, res) {
   const limit = parseInt(req.query.limit, 10) || PREPARE_MAX_PER_RUN;
+  let signals = null;
+  try {
+    signals = await runSignalQueue(signalDeps(), { budgetMs: SIGNAL_QUEUE_BUDGET_MS });
+  } catch (e) {
+    signals = { error: String(e?.message || e) };
+  }
   const result = await prepareOutreachOnce({ limit, deadline: Date.now() + DAILY_PIPELINE_BUDGET_MS });
-  return res.status(200).json({ success: true, ...result });
+  return res.status(200).json({ success: true, ...result, signals });
+}
+
+// Admin/cron: only the signal queue, for an external every-15-min pinger or
+// a manual run.
+async function handleProcessSignals(req, res) {
+  const out = await runSignalQueue(signalDeps(), { budgetMs: 40000 });
+  return res.status(200).json({ success: true, mode: followupsMode(), ...out });
+}
+
+// POST /api/signals/:id/handle (rewrite in vercel.json). Admin: the
+// x-admin-secret header or Jack's Supabase session, like the other admin actions.
+async function handleSignalHandle(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+  const okSecret = !!process.env.ADMIN_SECRET && req.headers["x-admin-secret"] === process.env.ADMIN_SECRET;
+  if (!okSecret && !(await requireAdmin(req))) return res.status(401).json({ error: "Unauthorized" });
+  const id = String(req.query.id || req.body?.id || "");
+  if (!isUuid(id)) return res.status(400).json({ error: "signal id required" });
+  const r = await markHandled(signalDeps(), id, { note: req.body?.note });
+  if (!r.ok) return res.status(r.status || 500).json({ error: "not_found" });
+  return res.status(200).json({ success: true, ...(r.already ? { already: r.already } : {}) });
+}
+
+// POST /api/signals/manychat (rewrite in vercel.json): ManyChat's External
+// Request action, on a new Facebook message or comment. Authenticated by the
+// shared secret in MANYCHAT_SIGNAL_SECRET (X-Signal-Secret header, or
+// ?secret= if the header can't be set). Only `subscriber_id` is required.
+async function handleManychatSignal(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+  const secret = process.env.MANYCHAT_SIGNAL_SECRET;
+  const given = String(req.headers["x-signal-secret"] || req.query.secret || "");
+  const a = Buffer.from(given), b = Buffer.from(String(secret || ""));
+  if (!secret || a.length !== b.length || !crypto.timingSafeEqual(a, b)) return res.status(401).json({ error: "Unauthorized" });
+  const body = req.body || {};
+  const type = body.type === "fb_comment" ? "fb_comment" : "fb_message";
+  const subscriberId = String(body.subscriber_id || "").slice(0, 80);
+  if (!subscriberId) return res.status(400).json({ error: "subscriber_id required" });
+  const clip = (v, n) => (typeof v === "string" && v.trim() ? v.trim().slice(0, n) : null);
+  const at = Date.now();
+  const r = await recordSignal(signalDeps(), {
+    type, source: "manychat", email: clip(body.email, 200),
+    at, keyParts: { externalId: clip(body.message_id, 120), subscriberId, at },
+    payload: {
+      subscriber_id: subscriberId, name: clip(body.name, 120), phone: clip(body.phone, 40),
+      text: clip(body.text, 2000), page: clip(body.page, 120), post_url: clip(body.post_url, 500), business_name: clip(body.business_name, 200)
+    },
+    alertInfo: { businessName: clip(body.business_name, 200) || clip(body.name, 120), phone: clip(body.phone, 40), replyText: clip(body.text, 2000), previewUrl: clip(body.post_url, 500) }
+  });
+  return res.status(200).json({ success: true, recorded: r.recorded, reason: r.reason || null });
 }
 
 // One-time cleanup after the Nov 7-9 2026 ZeroBounce outage: every prospect
@@ -2491,6 +2554,12 @@ async function createVisitFollowup(prospect, msg, slug, at) {
     .select("id").maybeSingle();
   if (error) throw error;
   if (!row) return { internal: false, section: null }; // already triggered for this prospect
+  // FOLLOWUPS_MODE=live: the signal queue sends this note by itself (45 min
+  // after the visit, inside their local send window), so no Approve button.
+  if (!blockReason && followupsMode() === "live") {
+    const note = "Auto follow-up: goes out about 45 min after the visit (8am-7pm their time). Nothing to approve.";
+    return { internal: false, section: { text: `\n${note}`, html: `<p style="color:#666;">${note}</p>` } };
+  }
   const email = blockReason ? null : buildVisitFollowupEmail({
     businessName: prospect.business_name, originalSubject: ctx.draftSubject || msg.draft_subject,
     unsubscribeUrl: buildUnsubscribeUrl(prospect.email), mailingAddress: MAILING_ADDRESS
@@ -2688,6 +2757,11 @@ async function handleOutreachRedirect(req, res) {
         await alertJackOwnerVisit(prospect, to, msg.followup2_sent_at || msg.followup_sent_at || msg.sent_at, at, followup?.section || null);
       }
     }
+    // Signal ledger: preview_visit (and repeat_visit on a later day). Before
+    // the page_events insert below, so this visit isn't its own earlier one.
+    if (!scanner && prospect?.id) {
+      await recordVisit(signalDeps(), { slug, at: now, trafficClass: c.trafficClass, messageId: msg.id, prospect });
+    }
     await supabase.from("page_events").insert({
       slug,
       event,
@@ -2787,6 +2861,11 @@ async function handleResendWebhook(req, res) {
     // bestOutreachSignal (above) already reads for replies/claims.
     const reason = type === "email.complained" ? "opted_out" : "bounced";
     await supabase.from("suppression_list").upsert({ email, reason }, { onConflict: "email" });
+    // Closes every open signal and cancels every scheduled follow-up for them.
+    await recordSignal(signalDeps(), {
+      type: type === "email.complained" ? "complaint" : "bounce", source: "resend", email, at: Date.parse(at),
+      keyParts: { email }, payload: { resend_event: type, email_id: data?.email_id || null }
+    });
     if (type === "email.complained") await unpublishPreviewForEmail(email);
     const { data: matches } = await supabase.from("prospects").select("id").eq("email", email);
     const prospectIds = (matches || []).map(p => p.id);
@@ -2829,9 +2908,12 @@ async function handleResendWebhook(req, res) {
       event: "outreach_page_click", at: Number.isFinite(atMs) ? atMs : Date.now(), outreach
     });
     patch.last_clicked_url = k.link || null;
-    if (c.trafficClass === "human") {
+    // Plus the plain 120 s rule against this message's own delivery time.
+    const scannerByTiming = isScannerClick({ clickedAt: at, deliveredAt: msg.delivered_at, sentAt: msg.sent_at });
+    if (c.trafficClass === "human" && !scannerByTiming) {
       patch.click_count = (msg.click_count || 0) + 1;
       if (!msg.first_clicked_at) patch.first_clicked_at = at;
+      if (msg.prospect_id) await recordEmailClickSignal(msg, k, at, atMs);
     } else {
       patch.scanner_click_count = (msg.scanner_click_count || 0) + 1;
     }
@@ -2843,6 +2925,27 @@ async function handleResendWebhook(req, res) {
     await supabase.from("outreach_messages").update(patch).eq("id", msg.id);
   }
   return res.status(200).json({ success: true, matched: true });
+}
+
+// Signal ledger: a human click on a cold email (Resend click tracking).
+async function recordEmailClickSignal(msg, click, at, atMs) {
+  const { data: p } = await supabase.from("prospects")
+    .select("id, business_name, email, phone, city, state, trade, preview_url, preview_business_id, preview_alerted_at")
+    .eq("id", msg.prospect_id).maybeSingle();
+  if (!p) return;
+  const { data: biz } = p.preview_business_id
+    ? await supabase.from("businesses").select("is_internal").eq("id", p.preview_business_id).maybeSingle() : { data: null };
+  // The same click usually also lands on action=go, which already alerted
+  // Jack: one alert for one click.
+  const alertedRecently = p.preview_alerted_at && Date.now() - Date.parse(p.preview_alerted_at) < 30 * 60 * 1000;
+  const r = await recordSignal(signalDeps(), {
+    type: "email_click", source: "resend", prospectId: p.id, businessId: p.preview_business_id,
+    outreachMessageId: msg.id, email: p.email, trafficClass: "human", at: Number.isFinite(atMs) ? atMs : Date.now(),
+    person: { isInternal: biz?.is_internal === true, slug: slugFromPreviewUrl(p.preview_url) }, keyParts: { messageId: msg.id },
+    payload: { link: click.link || null, business_name: p.business_name }, skipAlert: !!alertedRecently,
+    alertInfo: { businessName: p.business_name, city: p.city, state: p.state, trade: p.trade, phone: p.phone, previewUrl: p.preview_url, detail: click.link ? `Clicked: ${click.link}` : null }
+  });
+  if (r.recorded && !alertedRecently) await supabase.from("prospects").update({ preview_alerted_at: at }).eq("id", p.id);
 }
 
 // Replies to cold outreach arrive at reply+<outreach_message_id>@mail.enoma.io
@@ -2901,6 +3004,23 @@ async function handleInboundReply(data) {
     await unpublishPreviewForEmail(fromEmail);
   }
 
+  // Signal ledger: a real reply cancels every automated follow-up for them
+  // and waits for Jack; an opt-out reply closes everything instead.
+  if (intent !== "auto_reply") {
+    let info = {};
+    if (prospectId) {
+      const { data: p } = await supabase.from("prospects").select("business_name, city, state, trade, phone, preview_url, preview_business_id").eq("id", prospectId).maybeSingle();
+      info = { businessName: p?.business_name, city: p?.city, state: p?.state, trade: p?.trade, phone: p?.phone, previewUrl: p?.preview_url, businessId: p?.preview_business_id };
+    }
+    const sig = {
+      source: "resend", prospectId, businessId: info.businessId || null, outreachMessageId: prospectId ? messageId : null,
+      email: fromEmail, keyParts: { inboundId: data.email_id, email: fromEmail },
+      payload: { subject, intent, text: text.slice(0, 2000), business_name: info.businessName || null }
+    };
+    if (intent === "opt_out") await recordSignal(signalDeps(), { ...sig, type: "unsubscribe" });
+    else await recordSignal(signalDeps(), { ...sig, type: "email_reply", alertInfo: { ...info, replyText: text, detail: subject ? `Subject: ${subject}` : null } });
+  }
+
   if (resend) {
     try {
       const label = { positive: "INTERESTED", opt_out: "opt-out", auto_reply: "auto-reply", other: "reply" }[intent];
@@ -2950,6 +3070,7 @@ async function handleUnsubscribe(req, res) {
 
   await supabase.from("suppression_list").upsert({ email, reason: "requested_removal" }, { onConflict: "email" });
   await unpublishPreviewForEmail(email);
+  await recordSignal(signalDeps(), { type: "unsubscribe", source: "resend", email, keyParts: { email }, payload: { via: "unsubscribe_link" } });
 
   res.setHeader("Content-Type", "text/html");
   return res.status(200).send(`<!doctype html><html><body style="font-family:sans-serif;max-width:480px;margin:60px auto;text-align:center;"><h2>You're unsubscribed</h2><p>${email} won't receive any more emails from Enoma.</p></body></html>`);
@@ -3486,6 +3607,26 @@ export default async function handler(req, res) {
     }
   }
 
+  // ManyChat External Request (shared secret checked inside).
+  if (req.query.action === "manychat_signal") {
+    try {
+      return await handleManychatSignal(req, res);
+    } catch (err) {
+      console.error("ManyChat signal failed:", err);
+      return res.status(500).json({ success: false, error: "failed" });
+    }
+  }
+
+  // Mark a signal handled (admin secret or Jack's session, checked inside).
+  if (req.query.action === "signal_handle") {
+    try {
+      return await handleSignalHandle(req, res);
+    } catch (err) {
+      console.error("Signal handle failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
   // Public: the contact buttons on the preview landing page.
   if (req.query.action === "landing_contact") {
     try {
@@ -3751,6 +3892,15 @@ export default async function handler(req, res) {
       return await handleDailyPipeline(req, res);
     } catch (err) {
       console.error("Daily pipeline failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.query.action === "process_signals") {
+    try {
+      return await handleProcessSignals(req, res);
+    } catch (err) {
+      console.error("Process signals failed:", err);
       return res.status(500).json({ success: false, error: err.message });
     }
   }
