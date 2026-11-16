@@ -139,6 +139,9 @@ function initSupabase() {
               ? ('https://enoma.io/claim?business=' + encodeURIComponent(__claimSlug))
               : 'https://enoma.io/claim?next=create',
             data: {
+              // Chose a password here, so the dashboard never offers
+              // "Set a password" (public/scripts/password-card.js).
+              password_set: true,
               pending_business_name: __pendingName || undefined,
               pending_city: __pendingCity || undefined
             }

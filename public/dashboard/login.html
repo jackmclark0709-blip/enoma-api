@@ -31,33 +31,86 @@
     <p class="auth-eyebrow">Welcome back</p>
     <h1>Sign in to Enoma</h1>
     <p class="auth-subtitle">Access your dashboard and manage your business website.</p>
-    <div class="field">
-      <label for="email">Email address</label>
-      <input id="email" type="email" placeholder="you@example.com" autocomplete="email" />
+
+    <!-- Code first: we email a 6-digit code (and a button) to the owner.
+         Never creates an account (public/scripts/claim-login.js sendLoginCode). -->
+    <form id="code-start" class="login-step" novalidate>
+      <div class="field">
+        <label for="login-email">Email address</label>
+        <input id="login-email" type="email" placeholder="you@example.com" autocomplete="email" required />
+      </div>
+      <button type="submit" class="submit-btn" id="send-btn">Email me a sign-in code</button>
+      <p class="login-msg" id="send-msg" role="status" hidden></p>
+    </form>
+
+    <div id="code-sent" class="login-step" hidden>
+      <p class="sent-copy" id="sent-copy"></p>
+      <form id="verify-form" novalidate>
+        <div class="field">
+          <label for="login-code">6-digit code</label>
+          <input id="login-code" class="code-input" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="7" placeholder="123456" required />
+        </div>
+        <button type="submit" class="submit-btn" id="verify-btn">Sign in</button>
+      </form>
+      <p class="login-msg" id="verify-msg" role="status" hidden></p>
+      <p class="code-alt"><button type="button" class="link-like" id="resend-btn">Resend code</button> · <button type="button" class="link-like" id="change-email">Use a different email</button></p>
     </div>
-    <div class="field">
-      <label for="password">Password</label>
-      <input id="password" type="password" placeholder="Your password" autocomplete="current-password" />
-    </div>
-    <button class="submit-btn" onclick="login()">Sign in →</button>
-    <p class="error-msg" id="error"></p>
+
+    <div class="login-divider" role="separator"><span>or</span></div>
+    <button type="button" class="link-like login-pw-toggle" id="show-password">Use a password instead</button>
+
+    <!-- Password sign-in, unchanged. -->
+    <form id="password-form" class="login-step" novalidate>
+      <div id="password-view" hidden>
+        <div class="field">
+          <label for="email">Email address</label>
+          <input id="email" type="email" placeholder="you@example.com" autocomplete="email" />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" type="password" placeholder="Your password" autocomplete="current-password" />
+        </div>
+        <button type="submit" class="submit-btn submit-btn--secondary">Sign in →</button>
+        <p class="error-msg" id="error"></p>
+      </div>
+    </form>
     <p class="auth-links">Don't have an account? <a href="/signup">Create your free website</a></p>
   </div>
 </div>
 
+<style>
+body.page-login [hidden] { display: none !important; }
+body.page-login .submit-btn { min-height: 48px; }
+body.page-login .submit-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+body.page-login .submit-btn--secondary { background: var(--surface); color: var(--ink); border: 1.5px solid var(--border-strong); }
+body.page-login .field input { min-height: 46px; font-size: 1rem; }
+body.page-login .field .code-input { font-family: var(--font-mono); font-size: 1.4rem; letter-spacing: 0.3em; text-align: center; }
+body.page-login .sent-copy { font-size: 0.95rem; color: var(--ink); line-height: 1.55; margin: 0 0 1rem; }
+body.page-login .login-msg { font-size: 0.88rem; color: var(--muted); margin: 0.75rem 0 0; line-height: 1.5; }
+body.page-login .login-msg.is-error { color: var(--danger); }
+body.page-login .code-alt { font-size: 0.85rem; color: var(--muted); margin: 1rem 0 0; text-align: center; }
+body.page-login .link-like { color: var(--accent); font-weight: 600; background: none; border: 0; padding: 0.35rem 0.1rem; font: inherit; font-weight: 600; cursor: pointer; }
+body.page-login .login-divider { display: flex; align-items: center; gap: 0.75rem; margin: 1.5rem 0 0.75rem; color: var(--muted); font-size: 0.8rem; }
+body.page-login .login-divider::before, body.page-login .login-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+body.page-login .login-pw-toggle { display: block; margin: 0 auto; min-height: 44px; }
+body.page-login #password-view { margin-top: 0.5rem; }
+</style>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/scripts/claim-login.js"></script>
 <script>
-  const SUPABASE_URL = 'https://qhsivcenpnxwmvwznqie.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc';
-  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  async function login() {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-    if (error) { document.getElementById('error').textContent = error.message; }
-    else { const p = new URLSearchParams(window.location.search); window.location.href = p.get('next') || '/dashboard'; }
-  }
-  document.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+  (function () {
+    var L = window.EnomaClaimLogin;
+    var session = null;
+    try { session = window.sessionStorage; } catch (e) {}
+    L.initLoginPage({
+      doc: document,
+      search: window.location.search,
+      sb: L.client(window),
+      go: function (url) { window.location.href = url; },
+      session: session,
+    });
+  })();
 </script>
 
 <div id="site-footer"></div>

@@ -110,6 +110,35 @@
       <!-- LEFT COLUMN -->
       <div style="display:flex;flex-direction:column;gap:1rem;">
 
+        <!-- Set a password (optional): for owners who signed in with a code.
+             public/scripts/password-card.js decides when it shows. -->
+        <div class="card pw-card" id="pw-card" hidden>
+          <div id="pw-body">
+            <div class="card-title">Set a password (optional)</div>
+            <p class="card-hint">You signed in with a code. Add a password if you'd like another way in. You can always sign in with a code instead.</p>
+            <form id="pw-form" novalidate>
+              <label for="pw-new">New password</label>
+              <div class="pw-row">
+                <input id="pw-new" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters" />
+                <button type="button" class="pw-toggle" id="pw-toggle" aria-pressed="false" aria-controls="pw-new pw-confirm">Show</button>
+              </div>
+              <label for="pw-confirm">Confirm password</label>
+              <input id="pw-confirm" type="password" autocomplete="new-password" minlength="8" placeholder="Type it again" />
+              <div id="pw-nonce-wrap" hidden>
+                <p class="pw-nonce-copy" id="pw-nonce-copy"></p>
+                <label for="pw-nonce">6-digit code</label>
+                <input id="pw-nonce" class="pw-code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="7" placeholder="123456" />
+              </div>
+              <div class="pw-actions">
+                <button type="submit" class="btn primary pw-save" id="pw-save">Save password</button>
+                <button type="button" class="pw-later" id="pw-later">Not now</button>
+              </div>
+            </form>
+            <p class="pw-msg" id="pw-msg" role="status" hidden></p>
+          </div>
+          <p class="pw-done" id="pw-done" role="status" hidden>Password saved. You can sign in with either.</p>
+        </div>
+
         <!-- Managed service upsell (first card in the main column) -->
         <div class="card upsell-card">
           <p class="upsell-eyebrow">Managed by Enoma</p>
@@ -253,6 +282,25 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/scripts/plan-picker.js"></script>
+<script src="/scripts/password-card.js"></script>
+<style>
+body.page-dashboard #pw-card[hidden], body.page-dashboard #pw-card [hidden] { display: none !important; }
+body.page-dashboard .pw-card label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--ink); margin: 0.75rem 0 0.3rem; }
+body.page-dashboard .pw-card input { width: 100%; min-height: 46px; padding: 0.65rem 0.8rem; border: 1px solid var(--border-strong); border-radius: 10px; font: inherit; font-size: 1rem; box-sizing: border-box; background: var(--surface); color: var(--ink); }
+body.page-dashboard .pw-card input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent); }
+body.page-dashboard .pw-row { display: flex; gap: 0.5rem; }
+body.page-dashboard .pw-row input { flex: 1; min-width: 0; }
+body.page-dashboard .pw-toggle { min-width: 64px; min-height: 46px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--surface); color: var(--ink); font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+body.page-dashboard .pw-code { font-family: var(--font-mono); font-size: 1.3rem !important; letter-spacing: 0.3em; text-align: center; }
+body.page-dashboard .pw-nonce-copy { font-size: 0.85rem; color: var(--ink); margin: 1rem 0 0; line-height: 1.5; }
+body.page-dashboard .pw-actions { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; }
+body.page-dashboard .pw-save { min-height: 44px; padding: 0.6rem 1.4rem; font-size: 0.9rem; }
+body.page-dashboard .pw-later { background: none; border: 0; padding: 0.5rem 0.25rem; min-height: 44px; font: inherit; font-size: 0.85rem; font-weight: 600; color: var(--muted); cursor: pointer; }
+body.page-dashboard .pw-later:hover { color: var(--ink); }
+body.page-dashboard .pw-msg { font-size: 0.85rem; color: var(--muted); margin: 0.75rem 0 0; }
+body.page-dashboard .pw-msg.is-error { color: var(--danger); }
+body.page-dashboard .pw-done { margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--ink); }
+</style>
 <script type="module">
 const SUPABASE_URL  = 'https://qhsivcenpnxwmvwznqie.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc2l2Y2VucG54d212d3pucWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2ODQ4NjMsImV4cCI6MjA4MDI2MDg2M30.g_3eHoqfo7R15Q_9OoBy0DTq66a3BPA838VFd1aZtnc';
@@ -279,6 +327,14 @@ async function main() {
   document.getElementById('sign-out').addEventListener('click', async () => {
     await supabase.auth.signOut(); window.location.href = '/login';
   });
+
+  // "Set a password (optional)" for owners who signed in with a code.
+  try {
+    let local = null, sess = null;
+    try { local = window.localStorage; } catch (e) {}
+    try { sess = window.sessionStorage; } catch (e) {}
+    window.EnomaPasswordCard?.init({ doc: document, sb: supabase, user: session.user, storage: local, session: sess }).catch(() => {});
+  } catch (e) {}
 
   // ── Load memberships ──
   const { data: memberships } = await supabase
