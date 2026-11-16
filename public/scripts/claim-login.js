@@ -15,6 +15,11 @@
 // Either way the owner then lands on /claim with a session, which claims the
 // page and goes to the dashboard, exactly as the old link did.
 //
+// Signing in later (public/dashboard/login.html, initLoginPage) uses the same
+// email: sendLoginCode never creates an account, and its button goes to
+// /claim?next=dashboard&token_hash=…, which signs in on a click and opens
+// /dashboard.
+//
 // Loaded as a plain script (window.EnomaClaimLogin) and by tests
 // (module.exports): tests/claim-login.test.js.
 (function () {
@@ -60,6 +65,42 @@
       email: opts.email,
       options: { emailRedirectTo: "https://enoma.io" + claimPath(opts.slug, opts.m), shouldCreateUser: true },
     });
+  }
+
+  // ── Signing in to the dashboard (public/dashboard/login.html) ──────────
+  // The same email (code + button) as a claim, but it never creates an
+  // account, and the button lands on /claim?next=dashboard.
+  var DASHBOARD_REDIRECT = "https://enoma.io/claim?next=dashboard";
+  var RESEND_WAIT_MS = 60 * 1000;
+  var NO_ACCOUNT_MESSAGE = "We couldn't find an account for that email. Looking for your page? Open the link Jack sent you, or email jack@enoma.io.";
+  var JUST_SENT_MESSAGE = "We just sent one. Give it a minute.";
+
+  function sendLoginCode(sb, email) {
+    return sb.auth.signInWithOtp({
+      email: String(email || "").trim(),
+      options: { shouldCreateUser: false, emailRedirectTo: DASHBOARD_REDIRECT },
+    });
+  }
+
+  /** What the login page says once the email is on its way. */
+  function loginSentCopy(email) {
+    return "Check your inbox at " + email + ". Type the 6-digit code, or tap the button in the email.";
+  }
+
+  /** A friendly message for a failed send on the login page. */
+  function loginSendErrorMessage(err) {
+    var msg = (err && err.message) || "";
+    var code = (err && err.code) || "";
+    // shouldCreateUser:false and no such user: "Signups not allowed for otp".
+    if (/otp_disabled|user_not_found/.test(code) || /signups? not allowed|user not found|not registered/i.test(msg)) return NO_ACCOUNT_MESSAGE;
+    if (/rate_limit/.test(code) || /rate limit|security purposes|seconds|give it a minute/i.test(msg)) return JUST_SENT_MESSAGE;
+    return "Something went wrong. Try again, or email jack@enoma.io.";
+  }
+
+  /** ?next= only if it's a path on this site (no //evil.com, no https://). */
+  function safeNext(value, fallback) {
+    var v = String(value || "");
+    return /^\/(?![\/\\])/.test(v) ? v : fallback;
   }
 
   /** Path 1: the 6-digit code typed in the claim box or on /claim. */
@@ -109,6 +150,9 @@
     // Password sign-ups (public/dashboard/signup.html) without a page to
     // claim confirm here too, then go on to /create.
     var nextCreate = params.get("next") === "create";
+    // Signing in from /dashboard/login (sendLoginCode): no page to claim,
+    // just the dashboard.
+    var nextDashboard = params.get("next") === "dashboard" && !slug;
     var sb = deps.sb;
     var wait = deps.wait || function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
     var show = function (id, on) { var el = $(id); if (el) el.hidden = !on; };
@@ -129,6 +173,7 @@
     // Signed in: claim the page, then the dashboard (the old link flow).
     async function claim(session) {
       show("confirm-view", false); show("code-view", false); show("claim-spinner", true);
+      if (nextDashboard) { setStatus("You're signed in", "Taking you to your dashboard…", false); deps.go("/dashboard"); return "dashboard"; }
       if (nextCreate && !slug) { setStatus("You're signed in", "Taking you to build your page…", false); deps.go("/create"); return "create"; }
       setStatus("Keeping your page…", "Just a moment.", false);
       show("claim-spinner", true);
@@ -159,9 +204,10 @@
       setStatus(heading, message, isError);
       show("code-view", true);
       var pw = $("password-link");
-      if (pw) pw.href = "/login?next=" + encodeURIComponent(claimPath(slug, m));
+      if (pw) pw.href = nextDashboard ? "/login" : "/login?next=" + encodeURIComponent(claimPath(slug, m));
       var form = $("code-form"), emailEl = $("code-email"), codeEl = $("code-input"), submit = $("code-submit"), resend = $("code-resend"), msg = $("code-msg");
       var say = function (t, err) { msg.textContent = t; msg.hidden = false; msg.className = "code-msg" + (err ? " is-error" : ""); };
+      if (nextDashboard) submit.textContent = "Sign in";
       form.addEventListener("submit", async function (e) {
         if (e && e.preventDefault) e.preventDefault();
         var email = String(emailEl.value || "").trim();
@@ -177,25 +223,29 @@
         var email = String(emailEl.value || "").trim();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { say("Enter your email first, then tap Send a new code.", true); return; }
         resend.disabled = true;
-        var r = await sendCode(sb, { email: email, slug: slug, m: m });
+        var r = nextDashboard ? await sendLoginCode(sb, email) : await sendCode(sb, { email: email, slug: slug, m: m });
         resend.disabled = false;
-        say(r && r.error ? verifyErrorMessage(r.error) : sentCopy(email), !!(r && r.error));
+        var errText = r && r.error ? (nextDashboard ? loginSendErrorMessage(r.error) : verifyErrorMessage(r.error)) : "";
+        say(errText || (nextDashboard ? loginSentCopy(email) : sentCopy(email)), !!errText);
       });
       return "code";
     }
 
     async function run() {
-      if (!slug && !nextCreate) { setStatus("Missing business", "No business was specified to claim.", true); return "missing"; }
+      var eyebrow = $("claim-eyebrow");
+      if (nextDashboard && eyebrow) eyebrow.textContent = "Sign in";
+      if (!slug && !nextCreate && !nextDashboard) { setStatus("Missing business", "No business was specified to claim.", true); return "missing"; }
 
       // The email's button: show the business and one button. Verify only
       // when it's clicked (a link scanner loads the page but never clicks).
       if (tokenHash) {
         show("claim-spinner", false);
-        $("claim-heading").textContent = nextCreate && !slug ? "Confirm your email" : "Keep your page";
-        $("claim-message").textContent = nextCreate && !slug ? "Tap the button to finish signing up." : "Tap the button to confirm it's you.";
+        $("claim-heading").textContent = nextDashboard ? "Sign in to Enoma" : nextCreate && !slug ? "Confirm your email" : "Keep your page";
+        $("claim-message").textContent = nextDashboard ? "Tap the button to sign in." : nextCreate && !slug ? "Tap the button to finish signing up." : "Tap the button to confirm it's you.";
         show("confirm-view", true);
         var btn = $("confirm-btn");
-        if (nextCreate && !slug) btn.textContent = "Confirm my email";
+        if (nextDashboard) btn.textContent = "Sign in to my dashboard";
+        else if (nextCreate && !slug) btn.textContent = "Confirm my email";
         if (slug && deps.fetch) {
           deps.fetch("/api/get-business?slug=" + encodeURIComponent(slug))
             .then(function (r) { return r.ok ? r.json() : null; })
@@ -204,7 +254,7 @@
         }
         return new Promise(function (resolve) {
           btn.addEventListener("click", async function () {
-            btn.disabled = true; btn.textContent = "Confirming…";
+            btn.disabled = true; btn.textContent = nextDashboard ? "Signing in…" : "Confirming…";
             var r = await verifyLink(sb, tokenHash);
             if (r.error || !r.data || !r.data.session) {
               // Expired or already used: the code in the same email still works.
@@ -225,14 +275,107 @@
       var expired = /error_code=otp_expired|error=access_denied/.test(deps.hash || "");
       return codeView(
         expired ? "That link has expired" : "Enter your code",
-        expired ? "Email scanners sometimes use up sign-in links. Type the 6-digit code from the same email instead." : "Type the 6-digit code from your email to keep your page.",
+        expired ? "Email scanners sometimes use up sign-in links. Type the 6-digit code from the same email instead."
+          : nextDashboard ? "Type the 6-digit code from your email to sign in." : "Type the 6-digit code from your email to keep your page.",
         expired
       );
     }
     return run();
   }
 
+  // ── /dashboard/login (public/dashboard/login.html) ─────────────────────
+  // Code first, password second.
+  // deps: { doc, search, sb, go(url), session (sessionStorage), now() }
+  // Elements (login.html): code-start, login-email, send-btn, send-msg,
+  // code-sent, sent-copy, verify-form, login-code, verify-btn, verify-msg,
+  // resend-btn, change-email, show-password, password-view, password-form,
+  // email, password, error.
+  var PASSWORD_FLAG = "enoma_signed_in_with_password";
+
+  function initLoginPage(deps) {
+    var doc = deps.doc;
+    var $ = function (id) { return doc.getElementById(id); };
+    var sb = deps.sb;
+    var now = deps.now || function () { return Date.now(); };
+    var params = new URLSearchParams(deps.search || "");
+    var next = safeNext(params.get("next"), "/dashboard");
+    var lastSent = 0, sentTo = "";
+    var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    function say(id, text, isError) {
+      var el = $(id); if (!el) return;
+      el.textContent = text || ""; el.hidden = !text;
+      el.className = "login-msg" + (isError ? " is-error" : "");
+    }
+    function show(id, on) { var el = $(id); if (el) el.hidden = !on; }
+
+    // At most one email a minute from this page; Supabase's own limit maps
+    // to the same words.
+    async function send(email) {
+      if (lastSent && now() - lastSent < RESEND_WAIT_MS) return { error: { message: JUST_SENT_MESSAGE, code: "client_rate_limit" } };
+      var r = (await sendLoginCode(sb, email)) || {};
+      if (!r.error) lastSent = now();
+      return r;
+    }
+
+    // Step 1: email, then a code.
+    $("code-start").addEventListener("submit", async function (e) {
+      if (e && e.preventDefault) e.preventDefault();
+      var email = String($("login-email").value || "").trim();
+      if (!EMAIL_RE.test(email)) { say("send-msg", "Enter the email you use for Enoma.", true); return; }
+      var btn = $("send-btn");
+      btn.disabled = true; say("send-msg", "");
+      var r = await send(email);
+      btn.disabled = false;
+      if (r.error) { say("send-msg", loginSendErrorMessage(r.error), true); return; }
+      sentTo = email;
+      $("sent-copy").textContent = loginSentCopy(email);
+      show("code-start", false); show("code-sent", true);
+      try { $("login-code").focus(); } catch (err) {}
+    });
+
+    // Step 2: the 6-digit code, then the dashboard.
+    $("verify-form").addEventListener("submit", async function (e) {
+      if (e && e.preventDefault) e.preventDefault();
+      var code = normalizeCode($("login-code").value);
+      if (!code) { say("verify-msg", "Enter the 6-digit code from the email.", true); return; }
+      var btn = $("verify-btn");
+      btn.disabled = true; say("verify-msg", "");
+      var r = await verifyCode(sb, sentTo, code);
+      if (r.error || !r.data || !r.data.session) { btn.disabled = false; say("verify-msg", verifyErrorMessage(r.error), true); return; }
+      deps.go(next);
+    });
+
+    $("resend-btn").addEventListener("click", async function () {
+      var r = await send(sentTo);
+      say("verify-msg", r.error ? loginSendErrorMessage(r.error) : "Sent a new code to " + sentTo + ".", !!r.error);
+    });
+    $("change-email").addEventListener("click", function () {
+      show("code-sent", false); show("code-start", true); say("verify-msg", "");
+    });
+
+    // A password, for anyone who has one (same sign-in as before).
+    $("show-password").addEventListener("click", function () {
+      show("password-view", true); show("show-password", false);
+      var typed = String($("login-email").value || "").trim();
+      if (typed && !$("email").value) $("email").value = typed;
+    });
+    $("password-form").addEventListener("submit", async function (e) {
+      if (e && e.preventDefault) e.preventDefault();
+      var r = await sb.auth.signInWithPassword({ email: $("email").value, password: $("password").value });
+      if (r.error) { $("error").textContent = r.error.message; return; }
+      // Owners who already use a password never see the dashboard's
+      // "Set a password" card (public/scripts/password-card.js).
+      try { deps.session && deps.session.setItem(PASSWORD_FLAG, "1"); } catch (err) {}
+      deps.go(next);
+    });
+    return "ready";
+  }
+
   var api = {
+    sendLoginCode: sendLoginCode, loginSentCopy: loginSentCopy, loginSendErrorMessage: loginSendErrorMessage,
+    safeNext: safeNext, initLoginPage: initLoginPage, DASHBOARD_REDIRECT: DASHBOARD_REDIRECT,
+    RESEND_WAIT_MS: RESEND_WAIT_MS, PASSWORD_FLAG: PASSWORD_FLAG, NO_ACCOUNT_MESSAGE: NO_ACCOUNT_MESSAGE,
+    JUST_SENT_MESSAGE: JUST_SENT_MESSAGE,
     withPeriod: withPeriod, outreachTitle: outreachTitle, sentCopy: sentCopy, normalizeCode: normalizeCode,
     claimPath: claimPath, sendCode: sendCode, verifyCode: verifyCode, verifyLink: verifyLink,
     verifyErrorMessage: verifyErrorMessage, loadSupabase: loadSupabase, client: client,
