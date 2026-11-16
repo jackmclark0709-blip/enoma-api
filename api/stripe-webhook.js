@@ -39,6 +39,7 @@ import { PRICING_V2 } from './_lib/pricing.js';
 import { buildFirstMonthConfirmationEmail, buildManageBillingUrl, FIRST_PAID_KIND } from './_lib/trial-reminders.js';
 import { formatAmount } from '../data/plans.mjs';
 import { pageItemOf } from './_lib/billing.js';
+import { recordSignal, resolvePerson } from './_lib/signal-store.js';
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -85,6 +86,22 @@ const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// Signal ledger (api/_lib/signal-store.js). The request comes from Stripe, so
+// "human" is decided by the business: internal ones never create signals.
+const signalDeps = () => ({ supabase, resend, stripe });
+async function businessForSignal(business_id) {
+  if (!business_id) return { person: {}, info: {} };
+  const [{ data: biz }, { data: profile }] = await Promise.all([
+    supabase.from('businesses').select('is_internal, slug, name').eq('id', business_id).maybeSingle(),
+    supabase.from('small_business_profiles').select('business_name, username, city, state, phone, email').eq('business_id', business_id).maybeSingle(),
+  ]);
+  return {
+    person: { isInternal: biz?.is_internal === true, slug: biz?.slug || profile?.username },
+    info: { businessName: profile?.business_name || biz?.name, city: profile?.city, state: profile?.state, phone: profile?.phone, previewUrl: profile?.username ? `https://enoma.io/${profile.username}` : null },
+    profileEmail: profile?.email || null,
+  };
+}
 
 // Writes a subscriptions row. If the billing_interval column isn't there yet
 // (migration not applied), retry without it rather than lose the event.
@@ -207,6 +224,12 @@ export default async function handler(req, res) {
           });
         }
 
+        // Paid: every open signal for them is handled, nothing else is sent.
+        await resolvePerson(signalDeps(), {
+          email: session.customer_details?.email || session.customer_email || null,
+          businessId: business_id, reason: 'checkout_completed', scope: 'all',
+        });
+
         if (pricingVersion === PRICING_V2 && session.metadata?.first_month_fee === '1') {
           await sendFirstMonthConfirmation(session, subscription, business_id);
         }
@@ -262,7 +285,33 @@ export default async function handler(req, res) {
           .update({ is_published: false })
           .eq('id', business_id);
 
+        {
+          const b = await businessForSignal(business_id);
+          await recordSignal(signalDeps(), {
+            type: 'subscription_canceled', source: 'stripe', businessId: business_id,
+            email: b.profileEmail, person: b.person, at: event.created * 1000,
+            keyParts: { subscriptionId: sub.id },
+            payload: { subscription: sub.id, business_name: b.info.businessName || null },
+          });
+        }
+
         console.log(`✓ Subscription canceled for business ${business_id}`);
+        break;
+      }
+
+      // ── Checkout left open until it expired (24 h) ──
+      case 'checkout.session.expired': {
+        const session = event.data.object;
+        const business_id = session.metadata?.business_id || null;
+        const b = await businessForSignal(business_id);
+        await recordSignal(signalDeps(), {
+          type: 'checkout_abandoned', source: 'stripe', businessId: business_id,
+          email: session.customer_details?.email || session.customer_email || b.profileEmail,
+          person: b.person, at: (session.created || event.created) * 1000,
+          keyParts: { businessId: business_id, sessionId: session.id },
+          payload: { stripe_session: session.id, business_name: b.info.businessName || null, interval: session.metadata?.interval || null },
+          alertInfo: { ...b.info, detail: 'Their Stripe checkout expired without payment.' },
+        });
         break;
       }
 
@@ -284,6 +333,17 @@ export default async function handler(req, res) {
             updated_at: new Date().toISOString(),
           })
           .eq('business_id', business_id);
+
+        {
+          const b = await businessForSignal(business_id);
+          await recordSignal(signalDeps(), {
+            type: 'payment_failed', source: 'stripe', businessId: business_id,
+            email: invoice.customer_email || b.profileEmail, person: b.person, at: event.created * 1000,
+            keyParts: { invoiceId: invoice.id },
+            payload: { invoice: invoice.id, amount_due: invoice.amount_due ?? null, attempt_count: invoice.attempt_count ?? null, business_name: b.info.businessName || null },
+            alertInfo: { ...b.info, detail: `Invoice ${invoice.id} failed (attempt ${invoice.attempt_count ?? '?'}).` },
+          });
+        }
 
         console.log(`⚠ Payment failed for business ${business_id}`);
         break;

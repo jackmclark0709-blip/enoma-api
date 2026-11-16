@@ -9,6 +9,7 @@ import { Resend } from "resend";
 import { attributeReferral } from "./_lib/referral.js";
 import { chooseFirstTouch, firstTouchToWrite } from "./_lib/attribution.js";
 import { logFunnelEvent } from "./_lib/tracking.js";
+import { resolvePerson } from "./_lib/signal-store.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -142,6 +143,18 @@ export default async function handler(req, res) {
       }
     } catch (e) {
       console.warn("Outreach claim attribution failed:", e.message);
+    }
+
+    // Signal ledger: a claim answers every pre-claim signal (clicks, visits,
+    // preview_no_claim) and cancels their scheduled follow-ups. Never throws.
+    {
+      const { data: ps } = await supabaseAdmin.from("prospects").select("id, email")
+        .or(`preview_business_id.eq.${profile.business_id},preview_url.eq.https://enoma.io/${profile.username}`);
+      const prospectIds = (ps || []).map(p => p.id);
+      for (const email of new Set([user.email, ...(ps || []).map(p => p.email)].filter(Boolean))) {
+        await resolvePerson({ supabase: supabaseAdmin }, { email, prospectIds, businessId: profile.business_id, reason: "claimed", scope: "pre_claim" });
+      }
+      if (!user.email) await resolvePerson({ supabase: supabaseAdmin }, { prospectIds, businessId: profile.business_id, reason: "claimed", scope: "pre_claim" });
     }
 
     // First-touch attribution, kept through to payment (businesses.first_touch,
