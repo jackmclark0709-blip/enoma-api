@@ -448,6 +448,34 @@ const TRADE_LABEL = {
 };
 
 /** The persona, with snow split out (it has its own icon and scene). */
+// Words that say a service is the trade's own work, by scene key.
+const TRADE_WORDS = {
+  painting: /paint|stain/i, landscaping: /landscap|lawn|yard|garden|mow|hardscap|mulch|tree/i,
+  plumbing: /plumb|drain|pipe|water heater|sewer|leak/i, hvac: /hvac|heat|cool|air|furnace|boiler|ac\b/i,
+  electrical: /electric|wiring|wire|panel|light|outlet/i, cleaning: /clean|maid|janitor/i, snow: /snow|plow|ice/i,
+};
+const GENERIC_CATEGORY_WORDS = /^(contractors?|services?|company|companies|business|general|store|shop|and)$/i;
+
+/**
+ * The service to lead with when there's no specialty: the first listed one
+ * that names the trade (a painter's "Exterior Painting", not the "Pressure
+ * Washing" listed before it), else the first listed. { name, description } | null.
+ */
+export function mainService(p = {}) {
+  const services = list(p.services).map(x => ({
+    name: String(x?.service_name || x?.name || "").trim().replace(/[.!]+$/, ""),
+    description: String(x?.service_description || x?.description || "").trim(),
+  })).filter(x => x.name);
+  if (!services.length) return null;
+  const re = TRADE_WORDS[sceneKeyFor(p.primary_category)];
+  // Category words too ("roofing contractor" → roof), for trades without a scene of their own.
+  const stems = String(p.primary_category || "").toLowerCase().split(/[^a-z]+/)
+    .filter(w => w.length >= 4 && !GENERIC_CATEGORY_WORDS.test(w)).map(w => w.replace(/(ing|ers?|s)$/, ""))
+    .filter(w => w.length >= 4);
+  const names = s => (re && re.test(s.name)) || stems.some(w => s.name.toLowerCase().includes(w));
+  return services.find(names) || services[0];
+}
+
 export function sceneKeyFor(category) {
   const c = String(category || "").toLowerCase();
   if (/snow/.test(c)) return "snow";

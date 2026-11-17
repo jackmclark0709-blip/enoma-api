@@ -19,7 +19,7 @@
 // the business (its kit, its page) or is left off.
 
 import crypto from "node:crypto";
-import { sceneKeyFor, tradeLabel, stateCode } from "./brand-kit.js";
+import { sceneKeyFor, tradeLabel, stateCode, mainService } from "./brand-kit.js";
 import { offersFreeEstimates } from "./page-claims.js";
 import { lintCaption } from "./copy-lint.js";
 
@@ -75,6 +75,13 @@ export function qrTarget(p = {}) {
 }
 
 /** Confirmed towns only (suggested towns are never public). */
+function featuredDiffersFromFirst(p, kit) {
+  if (kit.specialty) return false;
+  const first = list(p.services).find(x => x && String(x.service_name || x.name || "").trim());
+  const f = featuredFor(p, kit);
+  return !!first && f.kind === "service" && f.name !== String(first.service_name || first.name).trim().replace(/[.!]+$/, "");
+}
+
 export function kitTowns(p = {}, kit = {}) {
   const confirmed = list(kit.towns?.confirmed).map(cleanTown).filter(Boolean);
   const own = cleanTown(p.city);
@@ -91,11 +98,11 @@ export function townsLine(towns, max = 4) {
   return `${t.slice(0, -1).join(", ")} & ${t[t.length - 1]}`;
 }
 
-/** The specialty, or the first service when there isn't one. */
+/** The specialty, or the main service (brand-kit.js mainService) when there isn't one. */
 export function featuredFor(p = {}, kit = {}) {
   if (kit.specialty) return { kind: "specialty", name: kit.specialty };
-  const s = list(p.services).find(x => x && String(x.service_name || x.name || "").trim());
-  if (s) return { kind: "service", name: String(s.service_name || s.name).trim(), description: String(s.service_description || s.description || "").trim() };
+  const s = mainService(p);
+  if (s) return { kind: "service", name: s.name, description: s.description };
   return { kind: "trade", name: tradeLabel(p) };
 }
 
@@ -261,6 +268,9 @@ export function launchKitFingerprint(p = {}, kit = {}, { month = new Date().getM
     logo: [kit.logo?.url || null, kit.logo?.quality || null],
     hero: kit.hero?.kind === "stock" ? ["stock", kit.hero.ref?.url || kit.hero.ref] : [kit.hero?.kind, kit.hero?.ref],
     towns: kitTowns(p, kit), season: seasonFor(month),
+    // Only when the main service isn't simply the first listed one, so kits
+    // the mainService change doesn't touch keep their fingerprint.
+    ...(featuredDiffersFromFirst(p, kit) ? { featured: featuredFor(p, kit).name } : {}),
   });
   return crypto.createHash("sha256").update(src).digest("hex").slice(0, 16);
 }
