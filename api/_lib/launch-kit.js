@@ -23,7 +23,9 @@ import { sceneKeyFor, tradeLabel, stateCode } from "./brand-kit.js";
 import { offersFreeEstimates } from "./page-claims.js";
 import { lintCaption } from "./copy-lint.js";
 
-export const LAUNCH_KIT_VERSION = 1;
+// 2: tighter caption voice (2026-11-17). A version bump remakes stored kits
+// on the owner's next visit (launchKitFresh).
+export const LAUNCH_KIT_VERSION = 2;
 
 // Meta Help Center ("Facebook Page profile picture and cover photo
 // dimensions", checked 2026-11-16): the cover loads fastest as 851x315, is
@@ -313,7 +315,11 @@ RULES
 - No prices or dollar amounts unless FACTS lists "Prices the owner gave", and then only those exact prices.
 - Do not say "free" about estimates unless FACTS says "Offers free estimates: yes".
 - No puffery: trusted, reliable, professional, quality, dedicated, passionate, excellence, premier, top-notch, best, #1, leading, proud, ensure.
-- Plain, friendly, specific. 1-3 short sentences each, under 280 characters. At most one emoji. No hashtags.
+- VOICE: the owner talking to a neighbor, not an ad. A painter with 20 years in, writing his own post. Say what the job is and where, the way he'd say it on the phone.
+- Never open with hype ("Exciting news", "Big news", "Guess what"). Never use: transform your space, we've got you covered, looks its best, every inch, perfect time, hassle-free, stunning, elevate, peace of mind, attention to detail.
+- At most one exclamation mark per post. No emoji is fine; never more than one.
+- 1-3 short sentences each, under 240 characters. No hashtags.
+- The right voice, for a DIFFERENT business (copy the tone, never its facts): "Leaky outdoor faucet? Usually a quick fix. Give us a call and we'll come take a look."
 - Do NOT include the phone number or any link; they are added after your text.
 
 POSTS

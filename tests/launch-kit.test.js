@@ -90,6 +90,36 @@ await test("caption lint: free estimates and years only when the business gave t
   assert.ok(lintCaption("New site! #painting", {}).some(i => i.kind === "hashtag"));
 });
 
+await test("caption lint: ad copy is caught (the first live kit's real captions all fail)", () => {
+  const live = [
+    "Exciting news! Our new website is live! 🎉 Explore our services in Ewing, NJ, from custom interior painting to drywall repair. Visit us online to see how we can transform your space!",
+    "Got cathedral or high ceilings? We've got you covered! Our team specializes in painting those hard-to-reach areas, ensuring every inch of your space looks its best. Chat with Patrick or Rick to learn more!",
+    "Getting ready for holiday guests? Now's the perfect time to refresh your rooms! Let us handle the painting, so you can focus on the festivities. Reach out to Patrick or Rick to get started!",
+  ];
+  for (const t of live) assert.ok(lintCaption(t, {}).some(i => i.kind === "ad_copy"), t);
+  for (const t of [
+    "Got a cathedral ceiling nobody wants to touch? That's most of what we do. Call Rick or Patrick and we'll come take a look.",
+    "Our website is up. Interior painting in Ewing, including drywall repair and popcorn ceiling removal.",
+    "Holiday guests coming? We can get a room or two painted before then.",
+  ]) assert.deepEqual(lintCaption(t, {}), [], t);
+  assert.ok(lintCaption("Big job? No problem!! Call us.", {}).some(i => /exclamation/.test(i.message)));
+});
+
+await test("captions: the prompt asks for the owner's voice and its example names no real business", () => {
+  const kit = kitOf(PAINTER);
+  const prompt = captionPrompt(PAINTER, kit, piecesFor(PAINTER, kit, { month: 10 }));
+  assert.match(prompt, /VOICE: the owner talking to a neighbor/);
+  assert.match(prompt, /DIFFERENT business \(copy the tone, never its facts\)/);
+  const example = prompt.match(/DIFFERENT business[^\n]*/)[0];
+  assert.doesNotMatch(example, /Rick|Patrick|Ewing|ceiling/i, "no facts that could leak into another business's post");
+});
+
+await test("captions: kits made under the old caption rules are remade on the next visit", () => {
+  const fp = launchKitFingerprint(PAINTER, kitOf(PAINTER));
+  assert.equal(launchKitFresh({ version: 1, status: "ready", fingerprint: fp, items: [{}] }, fp), false);
+  assert.equal(launchKitFresh({ version: LAUNCH_KIT_VERSION, status: "ready", fingerprint: fp, items: [{}] }, fp), true);
+});
+
 await test("captions: a model caption that fails the lint is replaced; contact lines are always ours", () => {
   const kit = kitOf(PAINTER), pieces = piecesFor(PAINTER, kit, { month: 10 });
   const raw = {
