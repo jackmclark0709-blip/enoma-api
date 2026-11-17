@@ -238,6 +238,14 @@
           <a class="btn" id="newSpotlightBtn" href="/create-spotlight">+ New service page</a>
         </div>
 
+        <!-- Launch kit (page v2 only; api/_lib/launch-kit.js). Hidden until there is one. -->
+        <div class="card" id="launchKitCard" hidden>
+          <div class="card-title">Your launch kit</div>
+          <p class="card-hint">A Facebook cover, three ready-to-post pictures with captions, and a printable QR card, made for your business and pointing at your page.</p>
+          <ul class="mini-list" id="launchKitList"></ul>
+          <a class="btn" id="launchKitOpen" href="#">See it all, with captions</a>
+        </div>
+
         <!-- Review requests -->
         <div class="card" id="reviewsCard">
           <div class="card-title">Get more reviews <span id="reviewsBadge" class="count-badge" style="display:none;"></span></div>
@@ -605,6 +613,7 @@ async function loadDashboard(profile, session) {
 
   // ── Quick wins ──
   loadQuickWins(profile);
+  loadLaunchKit(profile);
 }
 
 async function loadMessages(profile, session) {
@@ -1020,6 +1029,25 @@ async function loadMetrics(profile) {
           <div class="source-bar-wrap"><div class="source-bar" style="width:${Math.round(visits/maxVisits*100)}%"></div></div>
           <strong>${visits}</strong>
         </li>`).join('');
+}
+
+// Launch kit: one download link per piece, through /<slug>/kit (which checks
+// the $1 claim and logs launch_kit_downloaded). Only page v2 pages have one.
+async function loadLaunchKit(profile) {
+  const card = document.getElementById('launchKitCard');
+  card.hidden = true;
+  const { data: p } = await supabase.from('small_business_profiles')
+    .select('username, page_version, owner_token, brand_kit').eq('business_id', profile.business_id).maybeSingle();
+  const items = p?.brand_kit?.launch_kit?.items || [];
+  if (!p || Number(p.page_version) !== 2 || !p.owner_token || !items.length) return;
+  const base = `/${encodeURIComponent(p.username)}/kit?o=${encodeURIComponent(p.owner_token)}&from=dashboard`;
+  document.getElementById('launchKitList').innerHTML = items.map(it =>
+    `<li style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;">
+      <span>${esc(it.label || it.id)}</span>
+      <a class="btn" style="min-height:44px;" href="${esc(`${base}&dl=${encodeURIComponent(it.id)}`)}">Download${it.format === 'pdf' ? ' PDF' : ''}</a>
+    </li>`).join('');
+  document.getElementById('launchKitOpen').href = base;
+  card.hidden = false;
 }
 
 // "Quick wins": the page checklist's missing items (public/scripts/page-checklist.js),

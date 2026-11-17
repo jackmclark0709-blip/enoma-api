@@ -149,6 +149,33 @@ export function scrubCopy(g, flags = {}) {
   return out;
 }
 
+// Prices: "$150", "$1,200", "150 dollars", "per hour", "% off" and the like.
+const PRICE_RE = /\$\s?\d|\b\d[\d,.]*\s?(?:dollars|bucks)\b|\bper (?:hour|hr|sq\.?|square|room|visit|cut)\b|\b\d+\s?% off\b|\bdiscount\b|\bcoupon\b/i;
+const RATING_RE = /\b\d(?:\.\d)?[\s-]?(?:stars?|★)|\b\d+\s+(?:google\s+)?reviews\b|\bfive[\s-]star\b/i;
+
+/**
+ * A social caption (launch kit posts). Same banned words and unsupported
+ * claims as page copy, plus: no prices unless the owner gave that exact
+ * price (flags.allowed_prices), no ratings or review counts, no links or
+ * phone numbers (added after the model's text), and short.
+ * Returns [{ kind, message }].
+ */
+export function lintCaption(text, flags = {}) {
+  const t = String(text || "");
+  const issues = [];
+  const hits = bannedWordsIn(t);
+  if (hits.length) issues.push({ kind: "banned_word", message: `uses banned word(s): ${hits.join(", ")}` });
+  for (const what of unsupportedIn(t, flags)) issues.push({ kind: "unsupported_claim", message: `mentions ${what}, which the business didn't give us` });
+  const allowed = (flags.allowed_prices || []).map(s => String(s).trim()).filter(Boolean);
+  const withoutAllowed = allowed.reduce((acc, pr) => acc.split(pr).join(" "), t);
+  if (PRICE_RE.test(withoutAllowed)) issues.push({ kind: "price", message: "mentions a price or discount the owner didn't give" });
+  if (RATING_RE.test(t)) issues.push({ kind: "rating", message: "mentions ratings or review counts" });
+  if (/https?:\/\/|www\.|\.(?:com|io|net)\b|\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}/i.test(t)) issues.push({ kind: "contact", message: "includes a link or phone number (added separately)" });
+  if (/#\w/.test(t)) issues.push({ kind: "hashtag", message: "uses hashtags" });
+  if (t.length > 320) issues.push({ kind: "length", message: "is longer than 320 characters" });
+  return issues;
+}
+
 // Short instruction block appended to a retry prompt.
 export function fixInstructions(issues) {
   if (!issues.length) return "";

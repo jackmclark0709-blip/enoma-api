@@ -1189,3 +1189,44 @@ body.page-v2 { background: #faf8f5; color: var(--ink); font-family: Inter, syste
 .v2-bar a { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 48px; border-radius: 12px; font-weight: 800; text-decoration: none; color: var(--ink); background: var(--chip-bg); }
 .v2-bar .v2-bar__call { background: var(--kit-cta); color: var(--kit-cta-text); }
 @media (min-width: 900px) { .v2-bar { display: none; } body.page-v2 { padding-bottom: 0; } }
+
+/* ============================================================
+   16. LAUNCH KIT (page v2 owner only: owner bar strip + /<slug>/kit)
+   ============================================================ */
+.v2-owner__kit { max-width: 1120px; margin: 0 auto; padding: 0 16px 8px; display: flex; align-items: center; gap: 8px; overflow-x: auto; text-decoration: none; color: #fff; }
+.v2-owner__thumb { height: 44px; width: auto; border-radius: 6px; flex: 0 0 auto; background: #2a2d33; }
+.v2-owner__kit-go { flex: 0 0 auto; display: inline-flex; align-items: center; min-height: 44px; padding: 0 6px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+
+body.page-v2.launch-kit { margin: 0; background: #f6f3ee; color: var(--ink); font-family: Inter, system-ui, sans-serif; }
+.v2-lk-top { background: #0f1115; color: #f3f1ed; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 16px; min-height: 48px; flex-wrap: wrap; }
+.v2-lk-back { color: #fff; font-weight: 700; display: inline-flex; align-items: center; min-height: 44px; }
+.v2-lk-made { margin: 0; font-size: .9rem; }
+.v2-lk-main { max-width: 960px; margin: 0 auto; padding: 24px 16px 64px; }
+.v2-lk-title { font-family: Archivo, Inter, sans-serif; font-stretch: 85%; font-weight: 900; font-size: 2.2rem; line-height: 1.05; margin: 0 0 8px; color: var(--kit-identity); }
+.v2-lk-lede { margin: 0 0 18px; color: var(--ink-muted); font-size: 1.05rem; line-height: 1.5; }
+.v2-lk-wait { padding: 16px; border-radius: 14px; background: #fff; border: 1px solid var(--line); font-weight: 600; }
+.v2-lk-lock { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 16px; margin: 0 0 20px; border-radius: 14px; background: #0f1115; color: #f3f1ed; }
+.v2-lk-lock p { margin: 0; flex: 1 1 260px; line-height: 1.45; }
+.v2-lk-lock p, .v2-lk-lock b, .v2-lk-made, .v2-lk-made b { color: #f3f1ed; }
+.v2-lk-lock b, .v2-lk-made b { color: #ffffff; }
+.v2-lk-grid { list-style: none; margin: 0 0 20px; padding: 0; display: grid; gap: 16px; }
+.v2-lk-item { background: #fff; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; display: grid; }
+.v2-lk-fig { margin: 0; background: #ebe5dc; display: flex; justify-content: center; }
+.v2-lk-fig img { display: block; width: 100%; height: auto; }
+.v2-lk-fig--qr_card img, .v2-lk-fig--badge img { max-width: 320px; }
+.v2-lk-body { padding: 16px; display: grid; gap: 10px; align-content: start; }
+.v2-lk-h { margin: 0; font-size: 1.15rem; font-weight: 800; }
+.v2-lk-how { margin: 0; color: var(--ink-muted); line-height: 1.45; }
+.v2-lk-caption { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: #faf8f5; }
+.v2-lk-caption__label { margin: 0 0 4px; font-size: .8rem; font-weight: 700; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .06em; }
+.v2-lk-caption__text { margin: 0 0 8px; white-space: pre-wrap; font: inherit; line-height: 1.45; }
+.v2-lk-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 18px; border-radius: 999px; text-decoration: none; border: 0; font: inherit; font-weight: 800; cursor: pointer; justify-self: start; }
+.v2-lk-btn--cta { background: var(--kit-cta); color: var(--kit-cta-text); }
+.v2-lk-btn--cta:hover { background: var(--kit-cta-hover); }
+.v2-lk-btn--ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--line-strong); min-height: 44px; }
+.v2-lk-locked { display: inline-flex; align-items: center; min-height: 44px; color: var(--ink-muted); font-weight: 600; }
+@media (min-width: 900px) {
+  .v2-lk-item { grid-template-columns: 1.3fr 1fr; }
+  .v2-lk-item--cover { grid-template-columns: 1fr; }
+  .v2-lk-title { font-size: 2.8rem; }
+}

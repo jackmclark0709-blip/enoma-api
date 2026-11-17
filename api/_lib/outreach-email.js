@@ -120,14 +120,18 @@ export function buildOutreachIntro({ business_name, website, site_gaps, raw }) {
 
 // One link (the page), one ask (reply). Fewer links and no images also read
 // less like a marketing blast to spam filters and link scanners.
-export function buildOutreachEmail({ intro, businessName, messageId, slug, unsubscribeUrl, mailingAddress }) {
+// kitLine: launch-kit.js OUTREACH_LINE, only when that page's launch kit is
+// ready; it goes right under the link and nothing else changes.
+export function buildOutreachEmail({ intro, businessName, messageId, slug, unsubscribeUrl, mailingAddress, kitLine = "" }) {
   const links = trackedLinks(messageId, slug);
+  const kit = String(kitLine || "").trim();
   const ask = `If you want to keep it, just reply "yes". Seeing and claiming it is free, no card. Going live is $1 for your first month, then $19.99/month or $199/year. Cancel anytime, no contract. If it's not for you, reply "no" and I'll take it down.`;
   const signoff = "Jack Clark\nEnoma · jack@enoma.io";
 
   const text = [
     String(intro || "").trim(),
     `Here it is: ${links.page}`,
+    ...(kit ? [kit] : []),
     ask,
     signoff,
     `---\n${mailingAddress}\nDon't want these emails? ${unsubscribeUrl}`
@@ -139,7 +143,7 @@ export function buildOutreachEmail({ intro, businessName, messageId, slug, unsub
 <div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#222222;max-width:560px;margin:0 auto;padding:24px 16px;">
 ${plainTextToHtml(String(intro || "").trim())}
 <p style="margin:0 0 16px;">Here it is: <a href="${links.page}" style="color:#1a73e8;">${escapeHtml(cleanBusinessName(businessName) || "your page")} on Enoma</a></p>
-<p style="margin:0 0 16px;">${escapeHtml(ask).replace(/&quot;yes&quot;/, "<strong>yes</strong>").replace(/&quot;no&quot;/, "<strong>no</strong>")}</p>
+${kit ? `<p style="margin:0 0 16px;">${escapeHtml(kit)}</p>\n` : ""}<p style="margin:0 0 16px;">${escapeHtml(ask).replace(/&quot;yes&quot;/, "<strong>yes</strong>").replace(/&quot;no&quot;/, "<strong>no</strong>")}</p>
 <p style="margin:0 0 24px;">Jack Clark<br>Enoma &middot; jack@enoma.io</p>
 <p style="margin:0;font-size:12px;color:#888888;border-top:1px solid #eeeeee;padding-top:12px;">${escapeHtml(mailingAddress)}<br><a href="${unsubscribeUrl}" style="color:#888888;">Unsubscribe</a></p>
 </div>

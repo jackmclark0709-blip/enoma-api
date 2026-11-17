@@ -51,6 +51,8 @@ import {
 import { buildBrandKit, saveBrandKit } from "./_lib/brand-kit.js";
 import { ownerDestination, ownerPageUrl, ensureOwnerToken, isPageV2 } from "./_lib/owner-link.js";
 import { waitUntil } from "@vercel/functions";
+import { generateLaunchKit, takeCreationBuild } from "./_lib/launch-kit-render.js";
+import { OUTREACH_LINE } from "./_lib/launch-kit.js";
 
 // Resend's constructor throws synchronously if the key is missing, which
 // would crash this whole module (prospecting, crawling, drafting, sending,
@@ -755,9 +757,14 @@ async function generatePreviewForProspect(prospect, { homeHtml, force = false, g
     const { error: v2Err } = await supabase.from("small_business_profiles").update({ page_version: 2 }).eq("business_id", biz.id);
     if (v2Err) console.warn("page v2 flag not set:", v2Err.message);
     else {
-      const kitJob = buildBrandKit({ ...profile, business_id: biz.id, page_version: 2, website: prospect.website || profile.website },
-        { prospect, websiteHtml: site.homeHtml || null, supabase })
-        .then(kit => saveBrandKit(supabase, biz.id, kit))
+      const v2Profile = { ...profile, business_id: biz.id, page_version: 2, website: prospect.website || profile.website };
+      const kitJob = buildBrandKit(v2Profile, { prospect, websiteHtml: site.homeHtml || null, supabase })
+        .then(async kit => {
+          await saveBrandKit(supabase, biz.id, kit);
+          // The launch kit (api/_lib/launch-kit.js) from the same kit, same run.
+          // Capped per run (takeCreationBuild); the rest are made on the owner's first visit.
+          if (process.env.PAGE_LAUNCH_KIT === "on" && takeCreationBuild()) await generateLaunchKit({ ...v2Profile, brand_kit: kit }, { supabase });
+        })
         .catch(e => console.warn("brand kit build failed:", e?.message || e));
       try { waitUntil(kitJob); } catch { /* not on Vercel: the promise still runs */ }
     }
@@ -1379,7 +1386,8 @@ async function handleTextBatch(req, res) {
       phone: p.phone, phoneE164, previewUrl: textUrl,
       rating: profile.average_rating, reviewCount: profile.review_count,
       reminder: p.text_status === "queued",
-      body: buildTextMessage({ id: p.id, businessName: profile.business_name || p.business_name, previewUrl: textUrl, rating: profile.average_rating, reviewCount: profile.review_count }),
+      body: buildTextMessage({ id: p.id, businessName: profile.business_name || p.business_name, previewUrl: textUrl, rating: profile.average_rating, reviewCount: profile.review_count,
+        kitLine: textUrl !== p.preview_url && launchKitReady(profile) ? OUTREACH_LINE : "" }),
     });
   }
 
@@ -2371,9 +2379,9 @@ async function handleSendOutreach(req, res) {
   // 50/50 split, hand-edited drafts go out as written with variant null.
   const variantBOn = variantBEnabled();
   const proofLine = proofLineFromEnv();
-  const firstEmailFor = (prospect, messageId, slug, pick = pickFirstEmail(prospect, { enabled: variantBOn })) => {
+  const firstEmailFor = (prospect, messageId, slug, pick = pickFirstEmail(prospect, { enabled: variantBOn }), kitLine = "") => {
     const args = {
-      intro: pick.intro, businessName: prospect.business_name, messageId, slug,
+      intro: pick.intro, businessName: prospect.business_name, messageId, slug, kitLine,
       unsubscribeUrl: buildUnsubscribeUrl(prospect.email), mailingAddress: MAILING_ADDRESS
     };
     const email = pick.variant === "b" ? buildOutreachEmailB({ ...args, proofLine }) : buildOutreachEmail(args);
@@ -2449,7 +2457,7 @@ async function handleSendOutreach(req, res) {
       if (msgErr) throw msgErr;
       messageId = msg.id;
 
-      const { email, subject, variant } = firstEmailFor(prospect, messageId, slug, pick);
+      const { email, subject, variant } = firstEmailFor(prospect, messageId, slug, pick, await launchKitLine(slug));
       const { data: sendData, error: sendErr } = await resend.emails.send({
         from: SEND_OUTREACH_FROM,
         to: prospect.email,
@@ -2726,6 +2734,20 @@ async function handleVisitFollowup(req, res) {
   return res.status(200).send(page("Scheduled", `Your note to ${name} goes out in about ${mins} min. Replies come to you as usual.`));
 }
 
+// The launch kit line for outreach (launch-kit.js OUTREACH_LINE): only for a
+// v2 page whose launch kit is built, with PAGE_LAUNCH_KIT=on. Else "".
+function launchKitReady(profile) {
+  return process.env.PAGE_LAUNCH_KIT === "on" && process.env.PAGE_V2 !== "off" && isPageV2(profile)
+    && profile?.brand_kit?.launch_kit?.status === "ready" && (profile.brand_kit.launch_kit.items || []).length > 0;
+}
+async function launchKitLine(slug) {
+  if (process.env.PAGE_LAUNCH_KIT !== "on" || !slug) return "";
+  try {
+    const { data } = await supabase.from("small_business_profiles").select("page_version, brand_kit").eq("username", slug).maybeSingle();
+    return launchKitReady(data) ? OUTREACH_LINE : "";
+  } catch { return ""; }
+}
+
 // Page v2 admin actions (see the dispatch below). Admin-secret gated there.
 async function handleBrandKitAdmin(req, res) {
   const action = req.query.action;
@@ -2748,6 +2770,15 @@ async function handleBrandKitAdmin(req, res) {
     profile.admin_logo_url = url || null;
   }
   if (!isPageV2(profile)) return res.status(200).json({ success: true, kit: null, note: "Saved. This page is v1, so no brand kit is built." });
+  if (action === "launch_kit") {
+    if (!profile.brand_kit?.colors) {
+      const built = await buildBrandKit(profile, { supabase });
+      await saveBrandKit(supabase, profile.business_id, built);
+      profile.brand_kit = built;
+    }
+    const launchKit = await generateLaunchKit(profile, { supabase, force: req.query.force === "1" || req.body?.force === true });
+    return res.status(200).json({ success: launchKit?.status === "ready", launch_kit: launchKit });
+  }
   const kit = await buildBrandKit(profile, { supabase });
   await saveBrandKit(supabase, profile.business_id, kit);
   return res.status(200).json({ success: true, kit });
@@ -3927,7 +3958,9 @@ export default async function handler(req, res) {
   //                           scraped). logo_url "" clears it. Rebuilds the kit.
   //   action=rebuild_brand_kit POST { slug }
   //   action=owner_link        GET ?slug=  the owner's link for drafts (creates the token)
-  if (["set_brand_logo", "rebuild_brand_kit", "owner_link"].includes(req.query.action)) {
+  //   action=launch_kit        POST { slug, force? }  make (or remake) the launch kit now,
+  //                            for pages from before it existed (api/_lib/launch-kit.js)
+  if (["set_brand_logo", "rebuild_brand_kit", "owner_link", "launch_kit"].includes(req.query.action)) {
     try {
       return await handleBrandKitAdmin(req, res);
     } catch (err) {

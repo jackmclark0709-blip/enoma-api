@@ -21,8 +21,11 @@ import { hasLiveStripeSubscription } from "./_lib/billing.js";
 import { kitFor, loadTownCoords, googlePhotoUri } from "./_lib/brand-kit.js";
 import { renderBlocksV2, kitStyle, v2Head, ogTitleFor, ogImageUrl } from "./_lib/page-v2.js";
 import { isPageV2, ownerTokenMatches } from "./_lib/owner-link.js";
-import { renderOgPng } from "./_lib/og-card.js";
-import { ogSafeImageUrl } from "./_lib/stock-photos.js";
+import { renderOgPng, shareHeroImage } from "./_lib/og-card.js";
+import { waitUntil } from "@vercel/functions";
+import { launchKitFingerprint, launchKitFresh } from "./_lib/launch-kit.js";
+import { generateLaunchKit, buildInFlight, signedDownloadUrl, signedThumbs } from "./_lib/launch-kit-render.js";
+import { KIT_SLUG, kitHref, renderLaunchKitPage } from "./_lib/launch-kit-page.js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -221,6 +224,54 @@ async function serveLanding(req, res, bizSlug) {
   return res.status(200).send(html);
 }
 
+// enoma.io/<business>/kit?o=<owner token>: the owner's launch kit
+// (api/_lib/launch-kit-page.js). Page v2 + PAGE_LAUNCH_KIT=on only; anyone
+// without the owner token gets a 404. Made after preview generation, and
+// remade here on demand when it's missing or stale (no cron). Downloads
+// (?dl=<item>) only after the $1 claim, the same rule that takes the page
+// live (pricing.js pageIndexable); before that, watermarked previews only.
+async function serveLaunchKit(req, res, bizSlug) {
+  res.setHeader("Cache-Control", "private, no-store");
+  res.setHeader("X-Robots-Tag", "noindex, nofollow");
+  if (process.env.PAGE_LAUNCH_KIT !== "on" || process.env.PAGE_V2 === "off") return res.redirect(302, `/${encodeURIComponent(bizSlug)}`);
+  const { data: profile } = await supabase.from("small_business_profiles").select("*")
+    .eq("username", bizSlug).eq("is_public", true).maybeSingle();
+  const o = String(req.query.o || "");
+  if (!profile?.business_id || !isPageV2(profile) || !ownerTokenMatches(profile, o)) return res.status(404).send("Not found");
+  Object.assign(profile, stripWeakRatingClaims(profile));
+  const slug = profile.username;
+  const kit = kitFor(profile, { townCoords: await loadTownCoords() });
+  const lk = kit.launch_kit || null;
+  const unlocked = pageIndexable({ profile, ...(await billingStateFor(profile.business_id)) });
+  const from = /^(owner_bar|dashboard|kit)$/.test(String(req.query.from || "")) ? String(req.query.from) : "kit";
+  const m = UUID_RE.test(String(req.query.m || "")) ? String(req.query.m) : null;
+
+  const dl = String(req.query.dl || "");
+  if (dl) {
+    if (!unlocked) return res.redirect(302, kitHref(slug, o));
+    const item = (lk?.items || []).find(i => i.id === dl);
+    const url = item ? await signedDownloadUrl(supabase, slug, item, profile.business_id) : null;
+    if (!url) return res.status(404).send("Not found");
+    await logFunnelEvent(supabase, req, { event: "launch_kit_downloaded", businessId: profile.business_id, metadata: { slug, item: dl, from } });
+    return res.redirect(302, url);
+  }
+
+  let building = buildInFlight(lk);
+  if (!building && !launchKitFresh(lk, launchKitFingerprint(profile, kit))) {
+    building = true;
+    const job = generateLaunchKit({ ...profile, brand_kit: kit }, { supabase })
+      .catch(e => console.warn("launch kit build failed:", e?.message || e));
+    try { waitUntil(job); } catch { /* not on Vercel: the promise still runs */ }
+  }
+  await logFunnelEvent(supabase, req, {
+    event: "launch_kit_viewed", businessId: profile.business_id,
+    metadata: { slug, unlocked, ready: !!lk?.items?.length, from, ...(m ? { m } : {}) },
+  });
+  const thumbs = unlocked && lk?.items?.length ? await signedThumbs(supabase, profile.business_id, lk.items) : {};
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  return res.status(200).send(renderLaunchKitPage(profile, kit, { slug, token: o, m, unlocked, building, thumbs }));
+}
+
 async function serveSpotlight(req, res, bizSlug, serviceSlug) {
   const { data: profile } = await supabase.from("small_business_profiles").select("*")
     .eq("username", bizSlug).eq("is_public", true).maybeSingle();
@@ -268,18 +319,6 @@ async function serveSpotlight(req, res, bizSlug, serviceSlug) {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,99}$/i;
-
-// A kit's hero as an absolute image URL for the share card (null = draw the scene).
-async function shareHeroImage(kit) {
-  const hero = kit?.hero || {};
-  if (hero.kind !== "work_photo" && hero.kind !== "stock") return null;
-  const ref = typeof hero.ref === "string" ? hero.ref : String(hero.ref?.url || "");
-  // Stock heroes are WebP hotlinks; the share card needs JPEG.
-  if (/^https:\/\//i.test(ref)) return hero.kind === "stock" ? ogSafeImageUrl(ref) : ref;
-  const m = ref.match(/^google:(\d+)$/);
-  const g = m ? (kit.google_photos || [])[Number(m[1])] : null;
-  return g?.name ? await googlePhotoUri(g.name, { maxWidthPx: 800 }).catch(() => null) : null;
-}
 
 // GET /og/<slug>.png (vercel.json → /api/p?og=2&file=<slug>.png): the page v2
 // share image (api/_lib/og-card.js), cached at the edge for a week; the page
@@ -356,6 +395,7 @@ export default async function handler(req, res) {
       if (!bizSlug || !serviceSlug || rest.length) return res.status(404).send("Not found");
       if (serviceSlug === REVIEW_SLUG) return await serveReviewPage(req, res, bizSlug);
       if (serviceSlug === LANDING_SLUG) return await serveLanding(req, res, bizSlug);
+      if (serviceSlug === KIT_SLUG) return await serveLaunchKit(req, res, bizSlug);
       return await serveSpotlight(req, res, bizSlug, serviceSlug);
     }
 
@@ -443,6 +483,14 @@ export default async function handler(req, res) {
       const owner = !!o && ownerTokenMatches(profile, o);
       const m = UUID_RE.test(String(req.query.m || "")) ? String(req.query.m) : null;
       const shareImage = ogImageUrl(baseUrl, slug, kit);
+      // The owner's first visit makes (or remakes) the launch kit in the
+      // background, so it's there by the time they open it. Needs a stored kit.
+      if (owner && process.env.PAGE_LAUNCH_KIT === "on" && profile.brand_kit?.colors
+        && !buildInFlight(kit.launch_kit) && !launchKitFresh(kit.launch_kit, launchKitFingerprint(profile, kit))) {
+        const job = generateLaunchKit({ ...profile, brand_kit: kit }, { supabase })
+          .catch(e => console.warn("launch kit build failed:", e?.message || e));
+        try { waitUntil(job); } catch { /* not on Vercel: the promise still runs */ }
+      }
       const template = fs.readFileSync(path.join(process.cwd(), "public", "profile.html"), "utf8");
       const ctx = {
         slug, spotlights: spotlights || [], approvedReviews: approvedReviews || [], paying, quoteStatus: quoteStatus(req),

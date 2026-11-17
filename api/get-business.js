@@ -41,8 +41,11 @@ export default async function handler(req, res) {
   // =============================
   // HARD NORMALIZATION LAYER
   // =============================
+  // The owner token (api/_lib/owner-link.js) is the owner's key to the
+  // owner bar and launch kit; this endpoint is public, so it never leaves.
+  const { owner_token: _ownerToken, ...publicData } = data;
   const clean = {
-    ...data,
+    ...publicData,
     services: normalizeArray(data.services),
     testimonials: normalizeArray(data.testimonials),
     attachments: normalizeArray(data.attachments),

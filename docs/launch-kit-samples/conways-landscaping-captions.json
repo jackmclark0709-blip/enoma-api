@@ -1,0 +1,19 @@
+{
+  "colors": {
+    "identity": "#006030",
+    "accent": "#60a848",
+    "cta": "#F2A93B",
+    "ctaText": "#1a1714",
+    "source": "logo"
+  },
+  "logo": "badge_only",
+  "specialty": null,
+  "hero": "work_photo",
+  "key": "db89778cc6be05e1",
+  "source": "fallback",
+  "captions": {
+    "post_online": "We're online! Conway's Landscaping has a new website where you can see what we do in Agawam, West Springfield & Feeding Hills and get in touch.\n\nCall or text (413)-896-5392\nhttps://enoma.io/conways-landscaping",
+    "post_specialty": "Mowing: Weekly or bi-weekly mowing to keep your lawn neat, healthy, and evenly cut all season long.\n\nCall or text (413)-896-5392\nhttps://enoma.io/conways-landscaping",
+    "post_seasonal": "Fall cleanup time. Call for an estimate.\n\nCall or text (413)-896-5392\nhttps://enoma.io/conways-landscaping"
+  }
+}

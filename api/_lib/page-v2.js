@@ -23,6 +23,7 @@ import { headerWordmarkSvg, tradeIconSvg, tradeIconFor } from "./starter-logo.js
 import { sceneSvg } from "./trade-scenes.js";
 import { linkServicesToSpotlights } from "./spotlight-render.js";
 import { ownerPageUrl } from "./owner-link.js";
+import { kitHref, ownerBarKitStrip } from "./launch-kit-page.js";
 
 const esc = s => String(s == null ? "" : s)
   .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
@@ -411,13 +412,17 @@ export function ownerBar(p, kit, ctx) {
     : "";
   const ask = ctx.hasPhotos ? "" : photoAskHtml(p, kit, ctx);
   const more = towns || ask;
-  const kitLink = ctx.launchKit ? ` <span class="v2-owner__sep" aria-hidden="true">·</span> <a class="v2-owner__link" href="/${encodeURIComponent(ctx.slug)}/kit?o=${encodeURIComponent(ctx.token)}">Your launch kit (3)</a>` : "";
+  const kitUrl = kitHref(ctx.slug, ctx.token);
+  const kitLink = ctx.launchKit ? ` <span class="v2-owner__sep" aria-hidden="true">·</span> <a class="v2-owner__link" href="${esc(kitUrl)}">Your launch kit (3)</a>` : "";
+  // Launch kit thumbnails (watermarked until the claim), visible before claiming.
+  const kitStrip = ctx.launchKit ? ownerBarKitStrip(kit.launch_kit, kitUrl) : "";
   return `<div class="v2-owner" id="ownerBar" role="region" aria-label="Only you can see this bar" data-slug="${esc(ctx.slug)}" data-o="${esc(ctx.token)}">
   <div class="v2-owner__row">
     <p class="v2-owner__made">Made for <b>${esc(name)}</b> by Jack</p>
     <a class="v2-owner__keep" href="${esc(claim)}" data-cta="claim" data-where="owner_bar">Keep it for $1</a>
     <p class="v2-owner__extra">${talk}${kitLink}</p>
   </div>
+  ${kitStrip}
   ${more ? `<details class="v2-owner__more"><summary>${towns && ask ? "2 quick things" : "1 quick thing"} for your page</summary>${towns}${ask}<p class="v2-owner__extra-phone">${talk}${kitLink}</p></details>` : ""}
 </div>
 <script src="/scripts/funnel-track.js"></script>

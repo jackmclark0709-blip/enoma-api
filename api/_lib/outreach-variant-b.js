@@ -201,8 +201,9 @@ const boldYes = (s) => escapeHtml(s).replace(/&quot;yes&quot;/, "<strong>yes</st
  * (verbatim, right after the what-it-is line), the one tracked link, the ask
  * with the price, Jack's sign-off, the CAN-SPAM footer.
  */
-export function buildOutreachEmailB({ intro, businessName, messageId, slug, unsubscribeUrl, mailingAddress, proofLine = "" }) {
+export function buildOutreachEmailB({ intro, businessName, messageId, slug, unsubscribeUrl, mailingAddress, proofLine = "", kitLine = "" }) {
   const links = trackedLinks(messageId, slug);
+  const kit = String(kitLine || "").trim();
   const proof = String(proofLine || "").trim();
   const ask = `If you want it live, reply "yes" and it's yours. ${PRICE_LINE}`;
   const introText = String(intro || "").trim();
@@ -212,6 +213,7 @@ export function buildOutreachEmailB({ intro, businessName, messageId, slug, unsu
     introText,
     ...(proof ? [proof] : []),
     `Take a look: ${links.page}`,
+    ...(kit ? [kit] : []),
     ask,
     SIGNOFF_LINES.join("\n"),
     footerText(mailingAddress, unsubscribeUrl),
@@ -223,6 +225,7 @@ export function buildOutreachEmailB({ intro, businessName, messageId, slug, unsu
       introHtml,
       ...(proof ? [p(escapeHtml(proof))] : []),
       p(`Take a look: <a href="${escapeHtml(links.page)}" style="color:#1a73e8;">${escapeHtml(name)} on Enoma</a>`),
+      ...(kit ? [p(escapeHtml(kit))] : []),
       p(boldYes(ask)),
       signoffHtml(),
     ].join("\n"),
