@@ -393,6 +393,8 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
     <form class="claim-box__form" id="claimForm" novalidate>
       <label class="claim-box__label" for="claimEmail">Your email</label>
       <input id="claimEmail" type="email" autocomplete="email" placeholder="you@yourbusiness.com" required />
+      <label class="claim-box__label claim-known hidden" id="claimKnownWrap" for="claimKnownFor">What are you known for? <span>(optional, a few words: it goes at the top of your page)</span>
+        <input id="claimKnownFor" type="text" maxlength="40" autocomplete="off" placeholder="e.g. Cathedral ceilings" /></label>
       <button type="submit" id="claimSubmit">Keep my page</button>
     </form>
     <p class="claim-box__msg hidden" id="claimMsg" role="status"></p>

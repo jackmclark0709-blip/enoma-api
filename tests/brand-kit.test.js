@@ -8,7 +8,7 @@ import fs from "node:fs";
 import {
   paletteFromPixels, kitColors, darkenForWhite, ctaCandidateOk, logoQuality, badgesFrom, isValidBadge,
   ownerNamesFrom, ownerCallLabel, specialtyFrom, licenseFrom, yearsFrom, townsFor, deriveKit, kitFor,
-  websiteLogoCandidates, logoCandidates, wordmarkFor, heroFor, CHARCOAL, BADGE_IDS,
+  websiteLogoCandidates, logoCandidates, wordmarkFor, heroFor, CHARCOAL, BADGE_IDS, loadTownCoords, STATE_NEIGHBORS,
 } from "../api/_lib/brand-kit.js";
 import { renderBlocksV2, kitStyle, ogTitleFor, ogImageUrl, headlineFor, subLineFor, trustStats, estimateLabel, specialtyServiceIndex } from "../api/_lib/page-v2.js";
 import { renderCompanyPage } from "../api/_lib/company-page.js";
@@ -26,7 +26,7 @@ async function test(name, fn) {
 }
 const read = rel => fs.readFileSync(new URL(`../${rel}`, import.meta.url), "utf8");
 const TEMPLATE = read("public/profile.html");
-const COORDS = JSON.parse(read("data/town-coords.json")).towns;
+const COORDS = await loadTownCoords("MA");
 
 // 64x64 RGBA "logos": [rgb, pixel count] regions, the rest transparent.
 function logo(regions) {

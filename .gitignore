@@ -6,3 +6,6 @@ public/__preview-*.html
 reports/stock-build-state.json
 reports/stock-build-state.json.tmp
 reports/stock-build.log
+reports/let-it-roll-brand-kit-before-*.json
+reports/v2-rollout-*
+reports/v2-missing-logos.csv

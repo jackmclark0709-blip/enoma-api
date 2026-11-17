@@ -286,7 +286,7 @@ export default async function handler(req, res) {
 
     /* ---------- OWNER BAR on a page v2: owner-link token, no login (api/_lib/owner-actions.js) ---------- */
     if (req.query?.kind === "owner") {
-      return await handleOwnerAction(req, res, { supabaseAdmin });
+      return await handleOwnerAction(req, res, { supabaseAdmin, waitUntil });
     }
 
     /* ---------- ADMIN SHORTCUT ---------- */

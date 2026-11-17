@@ -7,8 +7,14 @@
 //   action=confirm_town  { slug, o, town }  move one *suggested* town into the
 //                        page's service area. Only towns we suggested can be
 //                        confirmed this way, so the token can't write free text.
+//   action=set_specialty { slug, o, specialty }  "What are you known for?"
+//                        (owner bar, claim box). The one free-text field:
+//                        cleanOwnerSpecialty keeps it to a few plain words.
+//                        Saved on the kit at once, then the kit is rebuilt
+//                        (and the launch kit remakes on the next visit).
 
 import { ownerTokenMatches, isPageV2 } from "./owner-link.js";
+import { cleanOwnerSpecialty, rebuildBrandKit } from "./brand-kit.js";
 
 async function readJson(req) {
   if (req.body && typeof req.body === "object") return req.body;
@@ -38,7 +44,16 @@ export function confirmTown(profile, town) {
   return { town: pick, service_area, brand_kit };
 }
 
-export async function handleOwnerAction(req, res, { supabaseAdmin }) {
+/** Pure: the kit with the owner's specialty set (or cleared), or { error }. */
+export function setSpecialty(profile, raw) {
+  const s = cleanOwnerSpecialty(raw);
+  if (s === null) return { error: "Keep it to a few words, like \u201cCathedral ceilings\u201d." };
+  const kit = profile?.brand_kit && typeof profile.brand_kit === "object" ? profile.brand_kit : {};
+  // Cleared: the next rebuild finds the specialty from the listing again.
+  return { specialty: s || null, brand_kit: { ...kit, owner_specialty: s || null, specialty: s || null } };
+}
+
+export async function handleOwnerAction(req, res, { supabaseAdmin, waitUntil = null }) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
   let body;
   try { body = await readJson(req); } catch { return res.status(400).json({ error: "Invalid JSON" }); }
@@ -59,6 +74,17 @@ export async function handleOwnerAction(req, res, { supabaseAdmin }) {
       .eq("business_id", profile.business_id);
     if (error) return res.status(500).json({ error: "Couldn't save. Try again." });
     return res.status(200).json({ ok: true, town: next.town });
+  }
+  if (action === "set_specialty") {
+    const next = setSpecialty(profile, body.specialty);
+    if (next.error) return res.status(400).json({ error: next.error });
+    const { error } = await supabaseAdmin.from("small_business_profiles")
+      .update({ brand_kit: next.brand_kit, updated_at: new Date().toISOString() })
+      .eq("business_id", profile.business_id);
+    if (error) return res.status(500).json({ error: "Couldn't save. Try again." });
+    const job = rebuildBrandKit(supabaseAdmin, profile.business_id).catch(e => console.warn("brand kit rebuild failed:", e?.message || e));
+    try { waitUntil ? waitUntil(job) : await job; } catch { /* the job still runs */ }
+    return res.status(200).json({ ok: true, specialty: next.specialty });
   }
   return res.status(400).json({ error: `Unknown action ${action}` });
 }
