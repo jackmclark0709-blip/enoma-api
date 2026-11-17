@@ -97,7 +97,7 @@ function variantFor(id, n) {
  * link, and gives a plain way to opt out. Deliberately says nothing about
  * price, so it stays true whatever the pricing page says.
  */
-export function buildTextMessage({ id, businessName, previewUrl, rating, reviewCount }) {
+export function buildTextMessage({ id, businessName, previewUrl, rating, reviewCount, kitLine = "" }) {
   const name = shortName(businessName);
   const reviews = Number(reviewCount) >= 10 ? " and reviews" : "";
   const variants = [
@@ -105,7 +105,10 @@ export function buildTextMessage({ id, businessName, previewUrl, rating, reviewC
     `Hi, Jack Clark here from Enoma (Attleboro, MA). I put together a page for ${name} using your Google listing${reviews}. Take a look: ${previewUrl}\n\nWant to keep it? Reply and I'll get it set up. If not, reply STOP and I won't reach out again.`,
     `Hi, it's Jack Clark with Enoma, a small web company in Attleboro, MA. I made ${name} a website from your Google listing${reviews}: ${previewUrl}\n\nHappy to set it up for you if you like it. Reply STOP if you'd rather I didn't text.`,
   ];
-  return variants[variantFor(id, variants.length)];
+  const body = variants[variantFor(id, variants.length)];
+  // Launch kit ready: one line right after the link (launch-kit.js OUTREACH_LINE).
+  const kit = String(kitLine || "").trim();
+  return kit ? body.replace(`${previewUrl}\n\n`, `${previewUrl}\n\n${kit}\n\n`) : body;
 }
 
 /** Tap-to-text link that opens Messages with the number and body filled in (iPhone and Android). */

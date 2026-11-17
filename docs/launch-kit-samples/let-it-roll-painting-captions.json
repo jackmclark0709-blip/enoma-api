@@ -1,0 +1,19 @@
+{
+  "colors": {
+    "identity": "#b0543a",
+    "accent": "#efa58c",
+    "cta": "#F2A93B",
+    "ctaText": "#1a1714",
+    "source": "persona"
+  },
+  "logo": "none",
+  "specialty": "Cathedral & high ceilings",
+  "hero": "scene",
+  "key": "f231e899ab02a18c",
+  "source": "fallback",
+  "captions": {
+    "post_online": "We're online! Let It Roll Painting has a new website where you can see what we do in Ewing and get in touch.\n\nCall or text (732) 948-4046\nhttps://enoma.io/let-it-roll-painting",
+    "post_specialty": "Cathedral & high ceilings? That's our specialty. Give us a call.\n\nCall or text (732) 948-4046\nhttps://enoma.io/let-it-roll-painting",
+    "post_seasonal": "Fresh paint before the holidays. Call for an estimate.\n\nCall or text (732) 948-4046\nhttps://enoma.io/let-it-roll-painting"
+  }
+}

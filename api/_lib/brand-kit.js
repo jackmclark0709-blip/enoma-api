@@ -773,7 +773,10 @@ export async function buildBrandKit(profile, deps = {}) {
 
   const draft = deriveKit(profile, { logo, analysis, palette, googlePhotos, townCoords, now });
   const stock = draft.hero.kind === "scene" ? await pickStock(profile, draft, { env, supabase: deps.supabase, log, fetchImpl }) : null;
-  return stock ? { ...draft, hero: { kind: "stock", ref: stock } } : draft;
+  const kit = stock ? { ...draft, hero: { kind: "stock", ref: stock } } : draft;
+  // The launch kit (launch-kit.js) rides along; its fingerprint says when a
+  // rebuilt brand kit means it needs remaking.
+  return prev.launch_kit ? { ...kit, launch_kit: prev.launch_kit } : kit;
 }
 
 /** Store the kit (best effort: logs and returns false on failure). */

@@ -13,6 +13,8 @@ import { stateCode, ownerCallLabel } from "./brand-kit.js";
 import { sceneDataUrl } from "./trade-scenes.js";
 import { tradeIconSvg } from "./starter-logo.js";
 import { hexToRgb, rgbToHex } from "./page-style.js";
+import { googlePhotoUri } from "./brand-kit.js";
+import { ogSafeImageUrl } from "./stock-photos.js";
 
 const W = 1200, H = 630;
 const h = (type, style = {}, children = [], extra = {}) => ({ type, props: { style: { display: "flex", ...style }, children, ...extra } });
@@ -81,7 +83,7 @@ export function cardTree(p, kit, { heroImage = null } = {}) {
 
 const fontCache = new Map();
 /** A static TTF from Google Fonts (satori can't use woff2 or variable fonts). */
-async function googleFont(family, axes, fetchImpl = globalThis.fetch) {
+export async function googleFont(family, axes, fetchImpl = globalThis.fetch) {
   const key = `${family}:${axes}`;
   if (fontCache.has(key)) return fontCache.get(key);
   const css = await (await fetchImpl(`https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}:${axes}`, { signal: AbortSignal.timeout(6000) })).text();
@@ -100,4 +102,24 @@ export async function renderOgPng(p, kit, { heroImage = null, fetchImpl } = {}) 
   try { fonts.push({ name: "Inter", data: await googleFont("Inter", "wght@600", fetchImpl), weight: 600, style: "normal" }); } catch { /* default font */ }
   const res = new ImageResponse(cardTree(p, kit, { heroImage }), { width: W, height: H, ...(fonts.length ? { fonts } : {}) });
   return Buffer.from(await res.arrayBuffer());
+}
+
+/** The default fonts for kit images (Archivo 900, Inter 600); missing ones fall back. */
+export async function kitFonts(fetchImpl) {
+  const fonts = [];
+  try { fonts.push({ name: "Archivo", data: await googleFont("Archivo", "wdth,wght@85,900", fetchImpl), weight: 900, style: "normal" }); } catch { /* default font */ }
+  try { fonts.push({ name: "Inter", data: await googleFont("Inter", "wght@600", fetchImpl), weight: 600, style: "normal" }); } catch { /* default font */ }
+  return fonts;
+}
+
+// A kit's hero as an absolute image URL for rendered images (null = draw the scene).
+export async function shareHeroImage(kit, { fetchImpl, maxWidthPx = 800 } = {}) {
+  const hero = kit?.hero || {};
+  if (hero.kind !== "work_photo" && hero.kind !== "stock") return null;
+  const ref = typeof hero.ref === "string" ? hero.ref : String(hero.ref?.url || "");
+  // Stock heroes are WebP hotlinks; satori needs JPEG/PNG.
+  if (/^https:\/\//i.test(ref)) return hero.kind === "stock" ? ogSafeImageUrl(ref) : ref;
+  const m = ref.match(/^google:(\d+)$/);
+  const g = m ? (kit.google_photos || [])[Number(m[1])] : null;
+  return g?.name ? await googlePhotoUri(g.name, { maxWidthPx, ...(fetchImpl ? { fetchImpl } : {}) }).catch(() => null) : null;
 }

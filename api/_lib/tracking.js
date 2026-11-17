@@ -44,7 +44,11 @@ export const FUNNEL_EVENTS = new Set([
   // never anything a visitor typed.
   "contact_click",
   "service_quote_click",
-  "spotlight_link_click"
+  "spotlight_link_click",
+  // Launch kit (api/_lib/launch-kit.js), written by the server: the owner
+  // opened /<slug>/kit, or downloaded one piece (metadata: slug, item, where).
+  "launch_kit_viewed",
+  "launch_kit_downloaded"
 ]);
 
 /** Outreach email times + recent events for the same email, for the timing rules. */
