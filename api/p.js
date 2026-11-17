@@ -22,6 +22,7 @@ import { kitFor, loadTownCoords, googlePhotoUri } from "./_lib/brand-kit.js";
 import { renderBlocksV2, kitStyle, v2Head, ogTitleFor, ogImageUrl } from "./_lib/page-v2.js";
 import { isPageV2, ownerTokenMatches } from "./_lib/owner-link.js";
 import { renderOgPng } from "./_lib/og-card.js";
+import { ogSafeImageUrl } from "./_lib/stock-photos.js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -273,7 +274,8 @@ async function shareHeroImage(kit) {
   const hero = kit?.hero || {};
   if (hero.kind !== "work_photo" && hero.kind !== "stock") return null;
   const ref = typeof hero.ref === "string" ? hero.ref : String(hero.ref?.url || "");
-  if (/^https:\/\//i.test(ref)) return ref;
+  // Stock heroes are WebP hotlinks; the share card needs JPEG.
+  if (/^https:\/\//i.test(ref)) return hero.kind === "stock" ? ogSafeImageUrl(ref) : ref;
   const m = ref.match(/^google:(\d+)$/);
   const g = m ? (kit.google_photos || [])[Number(m[1])] : null;
   return g?.name ? await googlePhotoUri(g.name, { maxWidthPx: 800 }).catch(() => null) : null;

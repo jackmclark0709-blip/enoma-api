@@ -121,6 +121,17 @@ export function sizedUrls(rawUrl) {
   return urls;
 }
 
+/**
+ * The same Unsplash hotlink as a JPEG, for the share card: @vercel/og
+ * (satori) reads PNG/JPEG/GIF only and throws on WebP. Other URLs pass
+ * through unchanged.
+ */
+export function ogSafeImageUrl(url) {
+  const u = String(url || "");
+  if (!/^https:\/\/images\.unsplash\.com\//.test(u)) return u;
+  return /[?&]fm=/.test(u) ? u.replace(/([?&])fm=[a-z]+/, "$1fm=jpg") : `${u}${u.includes("?") ? "&" : "?"}fm=jpg`;
+}
+
 const withUtm = url => {
   const u = String(url || "").replace(/[?&]utm_[a-z]+=[^&]*/g, "");
   return `${u}${u.includes("?") ? "&" : "?"}${UTM}`;
@@ -257,6 +268,7 @@ export async function pickStockPhoto(profile, kit = null, { supabase, photos, lo
     if (!pick) return null;
     const { row, ...out } = pick;
     out.photo = { unsplash_id: row.unsplash_id, download_location: row.download_location };
+    out.alt = row.alt || "";
     return out;
   } catch (e) {
     log.warn?.("stock photo: none picked:", e?.message || e);

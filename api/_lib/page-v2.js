@@ -160,7 +160,9 @@ function stockCredit(c) {
   if (!c) return "";
   if (typeof c === "string") return `<figcaption class="v2-credit">${esc(c)}</figcaption>`;
   if (!c.name) return "";
-  const prof = /^https:\/\/unsplash\.com\//.test(String(c.profileUrl || "")) ? `${c.profileUrl}${c.profileUrl.includes("?") ? "&" : "?"}${UNSPLASH_UTM}` : null;
+  // stock-photos.js credits already carry the UTM tags; add them only if missing.
+  const p = String(c.profileUrl || "");
+  const prof = /^https:\/\/unsplash\.com\//.test(p) ? (/[?&]utm_source=/.test(p) ? p : `${p}${p.includes("?") ? "&" : "?"}${UNSPLASH_UTM}`) : null;
   const who = prof ? `<a href="${esc(prof)}" target="_blank" rel="noopener nofollow">${esc(c.name)}</a>` : esc(c.name);
   return `<figcaption class="v2-credit">Photo by ${who} on <a href="${esc(`https://unsplash.com/?${UNSPLASH_UTM}`)}" target="_blank" rel="noopener nofollow">Unsplash</a></figcaption>`;
 }

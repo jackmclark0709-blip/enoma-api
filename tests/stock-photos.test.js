@@ -238,5 +238,73 @@ test("approve-stock parses ids and --revoke", () => {
   assert.deepEqual(parseArgs(["--revoke", "a"]), { approved: false, ids: ["a"] });
 });
 
+console.log("page v2 hook (brand-kit.js → page-v2.js)");
+// One fake DB for both tables the hook touches.
+function hookDb(rows) {
+  const assign = assignmentsDb();
+  const reads = [];
+  return {
+    assign, reads,
+    from(t) {
+      if (t === "stock_photo_assignments") return assign.from(t);
+      assert.equal(t, "stock_photos");
+      return { select: () => ({ eq: (c, v) => ({ in: (c2, v2) => { reads.push([c, v, c2, v2]); return Promise.resolve({ data: rows, error: null }); } }) }) };
+    },
+  };
+}
+const { buildBrandKit } = await import("../api/_lib/brand-kit.js");
+const { renderBlocksV2 } = await import("../api/_lib/page-v2.js");
+const { ogSafeImageUrl } = await import("../api/_lib/stock-photos.js");
+const lir = { business_id: "11111111-1111-1111-1111-111111111111", business_name: "Let It Roll Painting", username: "let-it-roll-painting", primary_category: "Painting contractor", city: "Ewing", state: "NJ", services: [{ service_name: "Interior painting" }], page_version: 2 };
+const lib = [row("int1", { alt: "a freshly painted living room", color: "#5a4a3a" }), row("ext1", { service_tag: "exterior", color: "#5a4a3a" }), row("nope", { approved: false })];
+
+test("hook: PAGE_STOCK_HERO off → no DB read, scene hero", async () => {
+  const db = hookDb(lib);
+  const kit = await buildBrandKit(lir, { supabase: db, env: {}, townCoords: [], fetchImpl: async () => { throw new Error("no network"); }, log: {} });
+  assert.equal(kit.hero.kind, "scene");
+  assert.equal(db.reads.length, 0);
+});
+test("hook: PAGE_STOCK_HERO=on → stock hero from pickStockPhoto, one download ping across rebuilds", async () => {
+  const db = hookDb(lib);
+  const pings = [];
+  const fetchImpl = async (url) => { pings.push(url); return { ok: true, status: 200 }; };
+  const deps = { supabase: db, env: { PAGE_STOCK_HERO: "on", UNSPLASH_ACCESS_KEY: "KEY" }, townCoords: [], fetchImpl, log: {} };
+  {
+    const kit = await buildBrandKit(lir, deps);
+    assert.equal(kit.hero.kind, "stock");
+    const ref = kit.hero.ref;
+    assert.equal(ref.unsplash_id, "int1"); // services say interior
+    assert.equal(ref.url, sizedUrls(RAW("int1")).w1200);
+    assert.equal(ref.srcset, sizedUrls(RAW("int1")).srcset);
+    assert.equal(ref.alt, "a freshly painted living room");
+    assert.equal(ref.credit.name, "Ana Lee");
+    assert.deepEqual(db.reads, [["approved", true, "persona", ["painting"]]]);
+    // Rebuilding the kit (logo/photo change) must not ping Unsplash again.
+    await buildBrandKit(lir, deps);
+    await buildBrandKit(lir, deps);
+    assert.deepEqual(pings, [row("int1").download_location]);
+
+    // Rendered hero: the hotlink, its alt, and the credit with UTM exactly once per link.
+    const html = renderBlocksV2(lir, kit, { slug: "let-it-roll-painting" })["{{BLOCK_HERO}}"];
+    assert.ok(html.includes(`src="${sizedUrls(RAW("int1")).w1200.replace(/&/g, "&amp;")}"`));
+    assert.ok(html.includes('alt="a freshly painted living room"'));
+    const credit = html.match(/<figcaption class="v2-credit">Photo by .*?<\/figcaption>/)[0];
+    assert.ok(credit.includes('href="https://unsplash.com/@analee?utm_source=enoma&amp;utm_medium=referral"'), credit);
+    assert.equal((credit.match(/utm_source/g) || []).length, 2, credit);
+  }
+});
+test("hook: an owner photo still beats stock (no library read)", async () => {
+  const db = hookDb(lib);
+  const kit = await buildBrandKit({ ...lir, attachments: ["https://cdn.example.com/job.jpg"] }, { supabase: db, env: { PAGE_STOCK_HERO: "on" }, townCoords: [], fetchImpl: async () => ({ ok: false }), log: {} });
+  assert.equal(kit.hero.kind, "work_photo");
+  assert.equal(db.reads.length, 0);
+});
+test("share card gets a JPEG of the stock hero (satori can't read WebP)", () => {
+  const u = sizedUrls(RAW("int1")).w1200;
+  assert.equal(ogSafeImageUrl(u), u.replace("fm=webp", "fm=jpg"));
+  assert.ok(ogSafeImageUrl(u).includes("ixid=M3wint1"));
+  assert.equal(ogSafeImageUrl("https://cdn.example.com/a.webp"), "https://cdn.example.com/a.webp");
+});
+
 await Promise.all(pending);
 console.log(`\n${passed} passed`);

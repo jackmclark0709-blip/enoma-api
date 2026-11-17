@@ -697,19 +697,22 @@ export async function fetchPlacePhotos(placeId, { fetchImpl = globalThis.fetch, 
   } catch { return []; }
 }
 
-/** PR 2 hook (stock photo library, built in another branch). Null until it lands and PAGE_STOCK_HERO=on. */
-// The stock library is PR 2 (api/_lib/stock-photos.js, feat/stock-library):
-// pickStockPhoto(profile, kit, { supabase }) → { urls: { w1200, srcset }, credit, photo } | null.
-// Until that file is on main the import fails and this returns null.
-async function pickStock(profile, kit, { env, supabase, log }) {
+/** Stock hero (PR 2). Null unless PAGE_STOCK_HERO=on and an approved photo fits. */
+// api/_lib/stock-photos.js pickStockPhoto(profile, kit, { supabase }) →
+// { urls: { w2400, w1200, w600, srcset }, credit: { name, profileUrl, photoUrl },
+//   unsplash_id, alt, photo: { unsplash_id, download_location } } | null.
+async function pickStock(profile, kit, { env, supabase, log, fetchImpl }) {
   if (env.PAGE_STOCK_HERO !== "on" || !supabase) return null;
   try {
     const m = await import("./stock-photos.js");
     const pick = await m.pickStockPhoto?.(profile, kit, { supabase, log });
     if (!pick?.urls?.w1200) return null;
-    // Unsplash's download ping, once per business + photo (PR 2 dedupes it).
+    // Unsplash's download ping, once per business + photo (stock_photo_assignments
+    // dedupes it). Awaited: a ping cut off when the function freezes would leave
+    // the photo assigned with no download recorded. It never throws, and after
+    // the first build it's one DB read (already_assigned).
     if (profile.business_id && m.trackStockAssignment) {
-      m.trackStockAssignment(pick.photo, profile.business_id, { supabase, log }).catch(() => {});
+      await m.trackStockAssignment(pick.photo, profile.business_id, { supabase, log, fetchImpl, accessKey: env.UNSPLASH_ACCESS_KEY });
     }
     return {
       url: pick.urls.w1200, srcset: pick.urls.srcset || null, alt: pick.alt || "", unsplash_id: pick.unsplash_id || null,
@@ -769,7 +772,7 @@ export async function buildBrandKit(profile, deps = {}) {
   }
 
   const draft = deriveKit(profile, { logo, analysis, palette, googlePhotos, townCoords, now });
-  const stock = draft.hero.kind === "scene" ? await pickStock(profile, draft, { env, supabase: deps.supabase, log }) : null;
+  const stock = draft.hero.kind === "scene" ? await pickStock(profile, draft, { env, supabase: deps.supabase, log, fetchImpl }) : null;
   return stock ? { ...draft, hero: { kind: "stock", ref: stock } } : draft;
 }
 
