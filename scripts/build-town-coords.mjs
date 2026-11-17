@@ -38,6 +38,14 @@ const PLACE_FUNCSTAT = new Set(["A", "B", "C", "N", "S"]); // N: e.g. Washington
 // people name as where they live); CCDs and unorganized territory are out.
 const COUSUB_FUNCSTAT = new Set(["A", "B", "C"]);
 
+// CDPs that are a campus, base, prison or hospital rather than a town
+// ("The College of New Jersey CDP", "Joint Base Lewis McChord CDP"). Only
+// statistical places (S): incorporated towns like College Station keep their name.
+const INSTITUTION_RE = /\b(university|college of|polytechnic|institute|academy|seminary|naval|navy|air force|air station|air facility|joint base|marine corps|coast guard|arsenal|correctional|prison|penitentiary|hospital|campus)\b|\bbase(?: cdp)?$/i;
+export function isInstitutionCdp(name, funcstat) {
+  return funcstat === "S" && INSTITUTION_RE.test(String(name || ""));
+}
+
 export function parseGazetteer(text, { kind }) {
   const lines = String(text).split(/\r?\n/).filter(Boolean);
   const head = lines.shift().split("|").map(h => h.trim());
@@ -50,6 +58,7 @@ export function parseGazetteer(text, { kind }) {
     if (!keep.has(f[iFs])) continue;
     const raw = f[iName];
     if (kind === "cousub" && /\b(CCD|UT|unorganized|district|precinct|island|reservation)\b/i.test(raw)) continue;
+    if (isInstitutionCdp(raw, f[iFs])) continue;
     const name = cleanName(raw);
     const lat = Number(f[iLat]), lng = Number(f[iLng]);
     if (!name || !Number.isFinite(lat) || !Number.isFinite(lng)) continue;

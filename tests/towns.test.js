@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { townsFor, loadTownCoords, STATE_NEIGHBORS, stateCode } from "../api/_lib/brand-kit.js";
-import { cleanName, parseGazetteer, mergeTowns } from "../scripts/build-town-coords.mjs";
+import { cleanName, parseGazetteer, mergeTowns, isInstitutionCdp } from "../scripts/build-town-coords.mjs";
 
 let passed = 0;
 async function test(name, fn) {
@@ -64,6 +64,16 @@ await test("bundle: one file per state, every file small, every neighbor has a f
     assert.ok(files.includes(`${n}.json`), `missing ${n}.json`);
   }
   assert.equal(stateCode("New Jersey"), "NJ");
+});
+
+await test("campus, base and prison CDPs are never suggested as towns; real towns with those words stay", async () => {
+  assert.equal(isInstitutionCdp("The College of New Jersey CDP", "S"), true);
+  assert.equal(isInstitutionCdp("Fairfield University CDP", "S"), true);
+  assert.equal(isInstitutionCdp("Homestead Base CDP", "S"), true);
+  assert.equal(isInstitutionCdp("College Station CDP", "S"), false);
+  assert.equal(isInstitutionCdp("University Park city", "A"), false, "incorporated towns keep their name");
+  const t = townsFor({ city: "Ewing", state: "NJ" }, await loadTownCoords("NJ"));
+  assert.ok(!t.suggested.some(n => /college|university/i.test(n)), t.suggested.join(", "));
 });
 
 await test("build script: names cleaned, CCDs dropped, places win over a same-named subdivision", () => {
