@@ -9,6 +9,9 @@ import { LICENSE_VERIFY_URLS, licenseFrom, deriveKit, buildBrandKit, cleanOwnerS
 import { headlineFor, firstService, renderBlocksV2, knownForHtml } from "../api/_lib/page-v2.js";
 import { setSpecialty, handleOwnerAction } from "../api/_lib/owner-actions.js";
 import { newOwnerToken } from "../api/_lib/owner-link.js";
+import { mainService, loadTownCoords } from "../api/_lib/brand-kit.js";
+import { featuredFor, launchKitFingerprint } from "../api/_lib/launch-kit.js";
+import { refreshedTowns, refreshKitTowns } from "../scripts/refresh-kit-towns.mjs";
 
 let passed = 0;
 async function test(name, fn) {
@@ -140,6 +143,72 @@ await test("owner bar shows the field (prefilled); visitors never see it; claim 
   assert.match(html, /id="claimKnownWrap"[^>]*hidden|class="[^"]*hidden[^"]*" id="claimKnownWrap"/);
   assert.match(js, /querySelector\('\.v2-owner\[data-o\]'\)/);
   assert.match(js, /action=set_specialty/);
+});
+
+// ── Main service ──────────────────────────────────────────────────────────
+
+const svc = (cat, names) => ({ primary_category: cat, city: "Milford", services: names.map(n => ({ service_name: n })) });
+
+await test("main service: the first one that names the trade, else the first listed", () => {
+  assert.equal(mainService(svc("painter", ["Pressure Washing", "Carpentry Services", "Exterior Painting"])).name, "Exterior Painting");
+  assert.equal(mainService(svc("roofing contractor", ["Gutters", "Roof Repair"])).name, "Roof Repair", "category words count too");
+  assert.equal(mainService(svc("electrician", ["Generators", "Panel Upgrades"])).name, "Panel Upgrades");
+  assert.equal(mainService(svc("general contractor", ["Decks", "Kitchens"])).name, "Decks", "no trade words: first listed");
+  assert.equal(mainService(svc("painter", [])), null);
+  const abc = svc("painter", ["Pressure Washing", "Exterior Painting"]);
+  assert.equal(headlineFor(abc, { owner_names: [] }), "Exterior Painting in Milford");
+  assert.equal(featuredFor(abc, {}).name, "Exterior Painting", "launch kit agrees with the page");
+});
+
+await test("launch kit fingerprint changes only where the main service changed", () => {
+  const kit = { colors: { identity: "#123" }, towns: { confirmed: ["Milford"] } };
+  const same = svc("painter", ["Exterior Painting", "Pressure Washing"]);
+  const moved = svc("painter", ["Pressure Washing", "Exterior Painting"]);
+  // "featured" joins the fingerprint only when the main service differs from
+  // the first listed, so every other existing kit stays fresh.
+  assert.match(read("api/_lib/launch-kit.js"), /\.\.\.\(featuredDiffersFromFirst\(p, kit\) \? \{ featured: featuredFor\(p, kit\)\.name \} : \{\}\)/);
+  assert.notEqual(launchKitFingerprint(moved, kit, { month: 5 }), launchKitFingerprint(same, kit, { month: 5 }));
+  // Suggested towns aren't in the fingerprint, so the towns refresh remakes nothing.
+  assert.equal(launchKitFingerprint(same, { ...kit, towns: { ...kit.towns, suggested: ["Hopedale"] } }, { month: 5 }),
+    launchKitFingerprint(same, kit, { month: 5 }));
+});
+
+// ── Towns refresh ─────────────────────────────────────────────────────────
+
+await test("towns refresh: new suggestions, confirmed towns untouched, no-op when nothing changes", async () => {
+  const coords = await loadTownCoords("NJ");
+  const lir = { username: "let-it-roll-painting", city: "Ewing", state: "NJ", brand_kit: { towns: { confirmed: ["Ewing", "Hopewell"], suggested: [] }, colors: {} } };
+  const t = refreshedTowns(lir, coords);
+  assert.deepEqual(t.confirmed, ["Ewing", "Hopewell"]);
+  assert.ok(t.suggested.includes("Trenton"));
+  assert.ok(!t.suggested.includes("Hopewell"), "a confirmed town is never suggested");
+  assert.equal(refreshedTowns({ ...lir, brand_kit: { ...lir.brand_kit, towns: t } }, coords), null);
+  assert.equal(refreshedTowns({ ...lir, brand_kit: null }, coords), null);
+});
+
+await test("towns refresh: dry run writes nothing; apply skips claimed pages and keeps the rest of the kit", async () => {
+  const rows = [
+    { business_id: "a", username: "ewing-painter", city: "Ewing", state: "NJ", page_version: 2, is_claimed: false, brand_kit: { colors: { identity: "#1" }, towns: { confirmed: ["Ewing"], suggested: [] } } },
+    { business_id: "b", username: "claimed-one", city: "Ewing", state: "NJ", page_version: 2, is_claimed: true, brand_kit: { towns: { confirmed: ["Ewing"], suggested: [] } } },
+  ];
+  const writes = [];
+  const db = { from: () => {
+    let id = null, patch = null;
+    const q = {
+      select() { return q; }, update(p) { patch = p; return q; },
+      eq(k, v) { if (k === "page_version") return Promise.resolve({ data: rows, error: null }); id = v; if (patch) { writes.push([id, patch]); return Promise.resolve({ error: null }); } return q; },
+      maybeSingle: async () => ({ data: { brand_kit: rows.find(r => r.business_id === id).brand_kit } }),
+    };
+    return q;
+  } };
+  const dry = await refreshKitTowns(db, { log: { warn() {} } });
+  assert.deepEqual([dry.checked, dry.changed, dry.gained, writes.length], [1, 1, 1, 0]);
+  const live = await refreshKitTowns(db, { apply: true, log: { warn() {} } });
+  assert.equal(live.written, 1);
+  assert.equal(writes[0][0], "a");
+  assert.deepEqual(writes[0][1].brand_kit.colors, { identity: "#1" }, "rest of the kit kept");
+  assert.deepEqual(writes[0][1].brand_kit.towns.confirmed, ["Ewing"]);
+  assert.ok(writes[0][1].brand_kit.towns.suggested.length > 0);
 });
 
 console.log(`\n${passed} passed`);

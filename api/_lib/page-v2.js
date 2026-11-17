@@ -17,7 +17,7 @@ import { offersFreeEstimates } from "./page-claims.js";
 import { workPhotos } from "./photo-kinds.js";
 import { tidyHeadline, contrastRatio, hexToRgb, rgbToHex } from "./page-style.js";
 import {
-  badgeLabel, ownerCallLabel, stateCode, tradeLabel, usesNoJobTooSmall, sceneKeyFor,
+  badgeLabel, ownerCallLabel, stateCode, tradeLabel, usesNoJobTooSmall, sceneKeyFor, mainService,
 } from "./brand-kit.js";
 import { headerWordmarkSvg, tradeIconSvg, tradeIconFor } from "./starter-logo.js";
 import { sceneSvg } from "./trade-scenes.js";
@@ -89,8 +89,9 @@ const PAST = {
 
 /**
  * The H1: leads with the specialty when there is one. A thin page (no
- * specialty, no owner names) leads with its first listed service instead,
- * the way the launch kit does, and never calls it a specialty.
+ * specialty, no owner names) leads with its main service instead (the first
+ * listed one that names the trade, brand-kit.js mainService), the way the
+ * launch kit does, and never calls it a specialty.
  */
 export function headlineFor(p, kit) {
   if (kit.specialty) return `${kit.specialty}, ${PAST[sceneKeyFor(p.primary_category)] || "done right"}.`;
@@ -104,10 +105,9 @@ export function headlineFor(p, kit) {
   return `${tradeLabel(p)}${town ? ` in ${town}` : ""}`;
 }
 
-/** The first listed service's name, tidied (no trailing period). */
+/** The main service's name (brand-kit.js mainService), or "". */
 export function firstService(p = {}) {
-  const s = list(p.services).find(x => x && String(x.service_name || x.name || "").trim());
-  return s ? String(s.service_name || s.name).trim().replace(/[.!]+$/, "") : "";
+  return mainService(p)?.name || "";
 }
 
 /** "Interior painting in Ewing, NJ · 20+ years · No job too big or too small". */
