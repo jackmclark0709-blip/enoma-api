@@ -756,7 +756,7 @@ async function generatePreviewForProspect(prospect, { homeHtml, force = false, g
     if (v2Err) console.warn("page v2 flag not set:", v2Err.message);
     else {
       const kitJob = buildBrandKit({ ...profile, business_id: biz.id, page_version: 2, website: prospect.website || profile.website },
-        { prospect, websiteHtml: site.homeHtml || null })
+        { prospect, websiteHtml: site.homeHtml || null, supabase })
         .then(kit => saveBrandKit(supabase, biz.id, kit))
         .catch(e => console.warn("brand kit build failed:", e?.message || e));
       try { waitUntil(kitJob); } catch { /* not on Vercel: the promise still runs */ }
@@ -2748,7 +2748,7 @@ async function handleBrandKitAdmin(req, res) {
     profile.admin_logo_url = url || null;
   }
   if (!isPageV2(profile)) return res.status(200).json({ success: true, kit: null, note: "Saved. This page is v1, so no brand kit is built." });
-  const kit = await buildBrandKit(profile);
+  const kit = await buildBrandKit(profile, { supabase });
   await saveBrandKit(supabase, profile.business_id, kit);
   return res.status(200).json({ success: true, kit });
 }

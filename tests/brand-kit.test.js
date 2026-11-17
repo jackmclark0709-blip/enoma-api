@@ -272,6 +272,11 @@ await test("hero rule: owner photo, then Google work photo, then stock, then the
   assert.deepEqual(heroFor({ primary_category: "snow removal" }), { kind: "scene", ref: "snow" });
   assert.deepEqual(heroFor({}, { googlePhotos: [{ kind: "storefront" }, { kind: "work" }] }), { kind: "work_photo", ref: "google:1" });
   assert.deepEqual(heroFor({}, { stock: { url: "https://x/s.jpg" } }), { kind: "stock", ref: { url: "https://x/s.jpg" } });
+  // A stock hero (PR 2) carries Unsplash's credit, linked with UTM tags.
+  const stockHtml = renderBlocksV2(LET_IT_ROLL, { ...deriveKit(LET_IT_ROLL, {}), hero: { kind: "stock", ref: {
+    url: "https://images.unsplash.com/photo-1?w=1200", srcset: "a 600w", alt: "A painted ceiling", credit: { name: "Ann Lee", profileUrl: "https://unsplash.com/@ann" } } } }, { slug: "x" })["{{BLOCK_HERO}}"];
+  assert.match(stockHtml, /<img src="https:\/\/images\.unsplash\.com\/photo-1\?w=1200" srcset="a 600w"/);
+  assert.match(stockHtml, /Photo by <a href="https:\/\/unsplash\.com\/@ann\?utm_source=enoma&amp;utm_medium=referral"[^>]*>Ann Lee<\/a> on <a href="https:\/\/unsplash\.com\/\?utm_source=enoma&amp;utm_medium=referral"/);
   for (const k of SCENE_KEYS) {
     const css = sceneSvg(k);
     assert.match(css, /var\(--kit-identity\)/, `${k} uses the kit colors`);

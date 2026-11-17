@@ -154,6 +154,17 @@ function attributionHtml(g) {
   return `<figcaption class="v2-credit">Photo: ${who} on Google</figcaption>`;
 }
 
+// Unsplash's required credit: "Photo by <name> on Unsplash", both linked with UTM tags.
+const UNSPLASH_UTM = "utm_source=enoma&utm_medium=referral";
+function stockCredit(c) {
+  if (!c) return "";
+  if (typeof c === "string") return `<figcaption class="v2-credit">${esc(c)}</figcaption>`;
+  if (!c.name) return "";
+  const prof = /^https:\/\/unsplash\.com\//.test(String(c.profileUrl || "")) ? `${c.profileUrl}${c.profileUrl.includes("?") ? "&" : "?"}${UNSPLASH_UTM}` : null;
+  const who = prof ? `<a href="${esc(prof)}" target="_blank" rel="noopener nofollow">${esc(c.name)}</a>` : esc(c.name);
+  return `<figcaption class="v2-credit">Photo by ${who} on <a href="${esc(`https://unsplash.com/?${UNSPLASH_UTM}`)}" target="_blank" rel="noopener nofollow">Unsplash</a></figcaption>`;
+}
+
 /** Hero media per rule 1d: work photo → stock → drawn scene. */
 export function heroMedia(p, kit, slug) {
   const h = kit.hero || { kind: "scene", ref: sceneKeyFor(p.primary_category) };
@@ -171,7 +182,7 @@ export function heroMedia(p, kit, slug) {
   if (h.kind === "stock" && h.ref) {
     const s = typeof h.ref === "string" ? { url: h.ref } : h.ref;
     if (/^https?:\/\//i.test(String(s.url || ""))) {
-      return `<figure class="v2-hero__media v2-hero__media--photo"><img src="${esc(s.url)}" alt="${esc(s.alt || "")}" fetchpriority="high" decoding="async" />${s.credit ? `<figcaption class="v2-credit">${esc(s.credit)}</figcaption>` : ""}</figure>`;
+      return `<figure class="v2-hero__media v2-hero__media--photo"><img src="${esc(s.url)}"${s.srcset ? ` srcset="${esc(s.srcset)}" sizes="(min-width: 900px) 520px, 100vw"` : ""} alt="${esc(s.alt || "")}" fetchpriority="high" decoding="async" />${stockCredit(s.credit)}</figure>`;
     }
   }
   const key = h.kind === "scene" && h.ref ? h.ref : sceneKeyFor(p.primary_category);

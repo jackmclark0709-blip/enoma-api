@@ -698,9 +698,24 @@ export async function fetchPlacePhotos(placeId, { fetchImpl = globalThis.fetch, 
 }
 
 /** PR 2 hook (stock photo library, built in another branch). Null until it lands and PAGE_STOCK_HERO=on. */
-async function pickStock(profile, kit, env) {
-  if (env.PAGE_STOCK_HERO !== "on") return null;
-  try { const m = await import("./stock-photos.js"); return (await m.pickStockPhoto?.(profile, kit)) || null; } catch { return null; }
+// The stock library is PR 2 (api/_lib/stock-photos.js, feat/stock-library):
+// pickStockPhoto(profile, kit, { supabase }) → { urls: { w1200, srcset }, credit, photo } | null.
+// Until that file is on main the import fails and this returns null.
+async function pickStock(profile, kit, { env, supabase, log }) {
+  if (env.PAGE_STOCK_HERO !== "on" || !supabase) return null;
+  try {
+    const m = await import("./stock-photos.js");
+    const pick = await m.pickStockPhoto?.(profile, kit, { supabase, log });
+    if (!pick?.urls?.w1200) return null;
+    // Unsplash's download ping, once per business + photo (PR 2 dedupes it).
+    if (profile.business_id && m.trackStockAssignment) {
+      m.trackStockAssignment(pick.photo, profile.business_id, { supabase, log }).catch(() => {});
+    }
+    return {
+      url: pick.urls.w1200, srcset: pick.urls.srcset || null, alt: pick.alt || "", unsplash_id: pick.unsplash_id || null,
+      credit: pick.credit?.name ? { name: pick.credit.name, profileUrl: pick.credit.profileUrl || null } : null,
+    };
+  } catch { return null; }
 }
 
 /**
@@ -754,7 +769,7 @@ export async function buildBrandKit(profile, deps = {}) {
   }
 
   const draft = deriveKit(profile, { logo, analysis, palette, googlePhotos, townCoords, now });
-  const stock = draft.hero.kind === "scene" ? await pickStock(profile, draft, env) : null;
+  const stock = draft.hero.kind === "scene" ? await pickStock(profile, draft, { env, supabase: deps.supabase, log }) : null;
   return stock ? { ...draft, hero: { kind: "stock", ref: stock } } : draft;
 }
 
@@ -771,7 +786,7 @@ export async function saveBrandKit(supabaseAdmin, businessId, kit, { log = conso
 export async function rebuildBrandKit(supabaseAdmin, businessId, deps = {}) {
   const { data: profile } = await supabaseAdmin.from("small_business_profiles").select("*").eq("business_id", businessId).maybeSingle();
   if (!profile || Number(profile.page_version) !== 2) return null;
-  const kit = await buildBrandKit(profile, deps);
+  const kit = await buildBrandKit(profile, { supabase: supabaseAdmin, ...deps });
   await saveBrandKit(supabaseAdmin, businessId, kit, deps);
   return kit;
 }
