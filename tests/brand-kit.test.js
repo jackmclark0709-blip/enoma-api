@@ -58,6 +58,18 @@ await test("palette: skips white, black and grey; keeps the brand colors in orde
   assert.ok(paletteFromPixels(BLACK_GOLD).darkShare > 0.4);
 });
 
+await test("edge blends of a red/blue logo on white don't become brand colors", () => {
+  // Thin red and blue strokes on white: the scaled-down pixels include pink
+  // (red + white), lavender and purple (red + blue). Only red and blue count.
+  const p = paletteFromPixels(logo([
+    [[255, 255, 255], 1500], [[24, 48, 240], 700], [[216, 24, 24], 600],
+    [[192, 96, 120], 450], [[240, 192, 192], 350], [[120, 72, 168], 250], [[216, 120, 120], 200],
+  ]));
+  const hues = p.colors.map(c => rgbToHsl(hexToRgb(c.hex)).h);
+  assert.equal(p.colors.length, 2, JSON.stringify(p.colors));
+  assert.ok(hues[0] > 220 && hues[0] < 240 && (hues[1] < 10 || hues[1] > 350), JSON.stringify(p.colors));
+});
+
 await test("red/white/blue logo: navy identity; the logo red isn't light enough against navy, so the CTA system decides", () => {
   const c = kitColors(paletteFromPixels(RWB), { business_name: "Let It Roll Painting", primary_category: "painter" });
   assert.equal(c.source, "logo");

@@ -58,10 +58,14 @@ const uniq = arr => [...new Set(arr)];
 // ── Colors ────────────────────────────────────────────────────────────────
 
 /**
- * The 3–4 dominant colors of a logo from raw RGBA pixels (sharp, 64x64):
- * transparent, near-white, near-black and grey pixels skipped, the rest
- * bucketed, similar buckets merged. darkShare = share of opaque pixels that
- * are near-black (a black/gold logo is black, even though black is skipped).
+ * The 3–4 dominant colors of a logo from raw RGBA pixels (sharp, 128x128,
+ * nearest-neighbour so thin strokes keep their color): transparent,
+ * near-white, near-black and grey pixels skipped, the rest bucketed, similar
+ * buckets merged. Edge blends are dropped too: pastels (a color mixed with
+ * the white background), lighter tints of a stronger color, and the mix of
+ * two stronger colors (red + blue strokes make purple edges). darkShare =
+ * share of opaque pixels that are near-black (a black/gold logo is black,
+ * even though black is skipped).
  */
 export function paletteFromPixels(data, { max = 4 } = {}) {
   const counts = new Map();
@@ -85,11 +89,28 @@ export function paletteFromPixels(data, { max = 4 } = {}) {
     if (near) near.n += b.n; else merged.push({ ...b });
   }
   merged.sort((a, b) => b.n - a.n);
-  const colors = merged
+  // A blend sits on the line between two other colors (or a color and the
+  // white background) and is duller than the purer end of that line.
+  const chroma = rgb => Math.max(...rgb) - Math.min(...rgb);
+  const ends = [...merged.map(m => m.rgb), [255, 255, 255]];
+  const isBlend = m => ends.some((a, i) => a !== m.rgb && ends.slice(i + 1).some(b => {
+    if (b === m.rgb || chroma(m.rgb) >= 0.8 * Math.max(chroma(a), chroma(b))) return false;
+    return segmentDistance(m.rgb, a, b) < 50;
+  }));
+  const kept = merged.filter(m => rgbToHsl(m.rgb).l <= 0.8 && !isBlend(m));   // l > 0.8: pastel edge
+  const colors = kept
     .filter(m => opaque && m.n / opaque >= 0.01)
     .slice(0, max)
     .map(m => ({ hex: rgbToHex(m.rgb), share: Math.round((m.n / opaque) * 1000) / 1000 }));
   return { colors, darkShare: opaque ? Math.round((dark / opaque) * 1000) / 1000 : 0, opaque };
+}
+
+/** Distance in RGB from p to the segment a–b. */
+function segmentDistance(p, a, b) {
+  const ab = [0, 1, 2].map(j => b[j] - a[j]);
+  const len2 = ab.reduce((s, v) => s + v * v, 0);
+  const t = len2 ? Math.max(0, Math.min(1, [0, 1, 2].reduce((s, j) => s + (p[j] - a[j]) * ab[j], 0) / len2)) : 0;
+  return Math.hypot(...[0, 1, 2].map(j => a[j] + t * ab[j] - p[j]));
 }
 
 /** Darken until white text on it reads at `min`:1 (the hero background). */
@@ -573,7 +594,7 @@ async function fetchImage(url, { fetchImpl }) {
 export async function readImage(buffer, { sharp } = {}) {
   const s = sharp || await loadSharp();
   const meta = await s(buffer).metadata();
-  const { data } = await s(buffer).resize(64, 64, { fit: "fill" }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { data } = await s(buffer).resize(128, 128, { fit: "fill", kernel: "nearest" }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const small = await s(buffer).resize(512, 512, { fit: "inside", withoutEnlargement: true }).png().toBuffer();
   return { width: meta.width || null, height: meta.height || null, palette: paletteFromPixels(data), png: small };
 }
