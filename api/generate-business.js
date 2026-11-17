@@ -24,6 +24,9 @@ import { handleSpotlight } from "./_lib/spotlight.js";
 import Stripe from "stripe";
 import { handleReviews } from "./_lib/reviews.js";
 import { handleLogo } from "./_lib/logo-settings.js";
+import { handleOwnerAction } from "./_lib/owner-actions.js";
+import { rebuildBrandKit } from "./_lib/brand-kit.js";
+import { waitUntil } from "@vercel/functions";
 import { logoBrandColor, saveBrandColor } from "./_lib/logo-color.js";
 import { logFunnelEvent } from "./_lib/tracking.js";
 import { selfServeFirstTouch } from "./_lib/attribution.js";
@@ -279,6 +282,11 @@ export default async function handler(req, res) {
     /* ---------- LOGO: starter-logo pick / upload from the dashboard (api/_lib/logo-settings.js) ---------- */
     if (req.query?.kind === "logo") {
       return await handleLogo(req, res, { supabaseAdmin });
+    }
+
+    /* ---------- OWNER BAR on a page v2: owner-link token, no login (api/_lib/owner-actions.js) ---------- */
+    if (req.query?.kind === "owner") {
+      return await handleOwnerAction(req, res, { supabaseAdmin });
     }
 
     /* ---------- ADMIN SHORTCUT ---------- */
@@ -819,6 +827,12 @@ export default async function handler(req, res) {
 
     // A new logo: store its color so the page renders in it from first paint.
     if (uploadedLogo) await saveBrandColor(supabaseAdmin, business_id, await logoBrandColor(logoBuffer));
+
+    // Page v2: a new logo or new photos rebuild the brand kit (no-op for v1
+    // pages). After the response, so saving never waits on it.
+    if (uploadedLogo || finalAttachments.length !== (existingProfile?.attachments || []).length) {
+      waitUntil(rebuildBrandKit(supabaseAdmin, business_id).catch(e => console.warn("brand kit rebuild failed:", e?.message || e)));
+    }
 
     try {
       await supabaseAdmin

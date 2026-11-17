@@ -313,3 +313,51 @@ export function chosenStarterLogoId(profile) {
 export function isStarterLogoId(id) {
   return STARTER_LOGO_IDS.includes(String(id || ""));
 }
+
+// ── Page v2 header wordmark ──────────────────────────────────────────────
+// The business name in Archivo 900 at a condensed width, a second line with
+// trade and town, and the trade icon in a call-to-action-colored circle.
+// Text comes from the brand kit (api/_lib/brand-kit.js wordmarkFor).
+
+// Paint roller (page v2's painting icon).
+TRADE_ICONS.roller = [
+  "M4 4.5h12.5a1.5 1.5 0 0 1 1.5 1.5v2.5a1.5 1.5 0 0 1-1.5 1.5H4a1.5 1.5 0 0 1-1.5-1.5V6A1.5 1.5 0 0 1 4 4.5z",
+  "M18 7.2h2.5v5.3H11v3",
+  "M10 15.5h2v6h-2z",
+];
+
+/** Page v2 icon for a trade icon key (painting draws a roller). */
+export function v2IconKey(key) {
+  if (key === "painting") return "roller";
+  return TRADE_ICONS[key] ? key : "default";
+}
+
+/** The icon alone as inline SVG (stroke = currentColor). */
+export function tradeIconSvg(key, { size = 24, width = 2, className = "v2-icon" } = {}) {
+  const paths = TRADE_ICONS[v2IconKey(key)] || TRADE_ICONS.default;
+  return `<svg class="${className}" viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round">${paths.map(d => `<path d="${d}"/>`).join("")}</svg>`;
+}
+
+/**
+ * Header wordmark SVG. wordmark: { line1, line2, icon }; colors: { ink, sub,
+ * circle, iconColor } as hex or CSS var() strings.
+ */
+export function headerWordmarkSvg(wordmark = {}, colors = {}, { title = "", icon: withIcon = true } = {}) {
+  const c = { ink: "#1a1714", sub: "#4a4540", circle: "var(--kit-cta)", iconColor: "var(--kit-cta-text)", ...colors };
+  const line1 = String(wordmark.line1 || "").trim() || "YOUR BUSINESS";
+  const line2 = String(wordmark.line2 || "").trim();
+  const circle = withIcon ? 44 : 0, gap = withIcon ? 10 : 0, x0 = circle + gap;
+  // Archivo at 85% width: about 0.86 of the regular glyph widths.
+  let size = 22;
+  while (size > 14 && textWidth(line1, size) * 0.86 > 230) size -= 1;
+  const subSize = 9.5, tracking = 1.4;
+  const w = x0 + Math.max(textWidth(line1, size) * 0.86, capsWidth(line2, subSize, tracking)) + 4;
+  const h = 44;
+  const y1 = line2 ? 21 : 28;
+  const icon = iconGroup(v2IconKey(wordmark.icon), { x: 10, y: 10, size: 24, color: c.iconColor, width: 2.2 });
+  const body =
+    (withIcon ? `<circle cx="22" cy="22" r="22" fill="${c.circle}"/>${icon}` : "") +
+    `<text x="${x0}" y="${y1}" font-family="${DISPLAY}" font-weight="900" font-stretch="85%" font-size="${size}" letter-spacing="-0.2" fill="${c.ink}">${escapeXml(line1)}</text>` +
+    (line2 ? `<text x="${x0}" y="36" font-family="${SANS}" font-weight="700" font-size="${subSize}" letter-spacing="${tracking}" fill="${c.sub}">${escapeXml(line2)}</text>` : "");
+  return svgWrap(w, h, title || line1, body);
+}

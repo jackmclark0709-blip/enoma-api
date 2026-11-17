@@ -212,7 +212,7 @@ export function landingLinks(slug, m = null) {
 }
 
 /** The full landing page HTML. */
-export function renderLanding(profile, { callouts = [], working = [], slug, m = null, src = null } = {}) {
+export function renderLanding(profile, { callouts = [], working = [], slug, m = null, src = null, ogImage = null, ogTitle = null } = {}) {
   const p = profile || {};
   const name = p.business_name || slug;
   const instant = landingSource({ src, m }) === "instant";
@@ -266,11 +266,13 @@ export function renderLanding(profile, { callouts = [], working = [], slug, m = 
 <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <meta name="theme-color" content="#0A1628">
-<meta property="og:image" content="https://enoma.io/brand/og-image.png">
+<meta property="og:image" content="${esc(ogImage || "https://enoma.io/brand/og-image.png")}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://enoma.io/brand/og-image.png">
+<meta name="twitter:image" content="${esc(ogImage || "https://enoma.io/brand/og-image.png")}">${ogTitle ? `
+<meta property="og:title" content="${esc(ogTitle)}">
+<meta name="twitter:title" content="${esc(ogTitle)}">` : ""}
 </head>
 <body class="page-preview">
 <header class="top"><div class="wrap"><a class="brand" href="/" aria-label="Enoma home"><img src="/brand/enoma-wordmark-blue-notagline-cropped.svg" alt="Enoma" width="125" height="24"></a><div class="top-right"><span class="from">From Jack at Enoma</span><a class="top-cta" href="${esc(links.claim)}" data-cta="claim" data-where="nav">Keep my page for $1</a></div></div></header>

@@ -13,6 +13,7 @@
     { "source": "/api/signals/manychat", "destination": "/api/ga-metrics?action=manychat_signal" },
     { "source": "/api/signals/:id/handle", "destination": "/api/ga-metrics?action=signal_handle&id=:id" },
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
+    { "source": "/og/:file", "destination": "/api/p?og=2&file=:file" },
     { "source": "/internal-optout", "destination": "/api/track?action=internal_optout" },
     { "source": "/login", "destination": "/dashboard/login.html" },
     { "source": "/signup", "destination": "/dashboard/signup.html" },
