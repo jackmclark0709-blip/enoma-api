@@ -87,13 +87,27 @@ const PAST = {
   electrical: "wired right", cleaning: "cleaned right", contractor: "built right",
 };
 
-/** The H1: leads with the specialty when there is one. */
+/**
+ * The H1: leads with the specialty when there is one. A thin page (no
+ * specialty, no owner names) leads with its first listed service instead,
+ * the way the launch kit does, and never calls it a specialty.
+ */
 export function headlineFor(p, kit) {
   if (kit.specialty) return `${kit.specialty}, ${PAST[sceneKeyFor(p.primary_category)] || "done right"}.`;
+  const town = cleanTown(p.city);
+  if (!list(kit.owner_names).length) {
+    const s = firstService(p);
+    if (s && s.toLowerCase() !== tradeLabel(p).toLowerCase()) return `${s}${town ? ` in ${town}` : ""}`;
+  }
   const h = tidyHeadline(p.hero_headline, p.business_name);
   if (h) return h;
-  const town = cleanTown(p.city);
   return `${tradeLabel(p)}${town ? ` in ${town}` : ""}`;
+}
+
+/** The first listed service's name, tidied (no trailing period). */
+export function firstService(p = {}) {
+  const s = list(p.services).find(x => x && String(x.service_name || x.name || "").trim());
+  return s ? String(s.service_name || s.name).trim().replace(/[.!]+$/, "") : "";
 }
 
 /** "Interior painting in Ewing, NJ · 20+ years · No job too big or too small". */
@@ -394,6 +408,17 @@ function mobileBar(p) {
 
 // ── Owner bar (owner link only) ───────────────────────────────────────────
 
+/** "What are you known for?" One field; it writes the specialty and rebuilds the kit. */
+export function knownForHtml(kit, id) {
+  const v = kit.owner_specialty || kit.specialty || "";
+  return `<form class="v2-known" id="${esc(id)}" novalidate>
+  <label for="${esc(id)}Input"><b>What are you known for?</b> A few words, like "Cathedral ceilings" or "Stone walls". It goes at the top of your page.</label>
+  <div class="v2-known__row"><input id="${esc(id)}Input" name="specialty" type="text" maxlength="40" autocomplete="off" value="${esc(v)}" placeholder="e.g. Cathedral ceilings" />
+  <button type="submit" class="v2-owner__btn">Save</button></div>
+  <p class="v2-known__msg" role="status"></p>
+</form>`;
+}
+
 /**
  * "Made for <Business> by Jack · Keep it for $1 · Call or text Jack · Your
  * launch kit (3)". One line on a phone; the town confirmations and the
@@ -411,7 +436,9 @@ export function ownerBar(p, kit, ctx) {
       <ul>${suggested.map(t => `<li><button type="button" class="v2-owner__town" data-town="${esc(t)}">+ ${esc(t)}</button></li>`).join("")}</ul></div>`
     : "";
   const ask = ctx.hasPhotos ? "" : photoAskHtml(p, kit, ctx);
-  const more = towns || ask;
+  const knownFor = knownForHtml(kit, "ownerKnownFor");
+  const items = [towns, ask, knownFor].filter(Boolean).length;
+  const more = towns || ask || knownFor;
   const kitUrl = kitHref(ctx.slug, ctx.token);
   const kitLink = ctx.launchKit ? ` <span class="v2-owner__sep" aria-hidden="true">·</span> <a class="v2-owner__link" href="${esc(kitUrl)}">Your launch kit (3)</a>` : "";
   // Launch kit thumbnails (watermarked until the claim), visible before claiming.
@@ -423,7 +450,7 @@ export function ownerBar(p, kit, ctx) {
     <p class="v2-owner__extra">${talk}${kitLink}</p>
   </div>
   ${kitStrip}
-  ${more ? `<details class="v2-owner__more"><summary>${towns && ask ? "2 quick things" : "1 quick thing"} for your page</summary>${towns}${ask}<p class="v2-owner__extra-phone">${talk}${kitLink}</p></details>` : ""}
+  ${more ? `<details class="v2-owner__more"><summary>${items === 1 ? "1 quick thing" : `${items} quick things`} for your page</summary>${towns}${knownFor}${ask}<p class="v2-owner__extra-phone">${talk}${kitLink}</p></details>` : ""}
 </div>
 <script src="/scripts/funnel-track.js"></script>
 <script>
@@ -433,6 +460,17 @@ export function ownerBar(p, kit, ctx) {
   var m = ${JSON.stringify(ctx.m || null)};
   try { fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, keepalive: true, body: JSON.stringify({ slug: slug, event: "landing_view", metadata: m ? { m: m, via: "owner_link" } : { via: "owner_link" } }) }); } catch (e) {}
   try { if (window.enomaTrack) window.enomaTrack("preview_shown", { slug: slug, m: m, via: "owner_link" }, ${JSON.stringify(p.business_id || null)}); } catch (e) {}
+  var kf = document.getElementById("ownerKnownFor");
+  if (kf) kf.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var input = kf.querySelector("input"), btn = kf.querySelector("button"), msg = kf.querySelector(".v2-known__msg");
+    btn.disabled = true; msg.textContent = "Saving…";
+    fetch("/api/generate-business?kind=owner&action=set_specialty", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: slug, o: o, specialty: input.value }) })
+      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || "x"); return j; }); })
+      .then(function () { msg.textContent = "Saved. Your page updates in a minute."; btn.disabled = false; })
+      .catch(function (err) { msg.textContent = err && err.message && err.message !== "x" ? err.message : "Couldn't save. Try again."; btn.disabled = false; });
+  });
   bar.querySelectorAll(".v2-owner__town").forEach(function (b) {
     b.addEventListener("click", function () {
       b.disabled = true;

@@ -212,7 +212,7 @@ async function serveLanding(req, res, bizSlug) {
     await logFunnelEvent(supabase, req, { event: "instant_preview_viewed", businessId: profile.business_id, metadata: { slug: profile.username } });
   }
   const v2 = isPageV2(profile) && process.env.PAGE_V2 !== "off";
-  const kit = v2 ? kitFor(profile, { townCoords: await loadTownCoords() }) : null;
+  const kit = v2 ? kitFor(profile, { townCoords: await loadTownCoords(profile.state) }) : null;
   const html = renderLanding(profile, {
     slug: profile.username, m, src,
     ...(v2 ? { ogImage: ogImageUrl(absoluteBaseUrl(req), profile.username, kit), ogTitle: ogTitleFor(profile, kit) } : {}),
@@ -240,7 +240,7 @@ async function serveLaunchKit(req, res, bizSlug) {
   if (!profile?.business_id || !isPageV2(profile) || !ownerTokenMatches(profile, o)) return res.status(404).send("Not found");
   Object.assign(profile, stripWeakRatingClaims(profile));
   const slug = profile.username;
-  const kit = kitFor(profile, { townCoords: await loadTownCoords() });
+  const kit = kitFor(profile, { townCoords: await loadTownCoords(profile.state) });
   const lk = kit.launch_kit || null;
   const unlocked = pageIndexable({ profile, ...(await billingStateFor(profile.business_id)) });
   const from = /^(owner_bar|dashboard|kit)$/.test(String(req.query.from || "")) ? String(req.query.from) : "kit";
@@ -330,7 +330,7 @@ async function serveShareImage(req, res) {
     .eq("username", slug).eq("is_public", true).maybeSingle();
   if (!profile) return res.status(404).send("Not found");
   Object.assign(profile, stripWeakRatingClaims(profile));
-  const kit = kitFor(profile, { townCoords: await loadTownCoords() });
+  const kit = kitFor(profile, { townCoords: await loadTownCoords(profile.state) });
   const png = await renderOgPng(profile, kit, { heroImage: await shareHeroImage(kit) });
   res.setHeader("Content-Type", "image/png");
   res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400");
@@ -478,7 +478,7 @@ export default async function handler(req, res) {
     // ── Page v2 (page_version = 2): the brand-kit page (api/_lib/page-v2.js).
     // PAGE_V2=off is the kill switch: every page renders as v1.
     if (isPageV2(profile) && process.env.PAGE_V2 !== "off") {
-      const kit = kitFor(profile, { townCoords: await loadTownCoords() });
+      const kit = kitFor(profile, { townCoords: await loadTownCoords(profile.state) });
       const o = String(req.query.o || "");
       const owner = !!o && ownerTokenMatches(profile, o);
       const m = UUID_RE.test(String(req.query.m || "")) ? String(req.query.m) : null;

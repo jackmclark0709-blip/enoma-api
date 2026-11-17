@@ -283,6 +283,23 @@ function isGenericSpecialty(t, p) {
   return !words.length || words.every(w => own.has(w) || own.has(w.replace(/s$/, "")) || own.has(w.replace(/ing$/, "")));
 }
 
+/**
+ * The owner's answer to "What are you known for?" (owner bar / claim box),
+ * cleaned: plain words only, 3-40 characters, no links, emails or phone
+ * numbers. "" clears it; null means it isn't usable.
+ */
+export function cleanOwnerSpecialty(s) {
+  const t = String(s ?? "").replace(/\s+/g, " ").trim()
+    .replace(/^(we(?:'re| are)? known for|known for|we specialize in|specializing in|our specialty is)\s*:?\s*/i, "")
+    .replace(/[.!]+$/, "").trim();
+  if (!t) return "";
+  if (t.length < 3 || t.length > 40) return null;
+  if (/https?:|www\.|@|\.(com|net|org)\b/i.test(t)) return null;
+  if ((t.match(/\d/g) || []).length >= 5) return null;
+  if (!/^[A-Za-z0-9 &'’,./+-]+$/.test(t)) return null;
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
 export function specialtyFrom(p = {}, analysis = null) {
   for (const s of list(analysis?.specialty_phrases)) {
     const t = TIDY_SPECIALTY(String(s).replace(/\bspecialists?\b|\bspecializ\w*\b|\bspecialty\b/gi, ""));
@@ -305,15 +322,22 @@ export function specialtyFrom(p = {}, analysis = null) {
 // ── License ───────────────────────────────────────────────────────────────
 
 // Where a homeowner can check a contractor's license or registration. A
-// state not listed shows the number without a link.
+// state not listed shows the number without a link. Each one opened in a
+// browser 2026-11-17 and lands on the state's lookup.
+// NY is left out on purpose: New York has no statewide contractor license
+// (home improvement licenses come from NYC and the counties), and the
+// Department of State search doesn't cover contractors, so "Verify it with
+// the state" would send people to the wrong registry.
 export const LICENSE_VERIFY_URLS = {
   NJ: "https://newjersey.mylicense.com/verification/",
-  NY: "https://appext20.dos.ny.gov/nydos/selSearchType.do",
   PA: "https://hicsearch.attorneygeneral.gov/",
-  MA: "https://www.mass.gov/how-to/check-a-license-or-registration-for-a-home-improvement-contractor",
+  // Moved in 2026 to the MA Contractor Hub (the old mass.gov how-to page is a 404).
+  MA: "https://contractorhub.mass.gov/s/hic-contractor-search",
   CT: "https://www.elicense.ct.gov/Lookup/LicenseLookup.aspx",
   RI: "https://crb.ri.gov/consumer/search-registrantlicensee",
-  NH: "https://forms.nh.gov/licenseverification/",
+  // OPLC's lookup page; it links to the verification app (forms.nh.gov), which
+  // errors on its own when opened directly.
+  NH: "https://www.oplc.nh.gov/license-lookup",
   ME: "https://www.pfr.maine.gov/ALMSOnline/ALMSQuery/SearchIndividual.aspx",
   VT: "https://sos.vermont.gov/opr/find-a-professional/",
 };
@@ -376,25 +400,44 @@ function milesBetween(a, b) {
 
 /**
  * confirmed: the towns the business already lists (and its own town).
- * suggested: up to 6 towns within ~12 miles from the bundled dataset
- * (data/town-coords.json), never already confirmed. Suggested towns are only
- * ever shown to the owner as "Tap to confirm"; nothing public reads them.
+ * suggested: up to 6 towns within ~12 miles from the bundled Census
+ * Gazetteer data (data/towns/<ST>.json via loadTownCoords), never already
+ * confirmed. Suggested towns are only ever shown to the owner as "Tap to
+ * confirm"; nothing public reads them.
+ * A town name used more than once in a state (PA and NJ have several
+ * Franklin townships) is resolved with the business's other listed towns,
+ * and gets no suggestions if it still can't be pinned down.
  */
 export function townsFor(p = {}, coords = []) {
   const st = stateCode(p.state);
   const confirmed = uniq([cleanTown(p.city), ...list(p.service_area).map(cleanTown)]
     .filter(t => t && !/county|nationwide|statewide|area$/i.test(t)));
   const lower = new Set(confirmed.map(t => t.toLowerCase()));
-  const home = coords.find(([c, s]) => s === st && c.toLowerCase() === cleanTown(p.city).toLowerCase());
+  const inState = name => coords.filter(([c, s]) => s === st && c.toLowerCase() === String(name || "").toLowerCase());
+  const home = homeTown(inState(cleanTown(p.city)), confirmed.slice(1).map(inState));
   if (!home) return { confirmed, suggested: [] };
-  const suggested = coords
+  const suggested = uniq(coords
     .filter(([c]) => !lower.has(c.toLowerCase()))
     .map(([c, s, lat, lng]) => ({ name: c, state: s, miles: milesBetween([home[2], home[3]], [lat, lng]) }))
     .filter(t => t.miles <= SUGGEST_RADIUS_MILES)
     .sort((a, b) => a.miles - b.miles)
-    .slice(0, MAX_SUGGESTED_TOWNS)
-    .map(t => t.name);
+    .map(t => t.name))
+    .slice(0, MAX_SUGGESTED_TOWNS);
   return { confirmed, suggested };
+}
+
+const SAME_TOWN_MILES = 15;
+/** The home town's coordinates, or null when the name is ambiguous. */
+function homeTown(candidates, others = []) {
+  if (!candidates.length) return null;
+  const spread = candidates.some(c => milesBetween([candidates[0][2], candidates[0][3]], [c[2], c[3]]) > SAME_TOWN_MILES);
+  if (!spread) return candidates[0];
+  // Use the other listed towns that resolve to one place.
+  const anchors = others.filter(o => o.length === 1).map(o => o[0]);
+  if (!anchors.length) return null;
+  const score = c => Math.min(...anchors.map(a => milesBetween([c[2], c[3]], [a[2], a[3]])));
+  const best = [...candidates].sort((a, b) => score(a) - score(b))[0];
+  return score(best) <= SAME_TOWN_MILES * 2 ? best : null;
 }
 
 // ── Wordmark ──────────────────────────────────────────────────────────────
@@ -455,7 +498,8 @@ export function heroFor(p = {}, { googlePhotos = [], stock = null } = {}) {
  * (paletteFromPixels), googlePhotos, townCoords, stock, now }
  */
 export function deriveKit(p = {}, inputs = {}) {
-  const { logo = null, analysis = null, palette = null, googlePhotos = [], townCoords = [], stock = null, now = Date.now() } = inputs;
+  const { logo = null, analysis = null, palette = null, googlePhotos = [], townCoords = [], stock = null, now = Date.now(), ownerSpecialty = null } = inputs;
+  const own = cleanOwnerSpecialty(ownerSpecialty) || null;
   const q = logoQuality({ ...(logo || {}), analysis });
   const colors = kitColors(q.quality === "none" ? null : palette, p);
   const badges = uniq(badgesFrom([...(analysis?.text_lines || []), ...(analysis?.identity_phrases || []), factText(p)]))
@@ -470,7 +514,9 @@ export function deriveKit(p = {}, inputs = {}) {
     wordmark: wordmarkFor(p),
     badges,
     owner_names: ownerNamesFrom(p, analysis),
-    specialty: specialtyFrom(p, analysis),
+    // The owner's own answer beats anything read off the logo or listing.
+    specialty: own || specialtyFrom(p, analysis),
+    owner_specialty: own,
     license: licenseFrom(p),
     years: yearsFrom(p),
     insured: insuredFrom(p),
@@ -503,16 +549,46 @@ async function loadSharp() {
   return sharpLoader;
 }
 
-let townCoordsCache = null;
-export async function loadTownCoords() {
-  if (townCoordsCache) return townCoordsCache;
-  try {
-    const fs = await import("node:fs");
-    const path = await import("node:path");
-    const raw = fs.readFileSync(path.join(process.cwd(), "data", "town-coords.json"), "utf8");
-    townCoordsCache = JSON.parse(raw).towns || [];
-  } catch { townCoordsCache = []; }
-  return townCoordsCache;
+// Each state's neighbors, so towns across a state line can be suggested
+// (Ewing NJ → Yardley PA). Only these files are read for a business.
+export const STATE_NEIGHBORS = {
+  AL: ["FL", "GA", "MS", "TN"], AK: [], AZ: ["CA", "CO", "NM", "NV", "UT"], AR: ["LA", "MO", "MS", "OK", "TN", "TX"],
+  CA: ["AZ", "NV", "OR"], CO: ["AZ", "KS", "NE", "NM", "OK", "UT", "WY"], CT: ["MA", "NY", "RI"], DC: ["MD", "VA"],
+  DE: ["MD", "NJ", "PA"], FL: ["AL", "GA"], GA: ["AL", "FL", "NC", "SC", "TN"], HI: [], ID: ["MT", "NV", "OR", "UT", "WA", "WY"],
+  IL: ["IA", "IN", "KY", "MO", "WI"], IN: ["IL", "KY", "MI", "OH"], IA: ["IL", "MN", "MO", "NE", "SD", "WI"],
+  KS: ["CO", "MO", "NE", "OK"], KY: ["IL", "IN", "MO", "OH", "TN", "VA", "WV"], LA: ["AR", "MS", "TX"], ME: ["NH"],
+  MD: ["DC", "DE", "PA", "VA", "WV"], MA: ["CT", "NH", "NY", "RI", "VT"], MI: ["IN", "OH", "WI"], MN: ["IA", "ND", "SD", "WI"],
+  MS: ["AL", "AR", "LA", "TN"], MO: ["AR", "IA", "IL", "KS", "KY", "NE", "OK", "TN"], MT: ["ID", "ND", "SD", "WY"],
+  NE: ["CO", "IA", "KS", "MO", "SD", "WY"], NV: ["AZ", "CA", "ID", "OR", "UT"], NH: ["MA", "ME", "VT"], NJ: ["DE", "NY", "PA"],
+  NM: ["AZ", "CO", "OK", "TX", "UT"], NY: ["CT", "MA", "NJ", "PA", "VT"], NC: ["GA", "SC", "TN", "VA"], ND: ["MN", "MT", "SD"],
+  OH: ["IN", "KY", "MI", "PA", "WV"], OK: ["AR", "CO", "KS", "MO", "NM", "TX"], OR: ["CA", "ID", "NV", "WA"],
+  PA: ["DE", "MD", "NJ", "NY", "OH", "WV"], RI: ["CT", "MA"], SC: ["GA", "NC"], SD: ["IA", "MN", "MT", "ND", "NE", "WY"],
+  TN: ["AL", "AR", "GA", "KY", "MO", "MS", "NC", "VA"], TX: ["AR", "LA", "NM", "OK"], UT: ["AZ", "CO", "ID", "NM", "NV", "WY"],
+  VT: ["MA", "NH", "NY"], VA: ["DC", "KY", "MD", "NC", "TN", "WV"], WA: ["ID", "OR"], WV: ["KY", "MD", "OH", "PA", "VA"],
+  WI: ["IA", "IL", "MI", "MN"], WY: ["CO", "ID", "MT", "NE", "SD", "UT"], PR: [],
+};
+
+const townFileCache = new Map();
+/**
+ * Town centers for one business: its state's file plus its neighbors'
+ * (data/towns/<ST>.json, built from the Census Gazetteer by
+ * scripts/build-town-coords.mjs). Unknown state → [].
+ */
+export async function loadTownCoords(state) {
+  const st = stateCode(state);
+  if (!st) return [];
+  const fs = await import("node:fs");
+  const path = await import("node:path");
+  const out = [];
+  for (const s of [st, ...(STATE_NEIGHBORS[st] || [])]) {
+    if (!townFileCache.has(s)) {
+      let towns = [];
+      try { towns = JSON.parse(fs.readFileSync(path.join(process.cwd(), "data", "towns", `${s}.json`), "utf8")).towns || []; } catch { /* no file */ }
+      townFileCache.set(s, towns);
+    }
+    out.push(...townFileCache.get(s));
+  }
+  return out;
 }
 
 const absUrl = (u, base) => { try { return new URL(String(u).trim(), base).toString(); } catch { return null; } };
@@ -733,7 +809,7 @@ export async function buildBrandKit(profile, deps = {}) {
     placesKey = process.env.GOOGLE_SERVER_PLACES_KEY, prospect = null, env = process.env, log = console, now = Date.now(),
   } = deps;
   const prev = profile.brand_kit && typeof profile.brand_kit === "object" ? profile.brand_kit : {};
-  const townCoords = deps.townCoords || await loadTownCoords();
+  const townCoords = deps.townCoords || await loadTownCoords(profile.state);
 
   // Google listing photos (cached kinds reused; one vision call for new ones).
   let googlePhotos = [];
@@ -771,7 +847,7 @@ export async function buildBrandKit(profile, deps = {}) {
     }
   }
 
-  const draft = deriveKit(profile, { logo, analysis, palette, googlePhotos, townCoords, now });
+  const draft = deriveKit(profile, { logo, analysis, palette, googlePhotos, townCoords, now, ownerSpecialty: prev.owner_specialty });
   const stock = draft.hero.kind === "scene" ? await pickStock(profile, draft, { env, supabase: deps.supabase, log, fetchImpl }) : null;
   const kit = stock ? { ...draft, hero: { kind: "stock", ref: stock } } : draft;
   // The launch kit (launch-kit.js) rides along; its fingerprint says when a

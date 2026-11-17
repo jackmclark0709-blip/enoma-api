@@ -32,6 +32,16 @@ function anonId() {
 }
 function setupClaimBox(pageSlug, businessName) {
   const banner = getEl('unclaimedBanner'), box = getEl('claimBox'), line = getEl('unclaimedLine');
+  // "What are you known for?" in the claim box: only on the owner's link
+  // (page v2 owner bar present), since the owner token is what lets it save.
+  const ownerEl = document.querySelector('.v2-owner[data-o]'), knownWrap = getEl('claimKnownWrap'), knownInput = getEl('claimKnownFor');
+  const ownerToken = ownerEl ? ownerEl.getAttribute('data-o') : null;
+  if (ownerToken && knownWrap) knownWrap.classList.remove('hidden');
+  function saveKnownFor() {
+    const v = knownInput ? knownInput.value.trim() : '';
+    if (!ownerToken || !v) return;
+    try { fetch('/api/generate-business?kind=owner&action=set_specialty', { method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true, body: JSON.stringify({ slug: pageSlug, o: ownerToken, specialty: v }) }); } catch (_) {}
+  }
   const form = getEl('claimForm'), input = getEl('claimEmail'), submit = getEl('claimSubmit'), msg = getEl('claimMsg');
   const cta = getEl('unclaimedCta');
   if (!banner || !box || !form || !pageSlug) return;
@@ -83,6 +93,7 @@ function setupClaimBox(pageSlug, businessName) {
     e.preventDefault();
     const email = input.value.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { say('Please enter a valid email address.', true); input.focus(); return; }
+    saveKnownFor();
     submit.disabled = true; submit.textContent = 'Sending…';
     try {
       const { error } = await L.sendCode(await getClient(), { email, slug: pageSlug, m: outreachMsg });
