@@ -152,6 +152,10 @@ export function scrubCopy(g, flags = {}) {
 // Prices: "$150", "$1,200", "150 dollars", "per hour", "% off" and the like.
 const PRICE_RE = /\$\s?\d|\b\d[\d,.]*\s?(?:dollars|bucks)\b|\bper (?:hour|hr|sq\.?|square|room|visit|cut)\b|\b\d+\s?% off\b|\bdiscount\b|\bcoupon\b/i;
 const RATING_RE = /\b\d(?:\.\d)?[\s-]?(?:stars?|★)|\b\d+\s+(?:google\s+)?reviews\b|\bfive[\s-]star\b/i;
+// Ad-copy phrases a tradesman wouldn't say about his own work (the first live
+// launch kit, 2026-11-17: "Exciting news!", "transform your space", "We've
+// got you covered", "ensuring every inch of your space looks its best").
+export const CAPTION_FILLER_RE = /\b(?:exciting news|big news|guess what|great news|we'?ve got you covered|we have you covered|got you covered|transform(?:s|ing|ed)? your|ensur(?:e|es|ed|ing)|every inch|looks? (?:its|their|your) best|look(?:ing)? (?:its|their|your) best|perfect time|look no further|hassle[- ]free|stress[- ]free|elevate|stunning|dream (?:home|space|room)|breathe new life|take (?:it|your \w+) to the next level|next level|second to none|peace of mind|we take pride|attention to detail|your satisfaction)\b/i;
 
 /**
  * A social caption (launch kit posts). Same banned words and unsupported
@@ -172,6 +176,9 @@ export function lintCaption(text, flags = {}) {
   if (RATING_RE.test(t)) issues.push({ kind: "rating", message: "mentions ratings or review counts" });
   if (/https?:\/\/|www\.|\.(?:com|io|net)\b|\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}/i.test(t)) issues.push({ kind: "contact", message: "includes a link or phone number (added separately)" });
   if (/#\w/.test(t)) issues.push({ kind: "hashtag", message: "uses hashtags" });
+  const filler = t.match(CAPTION_FILLER_RE);
+  if (filler) issues.push({ kind: "ad_copy", message: `sounds like an ad ("${filler[0]}"); say it the way the owner would` });
+  if ((t.match(/!/g) || []).length > 1) issues.push({ kind: "ad_copy", message: "more than one exclamation mark" });
   if (t.length > 320) issues.push({ kind: "length", message: "is longer than 320 characters" });
   return issues;
 }
