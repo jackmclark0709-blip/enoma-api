@@ -701,7 +701,7 @@ export async function fetchPlacePhotos(placeId, { fetchImpl = globalThis.fetch, 
 // api/_lib/stock-photos.js pickStockPhoto(profile, kit, { supabase }) →
 // { urls: { w2400, w1200, w600, srcset }, credit: { name, profileUrl, photoUrl },
 //   unsplash_id, alt, photo: { unsplash_id, download_location } } | null.
-async function pickStock(profile, kit, { env, supabase, log, fetchImpl }) {
+async function pickStock(profile, kit, { env, supabase, log, fetchImpl, trackStock = true }) {
   if (env.PAGE_STOCK_HERO !== "on" || !supabase) return null;
   try {
     const m = await import("./stock-photos.js");
@@ -711,7 +711,9 @@ async function pickStock(profile, kit, { env, supabase, log, fetchImpl }) {
     // dedupes it). Awaited: a ping cut off when the function freezes would leave
     // the photo assigned with no download recorded. It never throws, and after
     // the first build it's one DB read (already_assigned).
-    if (profile.business_id && m.trackStockAssignment) {
+    // trackStock false: pick only (the rollout dry run, or a caller that
+    // throttles the pings itself).
+    if (trackStock && profile.business_id && m.trackStockAssignment) {
       await m.trackStockAssignment(pick.photo, profile.business_id, { supabase, log, fetchImpl, accessKey: env.UNSPLASH_ACCESS_KEY });
     }
     return {
@@ -724,7 +726,8 @@ async function pickStock(profile, kit, { env, supabase, log, fetchImpl }) {
 /**
  * Build the kit for one profile: logo candidates in order, the first one
  * that loads, its colors, one cached vision call, Google photos, towns.
- * deps: { fetchImpl, sharp, openaiKey, placesKey, prospect, websiteHtml, env, log, now }
+ * deps: { fetchImpl, sharp, openaiKey, placesKey, prospect, websiteHtml, env, log, now,
+ *   supabase, trackStock (default true: ping Unsplash's download_location) }
  * Never throws: on any failure the kit falls back to the persona look.
  */
 export async function buildBrandKit(profile, deps = {}) {
@@ -772,7 +775,7 @@ export async function buildBrandKit(profile, deps = {}) {
   }
 
   const draft = deriveKit(profile, { logo, analysis, palette, googlePhotos, townCoords, now });
-  const stock = draft.hero.kind === "scene" ? await pickStock(profile, draft, { env, supabase: deps.supabase, log, fetchImpl }) : null;
+  const stock = draft.hero.kind === "scene" ? await pickStock(profile, draft, { env, supabase: deps.supabase, log, fetchImpl, trackStock: deps.trackStock !== false }) : null;
   const kit = stock ? { ...draft, hero: { kind: "stock", ref: stock } } : draft;
   // The launch kit (launch-kit.js) rides along; its fingerprint says when a
   // rebuilt brand kit means it needs remaking.

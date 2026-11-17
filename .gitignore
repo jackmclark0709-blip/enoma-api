@@ -6,3 +6,6 @@ public/__preview-*.html
 reports/stock-build-state.json
 reports/stock-build-state.json.tmp
 reports/stock-build.log
+
+reports/v2-rollout-*
+reports/v2-missing-logos.csv
