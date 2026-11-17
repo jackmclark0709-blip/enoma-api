@@ -31,7 +31,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { pathToFileURL, fileURLToPath } from "node:url";
-import { buildBrandKit, saveBrandKit, loadTownCoords, googlePhotoUri } from "../api/_lib/brand-kit.js";
+import { buildBrandKit, saveBrandKit, googlePhotoUri } from "../api/_lib/brand-kit.js";
 import { promoteToPageV2, ownerPageUrl } from "../api/_lib/owner-link.js";
 import { piecesFor } from "../api/_lib/launch-kit.js";
 import { captionsFor, generateLaunchKit } from "../api/_lib/launch-kit-render.js";
@@ -411,7 +411,7 @@ const CHROME = [
  * template and blocks as api/p.js, scripts stripped (so nothing calls
  * production), assets from enoma.io, Google photos resolved directly.
  */
-export async function renderForShot(profile, kit, { townCoords = [], resolvePhoto } = {}) {
+export async function renderForShot(profile, kit, { resolvePhoto } = {}) {
   const { renderCompanyPage } = await import("../api/_lib/company-page.js");
   const { renderBlocksV2, kitStyle, v2Head, ogTitleFor } = await import("../api/_lib/page-v2.js");
   const { personaFor } = await import("../api/_lib/page-style.js");
@@ -501,7 +501,6 @@ async function main() {
 
   const fetchImpl = meteredFetch(globalThis.fetch);
   const sharp = (await import("sharp")).default;
-  const townCoords = await loadTownCoords();
   const env = { ...process.env, PAGE_STOCK_HERO: process.env.PAGE_STOCK_HERO || "on" };
   const throttle = new PingThrottle({ perHour: 45, history: state.pings });
   const quietLog = { log: (...a) => console.log(...a), warn: () => {} };
@@ -509,7 +508,8 @@ async function main() {
 
   const deps = {
     supabase, dryRun, mode, log: quietLog, throttle,
-    buildKit: (p, d) => buildBrandKit(p, { ...d, sharp, env, fetchImpl, townCoords }),
+    // No shared townCoords: buildBrandKit loads each business's own state (and its neighbors).
+    buildKit: (p, d) => buildBrandKit(p, { ...d, sharp, env, fetchImpl }),
     saveKit: saveBrandKit,
     promote: promoteToPageV2,
     makeLaunchKit: (p, d) => generateLaunchKit(p, { ...d, sharp, fetchImpl }),
@@ -557,7 +557,7 @@ async function main() {
       const p = byId.get(e.business_id); const kit = state.kits[e.business_id];
       const shot = { entry: e };
       try {
-        const html = await renderForShot(p, kit, { townCoords, resolvePhoto: name => googlePhotoUri(name, { fetchImpl, maxWidthPx: 1200 }) });
+        const html = await renderForShot(p, kit, { resolvePhoto: name => googlePhotoUri(name, { fetchImpl, maxWidthPx: 1200 }) });
         const htmlFile = path.join(SHOTS_DIR, `${e.slug}.html`), pngFile = path.join(SHOTS_DIR, `${e.slug}.png`);
         fs.writeFileSync(htmlFile, html);
         await screenshot(htmlFile, pngFile);
