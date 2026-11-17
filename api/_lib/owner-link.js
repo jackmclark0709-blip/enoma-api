@@ -81,3 +81,28 @@ export async function ownerDestination(supabase, profile, slug, { m = null, clai
     ? `${BASE}/${slug}?claim=1${mq ? `&${mq}` : ""}`
     : `${BASE}/${slug}/preview${mq ? `?${mq}` : ""}`;
 }
+
+/**
+ * The columns that make a profile page v2: page_version 2 plus an owner
+ * token, minted now so anything reading Supabase (scheduled agents, drafts)
+ * can build the owner link without calling an admin endpoint. A valid token
+ * already on the row is kept.
+ */
+export function pageV2Fields(profile = {}) {
+  return { page_version: 2, owner_token: isOwnerTokenShape(profile?.owner_token) ? profile.owner_token : newOwnerToken() };
+}
+
+/**
+ * Flip a profile to page v2 and mint its owner token (only where none is
+ * stored, so a concurrent ensureOwnerToken agrees on one).
+ * Returns { ok, token, error }.
+ */
+export async function promoteToPageV2(supabase, profile, { log = console } = {}) {
+  if (!profile?.business_id) return { ok: false, token: null, error: "no business_id" };
+  const { error } = await supabase.from("small_business_profiles")
+    .update({ page_version: 2 }).eq("business_id", profile.business_id);
+  if (error) return { ok: false, token: null, error: error.message || String(error) };
+  const token = await ensureOwnerToken(supabase, { ...profile, page_version: 2 }, { log });
+  if (!token) log.warn?.("owner token: not minted at the v2 flip; first use will mint it");
+  return { ok: true, token, error: null };
+}

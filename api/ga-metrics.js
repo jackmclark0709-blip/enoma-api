@@ -49,7 +49,7 @@ import {
   assessRenderedPage, buildTextMessage, buildTextBatchEmail, verifyTextMarkToken,
 } from "./_lib/text-outreach.js";
 import { buildBrandKit, saveBrandKit } from "./_lib/brand-kit.js";
-import { ownerDestination, ownerPageUrl, ensureOwnerToken, isPageV2 } from "./_lib/owner-link.js";
+import { ownerDestination, ownerPageUrl, ensureOwnerToken, isPageV2, pageV2Fields } from "./_lib/owner-link.js";
 import { waitUntil } from "@vercel/functions";
 import { generateLaunchKit, takeCreationBuild } from "./_lib/launch-kit-render.js";
 import { OUTREACH_LINE } from "./_lib/launch-kit.js";
@@ -754,7 +754,9 @@ async function generatePreviewForProspect(prospect, { homeHtml, force = false, g
   // The brand kit is built after the response; the page renders with the
   // persona look until it's stored.
   if (process.env.PAGE_V2 !== "off") {
-    const { error: v2Err } = await supabase.from("small_business_profiles").update({ page_version: 2 }).eq("business_id", biz.id);
+    // The owner token is minted here too (pageV2Fields), so scheduled agents
+    // reading Supabase can build the owner link without an admin call.
+    const { error: v2Err } = await supabase.from("small_business_profiles").update(pageV2Fields()).eq("business_id", biz.id);
     if (v2Err) console.warn("page v2 flag not set:", v2Err.message);
     else {
       const v2Profile = { ...profile, business_id: biz.id, page_version: 2, website: prospect.website || profile.website };

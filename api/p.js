@@ -21,6 +21,7 @@ import { hasLiveStripeSubscription } from "./_lib/billing.js";
 import { kitFor, loadTownCoords, googlePhotoUri } from "./_lib/brand-kit.js";
 import { renderBlocksV2, kitStyle, v2Head, ogTitleFor, ogImageUrl } from "./_lib/page-v2.js";
 import { isPageV2, ownerTokenMatches } from "./_lib/owner-link.js";
+import { utmFromQuery } from "./_lib/attribution.js";
 import { renderOgPng, shareHeroImage } from "./_lib/og-card.js";
 import { waitUntil } from "@vercel/functions";
 import { launchKitFingerprint, launchKitFresh } from "./_lib/launch-kit.js";
@@ -494,7 +495,7 @@ export default async function handler(req, res) {
       const template = fs.readFileSync(path.join(process.cwd(), "public", "profile.html"), "utf8");
       const ctx = {
         slug, spotlights: spotlights || [], approvedReviews: approvedReviews || [], paying, quoteStatus: quoteStatus(req),
-        owner, token: owner ? o : null, m,
+        owner, token: owner ? o : null, m, utm: utmFromQuery(req.query),
         jackPhone: process.env.ENOMA_JACK_PHONE || null, launchKit: process.env.PAGE_LAUNCH_KIT === "on",
       };
       const html = renderCompanyPage(template, profile, {
