@@ -3,3 +3,6 @@ node_modules
 
 .claude/
 public/__preview-*.html
+reports/stock-build-state.json
+reports/stock-build-state.json.tmp
+reports/stock-build.log
