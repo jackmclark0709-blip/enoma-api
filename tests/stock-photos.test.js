@@ -293,6 +293,16 @@ test("hook: PAGE_STOCK_HERO=on → stock hero from pickStockPhoto, one download 
     assert.equal((credit.match(/utm_source/g) || []).length, 2, credit);
   }
 });
+test("hook: trackStock false (rollout dry run) picks the photo but never pings or assigns", async () => {
+  const db = hookDb(lib);
+  const pings = [];
+  const kit = await buildBrandKit(lir, { supabase: db, env: { PAGE_STOCK_HERO: "on", UNSPLASH_ACCESS_KEY: "KEY" }, townCoords: [], trackStock: false,
+    fetchImpl: async (url) => { pings.push(url); return { ok: true, status: 200 }; }, log: {} });
+  assert.equal(kit.hero.kind, "stock");
+  assert.equal(kit.hero.ref.unsplash_id, "int1");
+  assert.deepEqual(pings, []);
+  assert.equal(db.assign.rows.size, 0);
+});
 test("hook: an owner photo still beats stock (no library read)", async () => {
   const db = hookDb(lib);
   const kit = await buildBrandKit({ ...lir, attachments: ["https://cdn.example.com/job.jpg"] }, { supabase: db, env: { PAGE_STOCK_HERO: "on" }, townCoords: [], fetchImpl: async () => ({ ok: false }), log: {} });
