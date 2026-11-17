@@ -202,10 +202,13 @@ function brandMark(p, kit, slug) {
   if (src && kit.logo?.quality === "usable") {
     return `<img class="v2-logo" src="${esc(src)}" alt="${name}" height="44" />`;
   }
-  const badge = !!(src && kit.logo?.quality === "badge_only");
+  // A mascot or small logo: only ever a small round badge. A busy one (a
+  // flyer with a cartoon, the phone and five lines of text) is mush at 44px,
+  // so the trade icon stands in; the logo still gives the colors and facts.
+  const busy = /busy_or_low_res/.test(kit.logo?.reason || "");
+  const badge = !!(src && kit.logo?.quality === "badge_only" && !busy);
   const svg = headerWordmarkSvg(kit.wordmark, {}, { title: p.business_name || "", icon: !badge })
     .replace(/^<svg /, `<svg class="v2-wordmark" focusable="false" `);
-  // A mascot / small / busy logo: only ever a small round badge.
   return badge ? `<img class="v2-logo-badge" src="${esc(src)}" alt="" width="44" height="44" />${svg}` : svg;
 }
 

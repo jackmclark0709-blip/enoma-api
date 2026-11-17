@@ -379,4 +379,13 @@ await test("css: v2 rules are scoped to the v2 classes and read only --kit-* / n
   assert.doesNotMatch(v2, /var\(--brand-/, "v2 styles use --kit-* tokens");
 });
 
+await test("header: a mascot logo is a round badge; a busy flyer logo gives way to the trade icon", () => {
+  const header = reason => renderBlocksV2(LET_IT_ROLL, { ...deriveKit(LET_IT_ROLL, {}),
+    logo: { url: "https://x/flyer.jpg", source: "admin", quality: "badge_only", reason } }, { slug: "x" })["{{BLOCK_HEADER}}"];
+  assert.match(header("mascot"), /class="v2-logo-badge" src="https:\/\/x\/flyer\.jpg"/);
+  const busy = header("mascot,busy_or_low_res");
+  assert.doesNotMatch(busy, /v2-logo-badge|flyer\.jpg/);
+  assert.match(busy, /class="v2-wordmark"/);
+});
+
 console.log(`\n${passed} passed`);
