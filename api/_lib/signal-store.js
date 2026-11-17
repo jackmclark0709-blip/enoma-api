@@ -23,6 +23,7 @@ import {
 } from "./signals.js";
 import { buildUnsubscribeUrl, MAILING_ADDRESS } from "./outreach-footer.js";
 import { slugFromPreviewUrl } from "./outreach-email.js";
+import { isPageV2, ensureOwnerToken, ownerPageUrl } from "./owner-link.js";
 import { JACK_USER_ID } from "./trial-reminders.js";
 
 export const FOLLOWUP_FROM = "Jack at Enoma <outreach@mail.enoma.io>";
@@ -291,7 +292,7 @@ export async function gatherSendContext(deps, signal, recipient) {
 
   const [supp, profile, biz, sub, msgs, visitNotes, sends, replies] = await Promise.all([
     email ? supabase.from("suppression_list").select("reason").ilike("email", email).maybeSingle() : { data: null },
-    businessId ? supabase.from("small_business_profiles").select("business_name, username, is_claimed, state, city, primary_category").eq("business_id", businessId).maybeSingle() : { data: null },
+    businessId ? supabase.from("small_business_profiles").select("business_id, business_name, username, is_claimed, state, city, primary_category, page_version, owner_token").eq("business_id", businessId).maybeSingle() : { data: null },
     businessId ? supabase.from("businesses").select("is_internal, slug").eq("id", businessId).maybeSingle() : { data: null },
     businessId ? supabase.from("subscriptions").select("status, stripe_subscription_id").eq("business_id", businessId).maybeSingle() : { data: null },
     ids.length ? supabase.from("outreach_messages").select("id, sent_at, followup_sent_at, followup2_sent_at, response_status, draft_subject").in("prospect_id", ids).eq("channel", "email") : { data: [] },
@@ -328,6 +329,12 @@ export async function gatherSendContext(deps, signal, recipient) {
   const isCustomer = !!sub.data?.stripe_subscription_id && ["active", "trialing", "past_due"].includes(sub.data?.status);
   const state = prospect?.state || profile.data?.state || null;
   const slug = biz.data?.slug || profile.data?.username || slugFromPreviewUrl(prospect?.preview_url);
+  // Page v2: follow-ups link the owner to the page itself with the owner bar.
+  let ownerUrl = null;
+  if (slug && isPageV2(profile.data) && (deps.env || process.env).PAGE_V2 !== "off") {
+    const token = await ensureOwnerToken(supabase, profile.data).catch(() => null);
+    if (token) ownerUrl = ownerPageUrl(slug, token);
+  }
 
   return {
     recipient: email,
@@ -347,7 +354,7 @@ export async function gatherSendContext(deps, signal, recipient) {
     businessId,
     prospect,
     businessName: profile.data?.business_name || prospect?.business_name || signal.payload?.business_name || null,
-    pageUrl: slug ? `https://enoma.io/${slug}` : prospect?.preview_url || null,
+    pageUrl: ownerUrl || (slug ? `https://enoma.io/${slug}` : prospect?.preview_url || null),
     originalSubject: (msgs.data || []).find(m => m.draft_subject)?.draft_subject || null
   };
 }

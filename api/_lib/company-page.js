@@ -598,6 +598,7 @@ export function clientProfile(rawProfile = {}) {
     license_number: p.license_number ? 1 : null,
     is_insured: p.is_insured ?? null,
     offers_free_estimates: p.offers_free_estimates ?? null,
+    page_version: Number(p.page_version) === 2 ? 2 : 1,
   };
 }
 
@@ -610,12 +611,17 @@ export function renderCompanyPage(template, rawProfile, ctx = {}) {
   const schema = localBusinessSchema(normalizeProfile(p), { canonical: ctx.canonical, image: ctx.image });
   const faq = faqSchema(normalizeProfile(p), ctx.canonical);
   const json = o => JSON.stringify(o).replace(/<\//g, "<\\/");
+  const head = ctx.head || {};
   const replacements = {
-    ...(ctx.head || {}),
-    "{{PROFILE_JSON}}": json(clientProfile(p)),
+    // v1 shares the page title; page v2 sets its own share title and head lines.
+    "{{OG_TITLE}}": head["{{OG_TITLE}}"] ?? head["{{FINAL_TITLE}}"] ?? "{{FINAL_TITLE}}",
+    "{{V2_HEAD}}": head["{{V2_HEAD}}"] ?? "",
+    ...head,
+    "{{PROFILE_JSON}}": json({ ...clientProfile(p), ...(ctx.clientExtra || {}) }),
     "{{LOCAL_BUSINESS_SCHEMA}}": json(schema),
     "{{FAQ_SCHEMA_TAG}}": faq ? `  <script type="application/ld+json">${json(faq)}</script>` : "",
-    ...renderBlocks(p, ctx),
+    // Page v2 (api/_lib/page-v2.js) passes its own blocks.
+    ...(ctx.blocks || renderBlocks(p, ctx)),
   };
   let html = template;
   for (const [needle, value] of Object.entries(replacements)) html = html.split(needle).join(value ?? "");

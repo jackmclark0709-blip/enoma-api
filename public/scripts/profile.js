@@ -367,8 +367,12 @@ async function loadProfile() {
   window.profileData = p;
   window.dispatchEvent(new CustomEvent('profileDataReady', { detail: p }));
 
-  /* ── Unclaimed-page banner ── */
-  if (p.is_claimed === false) {
+  /* ── Unclaimed-page banner ──
+     Page v2 (page_version 2): visitors never see a bar. The owner gets the
+     server-rendered owner bar (owner link ?o=) instead, and its "Keep it for
+     $1" link (?claim=1) opens this claim box. */
+  const v2 = p.page_version === 2;
+  if (p.is_claimed === false && (!v2 || urlParams.get('claim') === '1')) {
     const unclaimedBanner = getEl('unclaimedBanner');
     const unclaimedText = getEl('unclaimedText');
     const unclaimedCta = getEl('unclaimedCta');
@@ -381,6 +385,7 @@ async function loadProfile() {
       loadClarity();
     }
   }
+  else if (v2 && p.owner_view) loadClarity();
 
   // Embedded in the preview landing page (?embed=1): that page logs its own view.
   if (urlParams.get('embed') !== '1') fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug, event: 'page_view', internal: enomaIsInternal() || undefined, referrer: document.referrer || null, metadata: (function () { try { var m = urlParams.get('m'); return m ? { m: m } : {}; } catch (e) { return {}; } })() }) }).catch(() => {});

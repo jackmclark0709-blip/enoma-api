@@ -48,6 +48,9 @@ import {
   TEXT_DAILY_CAP, TEXT_REMIND_AFTER_DAYS, NEVER_TEXT_STATUSES, normalizeUsPhone, assessPageQuality,
   assessRenderedPage, buildTextMessage, buildTextBatchEmail, verifyTextMarkToken,
 } from "./_lib/text-outreach.js";
+import { buildBrandKit, saveBrandKit } from "./_lib/brand-kit.js";
+import { ownerDestination, ownerPageUrl, ensureOwnerToken, isPageV2 } from "./_lib/owner-link.js";
+import { waitUntil } from "@vercel/functions";
 
 // Resend's constructor throws synchronously if the key is missing, which
 // would crash this whole module (prospecting, crawling, drafting, sending,
@@ -743,6 +746,23 @@ async function generatePreviewForProspect(prospect, { homeHtml, force = false, g
   const { error: profErr } = await supabase.from("small_business_profiles").insert({ ...profile, business_id: biz.id });
   if (profErr) throw profErr;
 
+  // Page v2 (api/_lib/page-v2.js): every new unclaimed preview starts on v2
+  // (PAGE_V2=off turns this off). A separate best-effort update so preview
+  // generation still works if migration 20261117_brand_kit isn't applied.
+  // The brand kit is built after the response; the page renders with the
+  // persona look until it's stored.
+  if (process.env.PAGE_V2 !== "off") {
+    const { error: v2Err } = await supabase.from("small_business_profiles").update({ page_version: 2 }).eq("business_id", biz.id);
+    if (v2Err) console.warn("page v2 flag not set:", v2Err.message);
+    else {
+      const kitJob = buildBrandKit({ ...profile, business_id: biz.id, page_version: 2, website: prospect.website || profile.website },
+        { prospect, websiteHtml: site.homeHtml || null, supabase })
+        .then(kit => saveBrandKit(supabase, biz.id, kit))
+        .catch(e => console.warn("brand kit build failed:", e?.message || e));
+      try { waitUntil(kitJob); } catch { /* not on Vercel: the promise still runs */ }
+    }
+  }
+
   const preview_url = `https://enoma.io/${slug}`;
   await supabase.from("prospects").update({ preview_url, preview_business_id: biz.id, updated_at: new Date().toISOString() }).eq("id", prospect.id);
   return { preview_url, slug, business_id: biz.id, site_checks: checks.signals || [], rating, reviewCount };
@@ -1348,12 +1368,18 @@ async function handleTextBatch(req, res) {
     }
     if (!render.ok) { await reject(render.reasons); continue; }
 
+    // Page v2: the text carries the owner link (owner bar on the page itself).
+    let textUrl = p.preview_url;
+    if (isPageV2(profile) && process.env.PAGE_V2 !== "off") {
+      const token = dryRun ? (profile.owner_token || null) : await ensureOwnerToken(supabase, profile);
+      if (token) textUrl = ownerPageUrl(slug, token);
+    }
     items.push({
       id: p.id, businessName: profile.business_name || p.business_name, trade: p.trade, city: p.city,
-      phone: p.phone, phoneE164, previewUrl: p.preview_url,
+      phone: p.phone, phoneE164, previewUrl: textUrl,
       rating: profile.average_rating, reviewCount: profile.review_count,
       reminder: p.text_status === "queued",
-      body: buildTextMessage({ id: p.id, businessName: profile.business_name || p.business_name, previewUrl: p.preview_url, rating: profile.average_rating, reviewCount: profile.review_count }),
+      body: buildTextMessage({ id: p.id, businessName: profile.business_name || p.business_name, previewUrl: textUrl, rating: profile.average_rating, reviewCount: profile.review_count }),
     });
   }
 
@@ -2700,6 +2726,33 @@ async function handleVisitFollowup(req, res) {
   return res.status(200).send(page("Scheduled", `Your note to ${name} goes out in about ${mins} min. Replies come to you as usual.`));
 }
 
+// Page v2 admin actions (see the dispatch below). Admin-secret gated there.
+async function handleBrandKitAdmin(req, res) {
+  const action = req.query.action;
+  const slug = String(req.body?.slug || req.query.slug || "");
+  if (!/^[a-z0-9][a-z0-9-]{0,99}$/i.test(slug)) return res.status(400).json({ error: "slug required" });
+  const { data: profile } = await supabase.from("small_business_profiles").select("*").eq("username", slug).maybeSingle();
+  if (!profile?.business_id) return res.status(404).json({ error: "No page with that slug" });
+  if (action === "owner_link") {
+    const token = await ensureOwnerToken(supabase, profile);
+    if (!token) return res.status(400).json({ error: "Owner links are for page v2 only (page_version = 2)." });
+    return res.status(200).json({ success: true, url: ownerPageUrl(slug, token) });
+  }
+  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+  if (action === "set_brand_logo") {
+    const url = String(req.body?.logo_url || "").trim();
+    if (url && !/^https:\/\/[^\s]+$/i.test(url)) return res.status(400).json({ error: "logo_url must be an https URL" });
+    if (/facebook\.com|fbcdn\.net/i.test(url)) return res.status(400).json({ error: "Download the image and upload it somewhere first: Facebook image links expire." });
+    const { error } = await supabase.from("small_business_profiles").update({ admin_logo_url: url || null }).eq("business_id", profile.business_id);
+    if (error) throw error;
+    profile.admin_logo_url = url || null;
+  }
+  if (!isPageV2(profile)) return res.status(200).json({ success: true, kit: null, note: "Saved. This page is v1, so no brand kit is built." });
+  const kit = await buildBrandKit(profile, { supabase });
+  await saveBrandKit(supabase, profile.business_id, kit);
+  return res.status(200).json({ success: true, kit });
+}
+
 // Public — the links inside outreach emails. Records the click against the
 // exact email (outreach_messages id), then redirects to the prospect's page
 // or the claim flow. Destinations are built from our own database row, never
@@ -2776,8 +2829,16 @@ async function handleOutreachRedirect(req, res) {
   } catch (e) {
     console.error("Outreach click logging failed:", e);
   }
+  // Page v2: the owner lands on the page itself with the owner bar
+  // (/<slug>?o=<token>&m=<id>), not on /<slug>/preview. v1 pages unchanged.
+  let destUrl = to === "claim" ? links.claimDest : links.pageDest;
+  try {
+    const { data: prof } = await supabase.from("small_business_profiles")
+      .select("business_id, page_version, owner_token").eq("username", slug).maybeSingle();
+    if (isPageV2(prof) && process.env.PAGE_V2 !== "off") destUrl = await ownerDestination(supabase, prof, slug, { m: msg.id, claim: to === "claim" });
+  } catch (e) { console.warn("owner link lookup failed:", e?.message || e); }
   // UTM tags on the email link (second follow-up) carry through to the page.
-  const dest = new URL(to === "claim" ? links.claimDest : links.pageDest);
+  const dest = new URL(destUrl);
   for (const [k, v] of Object.entries(utm)) dest.searchParams.set(k, v);
   return res.redirect(302, dest.toString());
 }
@@ -3856,6 +3917,21 @@ export default async function handler(req, res) {
       return await handleTrialReminders(req, res);
     } catch (err) {
       console.error("Trial reminders failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  // Page v2 brand kit (api/_lib/brand-kit.js), x-admin-secret only:
+  //   action=set_brand_logo   POST { slug, logo_url }  logo source 5 (a lead's logo
+  //                           that only lives on Facebook/Messenger; pasted, never
+  //                           scraped). logo_url "" clears it. Rebuilds the kit.
+  //   action=rebuild_brand_kit POST { slug }
+  //   action=owner_link        GET ?slug=  the owner's link for drafts (creates the token)
+  if (["set_brand_logo", "rebuild_brand_kit", "owner_link"].includes(req.query.action)) {
+    try {
+      return await handleBrandKitAdmin(req, res);
+    } catch (err) {
+      console.error("Brand kit admin failed:", err);
       return res.status(500).json({ success: false, error: err.message });
     }
   }

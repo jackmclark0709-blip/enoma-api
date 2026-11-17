@@ -18,6 +18,10 @@ import { LANDING_SLUG, detectCallouts, workingPoints, renderLanding, landingSour
 import { logFunnelEvent } from "./_lib/tracking.js";
 import { renderCompanyPage, heroVisual } from "./_lib/company-page.js";
 import { hasLiveStripeSubscription } from "./_lib/billing.js";
+import { kitFor, loadTownCoords, googlePhotoUri } from "./_lib/brand-kit.js";
+import { renderBlocksV2, kitStyle, v2Head, ogTitleFor, ogImageUrl } from "./_lib/page-v2.js";
+import { isPageV2, ownerTokenMatches } from "./_lib/owner-link.js";
+import { renderOgPng } from "./_lib/og-card.js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -203,8 +207,11 @@ async function serveLanding(req, res, bizSlug) {
     // preview_shown (with anon_id) once the page actually renders.
     await logFunnelEvent(supabase, req, { event: "instant_preview_viewed", businessId: profile.business_id, metadata: { slug: profile.username } });
   }
+  const v2 = isPageV2(profile) && process.env.PAGE_V2 !== "off";
+  const kit = v2 ? kitFor(profile, { townCoords: await loadTownCoords() }) : null;
   const html = renderLanding(profile, {
     slug: profile.username, m, src,
+    ...(v2 ? { ogImage: ogImageUrl(absoluteBaseUrl(req), profile.username, kit), ogTitle: ogTitleFor(profile, kit) } : {}),
     callouts: detectCallouts(profile, { spotlightCount: spotlightCount || 0 }),
     working: workingPoints(profile),
   });
@@ -258,7 +265,62 @@ async function serveSpotlight(req, res, bizSlug, serviceSlug) {
   return res.status(200).send(html);
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,99}$/i;
+
+// A kit's hero as an absolute image URL for the share card (null = draw the scene).
+async function shareHeroImage(kit) {
+  const hero = kit?.hero || {};
+  if (hero.kind !== "work_photo" && hero.kind !== "stock") return null;
+  const ref = typeof hero.ref === "string" ? hero.ref : String(hero.ref?.url || "");
+  if (/^https:\/\//i.test(ref)) return ref;
+  const m = ref.match(/^google:(\d+)$/);
+  const g = m ? (kit.google_photos || [])[Number(m[1])] : null;
+  return g?.name ? await googlePhotoUri(g.name, { maxWidthPx: 800 }).catch(() => null) : null;
+}
+
+// GET /og/<slug>.png (vercel.json → /api/p?og=2&file=<slug>.png): the page v2
+// share image (api/_lib/og-card.js), cached at the edge for a week; the page
+// links it with ?v=<kit build time>, so a rebuilt kit gets a fresh image.
+async function serveShareImage(req, res) {
+  const slug = String(req.query.slug || req.query.file || "").replace(/\.png$/i, "");
+  if (!SLUG_RE.test(slug)) return res.status(404).send("Not found");
+  const { data: profile } = await supabase.from("small_business_profiles").select("*")
+    .eq("username", slug).eq("is_public", true).maybeSingle();
+  if (!profile) return res.status(404).send("Not found");
+  Object.assign(profile, stripWeakRatingClaims(profile));
+  const kit = kitFor(profile, { townCoords: await loadTownCoords() });
+  const png = await renderOgPng(profile, kit, { heroImage: await shareHeroImage(kit) });
+  res.setHeader("Content-Type", "image/png");
+  res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400");
+  return res.status(200).send(png);
+}
+
+// GET /api/p?gphoto=1&slug=<slug>&i=<n>: a Google listing photo stored on the
+// brand kit. Redirects to a fresh Google image URL so the Places key never
+// reaches the browser; the redirect is edge-cached for an hour.
+async function serveGooglePhoto(req, res) {
+  const slug = String(req.query.slug || "");
+  const i = Number(req.query.i);
+  if (!SLUG_RE.test(slug) || !Number.isInteger(i) || i < 0 || i > 9) return res.status(404).send("Not found");
+  const { data: profile } = await supabase.from("small_business_profiles").select("brand_kit")
+    .eq("username", slug).eq("is_public", true).maybeSingle();
+  const g = (profile?.brand_kit?.google_photos || [])[i];
+  const uri = g?.name ? await googlePhotoUri(g.name, { maxWidthPx: 1600 }).catch(() => null) : null;
+  if (!uri) return res.status(404).send("Not found");
+  res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=3600");
+  return res.redirect(302, uri);
+}
+
 export default async function handler(req, res) {
+  if (req.query.og === "2") {
+    try { return await serveShareImage(req, res); }
+    catch (e) { console.error("share image failed:", e); return res.redirect(302, "https://enoma.io/brand/og-image.png"); }
+  }
+  if (req.query.gphoto === "1") {
+    try { return await serveGooglePhoto(req, res); }
+    catch (e) { console.error("google photo failed:", e); return res.status(404).send("Not found"); }
+  }
   // ── OG image route: /api/p?og=1&slug=... ──
   if (req.query.og === "1") {
     const slug = req.query.slug;
@@ -370,6 +432,44 @@ export default async function handler(req, res) {
             .order("decided_at", { ascending: false, nullsFirst: false }).limit(12),
         ])
       : [{ data: [] }, { data: [] }];
+
+    // ── Page v2 (page_version = 2): the brand-kit page (api/_lib/page-v2.js).
+    // PAGE_V2=off is the kill switch: every page renders as v1.
+    if (isPageV2(profile) && process.env.PAGE_V2 !== "off") {
+      const kit = kitFor(profile, { townCoords: await loadTownCoords() });
+      const o = String(req.query.o || "");
+      const owner = !!o && ownerTokenMatches(profile, o);
+      const m = UUID_RE.test(String(req.query.m || "")) ? String(req.query.m) : null;
+      const shareImage = ogImageUrl(baseUrl, slug, kit);
+      const template = fs.readFileSync(path.join(process.cwd(), "public", "profile.html"), "utf8");
+      const ctx = {
+        slug, spotlights: spotlights || [], approvedReviews: approvedReviews || [], paying, quoteStatus: quoteStatus(req),
+        owner, token: owner ? o : null, m,
+        jackPhone: process.env.ENOMA_JACK_PHONE || null, launchKit: process.env.PAGE_LAUNCH_KIT === "on",
+      };
+      const html = renderCompanyPage(template, profile, {
+        ...ctx, canonical, image: firstPhoto || undefined,
+        blocks: renderBlocksV2(profile, kit, ctx),
+        clientExtra: { owner_view: owner },
+        head: {
+          "{{FINAL_TITLE}}": escapeHtml(seoTitle),
+          "{{OG_TITLE}}": escapeHtml(ogTitleFor(profile, kit)),
+          "{{FINAL_DESCRIPTION}}": escapeHtml(seoDescription),
+          "{{FINAL_OG_IMAGE}}": escapeHtml(shareImage),
+          "{{FINAL_CANONICAL_URL}}": escapeHtml(canonical),
+          "{{ROBOTS}}": escapeHtml(owner ? "noindex,nofollow" : robots),
+          "{{HERO_PRELOAD}}": "",
+          "{{V2_HEAD}}": v2Head(kit),
+          "{{BRAND_COLOR_STYLE}}": kitStyle(kit),
+          "{{BODY_CLASS}}": escapeHtml(`page-v2 persona-${personaFor(profile.primary_category)}`),
+        },
+      });
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      // The owner's view (owner bar) is never cached or shared. A page whose
+      // kit hasn't been built yet caches briefly so the kit shows up soon.
+      res.setHeader("Cache-Control", owner ? "private, no-store" : profile.brand_kit ? "public, max-age=0, s-maxage=300" : "public, max-age=0, s-maxage=30");
+      return res.status(200).send(html);
+    }
 
     const visual = heroVisual(profile);
     const persona = personaFor(profile.primary_category);
