@@ -399,7 +399,7 @@ async function loadProfile() {
   else if (v2 && p.owner_view) loadClarity();
 
   // Embedded in the preview landing page (?embed=1): that page logs its own view.
-  if (urlParams.get('embed') !== '1') fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug, event: 'page_view', internal: enomaIsInternal() || undefined, referrer: document.referrer || null, metadata: (function () { try { var m = urlParams.get('m'); return m ? { m: m } : {}; } catch (e) { return {}; } })() }) }).catch(() => {});
+  if (urlParams.get('embed') !== '1') fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug, event: 'page_view', internal: enomaIsInternal() || undefined, referrer: document.referrer || null, metadata: (function () { try { var md = {}, m = urlParams.get('m'); if (m) md.m = m; ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'].forEach(function (k) { var v = (urlParams.get(k) || '').trim().slice(0, 100); if (v && /^[A-Za-z0-9 _.+-]+$/.test(v)) md[k] = v; }); return md; } catch (e) { return {}; } })() }) }).catch(() => {});
 
   setupClickTracking();
   setupQuoteDeepLinks();

@@ -110,3 +110,22 @@ export function selfServeFirstTouch(attribution, createdVia, referrer) {
   if (!clean.referrer && typeof referrer === "string" && referrer.trim()) clean.referrer = referrer.trim().slice(0, 100);
   return { ...clean, created_via: createdVia };
 }
+
+/**
+ * The utm_* tags on a page URL (req.query or URLSearchParams entries), for
+ * landing_view / page_view metadata. Short, plain values only: anything with
+ * characters outside [A-Za-z0-9 _.+-] is dropped rather than stored.
+ */
+export function utmFromQuery(query) {
+  const out = {};
+  if (!query || typeof query !== "object") return out;
+  const get = k => (typeof query.get === "function" ? query.get(k) : query[k]);
+  for (const k of UTM_KEYS) {
+    let v = get(k);
+    if (Array.isArray(v)) v = v[0];
+    if (typeof v !== "string") continue;
+    v = v.trim().slice(0, 100);
+    if (v && /^[A-Za-z0-9 _.+-]+$/.test(v)) out[k] = v;
+  }
+  return out;
+}

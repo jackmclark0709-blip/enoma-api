@@ -458,7 +458,9 @@ export function ownerBar(p, kit, ctx) {
   var bar = document.getElementById("ownerBar"); if (!bar) return;
   var slug = bar.getAttribute("data-slug"), o = bar.getAttribute("data-o");
   var m = ${JSON.stringify(ctx.m || null)};
-  try { fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, keepalive: true, body: JSON.stringify({ slug: slug, event: "landing_view", metadata: m ? { m: m, via: "owner_link" } : { via: "owner_link" } }) }); } catch (e) {}
+  var utm = ${JSON.stringify(ctx.utm || {})};
+  var meta = { via: "owner_link" }; if (m) meta.m = m; for (var k in utm) meta[k] = utm[k];
+  try { fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, keepalive: true, body: JSON.stringify({ slug: slug, event: "landing_view", metadata: meta }) }); } catch (e) {}
   try { if (window.enomaTrack) window.enomaTrack("preview_shown", { slug: slug, m: m, via: "owner_link" }, ${JSON.stringify(p.business_id || null)}); } catch (e) {}
   var kf = document.getElementById("ownerKnownFor");
   if (kf) kf.addEventListener("submit", function (e) {
