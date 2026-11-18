@@ -478,7 +478,7 @@ await test("routes + flags: /<slug>/kit is owner-token gated, page v2 + PAGE_LAU
 
 await test("css: launch kit rules are scoped to the owner bar / launch-kit page", () => {
   const css = read("public/styles/business-base.css");
-  const lk = css.slice(css.indexOf("16. LAUNCH KIT"));
+  const lk = css.slice(css.indexOf("16. LAUNCH KIT"), css.indexOf("17. PAGE V3"));
   assert.ok(lk.length > 500);
   for (const line of lk.split("\n").filter(l => /\{/.test(l) && !/^\s*@media/.test(l))) {
     const sel = line.slice(0, line.indexOf("{"));

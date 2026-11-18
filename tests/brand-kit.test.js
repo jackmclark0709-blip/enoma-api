@@ -358,7 +358,7 @@ await test("share card: wordmark, H1, facts line, phone frame; literal colors on
 
 await test("css: v2 rules are scoped to the v2 classes and read only --kit-* / neutral tokens for color", () => {
   const css = read("public/styles/business-base.css");
-  const v2 = css.slice(css.indexOf("15. PAGE V2"));
+  const v2 = css.slice(css.indexOf("15. PAGE V2"), css.indexOf("17. PAGE V3"));
   assert.ok(v2.length > 1000);
   for (const line of v2.split("\n").filter(l => /\{/.test(l) && !/^\s*@media/.test(l))) {
     const sel = line.slice(0, line.indexOf("{"));

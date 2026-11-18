@@ -382,7 +382,7 @@ async function loadProfile() {
      Page v2 (page_version 2): visitors never see a bar. The owner gets the
      server-rendered owner bar (owner link ?o=) instead, and its "Keep it for
      $1" link (?claim=1) opens this claim box. */
-  const v2 = p.page_version === 2;
+  const v2 = p.page_version >= 2; // v2 and v3: the owner bar replaces the banner
   if (p.is_claimed === false && (!v2 || urlParams.get('claim') === '1')) {
     const unclaimedBanner = getEl('unclaimedBanner');
     const unclaimedText = getEl('unclaimedText');

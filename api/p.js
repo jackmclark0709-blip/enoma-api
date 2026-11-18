@@ -20,6 +20,7 @@ import { renderCompanyPage, heroVisual } from "./_lib/company-page.js";
 import { hasLiveStripeSubscription } from "./_lib/billing.js";
 import { kitFor, loadTownCoords, googlePhotoUri } from "./_lib/brand-kit.js";
 import { renderBlocksV2, kitStyle, v2Head, ogTitleFor, ogImageUrl } from "./_lib/page-v2.js";
+import { isPageV3, v3PageParts, loadServiceStock } from "./_lib/page-v3.js";
 import { isPageV2, ownerTokenMatches } from "./_lib/owner-link.js";
 import { utmFromQuery } from "./_lib/attribution.js";
 import { renderOgPng, shareHeroImage } from "./_lib/og-card.js";
@@ -354,6 +355,18 @@ async function serveGooglePhoto(req, res) {
   return res.redirect(302, uri);
 }
 
+/**
+ * The owner's first visit makes (or remakes) the launch kit in the
+ * background, so it's there by the time they open it. Needs a stored kit.
+ */
+function startLaunchKitBuild(profile, kit) {
+  if (process.env.PAGE_LAUNCH_KIT !== "on" || !profile.brand_kit?.colors
+    || buildInFlight(kit.launch_kit) || launchKitFresh(kit.launch_kit, launchKitFingerprint(profile, kit))) return;
+  const job = generateLaunchKit({ ...profile, brand_kit: kit }, { supabase })
+    .catch(e => console.warn("launch kit build failed:", e?.message || e));
+  try { waitUntil(job); } catch { /* not on Vercel: the promise still runs */ }
+}
+
 export default async function handler(req, res) {
   if (req.query.og === "2") {
     try { return await serveShareImage(req, res); }
@@ -476,6 +489,47 @@ export default async function handler(req, res) {
         ])
       : [{ data: [] }, { data: [] }];
 
+    // ── Page v3 (page_version = 3 with page_copy_v3): the research-based page
+    // (api/_lib/page-v3.js). PAGE_V3=off renders v3 rows as v2; PAGE_V2=off
+    // still sends everything to v1. A v3 row without copy renders as v2.
+    if (isPageV3(profile) && process.env.PAGE_V3 !== "off" && process.env.PAGE_V2 !== "off") {
+      const townCoords = await loadTownCoords(profile.state);
+      const kit = kitFor(profile, { townCoords });
+      const o = String(req.query.o || "");
+      const owner = !!o && ownerTokenMatches(profile, o);
+      const m = UUID_RE.test(String(req.query.m || "")) ? String(req.query.m) : null;
+      const shareImage = ogImageUrl(baseUrl, slug, kit);
+      if (owner) startLaunchKitBuild(profile, kit);
+      const { stockRows, stockUsage } = await loadServiceStock(supabase, profile);
+      const template = fs.readFileSync(path.join(process.cwd(), "public", "profile.html"), "utf8");
+      const ctx = {
+        slug, spotlights: spotlights || [], paying, quoteStatus: quoteStatus(req),
+        owner, token: owner ? o : null, m, utm: utmFromQuery(req.query),
+        jackPhone: process.env.ENOMA_JACK_PHONE || null, launchKit: process.env.PAGE_LAUNCH_KIT === "on",
+        townCoords, stockRows, stockUsage, canonical, image: shareImage,
+      };
+      const parts = v3PageParts(profile, kit, ctx);
+      const html = renderCompanyPage(template, profile, {
+        ...ctx, blocks: parts.blocks, schema: parts.schema, faqs: parts.faqs,
+        clientExtra: { owner_view: owner },
+        head: {
+          "{{FINAL_TITLE}}": escapeHtml(seoTitle),
+          "{{OG_TITLE}}": escapeHtml(ogTitleFor(profile, kit)),
+          "{{FINAL_DESCRIPTION}}": escapeHtml(seoDescription),
+          "{{FINAL_OG_IMAGE}}": escapeHtml(shareImage),
+          "{{FINAL_CANONICAL_URL}}": escapeHtml(canonical),
+          "{{ROBOTS}}": escapeHtml(owner ? "noindex,nofollow" : robots),
+          "{{HERO_PRELOAD}}": "",
+          "{{V2_HEAD}}": parts.head,
+          "{{BRAND_COLOR_STYLE}}": parts.style,
+          "{{BODY_CLASS}}": escapeHtml(`page-v3 persona-${personaFor(profile.primary_category)}`),
+        },
+      });
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Cache-Control", owner ? "private, no-store" : "public, max-age=0, s-maxage=300");
+      return res.status(200).send(html);
+    }
+
     // ── Page v2 (page_version = 2): the brand-kit page (api/_lib/page-v2.js).
     // PAGE_V2=off is the kill switch: every page renders as v1.
     if (isPageV2(profile) && process.env.PAGE_V2 !== "off") {
@@ -484,14 +538,7 @@ export default async function handler(req, res) {
       const owner = !!o && ownerTokenMatches(profile, o);
       const m = UUID_RE.test(String(req.query.m || "")) ? String(req.query.m) : null;
       const shareImage = ogImageUrl(baseUrl, slug, kit);
-      // The owner's first visit makes (or remakes) the launch kit in the
-      // background, so it's there by the time they open it. Needs a stored kit.
-      if (owner && process.env.PAGE_LAUNCH_KIT === "on" && profile.brand_kit?.colors
-        && !buildInFlight(kit.launch_kit) && !launchKitFresh(kit.launch_kit, launchKitFingerprint(profile, kit))) {
-        const job = generateLaunchKit({ ...profile, brand_kit: kit }, { supabase })
-          .catch(e => console.warn("launch kit build failed:", e?.message || e));
-        try { waitUntil(job); } catch { /* not on Vercel: the promise still runs */ }
-      }
+      if (owner) startLaunchKitBuild(profile, kit);
       const template = fs.readFileSync(path.join(process.cwd(), "public", "profile.html"), "utf8");
       const ctx = {
         slug, spotlights: spotlights || [], approvedReviews: approvedReviews || [], paying, quoteStatus: quoteStatus(req),

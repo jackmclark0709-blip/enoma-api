@@ -431,10 +431,10 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 <a class="skip-link" href="#main">Skip to content</a>
 <!-- Every block below is rendered by api/_lib/company-page.js and is left
      out of the HTML entirely when the business has no data for it. -->
-{{BLOCK_HEADER}}
+{{BLOCK_TOPBAR}}{{BLOCK_HEADER}}
 
 <main id="main">
-{{BLOCK_HERO}}
+{{BLOCK_HERO}}{{BLOCK_PROOF}}
 {{BLOCK_TRUST}}
 
 <div class="page-content">
@@ -454,15 +454,7 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 {{BLOCK_AREAS}}
 {{BLOCK_FAQ}}
 
-<!-- QUOTE FORM (api/_lib/quote-form.js). #quote?service=<slug> links preselect a service. -->
-<section class="section contact" id="contact" aria-labelledby="quoteHeading">
-  <span id="quote"></span>
-  <div class="contact-inner">
-    <h2 id="quoteHeading">{{SSR_QUOTE_HEADING}}</h2>
-    <p class="contact-intro" id="contactIntro">Tell us what you need in four quick taps and we'll get back to you with a quote.</p>
-  </div>
-  {{QUOTE_FORM}}
-</section>
+{{BLOCK_CLOSING}}
 
 {{BLOCK_RESOURCES}}
 </div><!-- /page-content -->

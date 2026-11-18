@@ -1,0 +1,78 @@
+{
+  "business_id": "00000000-0000-4000-8000-0000000a3003",
+  "username": "let-it-roll-painting",
+  "business_name": "Let It Roll Painting",
+  "primary_category": "painter",
+  "page_version": 3,
+  "is_claimed": false,
+  "phone": "(732) 948-4046",
+  "address": null,
+  "city": "Ewing",
+  "state": "NJ",
+  "google_place_id": null,
+  "testimonials": [],
+  "service_area": ["Ewing"],
+  "brand_kit": {
+    "version": 1,
+    "built_at": "2026-11-17T03:29:18.661Z",
+    "colors": { "cta": "#F2A93B", "accent": "#d81818", "source": "logo", "ctaText": "#1a1714", "identity": "#1830f0" },
+    "logo": { "url": null, "reason": "no_logo", "source": null, "quality": "none" },
+    "wordmark": { "icon": "painting", "line1": "LET IT ROLL", "line2": "PAINTING · EWING NJ" },
+    "towns": { "confirmed": ["Ewing"], "suggested": ["Yardley", "Trenton", "Lower Makefield", "Morrisville"] },
+    "badges": ["american_owned"], "owner_names": ["Patrick", "Rick"], "specialty": "Cathedral & high ceilings", "years": "20+",
+    "license": { "kind": "HIC", "state": "NJ", "number": "13VH08800400", "verify_url": "https://newjersey.mylicense.com/verification/" },
+    "insured": true,
+    "hero": { "kind": "scene", "ref": "painting" }
+  },
+  "fact_sheet": {
+    "version": 1,
+    "built_at": "2026-11-18T20:00:00.000Z",
+    "business": {
+      "name": "Let It Roll Painting", "trade": "painter", "primary_type": "Painter", "google_types": [], "phone": "(732) 948-4046",
+      "address": null, "town": "Ewing", "state": "NJ", "hours": [], "rating": null, "review_count": null, "place_id": null
+    },
+    "reviews": [],
+    "site_text": "",
+    "owner": {
+      "names": ["Patrick", "Rick"], "years_in_business": 20, "license_number": "13VH08800400", "is_insured": true,
+      "offers_free_estimates": true, "offers_emergency": false,
+      "blurb": "Custom interior painting specializing in cathedral and high ceiling areas. No job too big or small. Residential and commercial.",
+      "service_for_page": null, "services": ["Cathedral & High Ceiling Painting", "Custom Interior Painting", "Drywall & Water Damage Repair", "Popcorn Ceiling Removal", "Commercial Interior Painting"], "notes": null
+    },
+    "towns": { "home": "Ewing", "confirmed": ["Ewing"], "suggested": ["Trenton", "Yardley", "Lawrence", "Pennington"] },
+    "photos": { "owner": [], "work": [], "google_work_count": 0 }
+  },
+  "page_copy_v3": {
+    "eyebrow": "Painter in Ewing, NJ",
+    "hero_headline": "Cathedral ceilings and high rooms, painted by Patrick and Rick.",
+    "hero_headline_evidence": ["o.blurb", "o.names"],
+    "hero_sub": "Interior painting in Ewing, from one room to two-story spaces, with free estimates.",
+    "hero_sub_evidence": ["o.blurb", "o.offers_free_estimates", "g"],
+    "proof": [
+      { "value": "20 years", "label": "painting interiors", "evidence": ["o.years_in_business"] },
+      { "value": "Licensed", "label": "and insured, NJ HIC", "evidence": ["o.license_number", "o.is_insured"] },
+      { "value": "$0", "label": "Free estimates", "evidence": ["o.offers_free_estimates"] }
+    ],
+    "services": [
+      { "name": "Cathedral and high ceilings", "description": "Vaulted, cathedral and two-story rooms, including the ceilings and upper walls.", "evidence": ["o.blurb", "o.services"], "stock_subject": "vaulted ceiling living room" },
+      { "name": "Interior painting", "description": "Walls, ceilings and trim, from one room to a whole interior.", "evidence": ["o.services"], "stock_subject": "freshly painted interior room" },
+      { "name": "Drywall and water damage repair", "description": "Stained, cracked or damaged drywall and ceilings repaired after leaks, then painted.", "evidence": ["o.services"], "stock_subject": "drywall patch close-up" },
+      { "name": "Popcorn ceiling removal", "description": "Textured popcorn ceilings removed, including in high rooms, ready for paint.", "evidence": ["o.services"], "stock_subject": "smooth white ceiling" },
+      { "name": "Commercial interiors", "description": "Offices, apartments, restaurants and condos.", "evidence": ["o.services", "o.blurb"], "stock_subject": "painted office interior" }
+    ],
+    "owner_section": {
+      "heading": "Meet Patrick and Rick",
+      "body": "Let It Roll is Patrick and Rick. When you call, you talk to one of them, and they're the ones doing the painting.\n\nHigh and cathedral ceilings are what they're known for, along with drywall repair and popcorn ceiling removal, for homes and businesses.",
+      "evidence": ["o.names", "o.blurb", "o.services"]
+    },
+    "faqs": [
+      { "q": "Do you paint high and cathedral ceilings?", "a": "Yes. Cathedral and high-ceiling rooms are our specialty.", "evidence": ["o.blurb"] },
+      { "q": "Do you do commercial work?", "a": "Yes. We paint homes as well as commercial spaces.", "evidence": ["o.blurb"] },
+      { "q": "Are you licensed and insured?", "a": "Yes. We're licensed and insured, NJ HIC #13VH08800400.", "evidence": ["o.license_number", "o.is_insured"] },
+      { "q": "Are estimates free?", "a": "Yes. Call Patrick or Rick at (732) 948-4046 for a free estimate.", "evidence": ["o.offers_free_estimates", "o.names"] }
+    ],
+    "closing": { "heading": "Have a high room that needs painting?", "line": "Call Patrick or Rick, or send a few details and they'll call you back." },
+    "service_page": null,
+    "removed": []
+  }
+}

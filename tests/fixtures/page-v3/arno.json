@@ -1,0 +1,89 @@
+{
+  "business_id": "00000000-0000-4000-8000-0000000a3001",
+  "username": "arno-plumbing-and-heating-2",
+  "business_name": "Arno Plumbing And Heating",
+  "primary_category": "plumber",
+  "page_version": 3,
+  "is_claimed": false,
+  "phone": "(774) 534-1403",
+  "address": "3 Kendall St, North Attleborough, MA 02760, USA",
+  "city": "North Attleborough",
+  "state": "MA",
+  "google_place_id": "ChIJ___T0axn5IkRogBUGMKq0cI",
+  "average_rating": 4.6,
+  "review_count": 22,
+  "services": [
+    { "service_name": "Plumbing Services", "service_description": "General plumbing services for your home." },
+    { "service_name": "Heating Services", "service_description": "Heating solutions for residential properties." }
+  ],
+  "service_area": ["North Attleborough"],
+  "brand_kit": {
+    "version": 1,
+    "built_at": "2026-11-17T20:24:05.900Z",
+    "colors": { "cta": "#F2A93B", "accent": "#86c6dc", "source": "persona", "ctaText": "#1a1714", "identity": "#1c6a86" },
+    "logo": { "url": null, "reason": "no_logo", "source": null, "quality": "none" },
+    "wordmark": { "icon": "plumbing", "line1": "ARNO", "line2": "PLUMBING & HEATING · NORTH ATTLEBOROUGH MA" },
+    "towns": { "confirmed": ["North Attleborough"], "suggested": ["Plainville", "Attleboro", "Valley Falls", "Cumberland", "Wrentham", "North Seekonk"] },
+    "badges": [], "owner_names": [], "specialty": null, "years": null, "license": null, "insured": false,
+    "hero": { "kind": "scene", "ref": "plumbing" }
+  },
+  "fact_sheet": {
+    "version": 1,
+    "built_at": "2026-11-18T20:00:00.000Z",
+    "business": {
+      "name": "Arno Plumbing & Heating",
+      "trade": "plumber",
+      "primary_type": "Plumber",
+      "google_types": ["plumber", "point_of_interest", "establishment"],
+      "phone": "(774) 534-1403",
+      "address": "3 Kendall St, North Attleborough, MA 02760, USA",
+      "town": "North Attleborough",
+      "state": "MA",
+      "hours": [
+        "Monday: 8:00 AM – 4:00 PM", "Tuesday: 8:00 AM – 4:00 PM", "Wednesday: 8:00 AM – 4:00 PM", "Thursday: 8:00 AM – 4:00 PM",
+        "Friday: 8:00 AM – 4:00 PM", "Saturday: 8:00 AM – 4:00 PM", "Sunday: 8:00 AM – 4:00 PM"
+      ],
+      "rating": 4.6,
+      "review_count": 22,
+      "place_id": "ChIJ___T0axn5IkRogBUGMKq0cI"
+    },
+    "reviews": [
+      { "id": "r1", "author": "Julie S.", "rating": 5, "relative_time": "a year ago",
+        "text": "Arno plumbing is amazing! Extremely professional, courteous and a great company to deal with. I had a pipe leak in my basement and he came the next day and fixed the problem. They deserve more stars than 5😊👏" },
+      { "id": "r2", "author": "Kaitlyn S.", "rating": 5, "relative_time": "2 years ago",
+        "text": "I would highly recommend Arno plumbing to anyone. We were in a bit of a pickle when our sink, toilet, and tub started backing up due to a root growing through the pipe in the ground. We called multiple plumbing companies and they were able to come same day, fixed what they could and then came back the next day- first thing in the morning once the drain…" },
+      { "id": "r3", "author": "Russ B.", "rating": 5, "relative_time": "3 years ago",
+        "text": "Had a pipe leak under our mobile home that was causing serious floor damage.  Not only did Peter answer his telephone on the first call but scheduled us for the next morning.  His evaluation and estimate of the repair(s) was absolutely free unlike other plumbers who wanted a \"dispatch fee\".  Peter and his apprentice Nick worked exceptionally hard under…" }
+    ],
+    "site_text": "",
+    "owner": { "names": ["Peter"], "years_in_business": null, "license_number": null, "is_insured": null, "offers_free_estimates": null, "offers_emergency": false, "blurb": null, "service_for_page": null, "services": [], "notes": null },
+    "towns": { "home": "North Attleborough", "confirmed": ["North Attleborough"], "suggested": ["Plainville", "Mansfield", "Attleboro", "Cumberland"] },
+    "photos": { "owner": [], "work": [], "google_work_count": 0 }
+  },
+  "page_copy_v3": {
+    "eyebrow": "Plumber in North Attleborough, MA",
+    "hero_headline": "Pipe leaks, backed-up drains and heating, fixed by a local plumber.",
+    "hero_headline_evidence": ["r1", "r2", "r3", "g"],
+    "hero_sub": "Call and talk to the people who'll do the work. Customers say we came out the same day or the next morning.",
+    "hero_sub_evidence": ["r1", "r2", "r3"],
+    "proof": [
+      { "value": "4.6 ★", "label": "22 Google reviews", "evidence": ["g"] },
+      { "value": "7 days", "label": "Open every day", "evidence": ["g"] },
+      { "value": "Next morning", "label": "how fast customers say we came", "evidence": ["r1", "r2", "r3"] }
+    ],
+    "services": [
+      { "name": "Leaks and broken pipes", "description": "Pipe leaks in the basement or under the floor, found and fixed before they do more damage.", "evidence": ["r1", "r3"], "stock_subject": "copper pipe repair close-up" },
+      { "name": "Backed-up drains and sewer lines", "description": "Sinks, toilets and tubs that back up, including main lines blocked by tree roots.", "evidence": ["r2"], "stock_subject": "drain cleaning machine at work" },
+      { "name": "Heating", "description": "Heating service and repair for homes in town. Tell us what the system is doing.", "evidence": ["g"], "stock_subject": "boiler gauge close-up" }
+    ],
+    "owner_section": null,
+    "faqs": [
+      { "q": "How soon can you come out?", "a": "Call and we'll give you the earliest time we have. Customers have told us we came the same day or the next morning.", "evidence": ["r1", "r2", "r3"] },
+      { "q": "My sink, toilet and tub are all backing up. Can you help?", "a": "Yes. When several drains back up at once the problem is often in the main line, sometimes roots in the pipe. That's work we do.", "evidence": ["r2"] },
+      { "q": "What are your hours?", "a": "Every day, 8am to 4pm.", "evidence": ["g"] }
+    ],
+    "closing": { "heading": "Let's get you on the schedule.", "line": "Water coming in right now? Call. Otherwise send a few details and we'll call you back." },
+    "service_page": null,
+    "removed": []
+  }
+}

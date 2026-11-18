@@ -162,7 +162,7 @@ export function logoSrc(kit, slug) {
   return /^https:\/\//i.test(url) ? url : null;
 }
 
-function attributionHtml(g) {
+export function attributionHtml(g) {
   const a = list(g?.attributions)[0];
   if (!a?.displayName) return `<figcaption class="v2-credit">Photo from Google</figcaption>`;
   const who = a.uri ? `<a href="${esc(a.uri)}" target="_blank" rel="noopener">${esc(a.displayName)}</a>` : esc(a.displayName);
@@ -171,7 +171,7 @@ function attributionHtml(g) {
 
 // Unsplash's required credit: "Photo by <name> on Unsplash", both linked with UTM tags.
 const UNSPLASH_UTM = "utm_source=enoma&utm_medium=referral";
-function stockCredit(c) {
+export function stockCredit(c) {
   if (!c) return "";
   if (typeof c === "string") return `<figcaption class="v2-credit">${esc(c)}</figcaption>`;
   if (!c.name) return "";
@@ -213,7 +213,7 @@ const ICON_SMS = '<svg class="v2-i" viewBox="0 0 24 24" aria-hidden="true" focus
 const ICON_QUOTE = '<svg class="v2-i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 5H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><path d="M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2H9V5z"/><path d="M9 12h6M9 16h6"/></svg>';
 const ICON_SHIELD = '<svg class="v2-i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6l-8-3z"/><path d="m9 12 2 2 4-4"/></svg>';
 
-function brandMark(p, kit, slug) {
+export function brandMark(p, kit, slug) {
   const name = esc(p.business_name || "");
   const src = logoSrc(kit, slug);
   if (src && kit.logo?.quality === "usable") {
@@ -397,7 +397,7 @@ function townsBlock(p, kit) {
 </section>`;
 }
 
-function mobileBar(p) {
+export function mobileBar(p) {
   const phone = String(p.phone || "").trim();
   return `<nav class="v2-bar" id="mobileCallBar" aria-label="Contact">
   ${phone ? `<a class="v2-bar__call" href="${esc(telHref(phone))}" data-contact="mobile_bar_call">${ICON_CALL}Call</a>
