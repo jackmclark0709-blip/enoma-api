@@ -254,6 +254,17 @@ export function localBusinessSchema(p = {}, { canonical, image } = {}) {
 }
 
 // ── Blocks ───────────────────────────────────────────────────────────────
+/** v1/v2 quote form section ({{BLOCK_CLOSING}}); page v3 renders its own closing ask. */
+export const CONTACT_SECTION = `<!-- QUOTE FORM (api/_lib/quote-form.js). #quote?service=<slug> links preselect a service. -->
+<section class="section contact" id="contact" aria-labelledby="quoteHeading">
+  <span id="quote"></span>
+  <div class="contact-inner">
+    <h2 id="quoteHeading">{{SSR_QUOTE_HEADING}}</h2>
+    <p class="contact-intro" id="contactIntro">Tell us what you need in four quick taps and we'll get back to you with a quote.</p>
+  </div>
+  {{QUOTE_FORM}}
+</section>`;
+
 const ICON = {
   call: '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.08 4.18 2 2 0 0 1 4.06 2h3a2 2 0 0 1 2 1.72c.12.86.31 1.7.57 2.5a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.58-1.09a2 2 0 0 1 2.11-.45c.8.26 1.64.45 2.5.57A2 2 0 0 1 22 16.92z"/></svg>',
   sms: '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
@@ -544,8 +555,11 @@ export function renderBlocks(rawProfile, ctx = {}) {
   const slug = ctx.slug || p.username || "";
   const sections = renderSections(p);
   return {
+    // Page v3 slots (top bar, proof strip): empty on v1 and v2.
+    "{{BLOCK_TOPBAR}}": "",
     "{{BLOCK_HEADER}}": headerBlock(p),
     "{{BLOCK_HERO}}": heroBlock(p),
+    "{{BLOCK_PROOF}}": "",
     "{{BLOCK_TRUST}}": trustBlock(p),
     "{{BLOCK_SERVICES}}": servicesBlock(p, { spotlights: ctx.spotlights || [], slug }),
     "{{BLOCK_HOW}}": howBlock(p),
@@ -556,6 +570,8 @@ export function renderBlocks(rawProfile, ctx = {}) {
     "{{BLOCK_AREAS}}": areasBlock(p, sections),
     "{{BLOCK_FAQ}}": sections["{{SSR_FAQS_SECTION}}"],
     "{{BLOCK_RESOURCES}}": resourcesBlock(p),
+    // Before the heading and form it contains.
+    "{{BLOCK_CLOSING}}": CONTACT_SECTION,
     "{{SSR_QUOTE_HEADING}}": sections["{{SSR_QUOTE_HEADING}}"],
     "{{BLOCK_FOOTER}}": footerBlock(p, { paying: !!ctx.paying }),
     "{{BLOCK_MOBILE_BAR}}": mobileBar(p),
@@ -598,7 +614,7 @@ export function clientProfile(rawProfile = {}) {
     license_number: p.license_number ? 1 : null,
     is_insured: p.is_insured ?? null,
     offers_free_estimates: p.offers_free_estimates ?? null,
-    page_version: Number(p.page_version) === 2 ? 2 : 1,
+    page_version: [2, 3].includes(Number(p.page_version)) ? Number(p.page_version) : 1,
   };
 }
 
@@ -608,8 +624,9 @@ export function clientProfile(rawProfile = {}) {
  */
 export function renderCompanyPage(template, rawProfile, ctx = {}) {
   const p = rawProfile || {};
-  const schema = localBusinessSchema(normalizeProfile(p), { canonical: ctx.canonical, image: ctx.image });
-  const faq = faqSchema(normalizeProfile(p), ctx.canonical);
+  // Page v3 passes its own schema and FAQs (api/_lib/page-v3.js v3PageParts).
+  const schema = ctx.schema || localBusinessSchema(normalizeProfile(p), { canonical: ctx.canonical, image: ctx.image });
+  const faq = faqSchema(ctx.faqs ? { faqs: ctx.faqs } : normalizeProfile(p), ctx.canonical);
   const json = o => JSON.stringify(o).replace(/<\//g, "<\\/");
   const head = ctx.head || {};
   const replacements = {

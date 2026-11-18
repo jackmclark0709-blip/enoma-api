@@ -6,7 +6,7 @@
 
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { renderCompanyPage } from "../api/_lib/company-page.js";
+import { renderCompanyPage, CONTACT_SECTION } from "../api/_lib/company-page.js";
 import {
   renderQuoteForm, serviceChoices, townChoices, reachName, cleanAnswers, answersSummary, answersEmailHtml,
   safeReturnPath, MAX_SERVICE_CHIPS, SOMETHING_ELSE, askForCompany,
@@ -187,7 +187,9 @@ console.log("quote form: pages");
 
 await test("company page template: same #contact anchor, quote form placeholder, stepper script and CSS", () => {
   const tpl = fs.readFileSync(new URL("../public/profile.html", import.meta.url), "utf8");
-  const section = tpl.slice(tpl.indexOf('id="contact"'), tpl.indexOf("</section>", tpl.indexOf('id="contact"')));
+  // v1/v2 fill {{BLOCK_CLOSING}} with CONTACT_SECTION; page v3 renders its own closing ask.
+  assert.ok(tpl.includes("{{BLOCK_CLOSING}}"));
+  const section = CONTACT_SECTION.slice(CONTACT_SECTION.indexOf('id="contact"'));
   assert.ok(section.includes("{{QUOTE_FORM}}"));
   assert.doesNotMatch(tpl, /<form id="contactForm">/); // old blank form gone
   assert.match(tpl, /\/scripts\/quote-form\.js/);

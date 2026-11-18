@@ -898,7 +898,7 @@ export async function saveBrandKit(supabaseAdmin, businessId, kit, { log = conso
 /** Rebuild + save for a v2 page. Used after preview generation and logo/photo changes. */
 export async function rebuildBrandKit(supabaseAdmin, businessId, deps = {}) {
   const { data: profile } = await supabaseAdmin.from("small_business_profiles").select("*").eq("business_id", businessId).maybeSingle();
-  if (!profile || Number(profile.page_version) !== 2) return null;
+  if (!profile || !(Number(profile.page_version) >= 2)) return null;
   const kit = await buildBrandKit(profile, { supabase: supabaseAdmin, ...deps });
   await saveBrandKit(supabaseAdmin, businessId, kit, deps);
   return kit;

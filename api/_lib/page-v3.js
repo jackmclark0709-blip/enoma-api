@@ -1,0 +1,881 @@
+// api/_lib/page-v3.js
+// Page v3 (small_business_profiles.page_version = 3): the research-based
+// company page (the Arno v3 boards). Reads three things:
+//   fact_sheet    facts we can check (docs/website-v3-contract.md, written by PR A)
+//   page_copy_v3  the words on the page
+//   brand_kit     colors, wordmark, logo, Google photo refs (api/_lib/brand-kit.js)
+// and fills the same public/profile.html template as v1 and v2. Styles are
+// business-base.css section 17, scoped to body.page-v3, colors only from the
+// kit's CSS variables (page-v2.js kitStyle). No per-page CSS.
+//
+// Top to bottom: top bar · header + menu · hero · proof strip · services ·
+// meet the owner · recent work · reviews · where we work (map) · FAQ ·
+// closing ask + quote form · footer · phone bottom bar.
+//
+// The rule for every section: it renders from real content or it isn't in
+// the HTML at all. No placeholders for visitors, no stock in the hero, no
+// drawn scenes, no "How it works" or boilerplate About.
+//
+// Pure: everything it needs (stock rows, town coordinates, spotlights) comes
+// in through ctx, so each section's show/hide rule is testable
+// (tests/page-v3.test.js).
+
+import { telHref, smsHref, googleMapsUrl, schemaTypeFor, sameAsLinks, MAX_REVIEWS } from "./company-page.js";
+import { normalizeProfile, normalizeFaqs } from "./page-ssr.js";
+import { personaFor, hashString } from "./page-style.js";
+import { workPhotos } from "./photo-kinds.js";
+import { stateCode, kitFor } from "./brand-kit.js";
+import { linkServicesToSpotlights } from "./spotlight-render.js";
+import { renderQuoteForm } from "./quote-form.js";
+import { sizedUrls, creditFor, STOCK_QUERIES } from "./stock-photos.js";
+import {
+  kitStyle, brandMark, mobileBar, ownerBar, googlePhotoSrc, attributionHtml, stockCredit,
+} from "./page-v2.js";
+
+const esc = s => String(s == null ? "" : s)
+  .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+const list = v => {
+  if (Array.isArray(v)) return v;
+  if (typeof v === "string") { try { const j = JSON.parse(v); return Array.isArray(j) ? j : []; } catch { return []; } }
+  return [];
+};
+const obj = v => {
+  if (v && typeof v === "object" && !Array.isArray(v)) return v;
+  if (typeof v === "string") { try { const j = JSON.parse(v); return j && typeof j === "object" && !Array.isArray(j) ? j : null; } catch { return null; } }
+  return null;
+};
+const str = v => (v == null ? "" : String(v).trim());
+const httpUrl = u => (/^https:\/\//i.test(str(u)) ? str(u) : null);
+const slugify = t => str(t).toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+const cleanTown = t => str(t).replace(/,\s*[A-Za-z .]+$/, "").trim();
+const sameTown = (a, b) => cleanTown(a).toLowerCase() === cleanTown(b).toLowerCase();
+
+export const MAX_PROOF = 4;
+export const STOCK_MAX_BUSINESSES = 3;
+
+// ── When v3 renders ───────────────────────────────────────────────────────
+
+/** page_version 3 with written copy (a v3 row without copy renders as v2). */
+export function isPageV3(profile) {
+  return Number(profile?.page_version) === 3 && !!str(obj(profile?.page_copy_v3)?.hero_headline);
+}
+
+// ── Contract (docs/website-v3-contract.md, PR A) → one normalized shape ──
+// fact_sheet: { business, reviews[], owner, towns, photos }
+// page_copy_v3: { eyebrow, hero_headline, hero_sub, proof[], services[],
+//                 owner_section, faqs[], closing, service_page }
+// Copy items carry evidence ids; one with none isn't shown.
+
+const hasEvidence = x => Array.isArray(x?.evidence) && x.evidence.some(e => str(e));
+
+const DAYS_GOOGLE = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+const DAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const SCHEMA_DAY = [1, 2, 3, 4, 5, 6, 0]; // Google's Monday-first order → 0 = Sunday
+
+function to24(t, mer) {
+  const m = str(t).match(/^(\d{1,2})(?::(\d{2}))?$/);
+  if (!m) return null;
+  let h = Number(m[1]) % 12;
+  if (/p/i.test(mer)) h += 12;
+  return `${String(h).padStart(2, "0")}:${m[2] || "00"}`;
+}
+const short = hhmm => { const [h, m] = hhmm.split(":").map(Number); const h12 = h % 12 || 12; return `${h12}${m ? `:${String(m).padStart(2, "0")}` : ""}${h < 12 ? "am" : "pm"}`; };
+
+/**
+ * Google's weekday lines ("Monday: 8:00 AM – 4:00 PM", "Sunday: Closed",
+ * "Open 24 hours") → { text: "Open every day, 8am–4pm" | "Mon–Fri 8am–5pm ·
+ * Sat 9am–1pm", spec: [{ days: [0..6], opens, closes }] }, or null. A day
+ * with split hours keeps its own text and stays out of the schema.
+ */
+export function summarizeHours(lines) {
+  const rows = list(lines).map(l => String(l).replace(/[   ]/g, " ").trim()).filter(Boolean);
+  if (!rows.length) return null;
+  const byDay = new Array(7).fill(null);
+  for (const row of rows) {
+    const m = row.match(/^([A-Za-z]+):\s*(.+)$/);
+    if (!m) continue;
+    const d = DAYS_GOOGLE.indexOf(m[1].toLowerCase());
+    if (d < 0) continue;
+    const v = m[2].trim();
+    if (/^closed$/i.test(v)) { byDay[d] = { closed: true, key: "closed" }; continue; }
+    if (/open 24 hours/i.test(v)) { byDay[d] = { key: "24h", opens: "00:00", closes: "23:59", label: "open 24 hours" }; continue; }
+    const r = v.match(/^(\d{1,2}(?::\d{2})?)\s*([AP]M)?\s*[–-]\s*(\d{1,2}(?::\d{2})?)\s*([AP]M)$/i);
+    if (r) {
+      const opens = to24(r[1], r[2] || r[4]), closes = to24(r[3], r[4]);
+      if (opens && closes) { byDay[d] = { key: `${opens}-${closes}`, opens, closes, label: `${short(opens)}–${short(closes)}` }; continue; }
+    }
+    byDay[d] = { key: `raw:${v}`, label: v };
+  }
+  if (!byDay.some(Boolean)) return null;
+  const spec = [];
+  const groups = [];
+  for (let d = 0; d < 7; d++) {
+    const x = byDay[d];
+    if (!x || x.closed) continue;
+    const g = groups[groups.length - 1];
+    if (g && g.key === x.key && g.end === d - 1) g.end = d; else groups.push({ key: x.key, start: d, end: d, x });
+  }
+  for (const g of groups) if (g.x.opens) {
+    const days = [];
+    for (let d = g.start; d <= g.end; d++) days.push(SCHEMA_DAY[d]);
+    const same = spec.find(s => s.opens === g.x.opens && s.closes === g.x.closes);
+    if (same) same.days.push(...days); else spec.push({ days, opens: g.x.opens, closes: g.x.closes });
+  }
+  let text;
+  if (groups.length === 1 && groups[0].start === 0 && groups[0].end === 6) {
+    text = groups[0].key === "24h" ? "Open 24 hours, every day" : `Open every day, ${groups[0].x.label}`;
+  } else {
+    text = groups.map(g => `${g.start === g.end ? DAY_SHORT[g.start] : `${DAY_SHORT[g.start]}–${DAY_SHORT[g.end]}`} ${g.x.label}`).join(" · ");
+  }
+  return text ? { text, spec } : null;
+}
+
+// What a review sentence says that helps a caller decide.
+const CONCRETE = /same day|next (day|morning)|first thing|first call|answered|called back|came (out|over|the)|showed up|on time|fixed|repaired|replaced|free|fair|honest|explained|cleaned up|weekend|emergency|apprentice/gi;
+const sentences = t => str(t).replace(/\s+/g, " ").match(/[^.!?…]+[.!?…]+["”']?|[^.!?…]+$/g) || [];
+
+/**
+ * A review's quotable part: the most concrete sentence or two (same day,
+ * next morning, answered, fixed…), up to max characters, never cut
+ * mid-word without an ellipsis. Returns { text, score }.
+ */
+export function reviewExcerpt(text, max = 200) {
+  const all = sentences(text).map(s => s.trim()).filter(s => s.length > 12);
+  if (!all.length) return { text: "", score: 0 };
+  const scoreOf = s => (s.match(CONCRETE) || []).length * 2 + (s.length >= 40 && s.length <= 170 ? 1 : 0);
+  const full = all.join(" ");
+  if (full.length <= max) return { text: full, score: all.reduce((n, s) => n + scoreOf(s), 0) };
+  let best = 0;
+  all.forEach((s, i) => { if (scoreOf(s) > scoreOf(all[best])) best = i; });
+  let out = all[best];
+  if (all[best + 1] && out.length + 1 + all[best + 1].length <= max && scoreOf(all[best + 1]) > 0) out += ` ${all[best + 1]}`;
+  if (out.length > max) out = `${out.slice(0, max).replace(/\s+\S*$/, "")}…`;
+  return { text: out, score: scoreOf(out) };
+}
+
+/**
+ * stock_subject is a photo brief ("copper pipe repair close-up"); the stock
+ * library is tagged per persona (stock-photos.js STOCK_QUERIES). The brief
+ * and the service name pick the tag with the library's own match rules,
+ * specific tags before the persona's general first entry. "" when none fits.
+ */
+export function stockTagFor(brief, name, persona) {
+  const qs = STOCK_QUERIES[persona] || [];
+  const text = `${str(brief)} ${str(name)}`.toLowerCase();
+  if (!qs.length || !text.trim()) return "";
+  const hit = qs.slice(1).find(q => q.match.test(text)) || (qs[0].match.test(text) ? qs[0] : null);
+  return hit ? `${persona}/${hit.tag}` : "";
+}
+
+const SERVICES_HEADING = { plumbing: "What we fix", hvac: "What we fix", electrical: "What we fix", painting: "What we paint", cleaning: "What we clean" };
+
+/**
+ * Everything the page shows, from fact_sheet + page_copy_v3 + brand kit,
+ * with gaps filled from the profile row. Missing facts stay empty: nothing
+ * is invented here.
+ */
+export function factsFor(rawProfile = {}, kit = null) {
+  const p = normalizeProfile(rawProfile || {});
+  const fs = obj(rawProfile?.fact_sheet) || {};
+  const b = obj(fs.business) || {};
+  const o = obj(fs.owner) || {};
+  const c = obj(rawProfile?.page_copy_v3) || {};
+  const k = kit || kitFor(p);
+  const persona = personaFor(b.trade || p.primary_category);
+
+  const phone = str(b.phone || p.phone);
+  const address = str(b.address || p.address);
+  const first = address.split(",")[0].trim();
+  const street = /^\d/.test(first) ? first : "";
+  const zip = (address.match(/\b(\d{5})(?:-\d{4})?\b/) || [])[1] || "";
+  const town = cleanTown(b.town || p.city);
+  const state = stateCode(b.state || p.state) || "";
+  const rating = Number(b.rating ?? p.average_rating);
+  const count = Number(b.review_count ?? p.review_count);
+
+  const reviewsIn = Array.isArray(fs.reviews) ? fs.reviews
+    : list(p.testimonials).filter(t => t?.source === "google").map(t => ({ author: t.author, rating: t.rating, text: t.quote || t.text }));
+  const reviews = reviewsIn.filter(r => r && (Number(r.rating) || 5) >= 4).map((r, i) => {
+    const ex = reviewExcerpt(r.text);
+    return { id: str(r.id) || `r${i + 1}`, quote: ex.text, author: str(r.author) || "Customer", rating: Number(r.rating) || null, context: "", strength: ex.score + (Number(r.rating) || 0) };
+  }).filter(r => r.quote).slice(0, MAX_REVIEWS);
+
+  const services = list(c.services).filter(s => str(s?.name) && hasEvidence(s)).map(s => {
+    const name = str(s.name);
+    return { name, slug: slugify(name), stock_subject: stockTagFor(s.stock_subject, name, persona), work_photo: null, photo: null, cta: "estimate", line: str(s.description) };
+  });
+
+  const towns = obj(fs.towns) || {};
+  const confirmed = (Array.isArray(towns.confirmed) ? towns.confirmed : list(k?.towns?.confirmed)).map(cleanTown).filter(Boolean);
+  const home = cleanTown(towns.home) || town || confirmed[0] || "";
+  const nearby = (Array.isArray(towns.suggested) ? towns.suggested : list(k?.towns?.suggested)).map(cleanTown)
+    .filter(t => t && !sameTown(t, home) && !confirmed.some(x => sameTown(x, t)));
+
+  const photos = obj(fs.photos) || {};
+  const ownerPhoto = list(photos.owner).map(httpUrl).find(Boolean) || httpUrl(p.owner_photo_url);
+  const own = (Array.isArray(photos.work) ? photos.work : workPhotos(p)).map(u => (typeof u === "string" ? { url: u } : u))
+    .map(w => ({ url: httpUrl(w?.url), job: str(w?.job), town: cleanTown(w?.town) })).filter(w => w.url);
+  // Google work photos stay refs on the kit; the page decides if they may show.
+  const google = list(k?.google_photos).map((g, i) => ({ g, i })).filter(x => x.g?.kind === "work").map(x => ({ url: `google:${x.i}`, job: "", town: "" }));
+
+  const lic = (str(o.license_number) || str(p.license_number)).replace(/^#/, "");
+  const kitLic = k?.license && str(k.license.number) === lic ? k.license : null;
+  const names = list(o.names).map(str).filter(Boolean);
+
+  return {
+    name: str(b.name) || str(p.business_name),
+    trade: persona,
+    phone,
+    texts_ok: !!phone,
+    address: { street, town, state, zip },
+    hours: summarizeHours(b.hours) || (str(p.hero_availability) ? { text: str(p.hero_availability).replace(/\.+$/, ""), spec: [] } : null),
+    offers_free_estimates: (o.offers_free_estimates ?? p.offers_free_estimates) === true,
+    license: lic ? (kitLic || { state, kind: "License", number: lic, verify_url: null }) : null,
+    google: {
+      place_id: str(b.place_id || p.google_place_id) || null,
+      rating: Number.isFinite(rating) && rating > 0 ? rating : null,
+      count: Number.isInteger(count) && count > 0 ? count : null,
+    },
+    reviews,
+    services,
+    services_heading: SERVICES_HEADING[persona] || "What we do",
+    towns: { home, confirmed, nearby },
+    owner: { names: names.length ? names : list(k?.owner_names), photo_url: ownerPhoto || null },
+    work_photos: [...own, ...google],
+  };
+}
+
+/** The words on the page, from page_copy_v3 (items without evidence dropped). */
+export function copyFor(rawProfile = {}, facts = null) {
+  const c = obj(rawProfile?.page_copy_v3) || {};
+  const owner = obj(c.owner_section);
+  const closing = obj(c.closing) || {};
+  const ownerBody = owner && hasEvidence(owner) ? str(owner.body).split(/\n\s*\n/).map(str).filter(Boolean) : [];
+  return {
+    hero: { eyebrow: str(c.eyebrow), h1: str(c.hero_headline), sub: str(c.hero_sub) },
+    proof: list(c.proof).filter(hasEvidence).map(x => ({ big: str(x.value), small: str(x.label) })).filter(x => x.big && x.small),
+    services: { heading: facts?.services_heading || "What we do", sub: "", lines: {} },
+    owner_section: owner && str(owner.heading) && ownerBody.length ? { heading: str(owner.heading), body: ownerBody } : null,
+    reviews_heading: "What neighbors say",
+    faqs: normalizeFaqs(list(c.faqs).filter(hasEvidence)),
+    closing: { heading: str(closing.heading) || "Let's get you on the schedule.", line: str(closing.line) },
+  };
+}
+
+/** The one estimate label used everywhere on the page. */
+export function estimateLabelV3(facts) {
+  return facts.offers_free_estimates ? "Get a free estimate" : "Get an estimate";
+}
+
+// ── Seasonal top-bar line ─────────────────────────────────────────────────
+
+// Months are 1–12. Each needs a matching service (or trade) so we never
+// advertise work the business doesn't list.
+export const SEASONAL_LINES = Object.freeze([
+  { key: "snow", months: [11, 12, 1, 2], trades: ["landscaping", "snow"], service: /snow|plow/i, line: "Snow plowing this winter? Call or text us." },
+  { key: "heating", months: [10, 11, 12, 1, 2], trades: ["hvac", "plumbing"], service: /heat|boiler|furnace/i, line: "No heat? Call us." },
+  { key: "ac", months: [5, 6, 7, 8], trades: ["hvac"], service: /\bac\b|a\/c|air condition|cool|mini ?split|heat pump/i, line: "AC not cooling? Call us." },
+  { key: "exteriors", months: [3, 4, 5, 6], trades: ["painting"], service: /exterior|outside|siding|house paint/i, line: "Planning exterior painting this spring? Call us." },
+]);
+
+/** The seasonal line for this business this month, or "". */
+export function seasonalLine(facts, now = new Date()) {
+  const month = now.getMonth() + 1;
+  const names = facts.services.map(s => s.name).join(" | ");
+  const snowTrade = facts.trade === "snow" || /snow|plow/i.test(names);
+  for (const s of SEASONAL_LINES) {
+    if (!s.months.includes(month)) continue;
+    const tradeOk = s.trades.includes(facts.trade) || (s.key === "snow" && snowTrade);
+    if (tradeOk && s.service.test(names)) return s.line;
+  }
+  return "";
+}
+
+// ── Photos ────────────────────────────────────────────────────────────────
+
+/** Google listing photos only on claimed pages and the owner's own view (cost guardrails). */
+export function googlePhotosAllowed(rawProfile, ctx = {}) {
+  return !!ctx.owner || rawProfile?.is_claimed === true;
+}
+
+function googleRef(ref, kit) {
+  const m = str(ref).match(/^google:(\d+)$/);
+  if (!m) return null;
+  const i = Number(m[1]);
+  const g = list(kit?.google_photos)[i];
+  return g ? { i, g } : null;
+}
+
+/** A work photo reference → { src, credit } or null (not allowed / not usable). */
+function workPhotoSrc(ref, kit, ctx) {
+  const gr = googleRef(ref, kit);
+  if (gr) return ctx.googleOk ? { src: googlePhotoSrc(ctx.slug, gr.i), credit: attributionHtml(gr.g).replace(/v2-credit/g, "v3-credit") } : null;
+  const url = httpUrl(ref);
+  return url ? { src: url, credit: "" } : null;
+}
+
+/**
+ * Stock for one service by its stock_subject ("plumbing/pipes" or "pipes"):
+ * approved rows with that tag, minus photos already on STOCK_MAX_BUSINESSES
+ * other businesses and photos already used on this page. Ties broken by a
+ * hash of the business and subject, so neighbors differ. null when none.
+ * usage: { [unsplash_id]: [business_id, ...] } from stock_photo_assignments.
+ */
+export function pickServiceStock(rows, subject, { businessId = "", usage = {}, taken = new Set() } = {}) {
+  const [a, b] = str(subject).toLowerCase().split("/");
+  const persona = b ? a : null, tag = b || a;
+  if (!tag) return null;
+  const others = id => (usage[id] || []).filter(x => x && x !== businessId).length;
+  const pool = (Array.isArray(rows) ? rows : [])
+    .filter(r => r && r.approved === true && r.service_tag === tag && (!persona || r.persona === persona) && sizedUrls(r.raw_url))
+    .filter(r => !taken.has(r.unsplash_id) && others(r.unsplash_id) < STOCK_MAX_BUSINESSES)
+    .sort((x, y) => (x.unsplash_id < y.unsplash_id ? -1 : 1));
+  if (!pool.length) return null;
+  const row = pool[hashString(`${businessId}:${subject}`) % pool.length];
+  const urls = sizedUrls(row.raw_url);
+  return { unsplash_id: row.unsplash_id, url: urls.w1200, srcset: urls.srcset, alt: row.alt || "", credit: creditFor(row) };
+}
+
+/**
+ * The stock rows and usage pickServiceStock needs, for the services that
+ * need stock (no work photo, no photo chosen at build time). One read of
+ * stock_photos and one of stock_photo_assignments; never Unsplash. Any
+ * error → none (cards render without a photo).
+ */
+export async function loadServiceStock(supabase, rawProfile, { log = console } = {}) {
+  const none = { stockRows: [], stockUsage: {} };
+  try {
+    const subjects = factsFor(rawProfile).services.map(s => s.stock_subject).filter(Boolean);
+    if (!supabase || !subjects.length) return none;
+    const personas = [...new Set(subjects.map(x => (x.includes("/") ? x.split("/")[0] : personaFor(rawProfile.primary_category))))];
+    const tags = [...new Set(subjects.map(x => x.split("/").pop()))];
+    const { data: rows, error } = await supabase.from("stock_photos")
+      .select("unsplash_id, persona, service_tag, raw_url, alt, photographer_name, photographer_username, photographer_url, photo_page_url, approved")
+      .eq("approved", true).in("persona", personas).in("service_tag", tags);
+    if (error) throw new Error(error.message);
+    const ids = (rows || []).map(r => r.unsplash_id);
+    if (!ids.length) return none;
+    const { data: used } = await supabase.from("stock_photo_assignments").select("unsplash_id, business_id").in("unsplash_id", ids);
+    const stockUsage = {};
+    for (const u of used || []) (stockUsage[u.unsplash_id] ||= []).push(u.business_id);
+    return { stockRows: rows || [], stockUsage };
+  } catch (e) {
+    log.warn?.("page v3 stock: none loaded:", e?.message || e);
+    return none;
+  }
+}
+
+/** The photo for a service card: owner's work photo → chosen stock → stock by subject → none. */
+export function servicePhoto(service, kit, ctx, taken) {
+  if (service.work_photo) {
+    const w = workPhotoSrc(service.work_photo, kit, ctx);
+    if (w) return { kind: "work", src: w.src, srcset: "", alt: `${service.name} by ${ctx.name}`, credit: w.credit };
+  }
+  const pre = service.photo;
+  if (pre && httpUrl(pre.url) && !(pre.unsplash_id && taken.has(pre.unsplash_id))) {
+    if (pre.unsplash_id) taken.add(pre.unsplash_id);
+    return { kind: "stock", src: pre.url, srcset: str(pre.srcset), alt: str(pre.alt), credit: stockCredit(pre.credit).replace(/v2-credit/g, "v3-credit") };
+  }
+  if (service.stock_subject) {
+    const s = pickServiceStock(ctx.stockRows, service.stock_subject, { businessId: ctx.businessId, usage: ctx.stockUsage, taken });
+    if (s) {
+      taken.add(s.unsplash_id);
+      return { kind: "stock", src: s.url, srcset: s.srcset, alt: s.alt, credit: stockCredit(s.credit).replace(/v2-credit/g, "v3-credit") };
+    }
+  }
+  return null;
+}
+
+/** Recent work: real photos only (owner uploads; Google only where allowed), captioned job · town. */
+export function recentWork(facts, kit, ctx) {
+  return facts.work_photos.map(w => {
+    const s = workPhotoSrc(w.url, kit, ctx);
+    if (!s) return null;
+    return { src: s.src, credit: s.credit, job: w.job, town: w.town || facts.towns.home, alt: [w.job || "Recent job", w.town].filter(Boolean).join(", ") };
+  }).filter(Boolean).slice(0, 6);
+}
+
+// ── Icons ─────────────────────────────────────────────────────────────────
+
+const I = (d, cls = "v3-i") => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${d}</svg>`;
+const ICON_CALL = I('<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.08 4.18 2 2 0 0 1 4.06 2h3a2 2 0 0 1 2 1.72c.12.86.31 1.7.57 2.5a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.58-1.09a2 2 0 0 1 2.11-.45c.8.26 1.64.45 2.5.57A2 2 0 0 1 22 16.92z"/>');
+const STARS = n => `<span class="v3-stars" role="img" aria-label="${n} out of 5 stars">${"★".repeat(n)}${"☆".repeat(5 - n)}</span>`;
+
+// Images: on error, try the next src in data-fallback, then drop the figure.
+// One capture listener in the top bar, before any image loads.
+const IMG_FALLBACK_SCRIPT = `<script>document.addEventListener("error",function(e){var t=e.target;if(!t||t.tagName!=="IMG"||!t.hasAttribute("data-v3-img"))return;var f=(t.getAttribute("data-fallback")||"").split(" ").filter(Boolean);if(f.length){t.removeAttribute("srcset");t.setAttribute("data-fallback",f.slice(1).join(" "));t.src=f[0];return}var box=t.closest("[data-v3-media]");if(box){var host=box.parentNode;box.remove();if(host&&host.classList)host.classList.add("is-noimg")}},true);</script>`;
+
+function img({ src, srcset = "", alt = "", sizes = "", eager = false, fallback = [] }) {
+  return `<img data-v3-img src="${esc(src)}"${srcset ? ` srcset="${esc(srcset)}" sizes="${esc(sizes || "(min-width: 900px) 380px, 100vw")}"` : ""} alt="${esc(alt)}"${fallback.length ? ` data-fallback="${esc(fallback.join(" "))}"` : ""} ${eager ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async" />`;
+}
+
+// ── Sections ──────────────────────────────────────────────────────────────
+
+function topBar(facts, ctx) {
+  const seasonal = seasonalLine(facts, ctx.now || new Date());
+  const town = [facts.towns.home || facts.address.town, facts.address.state].filter(Boolean).join(", ");
+  const hours = str(facts.hours?.text);
+  const left = [hours, town].filter(Boolean).join(" · ");
+  if (!left && !seasonal && !facts.phone) return IMG_FALLBACK_SCRIPT;
+  return `${IMG_FALLBACK_SCRIPT}<div class="v3-top${seasonal ? " has-season" : ""}">
+  <div class="v3-wrap v3-top__in">
+    ${left ? `<p class="v3-top__hours">${esc(left)}</p>` : ""}
+    ${seasonal ? `<p class="v3-top__season">${esc(seasonal)}</p>` : ""}
+    ${facts.phone ? `<a class="v3-top__phone" href="${esc(telHref(facts.phone))}" data-contact="call">${esc(facts.phone)}</a>` : ""}
+  </div>
+</div>`;
+}
+
+function headerBlock(rawProfile, facts, kit, ctx, nav) {
+  const p = { business_name: facts.name };
+  const links = [
+    nav.services ? `<a href="${esc(nav.services)}">Services</a>` : "",
+    nav.work ? `<a href="#work">Our work</a>` : "",
+    nav.reviews ? `<a href="#reviews">Reviews</a>` : "",
+    nav.area ? `<a href="#area">Area</a>` : "",
+    `<a href="#contact">Contact</a>`,
+  ].filter(Boolean).join("");
+  return `<header class="v3-header" id="contactStrip">
+  <div class="v3-wrap v3-header__in">
+    <a class="v3-brand" href="#top">${brandMark(p, kit, ctx.slug)}</a>
+    <nav class="v3-nav" aria-label="Main">${links}</nav>
+    <a class="v3-btn v3-btn--cta v3-header__cta" href="#contact" data-contact="quote">${esc(estimateLabelV3(facts))}</a>
+  </div>
+</header>`;
+}
+
+/** The review the hero card uses: one marked hero, else the strongest short one. */
+export function heroReview(reviews) {
+  if (!reviews.length) return null;
+  // Never the same review as the pull quote further down.
+  const pull = pullQuote(reviews);
+  const pool = reviews.filter(r => r !== pull);
+  return [...(pool.length ? pool : reviews)].sort((a, b) => (b.strength - a.strength) || (a.quote.length - b.quote.length))[0];
+}
+
+/** "Russ B., Google review" / "Julie S." */
+function reviewWho(r, facts) {
+  return `${r.author}${facts.google.place_id || facts.google.count ? ", Google review" : ""}`;
+}
+
+function reviewCard(r, facts, cls) {
+  const n = r.rating ? Math.min(5, Math.max(1, Math.round(r.rating))) : 0;
+  return `<figure class="${cls}">
+    ${n ? STARS(n) : ""}
+    <blockquote><p>“${esc(r.quote.replace(/^["“]|["”]$/g, ""))}”</p></blockquote>
+    <figcaption>${esc(reviewWho(r, facts))}</figcaption>
+  </figure>`;
+}
+
+/** Which hero layout: "owner" (photo + card), "review" (card alone), "form" (no reviews). */
+export function heroMode(facts) {
+  if (facts.owner.photo_url && facts.reviews.length) return "owner";
+  if (facts.reviews.length) return "review";
+  if (facts.owner.photo_url) return "owner";
+  return "form";
+}
+
+function heroBlock(facts, copy, ctx) {
+  const mode = heroMode(facts);
+  const call = facts.phone
+    ? `<a class="v3-btn v3-btn--cta v3-btn--lg" href="${esc(telHref(facts.phone))}" data-contact="call">${ICON_CALL}Call ${esc(facts.phone)}</a>`
+    : "";
+  const estimate = `<a class="v3-btn v3-btn--ghost v3-btn--lg" href="#contact" data-contact="quote">${esc(estimateLabelV3(facts))}</a>`;
+  const review = heroReview(facts.reviews);
+  let side = "";
+  if (mode === "owner") {
+    side = `<div class="v3-hero__side v3-hero__side--owner">
+      <figure class="v3-hero__photo" data-v3-media>${img({ src: facts.owner.photo_url, alt: facts.owner.names.length ? `${facts.owner.names.join(" and ")} of ${facts.name}` : `The owner of ${facts.name}`, eager: true })}</figure>
+      ${review ? reviewCard(review, facts, "v3-review v3-review--hero") : ""}
+    </div>`;
+  } else if (mode === "review") {
+    side = `<div class="v3-hero__side">${reviewCard(review, facts, "v3-review v3-review--hero v3-review--big")}</div>`;
+  } else {
+    side = `<div class="v3-hero__side v3-hero__side--form" id="contact"><span id="quote"></span>
+      <div class="v3-formcard"><h2 class="v3-formcard__h">${esc(estimateLabelV3(facts))}</h2>{{QUOTE_FORM}}</div>
+    </div>`;
+  }
+  return `<section class="v3-hero" aria-labelledby="heroHeadline">
+  <div class="v3-wrap v3-hero__in v3-hero--${mode}">
+    <div class="v3-hero__copy">
+      ${copy.hero.eyebrow ? `<p class="v3-eyebrow">${esc(copy.hero.eyebrow)}</p>` : ""}
+      <h1 id="heroHeadline" class="v3-h1">${esc(copy.hero.h1)}</h1>
+      ${copy.hero.sub ? `<p class="v3-sub">${esc(copy.hero.sub)}</p>` : ""}
+      <div class="v3-actions" id="primaryAction">${call}${mode === "form" ? "" : estimate}</div>
+    </div>
+    ${side}
+  </div>
+</section>`;
+}
+
+function proofBlock(copy) {
+  const items = copy.proof.slice(0, MAX_PROOF);
+  if (items.length < 2) return "";
+  return `<section class="v3-proof" aria-label="At a glance">
+  <ul class="v3-wrap v3-proof__list">${items.map(x => `<li><span class="v3-proof__big">${esc(x.big)}</span><span class="v3-proof__small">${esc(x.small)}</span></li>`).join("")}</ul>
+</section>`;
+}
+
+function servicesBlock(facts, copy, kit, ctx) {
+  if (!facts.services.length) return "";
+  const { services } = linkServicesToSpotlights(facts.services.map(s => ({ ...s, service_name: s.name })), list(ctx.spotlights), ctx.slug);
+  const taken = new Set();
+  const label = estimateLabelV3(facts);
+  // Photos on every card or on none: a grid where some cards have a photo
+  // and some don't looks unfinished.
+  let photos = services.map(s => servicePhoto(s, kit, ctx, taken));
+  if (photos.some(ph => !ph)) photos = photos.map(() => null);
+  const cards = services.map((s, i) => {
+    const photo = photos[i];
+    const line = str(copy.services.lines[s.slug]) || s.line;
+    const link = s.spotlight_url
+      ? `<a class="v3-card__go" href="${esc(s.spotlight_url)}" data-spotlight-link="${esc(s.slug)}">See ${esc(s.name.toLowerCase())} <span aria-hidden="true">→</span></a>`
+      : s.cta === "call" && facts.phone
+        ? `<a class="v3-card__go" href="${esc(telHref(facts.phone))}" data-contact="call">Call about ${esc(s.name.toLowerCase())} <span aria-hidden="true">→</span></a>`
+        : `<a class="v3-card__go" href="#quote?service=${esc(s.slug)}" data-service-quote="${esc(s.slug)}">${esc(label)} <span aria-hidden="true">→</span></a>`;
+    return `<li class="v3-card${photo ? "" : " is-noimg"}">
+      ${photo ? `<figure class="v3-card__media" data-v3-media>${img({ src: photo.src, srcset: photo.srcset, alt: photo.alt })}${photo.credit}</figure>` : ""}
+      <div class="v3-card__body">
+        <h3 class="v3-card__h">${esc(s.name)}</h3>
+        ${line ? `<p class="v3-card__p">${esc(line)}</p>` : ""}
+        ${link}
+      </div>
+    </li>`;
+  }).join("");
+  return `<section class="v3-band v3-band--tint" id="services" aria-labelledby="servicesHeading">
+  <div class="v3-wrap">
+    <div class="v3-head"><h2 id="servicesHeading" class="v3-h2">${esc(copy.services.heading)}</h2>${copy.services.sub ? `<p class="v3-lede">${esc(copy.services.sub)}</p>` : ""}</div>
+    <ul class="v3-cards">${cards}</ul>
+  </div>
+</section>`;
+}
+
+function ownerBlock(facts, copy) {
+  const o = copy.owner_section;
+  if (!o) return "";
+  const photo = facts.owner.photo_url;
+  return `<section class="v3-band" id="owner" aria-labelledby="ownerHeading">
+  <div class="v3-wrap v3-owner${photo ? " has-photo" : ""}">
+    ${photo ? `<figure class="v3-owner__photo" data-v3-media>${img({ src: photo, alt: facts.owner.names.length ? facts.owner.names.join(" and ") : `The owner of ${facts.name}` })}</figure>` : ""}
+    <div class="v3-owner__text">
+      <h2 id="ownerHeading" class="v3-h2">${esc(o.heading)}</h2>
+      ${o.body.map(b => `<p>${esc(b)}</p>`).join("")}
+    </div>
+  </div>
+</section>`;
+}
+
+function workBlock(photos) {
+  if (!photos.length) return "";
+  return `<section class="v3-band v3-band--tint" id="work" aria-labelledby="workHeading">
+  <div class="v3-wrap">
+    <h2 id="workHeading" class="v3-h2">Recent work</h2>
+    <ul class="v3-work">${photos.map(ph => `<li><figure data-v3-media>${img({ src: ph.src, alt: ph.alt })}<figcaption>${ph.job ? `<strong>${esc(ph.job)}</strong>` : ""}${ph.job && ph.town ? " · " : ""}${esc(ph.town)}</figcaption>${ph.credit}</figure></li>`).join("")}</ul>
+  </div>
+</section>`;
+}
+
+/** The pull quote: the strongest review, when there are 3 or more. */
+export function pullQuote(reviews) {
+  if (reviews.length < 3) return null;
+  return [...reviews].sort((a, b) => (b.strength - a.strength) || (b.quote.length - a.quote.length))[0];
+}
+
+function reviewsBlock(facts, copy) {
+  const g = facts.google;
+  const showRating = g.rating && g.count;
+  if (!facts.reviews.length && !showRating) return "";
+  const maps = googleMapsUrl({ business_name: facts.name, google_place_id: g.place_id });
+  const pull = pullQuote(facts.reviews);
+  const rest = facts.reviews.filter(r => r !== pull);
+  const n = showRating ? Math.round(g.rating) : 0;
+  return `<section class="v3-band" id="reviews" aria-labelledby="reviewsHeading">
+  <div class="v3-wrap">
+    <div class="v3-head v3-head--split">
+      <div>
+        <h2 id="reviewsHeading" class="v3-h2">${esc(copy.reviews_heading)}</h2>
+        ${showRating ? `<p class="v3-lede">${STARS(Math.min(5, Math.max(1, n)))} ${esc(g.rating.toFixed(1))} out of 5 from ${g.count} review${g.count === 1 ? "" : "s"} on Google</p>` : ""}
+      </div>
+      ${maps && showRating ? `<a class="v3-more" href="${esc(maps)}" target="_blank" rel="noopener">Read all ${g.count} on Google <span aria-hidden="true">→</span></a>` : ""}
+    </div>
+    ${pull ? reviewCard(pull, facts, "v3-review v3-review--pull") : ""}
+    ${rest.length ? `<div class="v3-reviews">${rest.map(r => `<figure class="v3-review">
+      ${r.rating ? STARS(Math.min(5, Math.max(1, Math.round(r.rating)))) : ""}
+      <blockquote><p>“${esc(r.quote.replace(/^["“]|["”]$/g, ""))}”</p></blockquote>
+      <figcaption>${esc(r.author)}${r.context ? ` · ${esc(r.context)}` : ""}</figcaption>
+    </figure>`).join("")}</div>` : ""}
+  </div>
+</section>`;
+}
+
+// ── Map (inline SVG from data/towns/<ST>.json; no tiles, no paid APIs) ──
+
+/** [name, st, lat, lon] rows → the row for a town (same state first). */
+export function findTown(coords, name, state) {
+  const n = cleanTown(name).toLowerCase();
+  if (!n) return null;
+  const rows = (Array.isArray(coords) ? coords : []).filter(r => Array.isArray(r) && String(r[0]).toLowerCase() === n);
+  return rows.find(r => r[1] === state) || rows[0] || null;
+}
+
+const MAP_W = 440, MAP_H = 280, PAD = 40;
+const labelW = (t, size) => t.length * size * 0.56;
+
+/**
+ * The service-area map: home town marked, confirmed towns as labeled dots,
+ * nearby towns faint ("for location only"). Returns "" without coordinates
+ * for the home town.
+ */
+export function areaMapSvg(facts, coords, { name = "" } = {}) {
+  const st = facts.address.state;
+  const home = findTown(coords, facts.towns.home, st);
+  if (!home) return "";
+  const confirmed = facts.towns.confirmed.filter(t => !sameTown(t, facts.towns.home)).map(t => ({ t, r: findTown(coords, t, st) })).filter(x => x.r);
+  const nearby = facts.towns.nearby.map(t => ({ t, r: findTown(coords, t, st) })).filter(x => x.r).slice(0, 8);
+  const all = [home, ...confirmed.map(x => x.r), ...nearby.map(x => x.r)];
+  const cos = Math.cos(home[2] * Math.PI / 180);
+  const xs = all.map(r => r[3] * cos), ys = all.map(r => r[2]);
+  let minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  // A lone town (or a tight cluster) still gets a ~10 mile frame.
+  const minSpan = 0.15;
+  if (maxX - minX < minSpan) { const c = (minX + maxX) / 2; minX = c - minSpan / 2; maxX = c + minSpan / 2; }
+  if (maxY - minY < minSpan) { const c = (minY + maxY) / 2; minY = c - minSpan / 2; maxY = c + minSpan / 2; }
+  const scale = Math.min((MAP_W - 2 * PAD - 80) / (maxX - minX), (MAP_H - 2 * PAD) / (maxY - minY));
+  const ox = (MAP_W - (maxX - minX) * scale) / 2, oy = (MAP_H - (maxY - minY) * scale) / 2;
+  const pt = r => [Math.round(ox + (r[3] * cos - minX) * scale), Math.round(oy + (maxY - r[2]) * scale)];
+
+  const placed = [];
+  const fits = box => box.x >= 2 && box.x + box.w <= MAP_W - 2 && box.y >= 2 && box.y + box.h <= MAP_H - 2
+    && !placed.some(b => box.x < b.x + b.w && box.x + box.w > b.x && box.y < b.y + b.h && box.y + box.h > b.y);
+  const label = (text, [x, y], size, cls, r) => {
+    const w = labelW(text, size), h = size + 2;
+    const tries = [[x + r + 4, y + size / 2 - 1, "start"], [x - r - 4 - w, y + size / 2 - 1, "end"], [x - w / 2, y - r - 4, "middle"], [x - w / 2, y + r + size + 2, "middle"]];
+    for (const [tx, ty, anchor] of tries) {
+      const bx = anchor === "start" ? tx : anchor === "end" ? tx : tx;
+      const box = { x: bx, y: ty - size, w, h };
+      if (!fits(box)) continue;
+      placed.push(box);
+      const ax = anchor === "start" ? tx : anchor === "end" ? tx + w : tx + w / 2;
+      return `<text class="${cls}" x="${Math.round(ax)}" y="${Math.round(ty)}" text-anchor="${anchor}">${esc(text)}</text>`;
+    }
+    return "";
+  };
+
+  const hp = pt(home);
+  placed.push({ x: hp[0] - 11, y: hp[1] - 11, w: 22, h: 22 });
+  const homeLabel = label(cleanTown(facts.towns.home), hp, 17, "v3-map__home-label", 11);
+  const conf = confirmed.map(x => { const p = pt(x.r); placed.push({ x: p[0] - 6, y: p[1] - 6, w: 12, h: 12 }); return { x, p }; })
+    .map(({ x, p }) => `<circle class="v3-map__dot" cx="${p[0]}" cy="${p[1]}" r="6"></circle>${label(x.t, p, 15, "v3-map__label", 6)}`).join("");
+  const near = nearby.map(x => { const p = pt(x.r); return `<circle class="v3-map__faint" cx="${p[0]}" cy="${p[1]}" r="3.5"></circle>${label(x.t, p, 14, "v3-map__faint-label", 4)}`; }).join("");
+  const title = `Map of ${cleanTown(facts.towns.home)}${confirmed.length ? ` and the towns ${name || "we"} serve` : ""}`;
+  return `<svg class="v3-map" viewBox="0 0 ${MAP_W} ${MAP_H}" width="100%" role="img" aria-label="${esc(title)}">
+    <rect class="v3-map__bg" x="0" y="0" width="${MAP_W}" height="${MAP_H}" rx="10"></rect>
+    ${near}${conf}
+    <circle class="v3-map__home" cx="${hp[0]}" cy="${hp[1]}" r="10"></circle>${homeLabel}
+  </svg>`;
+}
+
+function areaBlock(facts, ctx) {
+  const chips = facts.towns.confirmed.length ? facts.towns.confirmed : facts.towns.home ? [facts.towns.home] : [];
+  if (!chips.length) return "";
+  const map = areaMapSvg(facts, ctx.townCoords, { name: facts.name });
+  const hasNearby = map && facts.towns.nearby.some(t => findTown(ctx.townCoords, t, facts.address.state));
+  const base = [facts.address.street, facts.towns.home || facts.address.town].filter(Boolean).join(" in ");
+  const text = facts.texts_ok
+    ? ` Live in a nearby town? <a href="${esc(smsHref(facts.phone))}" data-contact="sms">Text us your town</a> and we'll tell you if we can get there.`
+    : facts.phone ? ` Live in a nearby town? <a href="${esc(telHref(facts.phone))}" data-contact="call">Call us</a> and we'll tell you if we can get there.` : "";
+  return `<section class="v3-band v3-band--tint" id="area" aria-labelledby="areaHeading">
+  <div class="v3-wrap v3-area${map ? " has-map" : ""}">
+    <div class="v3-area__text">
+      <h2 id="areaHeading" class="v3-h2">Where we work</h2>
+      <p>${base ? `Based ${facts.address.street ? "on" : "in"} ${esc(base)}.` : ""}${text}</p>
+      <ul class="v3-chips">${chips.map(t => `<li>${esc(t)}</li>`).join("")}</ul>
+    </div>
+    ${map ? `<figure class="v3-area__map">${map}${hasNearby ? `<figcaption>Gray towns are shown for location only.</figcaption>` : ""}</figure>` : ""}
+  </div>
+</section>`;
+}
+
+function faqBlock(copy) {
+  if (!copy.faqs.length) return "";
+  return `<section class="v3-band" id="faqs" aria-labelledby="faqHeading">
+  <div class="v3-wrap v3-wrap--narrow">
+    <h2 id="faqHeading" class="v3-h2">Common questions</h2>
+    ${copy.faqs.map((f, i) => `<details class="v3-faq"${i === 0 ? " open" : ""}><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join("")}
+  </div>
+</section>`;
+}
+
+function closingBlock(facts, copy, formInHero) {
+  const call = facts.phone
+    ? `<a class="v3-btn v3-btn--cta v3-btn--lg" href="${esc(telHref(facts.phone))}" data-contact="call">${ICON_CALL}Call ${esc(facts.phone)}</a>`
+    : "";
+  const form = formInHero
+    ? ""
+    : `<div class="v3-formcard" id="contact"><span id="quote"></span><h3 class="v3-formcard__h" id="quoteHeading">${esc(estimateLabelV3(facts))}</h3>{{QUOTE_FORM}}</div>`;
+  return `<section class="v3-closing" id="${formInHero ? "closing" : "closingAsk"}" aria-labelledby="closingHeading">
+  <div class="v3-wrap v3-closing__in${formInHero ? " is-noform" : ""}">
+    <div class="v3-closing__text">
+      <h2 id="closingHeading" class="v3-h2 v3-h2--light">${esc(copy.closing.heading)}</h2>
+      ${copy.closing.line ? `<p>${esc(copy.closing.line)}</p>` : ""}
+      <div class="v3-actions">${call}${formInHero ? `<a class="v3-btn v3-btn--ghost v3-btn--lg" href="#contact" data-contact="quote">${esc(estimateLabelV3(facts))}</a>` : ""}</div>
+    </div>
+    ${form}
+  </div>
+</section>`;
+}
+
+function licenseText(lic) {
+  if (!lic?.number) return "";
+  return `${[lic.state, lic.kind || "License"].filter(Boolean).join(" ")} #${str(lic.number).replace(/^#/, "")}`;
+}
+
+function footerBlock(facts, ctx) {
+  const addr = [facts.address.street, [facts.address.town, [facts.address.state, facts.address.zip].filter(Boolean).join(" ")].filter(Boolean).join(", ")].filter(Boolean).join(", ");
+  const lic = licenseText(facts.license);
+  const { services } = linkServicesToSpotlights(facts.services.map(s => ({ ...s, service_name: s.name })), list(ctx.spotlights), ctx.slug);
+  const towns = facts.towns.confirmed.length ? facts.towns.confirmed : facts.towns.home ? [facts.towns.home] : [];
+  return `<footer class="v3-footer" id="siteFooter">
+  <div class="v3-wrap v3-footer__in">
+    <div class="v3-footer__col">
+      <p class="v3-footer__h">${esc(facts.name)}</p>
+      ${addr ? `<p>${esc(addr)}</p>` : ""}
+      ${facts.phone ? `<p><a class="v3-footer__phone" href="${esc(telHref(facts.phone))}" data-contact="call">${esc(facts.phone)}</a></p>` : ""}
+      ${lic ? `<p>${esc(lic)}${facts.license.verify_url ? ` · <a href="${esc(facts.license.verify_url)}" target="_blank" rel="noopener">Verify</a>` : ""}</p>` : ""}
+    </div>
+    ${str(facts.hours?.text) ? `<div class="v3-footer__col"><p class="v3-footer__h">Hours</p><p>${esc(facts.hours.text)}</p></div>` : ""}
+    ${services.length ? `<div class="v3-footer__col"><p class="v3-footer__h">Services</p><ul>${services.map(s => `<li><a href="${esc(s.spotlight_url || "#services")}">${esc(s.name)}</a></li>`).join("")}</ul></div>` : ""}
+    ${towns.length ? `<div class="v3-footer__col"><p class="v3-footer__h">Area</p><ul>${towns.map(t => `<li>${esc(t)}${facts.address.state ? `, ${esc(facts.address.state)}` : ""}</li>`).join("")}</ul></div>` : ""}
+  </div>
+  <div class="v3-wrap"><p class="v3-footer__by"><a href="https://enoma.io" target="_blank" rel="noopener">Website by Enoma</a></p></div>
+</footer>`;
+}
+
+// ── Schema ────────────────────────────────────────────────────────────────
+
+const DAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+/**
+ * LocalBusiness JSON-LD for v3: name, address, phone, hours, areaServed
+ * (confirmed towns only), aggregateRating only from the Google numbers the
+ * page shows.
+ */
+export function localBusinessSchemaV3(facts, { canonical, image, rawProfile = {} } = {}) {
+  const spec = list(facts.hours?.spec).filter(x => x.days?.length && /^\d\d:\d\d$/.test(str(x.opens)) && /^\d\d:\d\d$/.test(str(x.closes)));
+  const hoursSpec = spec.length
+    ? spec.map(x => ({ "@type": "OpeningHoursSpecification", dayOfWeek: x.days.filter(d => d >= 0 && d <= 6).map(d => `https://schema.org/${DAY[d]}`), opens: x.opens, closes: x.closes }))
+    : undefined;
+  const a = facts.address;
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": schemaTypeFor(rawProfile.primary_category),
+    "@id": canonical,
+    name: facts.name || undefined,
+    url: canonical,
+    telephone: facts.phone || undefined,
+    image: image || undefined,
+    address: (a.street || a.town || a.state) ? {
+      "@type": "PostalAddress",
+      ...(a.street ? { streetAddress: a.street } : {}),
+      ...(a.town ? { addressLocality: a.town } : {}),
+      ...(a.state ? { addressRegion: a.state } : {}),
+      ...(a.zip ? { postalCode: a.zip } : {}),
+      addressCountry: "US",
+    } : undefined,
+    openingHoursSpecification: hoursSpec,
+    areaServed: facts.towns.confirmed.length ? facts.towns.confirmed.map(name => ({ "@type": "City", name: a.state ? `${name}, ${a.state}` : name })) : undefined,
+    aggregateRating: facts.google.rating && facts.google.count
+      ? { "@type": "AggregateRating", ratingValue: facts.google.rating, reviewCount: facts.google.count, bestRating: 5 }
+      : undefined,
+    sameAs: sameAsLinks({ ...rawProfile, google_place_id: facts.google.place_id, business_name: facts.name }),
+  };
+  if (!schema.sameAs.length) delete schema.sameAs;
+  return JSON.parse(JSON.stringify(schema));
+}
+
+// ── Assembly ──────────────────────────────────────────────────────────────
+
+/**
+ * Which sections render (exported for tests and the menu).
+ * Returns the facts/copy too so callers don't normalize twice.
+ */
+export function v3Plan(rawProfile, kit, ctx = {}) {
+  const facts = factsFor(rawProfile, kit);
+  const copy = copyFor(rawProfile, facts);
+  const c = { ...ctx, name: facts.name, businessId: rawProfile?.business_id || "", googleOk: googlePhotosAllowed(rawProfile, ctx) };
+  const work = recentWork(facts, kit, c);
+  const spot = list(ctx.spotlights);
+  return {
+    facts, copy, ctx: c, work,
+    nav: {
+      services: facts.services.length ? (spot.length ? `/${encodeURIComponent(ctx.slug)}/${encodeURIComponent(spot[0].service_slug)}` : "#services") : null,
+      work: work.length > 0,
+      reviews: facts.reviews.length > 0 || !!(facts.google.rating && facts.google.count),
+      area: facts.towns.confirmed.length > 0 || !!facts.towns.home,
+    },
+    heroMode: heroMode(facts),
+  };
+}
+
+/**
+ * All template replacements for a v3 page.
+ * ctx: { slug, spotlights, quoteStatus, owner, token, m, utm, jackPhone,
+ *        launchKit, townCoords, stockRows, stockUsage, now }
+ */
+export function renderBlocksV3(rawProfile, kit, ctx = {}) {
+  const slug = ctx.slug || rawProfile?.username || "";
+  const plan = v3Plan(rawProfile, kit, { ...ctx, slug });
+  const { facts, copy, nav } = plan;
+  const c = plan.ctx;
+  const formInHero = plan.heroMode === "form";
+  const p = { ...normalizeProfile(rawProfile || {}), business_name: facts.name };
+  const bar = ctx.owner && ctx.token ? ownerBar(p, kit, { ...c, hasPhotos: plan.work.length > 0 }) : "";
+  const quoteProfile = {
+    ...rawProfile, business_name: facts.name, phone: facts.phone,
+    services: facts.services.map(s => ({ service_name: s.name })),
+    service_area: facts.towns.confirmed.length ? facts.towns.confirmed : rawProfile?.service_area,
+  };
+  return {
+    "{{BLOCK_TOPBAR}}": bar + topBar(facts, c),
+    "{{BLOCK_HEADER}}": headerBlock(rawProfile, facts, kit, c, nav),
+    "{{BLOCK_HERO}}": heroBlock(facts, copy, c),
+    "{{BLOCK_PROOF}}": proofBlock(copy),
+    "{{BLOCK_TRUST}}": "",
+    "{{BLOCK_SERVICES}}": servicesBlock(facts, copy, kit, c),
+    "{{BLOCK_HOW}}": "",
+    "{{BLOCK_WORK}}": workBlock(plan.work),
+    "{{BLOCK_REVIEWS}}": reviewsBlock(facts, copy),
+    "{{BLOCK_OWNER}}": ownerBlock(facts, copy),
+    "{{BLOCK_ABOUT}}": "",
+    "{{BLOCK_AREAS}}": areaBlock(facts, c),
+    "{{BLOCK_FAQ}}": faqBlock(copy),
+    "{{BLOCK_RESOURCES}}": "",
+    "{{BLOCK_CLOSING}}": closingBlock(facts, copy, formInHero),
+    "{{SSR_QUOTE_HEADING}}": "",
+    "{{BLOCK_FOOTER}}": footerBlock(facts, c),
+    "{{BLOCK_MOBILE_BAR}}": mobileBar({ phone: facts.phone }),
+    // Last: business text above is never re-read as a placeholder after it.
+    "{{QUOTE_FORM}}": renderQuoteForm(quoteProfile, { returnPath: `/${slug}`, status: ctx.quoteStatus || "", trackContactClick: true, submitLabel: estimateLabelV3(facts) }),
+  };
+}
+
+/** Extra <head> lines for v3: Archivo 800/900, Inter up to 700, share image size, scheme color. */
+export function v3Head(kit) {
+  return `  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="theme-color" content="${esc(kit.colors.identity)}" />`;
+}
+
+/** Everything renderCompanyPage needs for a v3 page besides <head> text. */
+export function v3PageParts(rawProfile, kit, ctx = {}) {
+  const facts = factsFor(rawProfile, kit);
+  const copy = copyFor(rawProfile, facts);
+  return {
+    blocks: renderBlocksV3(rawProfile, kit, ctx),
+    schema: localBusinessSchemaV3(facts, { canonical: ctx.canonical, image: ctx.image, rawProfile }),
+    faqs: copy.faqs,
+    style: kitStyle(kit),
+    head: v3Head(kit),
+  };
+}
