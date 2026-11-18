@@ -62,10 +62,26 @@ for (const slug of slugs) {
   const { data: prospect } = await supabase.from("prospects").select("raw, website, trade")
     .eq("preview_business_id", profile.business_id).maybeSingle();
 
-  const place = refresh ? await placeDetails(profile.google_place_id) : null;
-  const reviews = place?.reviews?.length ? place.reviews : googleTestimonials(profile.testimonials);
+  // --refresh-reviews pays for one Places call per slug, once: the response is
+  // cached in <out>/.places/<slug>.json, and an earlier output's refreshed
+  // fact sheet is reused too, so re-runs make no Places calls.
+  const cacheFile = path.join(outDir, ".places", `${slug}.json`);
+  const prevOut = path.join(outDir, `${slug}.json`);
+  let place = null, previous = null;
+  if (refresh) {
+    if (fs.existsSync(cacheFile)) place = JSON.parse(fs.readFileSync(cacheFile, "utf8"));
+    else {
+      const old = fs.existsSync(prevOut) ? JSON.parse(fs.readFileSync(prevOut, "utf8")) : null;
+      if (old?.reviews_source === "places_refresh") previous = old.fact_sheet;
+      else {
+        place = await placeDetails(profile.google_place_id);
+        if (place) { fs.mkdirSync(path.dirname(cacheFile), { recursive: true }); fs.writeFileSync(cacheFile, JSON.stringify(place)); }
+      }
+    }
+  }
+  const reviews = place?.reviews?.length ? place.reviews : previous ? undefined : googleTestimonials(profile.testimonials);
   const factSheet = buildFactSheet({
-    profile, place, raw: prospect?.raw || null, reviews,
+    profile, place, raw: prospect?.raw || null, reviews, previous,
     kit: profile.brand_kit || null,
     // The stored fact sheet's choice, if this row has one already.
     owner: { service_for_page: profile.fact_sheet?.owner?.service_for_page ?? null },
@@ -75,7 +91,7 @@ for (const slug of slugs) {
     const { copy, usage, cost_usd } = await generatePageCopyV3(factSheet);
     total += cost_usd;
     const file = path.join(outDir, `${slug}.json`);
-    fs.writeFileSync(file, JSON.stringify({ slug, reviews_source: place ? "places_refresh" : "stored_testimonials", fact_sheet: factSheet, page_copy_v3: copy, usage, cost_usd, prompt: buildPagePrompt(factSheet) }, null, 2));
+    fs.writeFileSync(file, JSON.stringify({ slug, reviews_source: place || previous ? "places_refresh" : "stored_testimonials", fact_sheet: factSheet, page_copy_v3: copy, usage, cost_usd, prompt: buildPagePrompt(factSheet) }, null, 2));
     summary.push({ slug, reviews: factSheet.reviews.length, services: copy.services.length, service_page: copy.service_page?.service_name || null, removed: copy.removed.length, cost_usd });
     console.log(`${slug}: ${factSheet.reviews.length} reviews, headline "${copy.hero_headline}", ${copy.removed.length} removed, $${cost_usd} -> ${file}`);
   } catch (e) {

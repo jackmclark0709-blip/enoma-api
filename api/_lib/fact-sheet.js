@@ -41,6 +41,7 @@ const list = v => {
 const uniq = arr => [...new Set(arr)];
 const num = v => (v === null || v === undefined || v === "" ? null : (Number.isFinite(Number(v)) ? Number(v) : null));
 const bool = v => (v === true ? true : v === false ? false : null);
+const GENERIC_TYPE = /^(services?|general contractors?|contractors?|establishment|point of interest|business)$/i;
 
 /** "Russell Brown" → "Russell B."; "Russ" → "Russ"; "" → "Google reviewer". */
 export function reviewAuthor(name) {
@@ -136,7 +137,10 @@ export function buildFactSheet({ profile = {}, place = null, raw = null, reviews
   const business = {
     name: s(p.business_name) || s(place?.displayName?.text) || s(r.name) || s(pb.name),
     trade: s(p.primary_category) || s(place?.primaryTypeDisplayName?.text) || s(r.type || r.category) || s(pb.trade),
-    primary_type: s(place?.primaryTypeDisplayName?.text) || s(r.type || r.category) || s(pb.primary_type) || null,
+    // Google's own primary type is sometimes just "Services"; the stored
+    // listing's type ("Lawn care service") is better then.
+    primary_type: [place?.primaryTypeDisplayName?.text, r.type, r.category, pb.primary_type].map(s).find(t => t && !GENERIC_TYPE.test(t))
+      || s(place?.primaryTypeDisplayName?.text) || s(r.type || r.category) || s(pb.primary_type) || null,
     google_types: uniq(googleTypes.map(s).filter(Boolean)).slice(0, 8),
     phone: s(p.phone) || s(place?.nationalPhoneNumber) || s(r.phone) || s(pb.phone) || null,
     address: s(p.address) || s(place?.formattedAddress) || s(r.address) || s(pb.address) || null,

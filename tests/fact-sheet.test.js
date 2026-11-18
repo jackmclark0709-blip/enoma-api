@@ -6,7 +6,7 @@ import {
 } from "../api/_lib/fact-sheet.js";
 import {
   buildPagePrompt, pageRequestBody, checkPageCopyV3, filterByEvidence, buildEyebrow, buildCodeProof,
-  PAGE_V3_SCHEMA, costOf, applyFactRules, factChecker,
+  PAGE_V3_SCHEMA, costOf, applyFactRules, factChecker, hasBannedWord,
 } from "../api/_lib/page-copy.js";
 import { scrubCopy } from "../api/_lib/copy-lint.js";
 
@@ -217,6 +217,57 @@ test("legacy paths: puffery drops the sentence, never the word", () => {
   const scrubbed = scrubCopy({ hero_headline: "Reliable Lawn Care in Agawam", seo_title: "Quality lawns. Agawam mowing." });
   assert.equal(scrubbed.hero_headline, "");
   assert.equal(scrubbed.seo_title, "Agawam mowing.");
+});
+
+test("v3: a rewrite that is really another sentence is rejected; duplicates go", async () => {
+  const d = { ...DRAFT(), hero_sub: `${SENT} They came the next morning.`, hero_sub_evidence: ["r1"] };
+  const swap = async items => items.map(it => ({ id: it.id, keep: it.text !== SENT, text: it.text === SENT ? "They came the next morning." : it.text }));
+  const out = await checkPageCopyV3(d, sheet(), { rewrite: swap });
+  assert.equal(out.hero_sub, "They came the next morning.");
+  assert.ok(out.removed.some(r => r.reason === "banned_word" && r.text === SENT));
+});
+test("v3: ad language counts as banned (transform your, expert, comprehensive)", async () => {
+  for (const line of ["Transform your yard with mulch.", "Expert drain cleaning.", "Comprehensive plumbing services."]) {
+    const out = await checkPageCopyV3({ ...DRAFT(), hero_sub: line, hero_sub_evidence: ["r1"] }, sheet());
+    assert.equal(out.hero_sub, "", line);
+  }
+});
+test("a generic Google type ('Services') gives way to the listing's own", () => {
+  const fs = buildFactSheet({ profile: { primary_category: "services", city: "Bedford", state: "NH" }, place: { primaryTypeDisplayName: { text: "Services" } }, raw: { type: "Lawn care service" } });
+  assert.equal(fs.business.primary_type, "Lawn care service");
+  assert.equal(buildEyebrow(fs), "Lawn care service in Bedford, NH");
+});
+
+test("trade terms aren't puffery: a dedicated circuit is fine, a dedicated team isn't", () => {
+  assert.equal(hasBannedWord("Install dedicated circuits for hot tubs"), false);
+  assert.equal(hasBannedWord("A dedicated team"), true);
+  assert.equal(hasBannedWord("Transforming lawns"), true);
+});
+test("only one service may rest on the listing alone", () => {
+  const d = DRAFT();
+  d.services = [
+    { name: "Plumbing", description: "Plumbing in town.", evidence: ["g"], stock_subject: "pipes" },
+    { name: "Driveway paving", description: "Paved driveways.", evidence: ["g"], stock_subject: "asphalt" },
+    { name: "Backed-up sewer lines", description: "Roots in the pipe.", evidence: ["r1"], stock_subject: "sewer" },
+  ];
+  const { copy, removed } = filterByEvidence(d, sheet());
+  assert.deepEqual(copy.services.map(s => s.name), ["Plumbing", "Backed-up sewer lines"]);
+  assert.ok(removed.some(r => r.reason === "listing_only_service"));
+});
+test("people reviews name aren't named in copy unless they're owners", () => {
+  const fs = sheet({ reviews: [placeReview(5, "Great crew. Jamie checked on the work every day and Rick was on time.")] });
+  const d = { ...DRAFT(), hero_sub: "Jamie checks on the work every day.", hero_sub_evidence: ["r1"], services: [], faqs: [] };
+  const { copy, removed } = filterByEvidence(d, fs);
+  assert.equal(copy.hero_sub, "");
+  assert.ok(removed.some(r => r.reason === "unconfirmed_name"));
+  const ok = filterByEvidence({ ...d, hero_sub: "Rick was on time." }, fs);
+  assert.equal(ok.copy.hero_sub, "Rick was on time.", "Rick is a confirmed owner name");
+});
+test("a headline rewritten into a long sentence is rejected; the service name stands in", async () => {
+  const sp = { service_name: "Interior painting", headline: "Transform Your Home's Interior", intro: "Roots in the pipe, found on camera.", signs: [], what_we_do: [], review_ids: ["r1"], faqs: [], evidence: ["r1"] };
+  const long = async items => items.map(it => ({ id: it.id, keep: !hasBannedWord(it.text), text: hasBannedWord(it.text) ? "Our team paints your home's interior rooms to give your whole house a brand new look." : it.text }));
+  const out = await checkPageCopyV3({ ...DRAFT(), service_page: sp }, sheet(), { rewrite: long });
+  assert.equal(out.service_page.headline, "Interior painting");
 });
 
 // ── Code-built parts ─────────────────────────────────────────────────────

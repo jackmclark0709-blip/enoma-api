@@ -22,7 +22,7 @@
 // Pure functions apart from requestCopy and the retry callback.
 
 import { callCtaLabel, offersFreeEstimates } from "./page-claims.js";
-import { lintCopy, scrubCopy, fixInstructions, BANNED_WORDS } from "./copy-lint.js";
+import { lintCopy, scrubCopy, fixInstructions, BANNED_WORDS, CAPTION_FILLER_RE } from "./copy-lint.js";
 import { evidenceMap } from "./fact-sheet.js";
 import { isStrongRating } from "./page-style.js";
 
@@ -610,7 +610,18 @@ const V3_BANNED = [...new Set([...PUFFERY_WORDS, ...BANNED_WORDS])];
 // Word forms count too: "ensuring", "dedication", "professionals".
 const STEM = { ensure: "ensur(?:e|es|ed|ing)", dedicated: "dedicat(?:ed|ion)", professional: "professional(?:s|ly|ism)?", reliable: "reliab(?:le|ly|ility)", trusted: "trust(?:ed|worthy)", passionate: "passion(?:ate|ately)?", commitment: "commit(?:ment|ted)" };
 const V3_BANNED_RE = new RegExp(`(^|[^a-z0-9#])(${V3_BANNED.map(w => STEM[w] || w.replace(/[-\s]/g, "[-\\s]")).join("|")})(?![a-z0-9])`, "i");
-export const hasBannedWord = t => V3_BANNED_RE.test(String(t || ""));
+// Ad language a tradesman wouldn't use about his own work: the launch kit's
+// list (copy-lint.js CAPTION_FILLER_RE: "transform your", "every inch"...)
+// plus the ones the v3 dry run turned up.
+const V3_AD_WORDS = ["expert", "expertly", "comprehensive", "exceptional", "oasis", "perfection", "solutions", "transform", "transforms", "transforming", "transformed"];
+const V3_AD_RE = new RegExp(`\\b(${V3_AD_WORDS.join("|")})\\b`, "i");
+// Trade terms that contain a banned word: an electrician's "dedicated circuit".
+const TRADE_TERMS = /\bdedicated\s+(?:circuits?|lines?|outlets?|breakers?|power|feeds?)\b|\bquality\s+control\b/gi;
+export const hasBannedWord = t => {
+  const s = String(t || "").replace(TRADE_TERMS, " ");
+  return V3_BANNED_RE.test(s) || V3_AD_RE.test(s) || CAPTION_FILLER_RE.test(s);
+};
+const V3_WORD_LIST = [...V3_BANNED, ...V3_AD_WORDS, "transform your", "looks its best", "peace of mind", "hassle-free", "stunning", "elevate", "attention to detail"];
 // Star ratings belong to the code-built proof item, not the prose.
 const RATING_V3 = /\d(?:\.\d)?\s*(?:★|stars?\b)|\brated\b|\bfive[- ]star\b/i;
 
@@ -723,14 +734,14 @@ RULES
 - Never invent: years, "since <year>", licenses, insurance, certifications, prices, guarantees, warranties, awards, team size, owner names, or towns. Only state one of these when the item cites the id that says it.
 - Do not mention star ratings or review counts; the page shows the real rating itself.
 - Use the reviewers' own wording for specifics ("came the next morning", "found the leak behind the wall"). Don't quote a whole review and don't name the reviewer.
-- Write for a homeowner: plain words, short sentences, no ad language. Never use these words: ${V3_BANNED.join(", ")}.
+- Write for a homeowner: plain words, short sentences, no ad language. Never use these words or phrases: ${V3_WORD_LIST.join(", ")}.
 - Name people only from [o.names].
 
 FIELDS
 hero_headline: at most 10 words, no business name. Name the problems people hire them for, or their specialty, as the reviews and owner answers describe them.${thin ? ` The facts are thin here, so use the trade and the town: "${tradeNoun(fs)} in ${fs.business?.town || "their town"}" (cite g).` : ` If the evidence is thin, fall back to the trade and the town (cite g).`}
 hero_sub: one sentence on what they do and where, with one specific detail from the evidence.
 proof: 0-2 short items, each said by at least 2 different reviews (cite them all). value: 1-3 words, the thing itself. label: a few words saying what the value is about, never repeating the value's words. e.g. {"value":"Next morning","label":"how fast they showed up"}. No ratings, no counts of stars.
-services: 3-6. Name each by the homeowner's problem as reviews or the owner describe it ("Backed-up drains and sewer lines", not "Drain Services"). description: 1-2 sentences of specifics from the cited evidence. stock_subject: what a stock photo for it should show, 3-6 words, a close-up of the work or the problem (e.g. "copper pipe repair close-up"), no people's faces, no logos. If the facts only name the trade, write one service for the trade itself.
+services: 3-6. Name each by the homeowner's problem as reviews or the owner describe it ("Backed-up drains and sewer lines", not "Drain Services"). description: 1-2 sentences of specifics from the cited evidence. stock_subject: what a stock photo for it should show, 3-6 words, a close-up of the work or the problem (e.g. "copper pipe repair close-up"), no people's faces, no logos. No catch-all service ("General plumbing services") when the evidence names specific ones; if the facts only name the trade, write one service for the trade itself.
 owner_section: ${(fs.owner?.names?.length || fs.owner?.blurb) ? `heading + 2-3 sentence body about the owner from [o.names] / [o.blurb] and what reviews say about working with them.` : `null (no owner answers).`}
 faqs: 3-5 questions a homeowner asks before calling. Answer only from the cited evidence; skip a question you can't answer that way.
 closing: a heading and one line asking them to call. No new facts, no promises.
@@ -818,9 +829,33 @@ function walkV3(c, fn, allIds) {
   return out;
 }
 
+// Capitalized words that aren't names: days, months, trade and place words.
+const NOT_PEOPLE = new Set(("I The They He She We It This That These Those Very Great Highly Thank Thanks Would Will Definitely Amazing Excellent " +
+  "Monday Tuesday Wednesday Thursday Friday Saturday Sunday January February March April May June July August September October November December " +
+  "Google Yelp Facebook BBB Better Business Bureau HVAC LLC Inc Co Mr Mrs Ms Dr St Rd Ave A B C OK Christian American Catholic Veteran Navy Army Marine There Here Communication Cleaners Service Services Work Everything Everyone Customer Price Pricing Team Crew Job Staff Company Owner Office").split(" "));
+
+/** First names a review mentions mid-sentence ("Jamie was great"). Pure. */
+export function reviewPeople(fs = {}) {
+  const town = new Set([fs.business?.town, ...(fs.towns?.confirmed || []), ...(fs.towns?.suggested || [])].join(" ").split(/\W+/).filter(Boolean));
+  const out = new Set();
+  // A capitalized word in a person's position: "Jamie was / came / checked…",
+  // "thanks to / ask for / with Jamie". Anywhere in the sentence.
+  const pats = [
+    /\b([A-Z][a-z]{2,14})\s+(?:and\s+(?:his|her|the)\s+\w+\s+)?(?:was|is|were|are|came|did|does|checked|showed|fixed|helped|got|has|had|went|made|took|answered|called|explained|arrived|returned|kept|walked|gave|always|really|also|knows|knew|did|will|would|and [A-Z][a-z]+ (?:were|are|came))\b/g,
+    /\b(?:with|thanks to|thank you|thanks|ask for|asked for|call|called|from|by|recommend)\s+([A-Z][a-z]{2,14})\b/g,
+  ];
+  for (const r of fs.reviews || []) {
+    for (const re of pats) for (const m of String(r.text || "").matchAll(re)) {
+      const n = m[1];
+      if (!NOT_PEOPLE.has(n) && !town.has(n)) out.add(n);
+    }
+  }
+  return [...out];
+}
+
 /**
  * Step 1, pure: evidence ids, then numbers / claims / ratings / unconfirmed
- * towns against each item's own cited evidence. Returns { copy, removed }.
+ * towns and names against each item's own cited evidence. Returns { copy, removed }.
  */
 export function filterByEvidence(draft, fs = {}) {
   const emap = evidenceMap(fs);
@@ -829,6 +864,10 @@ export function filterByEvidence(draft, fs = {}) {
   const log = (field, text, reason) => { if (String(text || "").trim()) removed.push({ field, text: String(text).trim(), reason }); };
   const esc = x => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const unconfirmed = (fs.towns?.suggested || []).filter(Boolean).map(x => new RegExp(`\\b${esc(x)}\\b`, "i"));
+  // People reviews name ("Jamie was great") who aren't confirmed owners:
+  // copy may not name them. Owner names and the business's own name are fine.
+  const okNames = new Set([...(fs.owner?.names || []), ...String(fs.business?.name || "").split(/\W+/)].map(n => String(n).toLowerCase()));
+  const strangers = reviewPeople(fs).filter(n => !okNames.has(n.toLowerCase())).map(n => new RegExp(`\\b${esc(n)}\\b`));
   const c = draft && typeof draft === "object" ? { ...draft } : {};
 
   // Items citing ids we don't have, or nothing: dropped whole.
@@ -839,6 +878,15 @@ export function filterByEvidence(draft, fs = {}) {
   const keepItems = (arr, field, text) => list3(arr).filter((it, i) => idsOk(it?.evidence) || (log(`${field}[${i}]`, text(it), why(it?.evidence)), false));
   c.proof = keepItems(c.proof, "proof", p => `${p?.value} ${p?.label}`);
   c.services = keepItems(c.services, "services", sv => `${sv?.name}: ${sv?.description}`);
+  // The listing only names the trade: one service may rest on it alone (the
+  // trade itself), not "Driveway paving" + "Parking lot paving" + ... that
+  // nothing we were given mentions.
+  let listingOnly = 0;
+  c.services = c.services.filter((sv, i) => {
+    const only = list3(sv.evidence).every(id => id === "g" || id === "o.towns");
+    if (only && ++listingOnly > 1) { log(`services[${i}]`, `${sv.name}: ${sv.description}`, "listing_only_service"); return false; }
+    return true;
+  });
   c.faqs = keepItems(c.faqs, "faqs", f => `${f?.q} ${f?.a}`);
   if (c.owner_section && !idsOk(c.owner_section.evidence)) { log("owner_section", c.owner_section.body, why(c.owner_section.evidence)); c.owner_section = null; }
   if (c.service_page) {
@@ -856,7 +904,8 @@ export function filterByEvidence(draft, fs = {}) {
       const reason = unsupportedNumber(sn) ? "unsupported_number"
         : unsupportedClaim(sn) ? "unsupported_claim"
           : !field.startsWith("proof") && RATING_V3.test(sn) ? "rating_in_copy"
-            : unconfirmed.some(re => re.test(sn)) ? "unconfirmed_town" : null;
+            : unconfirmed.some(re => re.test(sn)) ? "unconfirmed_town"
+              : strangers.some(re => re.test(sn)) ? "unconfirmed_name" : null;
       if (reason) log(field, sn, reason);
       return !reason;
     }).join(" ");
@@ -873,7 +922,7 @@ export function puffRequestBody(items, { model = V3_CHECK_MODEL } = {}) {
       { role: "system", content: "You edit website sentences for a small local business. You never add facts." },
       { role: "user", content: `For each sentence below: if it uses none of these words and reads like a person talking, return keep=true and the text unchanged.
 Otherwise return keep=false and the sentence rewritten without the word: same facts, same meaning, plain words. Never just delete the word and leave a broken sentence; rewrite it so it reads naturally. Never add a number, place, name, price, guarantee or claim that isn't already in the sentence.
-Words: ${V3_BANNED.join(", ")}
+Words: ${V3_WORD_LIST.join(", ")}
 
 SENTENCES (JSON):
 ${JSON.stringify(items.map(it => ({ id: it.id, text: it.text })))}` },
@@ -909,7 +958,12 @@ export async function rewritePuffery(copy, fs = {}, { rewrite, removed = [] } = 
       const next = a.text.trim();
       const fc = it.ids ? factChecker(list3(it.ids).map(id => emap[id] || "").join("\n")) : null;
       const addsFact = fc && (fc.unsupportedNumber(next) || fc.unsupportedClaim(next));
-      if (!addsFact && !hasBannedWord(next)) {
+      // The rewrite must be the same sentence: the model sometimes answers
+      // one id with another sentence's text (Feathers, dry run 2026-11-18).
+      // ...and about the same length (a 4-word headline doesn't come back as a sentence).
+      const n = t => (t.match(/\S+/g) || []).length;
+      const sameSentence = wordOverlap(it.text, next) >= 0.5 && n(next) <= Math.max(n(it.text) * 1.5, n(it.text) + 4);
+      if (!addsFact && !hasBannedWord(next) && sameSentence) {
         removed.push({ field: it.field, text: it.text, reason: "puffery_rewritten", replacement: next });
         text = next;
       }
@@ -917,9 +971,23 @@ export async function rewritePuffery(copy, fs = {}, { rewrite, removed = [] } = 
     if (hasBannedWord(text)) { removed.push({ field: it.field, text: it.text, reason: "banned_word" }); text = ""; }
     decided.set(`${it.field}#${it.j}`, text);
   }
-  const out = walkV3(copy, (field, text) => sentencesOf(text)
-    .map((sn, j) => (decided.has(`${field}#${j}`) ? decided.get(`${field}#${j}`) : sn)).filter(Boolean).join(" "), allIds);
+  const out = walkV3(copy, (field, text) => {
+    const seen = new Set();
+    return sentencesOf(text)
+      .map((sn, j) => (decided.has(`${field}#${j}`) ? decided.get(`${field}#${j}`) : sn))
+      .filter(sn => sn && !seen.has(sn.toLowerCase()) && seen.add(sn.toLowerCase()))
+      .join(" ");
+  }, allIds);
   return { copy: out, removed };
+}
+
+/** Share of the original's content words (4+ letters, banned words aside) kept in the rewrite. */
+export function wordOverlap(original, rewrite) {
+  const words = t => (String(t).toLowerCase().match(/[a-z]{4,}/g) || []).filter(w => !hasBannedWord(w));
+  const orig = [...new Set(words(original))];
+  if (!orig.length) return 1;
+  const next = new Set(words(rewrite));
+  return orig.filter(w => next.has(w)).length / orig.length;
 }
 
 /** The gpt-4o-mini rewrite, bound to a fetch. Returns [{ id, keep, text }]. */
@@ -964,6 +1032,8 @@ export async function checkPageCopyV3(draft, fs = {}, { rewrite = null, now = Da
   let service_page = c.service_page || null;
   if (service_page) {
     const backed = list3(service_page.evidence).some(id => /^r\d$/.test(id) || id.startsWith("o."));
+    // A headline the check removed: the service's own name stands in.
+    if (!service_page.headline && service_page.intro) service_page = { ...service_page, headline: fs.owner?.service_for_page || service_page.service_name };
     const filled = service_page.headline && service_page.intro;
     if (!backed || !filled) {
       removed.push({ field: "service_page", text: service_page.service_name, reason: !backed ? "no_review_or_owner_evidence" : "empty_after_check" });
