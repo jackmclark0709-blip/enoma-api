@@ -27,9 +27,13 @@ export function ownerTokenMatches(profile, given) {
   return crypto.timingSafeEqual(Buffer.from(stored), Buffer.from(g));
 }
 
-/** Is this a v2 page (the only kind with owner links and the owner bar)? */
+/**
+ * Is this a brand-kit page (v2 or v3: the kinds with owner links, the owner
+ * bar and a brand kit)? v3 (api/_lib/page-v3.js) is a v2 page with a new
+ * layout, so everything gated on "v2" applies to it too.
+ */
 export function isPageV2(profile) {
-  return Number(profile?.page_version) === 2;
+  return Number(profile?.page_version) >= 2;
 }
 
 /**
@@ -89,7 +93,8 @@ export async function ownerDestination(supabase, profile, slug, { m = null, clai
  * already on the row is kept.
  */
 export function pageV2Fields(profile = {}) {
-  return { page_version: 2, owner_token: isOwnerTokenShape(profile?.owner_token) ? profile.owner_token : newOwnerToken() };
+  // Never moves a v3 page back to v2.
+  return { page_version: Math.max(2, Number(profile?.page_version) || 0), owner_token: isOwnerTokenShape(profile?.owner_token) ? profile.owner_token : newOwnerToken() };
 }
 
 /**
@@ -99,10 +104,13 @@ export function pageV2Fields(profile = {}) {
  */
 export async function promoteToPageV2(supabase, profile, { log = console } = {}) {
   if (!profile?.business_id) return { ok: false, token: null, error: "no business_id" };
-  const { error } = await supabase.from("small_business_profiles")
-    .update({ page_version: 2 }).eq("business_id", profile.business_id);
-  if (error) return { ok: false, token: null, error: error.message || String(error) };
-  const token = await ensureOwnerToken(supabase, { ...profile, page_version: 2 }, { log });
+  // Never moves a v3 page back to v2: it already has everything v2 does.
+  if (!(Number(profile.page_version) >= 3)) {
+    const { error } = await supabase.from("small_business_profiles")
+      .update({ page_version: 2 }).eq("business_id", profile.business_id);
+    if (error) return { ok: false, token: null, error: error.message || String(error) };
+  }
+  const token = await ensureOwnerToken(supabase, { ...profile, page_version: Math.max(2, Number(profile.page_version) || 0) }, { log });
   if (!token) log.warn?.("owner token: not minted at the v2 flip; first use will mint it");
   return { ok: true, token, error: null };
 }

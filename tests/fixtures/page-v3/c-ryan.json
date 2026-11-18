@@ -1,0 +1,59 @@
+{
+  "business_id": "00000000-0000-4000-8000-0000000a3002",
+  "username": "c-ryan-asphalt-paving",
+  "business_name": "C Ryan Asphalt Paving",
+  "primary_category": "Contractor",
+  "page_version": 3,
+  "is_claimed": false,
+  "phone": "(508) 223-0577",
+  "address": null,
+  "city": "Attleboro",
+  "state": "Massachusetts",
+  "google_place_id": "ChIJr-Gn9Ldg5IkRh4rBYXudDbQ",
+  "average_rating": null,
+  "review_count": null,
+  "testimonials": [],
+  "service_area": ["Attleboro, MA"],
+  "brand_kit": {
+    "version": 1,
+    "built_at": "2026-11-17T20:29:32.069Z",
+    "colors": { "cta": "#F2A93B", "accent": "#b3c0d0", "source": "persona", "ctaText": "#1a1714", "identity": "#4a5a6e" },
+    "logo": { "url": null, "reason": "no_logo", "source": null, "quality": "none" },
+    "wordmark": { "icon": "handyman", "line1": "C RYAN", "line2": "ASPHALT PAVING · ATTLEBORO MA" },
+    "towns": { "confirmed": ["Attleboro"], "suggested": ["North Attleborough", "Pawtucket", "Plainville"] },
+    "badges": [], "owner_names": [], "specialty": null, "years": null, "license": null, "insured": false,
+    "hero": { "kind": "scene", "ref": "contractor" }
+  },
+  "fact_sheet": {
+    "version": 1,
+    "built_at": "2026-11-18T20:00:00.000Z",
+    "business": {
+      "name": "C Ryan Asphalt Paving", "trade": "Contractor", "primary_type": "Paving contractor",
+      "google_types": ["general_contractor", "point_of_interest"], "phone": "(508) 223-0577", "address": null,
+      "town": "Attleboro", "state": "MA", "hours": [], "rating": null, "review_count": null, "place_id": "ChIJr-Gn9Ldg5IkRh4rBYXudDbQ"
+    },
+    "reviews": [],
+    "site_text": "",
+    "owner": { "names": [], "years_in_business": null, "license_number": null, "is_insured": null, "offers_free_estimates": null, "offers_emergency": false, "blurb": null, "service_for_page": null, "services": [], "notes": null },
+    "towns": { "home": "Attleboro", "confirmed": ["Attleboro"], "suggested": ["North Attleborough", "Seekonk", "Pawtucket", "Plainville"] },
+    "photos": { "owner": [], "work": [], "google_work_count": 0 }
+  },
+  "page_copy_v3": {
+    "eyebrow": "Paving contractor in Attleboro, MA",
+    "hero_headline": "Paving contractor in Attleboro",
+    "hero_headline_evidence": ["g"],
+    "hero_sub": "Asphalt paving for homes and businesses in Attleboro. Tell us about the job and we'll get back to you with a price.",
+    "hero_sub_evidence": ["g"],
+    "proof": [],
+    "services": [
+      { "name": "Asphalt paving", "description": "Paving for driveways, parking lots and other paved areas.", "evidence": ["g"], "stock_subject": "fresh asphalt driveway" }
+    ],
+    "owner_section": null,
+    "faqs": [
+      { "q": "Do you work outside Attleboro?", "a": "Call or text (508) 223-0577 with your town and we'll tell you if we can get there.", "evidence": ["g"] }
+    ],
+    "closing": { "heading": "Need a paving contractor in Attleboro?", "line": "Call (508) 223-0577." },
+    "service_page": null,
+    "removed": [ { "field": "hero_headline", "text": "Trusted Attleboro paving for 20 years", "reason": "no_evidence" } ]
+  }
+}
