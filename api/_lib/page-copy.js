@@ -22,7 +22,9 @@
 // Pure functions apart from requestCopy and the retry callback.
 
 import { callCtaLabel, offersFreeEstimates } from "./page-claims.js";
-import { lintCopy, scrubCopy, fixInstructions } from "./copy-lint.js";
+import { lintCopy, scrubCopy, fixInstructions, BANNED_WORDS } from "./copy-lint.js";
+import { evidenceMap } from "./fact-sheet.js";
+import { isStrongRating } from "./page-style.js";
 
 const NOT_PROVIDED = "not provided";
 const given = v => {
@@ -464,6 +466,8 @@ primary_cta: type "call", value the phone, label "".`;
 // distinctive word with the source.
 
 export const PUFFERY = /\b(trusted|reliable|professional|quality|dedicated|passionate|excellence|premier|top-notch|best|#1|leading)\b/gi;
+// Non-global twin for .test() (a /g regex keeps lastIndex between calls).
+const PUFFERY_ONE = new RegExp(PUFFERY.source, "i");
 const RATING = /(\d(\.\d)?\s*★|\bstars?\b|\breviews?\b|\brated\b)/i;
 // [claim in the copy, what the source must contain to back it]
 const CLAIMS = [
@@ -491,12 +495,15 @@ export function factChecker(sourceText) {
   const srcLc = src.toLowerCase();
   const srcNums = new Set(numbersIn(src));
   const clean = t => {
-    const c = String(t || "").replace(PUFFERY, "").replace(/\s{2,}/g, " ").replace(/\s+([,.])/g, "$1").trim();
+    // Whitespace only. Puffery is never cut out of a sentence (that turned
+    // "ensuring quality and integrity" into "ensuring and integrity"): a
+    // sentence with a puffery word is dropped whole by keep() below.
+    const c = String(t || "").replace(/\s{2,}/g, " ").replace(/\s+([,.])/g, "$1").trim();
     return c.charAt(0).toUpperCase() + c.slice(1);
   };
   const unsupportedNumber = t => numbersIn(t).some(n => n.length >= 2 && !srcNums.has(n));
   const unsupportedClaim = t => CLAIMS.some(([claim, need]) => claim.test(t) && !need.test(srcLc));
-  const keep = t => !!t && !RATING.test(t) && !unsupportedNumber(t) && !unsupportedClaim(t);
+  const keep = t => !!t && !RATING.test(t) && !PUFFERY_ONE.test(t) && !unsupportedNumber(t) && !unsupportedClaim(t);
   const grounded = t => {
     if (!srcLc) return false;
     const words = String(t).toLowerCase().match(/[a-z]{5,}/g) || [];
@@ -571,4 +578,434 @@ export function applyFactRules(gen, sourceText) {
     out.primary_cta = { ...g.primary_cta, label: label && keep(label) ? label : "" };
   }
   return out;
+}
+
+// ══ Website v3: one prompt from the fact sheet ═══════════════════════════
+// docs/website-v3-contract.md. buildPagePrompt(factSheet) replaces the three
+// builders above (buildAdminPrompt, buildSelfServePrompt, buildFactsPrompt).
+// Those stay, unchanged, until PR C moves every path onto this one: they
+// write the old page shape, which the live pages still render.
+//
+// One gpt-4o call per page (temperature 0.2, strict JSON schema) writes the
+// page and its service page; every claim cites evidence ids from the fact
+// sheet. Then checkPageCopyV3:
+//   1. an item citing an id the fact sheet doesn't have, or citing nothing,
+//      is dropped; so is any sentence with a number, year, license, price,
+//      guarantee (the CLAIMS above) its own cited evidence doesn't contain;
+//   2. one gpt-4o-mini pass over the surviving sentences returns each one
+//      kept, or rewritten without the puffery / banned word. Words are never
+//      deleted in place. A rewrite that adds a fact, or still has the word,
+//      loses to dropping the sentence;
+//   3. everything removed goes to page_copy_v3.removed for Jack's review.
+// The eyebrow and the rating / hours proof items are built here, in code.
+
+export const V3_MODEL = "gpt-4o";
+export const V3_CHECK_MODEL = "gpt-4o-mini";
+export const V3_TEMPERATURE = 0.2;
+// USD per 1M tokens (OpenAI list prices).
+export const MODEL_PRICES = { "gpt-4o": { input: 2.5, output: 10 }, "gpt-4o-mini": { input: 0.15, output: 0.6 } };
+
+const PUFFERY_WORDS = ["trusted", "reliable", "professional", "quality", "dedicated", "passionate", "excellence", "premier", "top-notch", "best", "#1", "leading"];
+const V3_BANNED = [...new Set([...PUFFERY_WORDS, ...BANNED_WORDS])];
+// Word forms count too: "ensuring", "dedication", "professionals".
+const STEM = { ensure: "ensur(?:e|es|ed|ing)", dedicated: "dedicat(?:ed|ion)", professional: "professional(?:s|ly|ism)?", reliable: "reliab(?:le|ly|ility)", trusted: "trust(?:ed|worthy)", passionate: "passion(?:ate|ately)?", commitment: "commit(?:ment|ted)" };
+const V3_BANNED_RE = new RegExp(`(^|[^a-z0-9#])(${V3_BANNED.map(w => STEM[w] || w.replace(/[-\s]/g, "[-\\s]")).join("|")})(?![a-z0-9])`, "i");
+export const hasBannedWord = t => V3_BANNED_RE.test(String(t || ""));
+// Star ratings belong to the code-built proof item, not the prose.
+const RATING_V3 = /\d(?:\.\d)?\s*(?:★|stars?\b)|\brated\b|\bfive[- ]star\b/i;
+
+const ev = { type: "array", items: { type: "string" } };
+const arrOf = items => ({ type: "array", items });
+const nullable = schema => ({ anyOf: [schema, { type: "null" }] });
+const faqItem = obj({ q: str, a: str, evidence: ev });
+
+/** What the model returns. Stored as page_copy_v3 after the check (see contract). */
+export const PAGE_V3_SCHEMA = obj({
+  hero_headline: str,
+  hero_headline_evidence: ev,
+  hero_sub: str,
+  hero_sub_evidence: ev,
+  proof: arrOf(obj({ value: str, label: str, evidence: ev })),
+  services: arrOf(obj({ name: str, description: str, evidence: ev, stock_subject: str })),
+  owner_section: nullable(obj({ heading: str, body: str, evidence: ev })),
+  faqs: arrOf(faqItem),
+  closing: obj({ heading: str, line: str }),
+  service_page: nullable(obj({
+    service_name: str, headline: str, intro: str,
+    signs: strList, what_we_do: strList, review_ids: strList,
+    faqs: arrOf(faqItem), evidence: ev,
+  })),
+});
+
+const tc = t => { const x = String(t || "").trim(); return x ? x.charAt(0).toUpperCase() + x.slice(1) : ""; };
+const GENERIC_TRADE = /^(services?|contractors?|local service|business|company|other)$/i;
+const v3slug = t => String(t || "").toLowerCase().replace(/&/g, " and ").replace(/['’]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 60);
+
+/** "Plumber" from the fact sheet: the trade, or Google's primary type when the trade is generic. */
+export function tradeNoun(fs = {}) {
+  const b = fs.business || {};
+  const trade = String(b.trade || "").trim();
+  const primary = String(b.primary_type || "").trim();
+  return tc(!trade || GENERIC_TRADE.test(trade) ? (primary || trade || "Local service") : trade);
+}
+
+/** "Plumber in North Attleborough, MA". Built in code, never by the AI. */
+export function buildEyebrow(fs = {}) {
+  const b = fs.business || {};
+  const place = [b.town, b.state].filter(Boolean).join(", ");
+  return place ? `${tradeNoun(fs)} in ${place}` : tradeNoun(fs);
+}
+
+/** The proof items code builds: the Google rating (when strong) and hours. */
+export function buildCodeProof(fs = {}) {
+  const b = fs.business || {};
+  const out = [];
+  if (isStrongRating(b.rating, b.review_count)) {
+    out.push({ value: `${Number(b.rating).toFixed(1)} ★`, label: `${b.review_count} Google reviews`, evidence: ["g"] });
+  }
+  const hours = Array.isArray(b.hours) ? b.hours.map(String) : [];
+  if (hours.length === 7) {
+    const open = hours.filter(h => !/closed/i.test(h));
+    if (hours.every(h => /open 24 hours/i.test(h))) out.push({ value: "24/7", label: "Open around the clock", evidence: ["g"] });
+    else if (open.length === 7) out.push({ value: "7 days", label: "Open every day", evidence: ["g"] });
+    else if (open.some(h => /^saturday/i.test(h))) out.push({ value: "Saturdays", label: "Open on Saturdays", evidence: ["g"] });
+  }
+  return out;
+}
+
+function factsBlock(fs = {}) {
+  const b = fs.business || {};
+  const o = fs.owner || {};
+  const lines = [];
+  lines.push(`[g] GOOGLE LISTING
+Name: ${b.name || NOT_PROVIDED}
+Trade: ${b.trade || NOT_PROVIDED}${b.primary_type && b.primary_type !== b.trade ? ` (Google: ${b.primary_type})` : ""}
+Google categories: ${(b.google_types || []).join(", ") || NOT_PROVIDED}
+Town: ${[b.town, b.state].filter(Boolean).join(", ") || NOT_PROVIDED}
+Hours: ${(b.hours || []).join("; ") || NOT_PROVIDED}`);
+  if (fs.site_text) lines.push(`[s] THEIR OWN WEBSITE TEXT
+"""
+${String(fs.site_text).slice(0, 7000)}
+"""`);
+  const own = [];
+  if (o.names?.length) own.push(`[o.names] Owner / who answers the phone: ${o.names.join(" and ")}`);
+  if (o.years_in_business) own.push(`[o.years_in_business] Years in business: ${o.years_in_business}`);
+  if (o.license_number) own.push(`[o.license_number] License number: ${o.license_number}${b.state ? ` (${b.state})` : ""}`);
+  if (o.is_insured === true) own.push(`[o.is_insured] Insured: yes`);
+  if (o.offers_free_estimates === true) own.push(`[o.offers_free_estimates] Free estimates: yes`);
+  if (o.offers_emergency === true) own.push(`[o.offers_emergency] Emergency / after-hours calls: yes`);
+  if (o.services?.length) own.push(`[o.services] Services the owner listed: ${o.services.join(", ")}`);
+  if (o.notes) own.push(`[o.notes] The owner's notes: "${o.notes}"`);
+  if (o.blurb) own.push(`[o.blurb] The owner, in their own words: "${o.blurb}"`);
+  if (o.service_for_page) own.push(`[o.service_for_page] Service the owner wants its own page: ${o.service_for_page}`);
+  const towns = [...new Set([fs.towns?.home, ...(fs.towns?.confirmed || [])].filter(Boolean))];
+  if (towns.length) own.push(`[o.towns] Towns they serve: ${towns.join(", ")}`);
+  if (fs.photos?.work?.length) own.push(`[o.photos] The owner uploaded ${fs.photos.work.length} job photo(s)`);
+  lines.push(own.length ? `OWNER ANSWERS\n${own.join("\n")}` : `OWNER ANSWERS\nnone`);
+  const reviews = (fs.reviews || []).map(r => `${r.id}: "${String(r.text).replace(/\s+/g, " ").trim()}" (${r.rating}★, ${r.author}${r.relative_time ? `, ${r.relative_time}` : ""})`);
+  lines.push(reviews.length ? `GOOGLE REVIEWS\n${reviews.join("\n")}` : `GOOGLE REVIEWS\nnone`);
+  return lines.join("\n\n");
+}
+
+/** The one page-copy prompt. Pure. */
+export function buildPagePrompt(fs = {}) {
+  const ids = Object.keys(evidenceMap(fs));
+  const thin = !(fs.reviews || []).length && !fs.site_text && !(fs.owner?.services || []).length;
+  const ownerFor = fs.owner?.service_for_page;
+  return `You are writing the website for one real local business, from the FACTS below and nothing else.
+Every item you write lists the evidence ids it relies on. The ids you may cite: ${ids.join(", ")}.
+An item you can't back with at least one of those ids: leave it out. Shorter and true beats longer and invented.
+
+FACTS
+${factsBlock(fs)}
+
+RULES
+- Never invent: years, "since <year>", licenses, insurance, certifications, prices, guarantees, warranties, awards, team size, owner names, or towns. Only state one of these when the item cites the id that says it.
+- Do not mention star ratings or review counts; the page shows the real rating itself.
+- Use the reviewers' own wording for specifics ("came the next morning", "found the leak behind the wall"). Don't quote a whole review and don't name the reviewer.
+- Write for a homeowner: plain words, short sentences, no ad language. Never use these words: ${V3_BANNED.join(", ")}.
+- Name people only from [o.names].
+
+FIELDS
+hero_headline: at most 10 words, no business name. Name the problems people hire them for, or their specialty, as the reviews and owner answers describe them.${thin ? ` The facts are thin here, so use the trade and the town: "${tradeNoun(fs)} in ${fs.business?.town || "their town"}" (cite g).` : ` If the evidence is thin, fall back to the trade and the town (cite g).`}
+hero_sub: one sentence on what they do and where, with one specific detail from the evidence.
+proof: 0-2 short items, each said by at least 2 different reviews (cite them all). value: 1-3 words, the thing itself. label: a few words saying what the value is about, never repeating the value's words. e.g. {"value":"Next morning","label":"how fast they showed up"}. No ratings, no counts of stars.
+services: 3-6. Name each by the homeowner's problem as reviews or the owner describe it ("Backed-up drains and sewer lines", not "Drain Services"). description: 1-2 sentences of specifics from the cited evidence. stock_subject: what a stock photo for it should show, 3-6 words, a close-up of the work or the problem (e.g. "copper pipe repair close-up"), no people's faces, no logos. If the facts only name the trade, write one service for the trade itself.
+owner_section: ${(fs.owner?.names?.length || fs.owner?.blurb) ? `heading + 2-3 sentence body about the owner from [o.names] / [o.blurb] and what reviews say about working with them.` : `null (no owner answers).`}
+faqs: 3-5 questions a homeowner asks before calling. Answer only from the cited evidence; skip a question you can't answer that way.
+closing: a heading and one line asking them to call. No new facts, no promises.
+service_page: ${ownerFor ? `the owner picked "${ownerFor}" (cite o.service_for_page); use that service name exactly.` : `the service with the most review evidence.`} null if no service has at least one review or owner answer behind it. headline (no business name), intro (2-3 sentences), signs (2-5 short signs a homeowner needs this, from the evidence), what_we_do (2-5 short lines on how they handle it, from the evidence), review_ids (the reviews about this service), faqs (2-4), evidence.`;
+}
+
+/** The chat/completions body for the v3 page call (exported for tests). */
+export function pageRequestBody(fs, { model = V3_MODEL, temperature = V3_TEMPERATURE } = {}) {
+  return {
+    model, temperature,
+    response_format: { type: "json_schema", json_schema: { name: "page_copy_v3", strict: true, schema: PAGE_V3_SCHEMA } },
+    messages: [
+      { role: "system", content: "You write website copy for small local businesses as JSON in the given schema. Every claim cites evidence ids from the facts you are given." },
+      { role: "user", content: buildPagePrompt(fs) },
+    ],
+  };
+}
+
+/** One structured-output call. Returns { data, usage }. Throws like requestCopy. */
+export async function requestJson(body, { fetchImpl = globalThis.fetch, apiKey = process.env.OPENAI_KEY } = {}) {
+  const fail = (code, message) => Object.assign(new Error(message || code), { code });
+  const r = await fetchImpl("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw fail("ai_request_failed", `OpenAI error: ${await r.text().catch(() => r.status)}`);
+  const json = await r.json();
+  const msg = json?.choices?.[0]?.message;
+  if (msg?.refusal) throw fail("ai_refused", String(msg.refusal).slice(0, 300));
+  if (!msg?.content) throw fail("ai_empty_response");
+  return { data: JSON.parse(msg.content), usage: { model: body.model, input: json?.usage?.prompt_tokens || 0, output: json?.usage?.completion_tokens || 0 } };
+}
+
+export function costOf(usage = []) {
+  return usage.reduce((sum, u) => {
+    const p = MODEL_PRICES[u.model] || MODEL_PRICES[String(u.model).replace(/-\d{4}-\d\d-\d\d$/, "")];
+    return p ? sum + (u.input * p.input + u.output * p.output) / 1e6 : sum;
+  }, 0);
+}
+
+// ── The evidence check ───────────────────────────────────────────────────
+
+const sentencesOf = t => String(t || "").split(/(?<=[.!?])\s+/).map(x => x.trim()).filter(Boolean);
+const list3 = v => (Array.isArray(v) ? v : []);
+
+/**
+ * Walk every text in a v3 draft. fn(field, text, ids) returns the new text
+ * ("" removes it). Items whose required text ends up empty are dropped.
+ * ids is null for stock_subject (a photo brief, not a claim).
+ */
+function walkV3(c, fn, allIds) {
+  const t = (field, text, ids) => fn(field, String(text || ""), ids);
+  const out = { ...c };
+  out.hero_headline = t("hero_headline", c.hero_headline, c.hero_headline_evidence);
+  out.hero_sub = t("hero_sub", c.hero_sub, c.hero_sub_evidence);
+  out.proof = list3(c.proof).map((p, i) => ({ ...p, value: t(`proof[${i}].value`, p.value, p.evidence), label: t(`proof[${i}].label`, p.label, p.evidence) }))
+    .filter(p => p.value && p.label);
+  out.services = list3(c.services).map((sv, i) => ({
+    ...sv,
+    name: t(`services[${i}].name`, sv.name, sv.evidence),
+    description: t(`services[${i}].description`, sv.description, sv.evidence),
+    stock_subject: t(`services[${i}].stock_subject`, sv.stock_subject, null),
+  })).filter(sv => sv.name);
+  out.owner_section = c.owner_section ? (() => {
+    const o = { ...c.owner_section, heading: t("owner_section.heading", c.owner_section.heading, c.owner_section.evidence), body: t("owner_section.body", c.owner_section.body, c.owner_section.evidence) };
+    return o.body ? o : null;
+  })() : null;
+  const faqs = (arr, prefix) => list3(arr).map((f, i) => ({ ...f, q: t(`${prefix}[${i}].q`, f.q, f.evidence), a: t(`${prefix}[${i}].a`, f.a, f.evidence) })).filter(f => f.q && f.a);
+  out.faqs = faqs(c.faqs, "faqs");
+  out.closing = c.closing ? { heading: t("closing.heading", c.closing.heading, allIds), line: t("closing.line", c.closing.line, allIds) } : c.closing;
+  if (c.service_page) {
+    const sp = c.service_page;
+    const e = sp.evidence;
+    const lines = (arr, f) => list3(arr).map((x, i) => t(`service_page.${f}[${i}]`, x, e)).filter(Boolean);
+    out.service_page = {
+      ...sp,
+      headline: t("service_page.headline", sp.headline, e),
+      intro: t("service_page.intro", sp.intro, e),
+      signs: lines(sp.signs, "signs"),
+      what_we_do: lines(sp.what_we_do, "what_we_do"),
+      faqs: faqs(sp.faqs, "service_page.faqs"),
+    };
+  }
+  return out;
+}
+
+/**
+ * Step 1, pure: evidence ids, then numbers / claims / ratings / unconfirmed
+ * towns against each item's own cited evidence. Returns { copy, removed }.
+ */
+export function filterByEvidence(draft, fs = {}) {
+  const emap = evidenceMap(fs);
+  const allIds = Object.keys(emap);
+  const removed = [];
+  const log = (field, text, reason) => { if (String(text || "").trim()) removed.push({ field, text: String(text).trim(), reason }); };
+  const esc = x => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const unconfirmed = (fs.towns?.suggested || []).filter(Boolean).map(x => new RegExp(`\\b${esc(x)}\\b`, "i"));
+  const c = draft && typeof draft === "object" ? { ...draft } : {};
+
+  // Items citing ids we don't have, or nothing: dropped whole.
+  const idsOk = ids => Array.isArray(ids) && ids.length > 0 && ids.every(id => id in emap);
+  const why = ids => (!Array.isArray(ids) || !ids.length ? "no_evidence" : "unknown_evidence");
+  if (!idsOk(c.hero_headline_evidence)) { log("hero_headline", c.hero_headline, why(c.hero_headline_evidence)); c.hero_headline = ""; }
+  if (!idsOk(c.hero_sub_evidence)) { log("hero_sub", c.hero_sub, why(c.hero_sub_evidence)); c.hero_sub = ""; }
+  const keepItems = (arr, field, text) => list3(arr).filter((it, i) => idsOk(it?.evidence) || (log(`${field}[${i}]`, text(it), why(it?.evidence)), false));
+  c.proof = keepItems(c.proof, "proof", p => `${p?.value} ${p?.label}`);
+  c.services = keepItems(c.services, "services", sv => `${sv?.name}: ${sv?.description}`);
+  c.faqs = keepItems(c.faqs, "faqs", f => `${f?.q} ${f?.a}`);
+  if (c.owner_section && !idsOk(c.owner_section.evidence)) { log("owner_section", c.owner_section.body, why(c.owner_section.evidence)); c.owner_section = null; }
+  if (c.service_page) {
+    const sp = c.service_page;
+    if (!idsOk(sp.evidence)) { log("service_page", sp.service_name, why(sp.evidence)); c.service_page = null; }
+    else c.service_page = { ...sp, faqs: keepItems(sp.faqs, "service_page.faqs", f => `${f?.q} ${f?.a}`), review_ids: list3(sp.review_ids).filter(id => /^r\d$/.test(id) && id in emap) };
+  }
+
+  // Sentence by sentence, against the item's own evidence.
+  const checked = walkV3(c, (field, text, ids) => {
+    if (!ids) return text;
+    const source = list3(ids).map(id => emap[id] || "").join("\n");
+    const { unsupportedNumber, unsupportedClaim } = factChecker(source);
+    return sentencesOf(text).filter(sn => {
+      const reason = unsupportedNumber(sn) ? "unsupported_number"
+        : unsupportedClaim(sn) ? "unsupported_claim"
+          : !field.startsWith("proof") && RATING_V3.test(sn) ? "rating_in_copy"
+            : unconfirmed.some(re => re.test(sn)) ? "unconfirmed_town" : null;
+      if (reason) log(field, sn, reason);
+      return !reason;
+    }).join(" ");
+  }, allIds);
+  return { copy: checked, removed };
+}
+
+/** The gpt-4o-mini request for step 2 (exported for tests). */
+export function puffRequestBody(items, { model = V3_CHECK_MODEL } = {}) {
+  return {
+    model, temperature: 0,
+    response_format: { type: "json_schema", json_schema: { name: "sentence_check", strict: true, schema: obj({ sentences: arrOf(obj({ id: str, keep: { type: "boolean" }, text: str })) }) } },
+    messages: [
+      { role: "system", content: "You edit website sentences for a small local business. You never add facts." },
+      { role: "user", content: `For each sentence below: if it uses none of these words and reads like a person talking, return keep=true and the text unchanged.
+Otherwise return keep=false and the sentence rewritten without the word: same facts, same meaning, plain words. Never just delete the word and leave a broken sentence; rewrite it so it reads naturally. Never add a number, place, name, price, guarantee or claim that isn't already in the sentence.
+Words: ${V3_BANNED.join(", ")}
+
+SENTENCES (JSON):
+${JSON.stringify(items.map(it => ({ id: it.id, text: it.text })))}` },
+    ],
+  };
+}
+
+/**
+ * Step 2: the mini pass, then the final word check. `rewrite(items)` returns
+ * [{ id, keep, text }] (the gpt-4o-mini call; injectable for tests). A
+ * rewrite is used only when it keeps to its evidence and loses the word;
+ * otherwise a sentence that still has a banned word is dropped whole.
+ */
+export async function rewritePuffery(copy, fs = {}, { rewrite, removed = [] } = {}) {
+  const emap = evidenceMap(fs);
+  const allIds = Object.keys(emap);
+  const items = [];
+  walkV3(copy, (field, text, ids) => {
+    sentencesOf(text).forEach((sn, j) => items.push({ id: `${items.length}`, field, j, text: sn, ids }));
+    return text;
+  }, allIds);
+  let answers = [];
+  if (rewrite && items.length) {
+    try { answers = (await rewrite(items)) || []; } catch (e) { removed.push({ field: "_check", text: String(e?.message || e).slice(0, 200), reason: "rewrite_pass_failed" }); }
+  }
+  const byId = new Map(answers.map(a => [String(a?.id), a]));
+  const decided = new Map(); // `${field}#${j}` → text ("" = drop)
+  for (const it of items) {
+    const a = byId.get(it.id);
+    let text = it.text;
+    // Only a sentence with a banned word is rewritten; the rest stay as written.
+    if (a && a.keep === false && hasBannedWord(it.text) && String(a.text || "").trim() && a.text.trim() !== it.text) {
+      const next = a.text.trim();
+      const fc = it.ids ? factChecker(list3(it.ids).map(id => emap[id] || "").join("\n")) : null;
+      const addsFact = fc && (fc.unsupportedNumber(next) || fc.unsupportedClaim(next));
+      if (!addsFact && !hasBannedWord(next)) {
+        removed.push({ field: it.field, text: it.text, reason: "puffery_rewritten", replacement: next });
+        text = next;
+      }
+    }
+    if (hasBannedWord(text)) { removed.push({ field: it.field, text: it.text, reason: "banned_word" }); text = ""; }
+    decided.set(`${it.field}#${it.j}`, text);
+  }
+  const out = walkV3(copy, (field, text) => sentencesOf(text)
+    .map((sn, j) => (decided.has(`${field}#${j}`) ? decided.get(`${field}#${j}`) : sn)).filter(Boolean).join(" "), allIds);
+  return { copy: out, removed };
+}
+
+/** The gpt-4o-mini rewrite, bound to a fetch. Returns [{ id, keep, text }]. */
+export function miniRewriter({ fetchImpl, apiKey, usage = [] } = {}) {
+  return async items => {
+    const { data, usage: u } = await requestJson(puffRequestBody(items), { fetchImpl, apiKey });
+    usage.push(u);
+    return data?.sentences || [];
+  };
+}
+
+/**
+ * Steps 1-3 plus the code-built parts: the stored page_copy_v3.
+ * `draft` is the gpt-4o reply. Pure apart from `rewrite`.
+ */
+export async function checkPageCopyV3(draft, fs = {}, { rewrite = null, now = Date.now() } = {}) {
+  const first = filterByEvidence(draft, fs);
+  const { copy: c, removed } = await rewritePuffery(first.copy, fs, { rewrite, removed: first.removed });
+  const b = fs.business || {};
+  const town = b.town || "";
+  const noun = tradeNoun(fs);
+
+  let headline = c.hero_headline, headlineEv = c.hero_headline_evidence;
+  if (!headline) { headline = town ? `${noun} in ${town}` : noun; headlineEv = ["g"]; }
+
+  // Code builds rating/hours; the AI may add ones at least 2 reviews back,
+  // whose label doesn't just repeat the value. 4 at most.
+  const words = t => String(t).toLowerCase().match(/[a-z]{3,}/g) || [];
+  const aiProof = list3(c.proof).filter(p => {
+    const reviews = new Set(list3(p.evidence).filter(id => /^r\d$/.test(id)));
+    const repeats = words(p.label).some(w => words(p.value).includes(w));
+    if (reviews.size < 2 || repeats) removed.push({ field: "proof", text: `${p.value} | ${p.label}`, reason: reviews.size < 2 ? "fewer_than_2_reviews" : "label_repeats_value" });
+    return reviews.size >= 2 && !repeats;
+  });
+  const proof = [...buildCodeProof(fs), ...aiProof].slice(0, 4);
+
+  const hasOwner = (fs.owner?.names || []).length > 0 || !!fs.owner?.blurb;
+  if (!hasOwner && c.owner_section) removed.push({ field: "owner_section", text: c.owner_section.body, reason: "no_owner_answers" });
+  const owner_section = hasOwner && c.owner_section ? { heading: c.owner_section.heading, body: c.owner_section.body, evidence: c.owner_section.evidence } : null;
+
+  // The service page needs a review, owner answer or owner photo behind it.
+  let service_page = c.service_page || null;
+  if (service_page) {
+    const backed = list3(service_page.evidence).some(id => /^r\d$/.test(id) || id.startsWith("o."));
+    const filled = service_page.headline && service_page.intro;
+    if (!backed || !filled) {
+      removed.push({ field: "service_page", text: service_page.service_name, reason: !backed ? "no_review_or_owner_evidence" : "empty_after_check" });
+      service_page = null;
+    } else {
+      const name = fs.owner?.service_for_page || service_page.service_name;
+      service_page = {
+        service_name: name, slug: v3slug(name),
+        headline: service_page.headline, intro: service_page.intro,
+        signs: service_page.signs, what_we_do: service_page.what_we_do,
+        review_ids: service_page.review_ids, faqs: service_page.faqs.map(f => ({ q: f.q, a: f.a, evidence: f.evidence })), evidence: service_page.evidence,
+      };
+    }
+  }
+
+  const closing = c.closing?.heading && c.closing?.line ? { heading: c.closing.heading, line: c.closing.line }
+    : { heading: `Need ${/^[aeiou]/i.test(noun) ? "an" : "a"} ${noun.toLowerCase()}${town ? ` in ${town}` : ""}?`, line: b.phone ? `Call ${b.phone}.` : "Get in touch." };
+
+  return {
+    eyebrow: buildEyebrow(fs),
+    hero_headline: headline, hero_headline_evidence: headlineEv,
+    hero_sub: c.hero_sub || "", hero_sub_evidence: c.hero_sub ? c.hero_sub_evidence : [],
+    proof,
+    services: list3(c.services).map(sv => ({ name: sv.name, description: sv.description, evidence: sv.evidence, stock_subject: sv.stock_subject })),
+    owner_section,
+    faqs: list3(c.faqs).map(f => ({ q: f.q, a: f.a, evidence: f.evidence })),
+    closing,
+    service_page,
+    removed,
+    built_at: new Date(now).toISOString(),
+    fact_sheet_built_at: fs.built_at || null,
+  };
+}
+
+/**
+ * The whole v3 generator: one gpt-4o call, then the check (one gpt-4o-mini
+ * call). Returns { copy, usage, cost_usd }.
+ */
+export async function generatePageCopyV3(fs, { fetchImpl = globalThis.fetch, apiKey = process.env.OPENAI_KEY } = {}) {
+  const usage = [];
+  const { data, usage: u } = await requestJson(pageRequestBody(fs), { fetchImpl, apiKey });
+  usage.push(u);
+  const copy = await checkPageCopyV3(data, fs, { rewrite: miniRewriter({ fetchImpl, apiKey, usage }) });
+  return { copy, usage, cost_usd: Number(costOf(usage).toFixed(5)) };
 }

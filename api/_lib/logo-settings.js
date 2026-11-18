@@ -16,6 +16,14 @@ import { starterLogoOptions, chosenStarterLogoId, isStarterLogoId } from "./star
 import { pickPalette } from "./page-style.js";
 import { logoBrandColor, saveBrandColor } from "./logo-color.js";
 import { rebuildBrandKit } from "./brand-kit.js";
+import { rebuildFactSheet } from "./fact-sheet.js";
+
+// After a logo change: the brand kit (colors, owner names off the logo), then
+// the website v3 fact sheet, which takes owner names and towns from the kit.
+async function rebuildKitAndFacts(rebuildKit, rebuildFacts, supabaseAdmin, businessId) {
+  try { await rebuildKit(supabaseAdmin, businessId); } catch (e) { console.warn("brand kit rebuild failed:", e?.message || e); }
+  try { await rebuildFacts(supabaseAdmin, businessId); } catch (e) { console.warn("fact sheet rebuild failed:", e?.message || e); }
+}
 
 export const ADMIN_ID = "b2f87fe4-4d1e-4038-8754-5ab64969e975";
 export const BUCKET = "business-images";
@@ -51,7 +59,7 @@ export function decodeLogoUpload(data) {
   return { ok: true, buffer: buf, ext: png ? "png" : "jpg", contentType: png ? "image/png" : "image/jpeg" };
 }
 
-export async function handleLogo(req, res, { supabaseAdmin, now = () => Date.now(), readLogoColor = logoBrandColor, rebuildKit = rebuildBrandKit }) {
+export async function handleLogo(req, res, { supabaseAdmin, now = () => Date.now(), readLogoColor = logoBrandColor, rebuildKit = rebuildBrandKit, rebuildFacts = rebuildFactSheet }) {
   const token = String(req.headers?.authorization || "").replace(/^Bearer\s+/i, "");
   if (!token) return res.status(401).json({ error: "Please log in." });
   const { data: { user } = {} } = await supabaseAdmin.auth.getUser(token);
@@ -99,7 +107,7 @@ export async function handleLogo(req, res, { supabaseAdmin, now = () => Date.now
     if (error) return res.status(500).json({ error: "Couldn't save your logo choice. Try again." });
     // The page no longer shows the uploaded logo, so its color goes too.
     if (profile.logo_url) await saveBrandColor(supabaseAdmin, businessId, null);
-    if (profile.logo_url) { try { await rebuildKit(supabaseAdmin, businessId); } catch (e) { console.warn("brand kit rebuild failed:", e?.message || e); } }
+    if (profile.logo_url) await rebuildKitAndFacts(rebuildKit, rebuildFacts, supabaseAdmin, businessId);
     return res.status(200).json({ ok: true, chosen: id, logo_url: null });
   }
 
@@ -122,7 +130,7 @@ export async function handleLogo(req, res, { supabaseAdmin, now = () => Date.now
     const brandColor = await readLogoColor(file.buffer);
     await saveBrandColor(supabaseAdmin, businessId, brandColor);
     // Page v2: the new logo rebuilds the brand kit (no-op for v1 pages).
-    try { await rebuildKit(supabaseAdmin, businessId); } catch (e) { console.warn("brand kit rebuild failed:", e?.message || e); }
+    await rebuildKitAndFacts(rebuildKit, rebuildFacts, supabaseAdmin, businessId);
     return res.status(200).json({ ok: true, logo_url: logoUrl, chosen: null, brand_color: brandColor });
   }
 

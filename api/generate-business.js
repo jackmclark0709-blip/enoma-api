@@ -26,6 +26,7 @@ import { handleReviews } from "./_lib/reviews.js";
 import { handleLogo } from "./_lib/logo-settings.js";
 import { handleOwnerAction } from "./_lib/owner-actions.js";
 import { rebuildBrandKit } from "./_lib/brand-kit.js";
+import { buildFactSheet, saveFactSheet, googleTestimonials } from "./_lib/fact-sheet.js";
 import { waitUntil } from "@vercel/functions";
 import { logoBrandColor, saveBrandColor } from "./_lib/logo-color.js";
 import { logFunnelEvent } from "./_lib/tracking.js";
@@ -92,12 +93,16 @@ const ADMIN_USER_ID = "b2f87fe4-4d1e-4038-8754-5ab64969e975";
 // Enoma already fetches a business's Google rating/reviews for the published
 // page (api/google-place.js) but never used that data during onboarding,
 // leaving owners to hand-type testimonials even when real reviews already
-// exist. This pulls up to 3 real 4-5★ reviews at generation time — only when
+// exist. This pulls up to 5 real 4-5★ reviews at generation time — only when
 // the owner hasn't provided/kept any testimonials of their own, so it never
 // overwrites a real person's hand-picked quotes — and tags each one
 // `source: "google"` so the page can attribute it honestly instead of
 // presenting it as a generic testimonial. Never fabricates: any failure
 // (missing key, no reviews, API error) just falls back to an empty list.
+// All 5 go to the website v3 fact sheet (api/_lib/fact-sheet.js), full text;
+// the page's testimonials still show the first 3.
+const MAX_GOOGLE_REVIEWS = 5;
+const MAX_TESTIMONIALS = 3;
 async function fetchGoogleReviewTestimonials(placeId) {
   if (!placeId || !process.env.GOOGLE_SERVER_PLACES_KEY) return [];
   try {
@@ -116,11 +121,12 @@ async function fetchGoogleReviewTestimonials(placeId) {
 
     return reviews
       .filter(rv => Number(rv.rating) >= 4 && (rv.text?.text || rv.originalText?.text))
-      .slice(0, 3)
+      .slice(0, MAX_GOOGLE_REVIEWS)
       .map(rv => ({
         quote: String(rv.text?.text || rv.originalText?.text || "").trim(),
         author: rv.authorAttribution?.displayName || "Google review",
         rating: Number(rv.rating) || 5,
+        relative_time: rv.relativePublishTimeDescription || null,
         source: "google"
       }))
       .filter(t => t.quote);
@@ -242,6 +248,17 @@ async function handleAdminGenerate(req, res) {
       is_public: true, updated_at: new Date().toISOString()
     }, { onConflict: "business_id" });
   if (profileErr) throw profileErr;
+
+  // Website v3 fact sheet: the admin input is all we know (no place id, no reviews).
+  await saveFactSheet(supabaseAdmin, business_id, buildFactSheet({
+    profile: {
+      business_name: businessName, primary_category: trade, phone, city: town, state,
+      owner_name: ownerFirstName, service_area: areasServed,
+      years_in_business: yearsInBusinessFrom(yearsInBusiness),
+    },
+    owner: { services },
+    reviews: [],
+  })).catch(e => console.warn("fact sheet failed:", e?.message || e));
 
   await supabaseAdmin.from("businesses")
     .update({ name: businessName, slug, is_published: true, updated_at: new Date().toISOString() })
@@ -778,8 +795,10 @@ export default async function handler(req, res) {
     } else {
       finalTestimonials = [];
     }
+    let fetchedReviews; // undefined = not fetched this time (the fact sheet keeps its stored ones)
     if (!hasOwnerTestimonials && finalGooglePlaceId) {
-      finalTestimonials = await fetchGoogleReviewTestimonials(finalGooglePlaceId);
+      fetchedReviews = await fetchGoogleReviewTestimonials(finalGooglePlaceId);
+      finalTestimonials = fetchedReviews.slice(0, MAX_TESTIMONIALS);
     }
 
     /* ---------- PROFILE UPSERT ---------- */
@@ -824,6 +843,23 @@ export default async function handler(req, res) {
       .upsert(profilePayload, { onConflict: "business_id" });
 
     if (profileError) throw profileError;
+
+    // Website v3 fact sheet (api/_lib/fact-sheet.js): the owner's answers,
+    // towns, photos and the reviews fetched above. Rebuilt on every save, so
+    // changed answers or photos are always reflected. After the response.
+    {
+      const previous = existingProfile?.fact_sheet || null;
+      const reviews = fetchedReviews !== undefined ? fetchedReviews
+        : (previous ? undefined : googleTestimonials(finalTestimonials));
+      const owner = {
+        notes: about_input || null,
+        // The services the owner typed in this submission (not the AI's rewrite).
+        ...(rawServices ? { services: safeJSON(servicesJSON, []) } : {}),
+        ...(hasField(fields, "service_for_page") ? { service_for_page: first(fields.service_for_page) || null } : {}),
+      };
+      const sheet = buildFactSheet({ profile: { ...existingProfile, ...profilePayload }, reviews, previous, owner });
+      waitUntil(saveFactSheet(supabaseAdmin, business_id, sheet).catch(e => console.warn("fact sheet failed:", e?.message || e)));
+    }
 
     // A new logo: store its color so the page renders in it from first paint.
     if (uploadedLogo) await saveBrandColor(supabaseAdmin, business_id, await logoBrandColor(logoBuffer));

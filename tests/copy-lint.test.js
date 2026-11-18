@@ -58,9 +58,10 @@ test("clean copy passes", () => {
 });
 
 console.log("scrubCopy");
-test("drops filler badges and cleans the headline", () => {
+test("drops filler badges, and a headline with a banned word goes whole", () => {
   const out = scrubCopy(conway);
-  assert.equal(out.hero_headline, "Lawn Care in Agawam & West Springfield");
+  // Never "Reliable" cut out of the sentence: the page uses its default headline.
+  assert.equal(out.hero_headline, "");
   assert.deepEqual(out.trust_badges, ["Owner-Operated", "Residential Specialist", "Free Estimates"]);
 });
 test("bannedWordsIn is case-insensitive and deduped", () => {

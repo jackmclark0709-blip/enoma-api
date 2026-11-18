@@ -49,6 +49,7 @@ import {
   assessRenderedPage, buildTextMessage, buildTextBatchEmail, verifyTextMarkToken,
 } from "./_lib/text-outreach.js";
 import { buildBrandKit, saveBrandKit } from "./_lib/brand-kit.js";
+import { buildFactSheet, saveFactSheet } from "./_lib/fact-sheet.js";
 import { ownerDestination, ownerPageUrl, ensureOwnerToken, isPageV2, pageV2Fields } from "./_lib/owner-link.js";
 import { waitUntil } from "@vercel/functions";
 import { generateLaunchKit, takeCreationBuild } from "./_lib/launch-kit-render.js";
@@ -748,6 +749,16 @@ async function generatePreviewForProspect(prospect, { homeHtml, force = false, g
   const { error: profErr } = await supabase.from("small_business_profiles").insert({ ...profile, business_id: biz.id });
   if (profErr) throw profErr;
 
+  // Website v3 fact sheet (api/_lib/fact-sheet.js) from what this run already
+  // has: the Places details (its 4★+ reviews, up to 5, full text), the site
+  // text and the stored listing. No extra Places call. Rebuilt with the
+  // brand kit's towns once the kit is stored (below).
+  const factInputs = { place, raw, reviews: place?.reviews || [], siteText: site.text };
+  // With page v2 on, the v3 copy (PAGE_COPY_V3) is written once, on the rebuild below.
+  const factJob = saveFactSheet(supabase, biz.id, buildFactSheet({ profile: { ...profile, business_id: biz.id }, ...factInputs }),
+    process.env.PAGE_V2 !== "off" ? { env: {} } : {})
+    .catch(e => console.warn("fact sheet failed:", e?.message || e));
+
   // Page v2 (api/_lib/page-v2.js): every new unclaimed preview starts on v2
   // (PAGE_V2=off turns this off). A separate best-effort update so preview
   // generation still works if migration 20261117_brand_kit isn't applied.
@@ -763,6 +774,9 @@ async function generatePreviewForProspect(prospect, { homeHtml, force = false, g
       const kitJob = buildBrandKit(v2Profile, { prospect, websiteHtml: site.homeHtml || null, supabase })
         .then(async kit => {
           await saveBrandKit(supabase, biz.id, kit);
+          // The fact sheet again, now with the kit's towns and owner names.
+          await factJob;
+          await saveFactSheet(supabase, biz.id, buildFactSheet({ profile: v2Profile, kit, ...factInputs }));
           // The launch kit (api/_lib/launch-kit.js) from the same kit, same run.
           // Capped per run (takeCreationBuild); the rest are made on the owner's first visit.
           if (process.env.PAGE_LAUNCH_KIT === "on" && takeCreationBuild()) await generateLaunchKit({ ...v2Profile, brand_kit: kit }, { supabase });
@@ -771,6 +785,8 @@ async function generatePreviewForProspect(prospect, { homeHtml, force = false, g
       try { waitUntil(kitJob); } catch { /* not on Vercel: the promise still runs */ }
     }
   }
+
+  try { waitUntil(factJob); } catch { /* not on Vercel: the promise still runs */ }
 
   const preview_url = `https://enoma.io/${slug}`;
   await supabase.from("prospects").update({ preview_url, preview_business_id: biz.id, updated_at: new Date().toISOString() }).eq("id", prospect.id);

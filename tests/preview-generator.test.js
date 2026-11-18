@@ -43,7 +43,9 @@ test("validation strips invented numbers, ratings, puffery and ungrounded claims
     trust_badges: ["Master Plumber #16283", "Family owned since 1990"],
     faqs: [{ q: "What areas do you serve?", a: "Franklin, Medway, Bellingham and Norfolk." }, { q: "How many reviews?", a: "Lots." }],
   }, { siteText: SITE, phone: "508-298-5042", city: "Franklin", trade: "plumber" });
-  assert.equal(out.hero_headline, "Master plumbers for MetroWest homes");
+  // Puffery drops the whole headline (never "Trusted" cut out of it); the
+  // page falls back to its trade + town headline (assembleProfile).
+  assert.equal(out.hero_headline, "");
   assert.equal(out.hero_tagline, "Up-front pricing on every job.");
   assert.equal(out.about, "Licensed Master Plumber #16283.");
   assert.deepEqual(out.services.map(s => s.service_name), ["Water Heaters"]);
