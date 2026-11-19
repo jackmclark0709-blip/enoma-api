@@ -81,12 +81,12 @@ test("checkout: monthly and yearly pick their lookup keys, both respecting the f
   const sub = freeMonth(10 * DAY);
   const m = checkoutPlanFor({ interval: "month", sub, now: NOW });
   const y = checkoutPlanFor({ interval: "year", sub, now: NOW });
-  assert.deepEqual(m, { lookupKey: "enoma_page_monthly", interval: "month", trialEnd: Math.floor((NOW + 10 * DAY) / 1000), firstMonthFee: false, pricingVersion: null });
-  assert.deepEqual(y, { lookupKey: "enoma_page_annual", interval: "year", trialEnd: Math.floor((NOW + 10 * DAY) / 1000), firstMonthFee: false, pricingVersion: null });
+  assert.deepEqual(m, { lookupKey: "website_monthly_39", interval: "month", trialEnd: Math.floor((NOW + 10 * DAY) / 1000), firstMonthFee: false, pricingVersion: null });
+  assert.deepEqual(y, { lookupKey: "website_yearly_390", interval: "year", trialEnd: Math.floor((NOW + 10 * DAY) / 1000), firstMonthFee: false, pricingVersion: null });
 });
 
 test("checkout: no subscription row -> charged now, default monthly", () => {
-  assert.deepEqual(checkoutPlanFor({ now: NOW }), { lookupKey: "enoma_page_monthly", interval: "month", trialEnd: null, firstMonthFee: false, pricingVersion: null });
+  assert.deepEqual(checkoutPlanFor({ now: NOW }), { lookupKey: "website_monthly_39", interval: "month", trialEnd: null, firstMonthFee: false, pricingVersion: null });
 });
 
 test("checkout: partner price is monthly even when yearly is picked", () => {
@@ -184,8 +184,8 @@ test("plan picker: monthly is the default (yearly only when the owner picked it)
   assert.equal(ctx.window.EnomaPlanPicker.planIntent(store(null)), null);
   assert.match(src, /if \(intent\) \{\s*var pick = el\.querySelector\('input\[name="' \+ name \+ '"\]\[value="' \+ intent \+ '"\]'\);/);
   assert.equal(normalizeInterval(undefined), "month", "server default is monthly too");
-  assert.ok(src.includes("$199/year — about $16.58 a month, saves $40.88"));
-  assert.ok(src.includes('"$19.99/month"'));
+  assert.ok(src.includes("$390/year — about $32.50 a month, saves $78"));
+  assert.ok(src.includes('"$39/month"'));
   assert.ok(src.includes("A real person as your account manager: text or email Jack any change and it’s on your page within two business days."));
   assert.ok(src.includes('"Your first charge is on "'));
   assert.match(src, /interval: chosen\(\)/);

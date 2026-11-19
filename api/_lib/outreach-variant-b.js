@@ -1,7 +1,7 @@
 // Cold-email variant "b" (Nov 2026): copy that reads as different from the
 // "I redesigned your website" emails owners now get from freelancers.
 // Not a web-design pitch: a page that gets them calls, leads go only to them,
-// $19.99/month with no per-lead fees and no contract, and a real person
+// $39/month with no per-lead fees and no contract, and a real person
 // (Jack) keeps it updated.
 //
 // Variant "a" is the existing copy in outreach-email.js, unchanged. The split
@@ -26,7 +26,7 @@ import { cleanBusinessName, trackedLinks, withUtm, buildOutreachIntro } from "./
 export const SUBJECT_MAX = 45;
 export const BANNED_SUBJECT_RE = /\b(websites?|redesign\w*|built you|free)\b/i;
 
-export const PRICE_LINE = "$1 for your first month, then $19.99/month or $199/year. Cancel anytime.";
+export const PRICE_LINE = "$1 for your first month, then $39/month or $390/year. Cancel anytime.";
 export const SIGNOFF_LINES = ["Jack", "I'm a real person, and I keep your page updated for you.", "Enoma · jack@enoma.io"];
 
 // ── The split ─────────────────────────────────────────────────────────────

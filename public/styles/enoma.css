@@ -1834,3 +1834,7 @@ body.page-lawn-care-website-agawam-ma .lp-browser__frame { position: relative; w
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }
+
+/* Founding offer line (website v3 PR C): filled by /scripts/founding.js */
+.founding-line { margin: 8px 0 0; font-size: 0.95em; font-weight: 600; }
+.founding-line [data-founding-left]:not(:empty) { font-weight: 700; white-space: nowrap; }

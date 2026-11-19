@@ -77,8 +77,9 @@ export function firstMonthTrialEndUnix(now = Date.now()) {
  * (the partner price is monthly-only, whatever was picked) and the trial_end
  * (null = charge at checkout).
  */
-export function checkoutPlanFor({ referrer = null, interval = "month", sub = null, now = Date.now() } = {}) {
-  const lookupKey = pageLookupKeyFor(referrer, interval);
+export function checkoutPlanFor({ referrer = null, interval = "month", sub = null, now = Date.now(), founding = false } = {}) {
+  // founding: fewer than 25 paying customers so far (api/_lib/founding.js).
+  const lookupKey = pageLookupKeyFor(referrer, interval, { founding });
   const billedInterval = planByLookupKey(lookupKey)?.interval || interval;
   // Pricing v2 ($1 first month, api/_lib/pricing.js): a one-time $1 item
   // today and the plan on a 30-day trial, whatever is left of the preview.

@@ -1499,7 +1499,9 @@ async function toolGetRevenueStatus() {
   );
   // Subscribed during the free month: card on file, first charge pending.
   const subscribedInFreeMonth = rows.filter(s => s.provider === "stripe" && s.status === "trialing" && s.stripe_subscription_id);
-  // $19.99/month, or $199/year (counted as $199/12 a month) after the free month.
+  // Estimate at the 2026 price the current subscribers pay (19.99 a month, or
+  // 199 a year counted as 199/12 a month). New checkouts are 39/390 (or the
+  // 29 founding price), so this undercounts them; Stripe is the authority.
   const PRICE = 19.99;
   const monthlyValue = (s) => (s.billing_interval === "year" ? 199 / 12 : PRICE);
 
@@ -1618,7 +1620,7 @@ Do NOT mention pricing (it's in the line added after), and do NOT add a closing 
     brief = `STRUCTURE:
 1. One line: I'm Jack; I build simple websites for trades businesses.
 2. ${gaps.length && siteHost ? `Name ONE of these verified problems with ${siteHost} and why it costs them calls: ${gaps[0]}` : `They don't have a website, so homeowners who search for a ${prospect.trade || "local service"} business can't find a page for them.`}
-3. Enoma builds a one-page site made to turn a local search into a call. $1 for your first month, then $19.99/month or $199/year. Cancel anytime. No contract.
+3. Enoma builds a one-page site made to turn a local search into a call. $1 for your first month, then $39/month or $390/year. Cancel anytime. No contract.
 4. Close, exactly: "Want me to build yours? Reply \"yes\" and I'll set it up — or find your business at ${SIGNUP_URL} and see your page in about 30 seconds."`;
   }
 
@@ -3265,7 +3267,7 @@ const TOOL_IMPL = {
   approve_outreach_email: toolApproveOutreachEmail
 };
 
-const SYSTEM_PROMPT = `You are Enoma's internal voice assistant, speaking directly to Jack, the founder. Enoma builds AI-generated business websites for local service businesses (landscaping, plumbing, HVAC, etc.) — free 30-day trial, then $19.99/mo. Its ideal customer is a business that doesn't have a website yet.
+const SYSTEM_PROMPT = `You are Enoma's internal voice assistant, speaking directly to Jack, the founder. Enoma builds AI-generated business websites for local service businesses (landscaping, plumbing, HVAC, etc.) — $1 for the first month, then $39/month or $390/year. Its ideal customer is a business that doesn't have a website yet.
 
 You have tools for revenue, marketing traffic, CRM/prospecting data, business page status, and outreach drafting — always call a tool rather than guessing at any number or inventing message copy. You can also discuss outbound/inbound marketing strategy and the BD pipeline by reasoning over what the tools return.
 

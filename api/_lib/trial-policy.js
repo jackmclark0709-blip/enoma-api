@@ -1,5 +1,5 @@
 // api/_lib/trial-policy.js
-// Pricing: the first month is free, then $19.99/month keeps a page live (with
+// Pricing: the first month is free, then $39/month keeps a page live (with
 // personalized support). After the free month an unpaid page shows the
 // inactive screen. That rule only applies to pages created on or after
 // PRICING_TRIAL_STARTS_AT. Pages created before it were promised "free for

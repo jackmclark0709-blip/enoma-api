@@ -298,9 +298,10 @@ export function renderLanding(profile, { callouts = [], working = [], slug, m = 
           <button class="b b-secondary" id="cta-text" type="button" data-panel="hero-text" data-cta="text" data-where="hero">Text Jack</button>
           <a class="b b-secondary" id="cta-email" href="${esc(mailto)}" data-email data-cta="email" data-where="hero">Email Jack</a>
         </div>
-        <p class="fine">$1 for your first month, then $19.99/month or $199/year. Cancel anytime. No contract.</p>
+        <p class="fine">$1 for your first month, then $39/month or $390/year. Cancel anytime. No contract.</p>
+        <p class="founding-line" data-founding>Founding price: $29/month for as long as you stay, for our first 25 customers. <span data-founding-left></span></p>
         <p class="fine" id="not-on-google">${esc(NOT_ON_GOOGLE)}</p>
-        <a class="sub-link" id="cta-subscribe" href="${esc(links.subscribe)}" data-cta="subscribe" data-where="hero">Prefer to pay yearly? $199/year</a>
+        <a class="sub-link" id="cta-subscribe" href="${esc(links.subscribe)}" data-cta="subscribe" data-where="hero">Prefer to pay yearly? $390/year</a>
 ${textForm("hero-text")}
       </div>
     </div>
@@ -345,12 +346,13 @@ ${textForm("hero-text")}
       <h2 id="catch-h">What's the catch?</h2>
       <ul>
         <li>Look it over and tell me what to change first. You don't enter a card until you go live.</li>
-        <li>Going live is $1 for your first month, then $19.99/month or $199/year, with me as your account manager: your changes go live within two business days.</li>
+        <li>Going live is $1 for your first month, then $39/month or $390/year, with me as your account manager: your changes go live within two business days.</li>
         <li>No per-lead fees, no contract. Cancel anytime.</li>
         <li>A page for any extra service you want found for: $9.99/month each.</li>
       </ul>
     </div>
-    <div class="price"><b>$1</b><span>for your first month, then $19.99/month or $199/year. Cancel anytime.</span></div>
+    <div class="price"><b>$1</b><span>for your first month, then $39/month or $390/year. Cancel anytime.</span></div>
+    <p class="founding-line" data-founding>Founding price: $29/month for as long as you stay, for our first 25 customers. <span data-founding-left></span></p>
   </section>
 
   <section class="contact" id="contact" aria-labelledby="contact-h">
@@ -732,6 +734,7 @@ ${textForm("text")}
   });
 })();
 </script>
+<script src="/scripts/founding.js" defer></script>
 </body>
 </html>`;
 }

@@ -1,6 +1,6 @@
 // What's done and what's still missing on a business's page. Shown to the
 // owner in the claim box ("Your page is 40% done") and as "Quick wins" on
-// the dashboard. The open items are the concrete improvements $19.99/month
+// the dashboard. The open items are the concrete improvements $39/month
 // buys: Jack adds them with the owner. Pure, read from the page's own
 // profile data, so every line is true for this business. Used by
 // public/scripts/profile.js and public/dashboard/index.html; tested in

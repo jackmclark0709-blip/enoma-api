@@ -62,8 +62,9 @@
   <div class="trial-card">
     <div class="trial-header">
       <h2>Keep your website live</h2>
-      <span class="trial-badge">$19.99/month or $199/year</span>
+      <span class="trial-badge">$39/month or $390/year</span>
     </div>
+    <p class="founding-line" data-founding>Founding price: $29/month for as long as you stay, for our first 25 customers. <span data-founding-left></span></p>
     <p>Subscribe to keep your website online, get found in Google, and have your site continuously improved as your business grows.</p>
     <ul class="trial-includes">
       <li>Website stays live and hosted on enoma.io</li>
@@ -161,7 +162,7 @@ function initSupabase() {
           if (sub && sub.trial_expires_at) {
             var d = new Date(sub.trial_expires_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
             if (v2) {
-              document.getElementById('expires-text').innerHTML = 'This is your preview, up until <strong id="trial-end-date"></strong>. Go live to show it on Google and keep it up. $1 for your first month, then $19.99/month or $199/year. Cancel anytime.';
+              document.getElementById('expires-text').innerHTML = 'This is your preview, up until <strong id="trial-end-date"></strong>. Go live to show it on Google and keep it up. $1 for your first month, then $39/month or $390/year. Cancel anytime.';
               var h = document.querySelector('.trial-header h2'); if (h) h.textContent = 'Go live';
             }
             document.getElementById('trial-end-date').textContent = d;
@@ -199,5 +200,6 @@ loadScript(
 <div id="site-footer"></div>
 <script>fetch("/partials/footer.html").then(r=>r.text()).then(h=>{document.getElementById("site-footer").innerHTML=h});</script>
 <script src="/scripts/global-cta.js" defer></script>
+<script src="/scripts/founding.js" defer></script>
 </body>
 </html>

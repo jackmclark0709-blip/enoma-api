@@ -13,8 +13,9 @@
 
 import { LOOKUP_KEYS } from "../../data/plans.mjs";
 import { checkoutPlanFor, hasLiveStripeSubscription, spotlightLookupKeyFor } from "./billing.js";
-import { loadSpotlightBillingState, spotlightBilling, checkoutSubscriptionParams } from "./spotlight-billing.js";
+import { loadSpotlightBillingState, spotlightBilling, checkoutSubscriptionParams, billedQuantity } from "./spotlight-billing.js";
 import { utmMetadata } from "./attribution.js";
+import { foundingState } from "./founding.js";
 import { firstMonthLineItem, FIRST_MONTH_CENTS, FIRST_MONTH_LOOKUP_KEY, checkoutSubmitMessage } from "./pricing.js";
 
 const OPENING_SHORTLY = "Subscriptions are opening shortly. Email jack@enoma.io and we'll keep your page live in the meantime.";
@@ -95,11 +96,17 @@ export async function createPageCheckoutSession({
     }, { onConflict: "business_id" });
   }
 
-  const plan = checkoutPlanFor({ referrer: await referrerFor(supabase, businessId), interval, sub: existingSub, now });
+  // Founding price ($29/month) while fewer than 25 paying customers; a failed
+  // count means the standard price (never over-grant the founding one).
+  let founding = false;
+  if (interval === "month") {
+    try { founding = (await foundingState(supabase)).open; } catch (e) { console.error("founding count failed:", e?.message); }
+  }
+  const plan = checkoutPlanFor({ referrer: await referrerFor(supabase, businessId), interval, sub: existingSub, now, founding });
   let byKey = {};
   try { byKey = await pricesByLookupKey(stripe); } catch (e) { console.error("price lookup failed:", e?.message); }
   let priceId = byKey[plan.lookupKey]?.id || null;
-  if (!priceId && plan.lookupKey === "enoma_page_monthly") priceId = env.STRIPE_MONTHLY_PRICE_ID || null;
+  if (!priceId && plan.lookupKey === "website_monthly_39") priceId = env.STRIPE_MONTHLY_PRICE_ID || null;
   if (!priceId) return { status: 503, error: OPENING_SHORTLY };
 
   const utm = await firstTouchUtm(supabase, businessId);
@@ -111,6 +118,7 @@ export async function createPageCheckoutSession({
     pricing_version: plan.pricingVersion || "v1",
     first_month_fee: plan.firstMonthFee ? "1" : "0",
     checkout_source: source,
+    founding: plan.lookupKey === "website_founding_29" ? "1" : "0",
     ...utm,
   };
 
@@ -123,7 +131,7 @@ export async function createPageCheckoutSession({
   }
 
   const spotState = await loadSpotlightBillingState(supabase, businessId);
-  const spotlightPriceId = spotState.published ? byKey[spotlightLookupKeyFor(plan.interval)]?.id || null : null;
+  const spotlightPriceId = billedQuantity(spotState.published) ? byKey[spotlightLookupKeyFor(plan.interval)]?.id || null : null;
   const params = checkoutSubscriptionParams({
     pagePriceId: priceId,
     published: spotState.published,

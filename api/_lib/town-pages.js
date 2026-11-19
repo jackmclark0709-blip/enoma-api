@@ -99,7 +99,7 @@ export function renderTownPage(p, { pairs, asOf, asOfLabel }) {
   const url = `https://enoma.io/for/${slug}`;
   const town = `${p.city}, ${p.st}`;
   const title = `Website for ${cap(t.plural)} in ${town} | Enoma`;
-  const desc = `Get your ${p.city} ${t.business} found on Google. We found ${p.n} ${t.plural} in ${p.city}; ${p.noSite + p.weakSite > 0 ? `${p.noSite + p.weakSite} had no website or a weak one. ` : ""}$1 for your first month, then $19.99/month or $199/year. Cancel anytime.`;
+  const desc = `Get your ${p.city} ${t.business} found on Google. We found ${p.n} ${t.plural} in ${p.city}; ${p.noSite + p.weakSite > 0 ? `${p.noSite + p.weakSite} had no website or a weak one. ` : ""}$1 for your first month, then $39/month or $390/year. Cancel anytime.`;
   const findings = localFindings(p, asOfLabel);
   const searches = t.searches.map(s => s.replace("{town}", p.city));
   const sibs = siblings(p, pairs);
@@ -108,14 +108,14 @@ export function renderTownPage(p, { pairs, asOf, asOfLabel }) {
     name: `Websites for ${t.plural} in ${town}`,
     provider: { "@type": "Organization", name: "Enoma", url: "https://enoma.io" },
     areaServed: { "@type": "City", name: p.city, containedInPlace: { "@type": "State", name: STATE_NAMES[p.st] || p.st } },
-    offers: { "@type": "Offer", price: "19.99", priceCurrency: "USD", description: "$1 for your first month, then $19.99/month or $199/year. Cancel anytime. Includes personalized support." },
+    offers: { "@type": "Offer", price: "39", priceCurrency: "USD", description: "$1 for your first month, then $39/month or $390/year. Cancel anytime. Includes personalized support." },
     url,
   };
   const faq = {
     "@context": "https://schema.org", "@type": "FAQPage",
     mainEntity: [
       { "@type": "Question", name: `What does a website for a ${p.city} ${t.one} cost with Enoma?`,
-        acceptedAnswer: { "@type": "Answer", text: "Seeing your page is free, with no card. To go live: $1 for your first month, then $19.99/month or $199/year. Cancel anytime. That includes personalized support, and there's no contract." } },
+        acceptedAnswer: { "@type": "Answer", text: "Seeing your page is free, with no card. To go live: $1 for your first month, then $39/month or $390/year. Cancel anytime. That includes personalized support, and there's no contract." } },
       { "@type": "Question", name: `Will it show up when someone in ${p.city} searches?`,
         acceptedAnswer: { "@type": "Answer", text: `Nobody can honestly promise a ranking. Your page is built the way Google reads local businesses: your trade, ${p.city} and the towns you serve, your services and your number, and it's added to the sitemap Google crawls the day it goes live.` } },
       { "@type": "Question", name: "Do I have to build it myself?",
@@ -170,7 +170,8 @@ export function renderTownPage(p, { pairs, asOf, asOfLabel }) {
       <a href="/get-your-website" class="btn btn--primary">See your page in 30 seconds →</a>
       <a href="/get-your-website" class="btn btn--on-dark">Have us set it up</a>
     </div>
-    <p class="tp-proof">Free preview, no card &nbsp;·&nbsp; $1 for your first month, then $19.99/month or $199/year. Cancel anytime.</p>
+    <p class="tp-proof">Free preview, no card &nbsp;·&nbsp; $1 for your first month, then $39/month or $390/year. Cancel anytime.</p>
+    <p class="founding-line" data-founding>Founding price: $29/month for as long as you stay, for our first 25 customers. <span data-founding-left></span></p>
   </div>
 </section>
 
@@ -234,6 +235,7 @@ ${sibs.length ? `
 <script>fetch('/partials/footer.html').then(r=>r.text()).then(html=>{document.getElementById('footer').innerHTML=html});</script>
 <script src="/scripts/global-cta.js" defer></script>
 <script src="/scripts/cta-track.js" defer></script>
+<script src="/scripts/founding.js" defer></script>
 </body>
 </html>
 `;

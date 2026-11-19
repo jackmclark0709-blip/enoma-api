@@ -18,8 +18,8 @@
 //     (index,follow), listed in the sitemap, and kept up after the preview
 //     window. Until then a v2 page is a noindex preview.
 //   - Checkout: a one-time $1 line item (Stripe lookup key
-//     enoma_page_first_month) charged today, and the plan ($19.99/month,
-//     $199/year, or the $9.99/month partner price) on a 30-day trial, so the
+//     enoma_page_first_month) charged today, and the plan ($39/month,
+//     $390/year, or the $9.99/month partner price) on a 30-day trial, so the
 //     first full charge is 30 days after checkout.
 
 import { hasLiveStripeSubscription, firstMonthTrialEndUnix, FIRST_MONTH_DAYS } from "./billing.js";
@@ -30,7 +30,7 @@ export { FIRST_MONTH_DAYS };
 
 // The standing price line (Operating Doc): wherever a price or "$1" appears,
 // this full line is in the same view.
-export const PRICE_LINE = "$1 for your first month, then $19.99/month or $199/year. Cancel anytime.";
+export const PRICE_LINE = "$1 for your first month, then $39/month or $390/year. Cancel anytime.";
 
 /** pricing_version for a subscriptions row created now (null = legacy terms). */
 export function pricingVersionForNewSignup(env = process.env) {
@@ -114,10 +114,10 @@ export function formatChargeDate(date) {
 /**
  * The plain-text terms shown right next to the payment button, and in the
  * confirmation and reminder emails.
- *   month: "$1 today. Then $19.99/month starting December 12, 2026. Cancel anytime from your dashboard."
- *   year:  "$1 today. Then $199/year starting December 12, 2026. Cancel anytime from your dashboard."
+ *   month: "$1 today. Then $39/month starting December 12, 2026. Cancel anytime from your dashboard."
+ *   year:  "$1 today. Then $390/year starting December 12, 2026. Cancel anytime from your dashboard."
  */
-export function checkoutTermsLine({ interval = "month", chargeDate, monthlyPrice = "$19.99", yearlyPrice = "$199" } = {}) {
+export function checkoutTermsLine({ interval = "month", chargeDate, monthlyPrice = "$39", yearlyPrice = "$390" } = {}) {
   const when = formatChargeDate(chargeDate);
   const then = interval === "year" ? `${yearlyPrice}/year` : `${monthlyPrice}/month`;
   return `$1 today. Then ${then} starting ${when}. Cancel anytime from your dashboard.`;
@@ -130,12 +130,12 @@ function dollars(cents) {
 /**
  * The line Stripe Checkout shows above the pay button on a $1 first-month
  * checkout (custom_text.submit.message):
- *   "$1 today covers your first month. Then $19.99/month starting December 13, 2026. Cancel anytime from your dashboard."
- * Yearly "$199/year", partner "$9.99/month". amountCents is the live plan
+ *   "$1 today covers your first month. Then $39/month starting December 13, 2026. Cancel anytime from your dashboard."
+ * Yearly "$390/year", partner "$9.99/month". amountCents is the live plan
  * price when known, so a price change in Stripe changes the text too.
  */
 export function checkoutSubmitMessage({ interval = "month", partner = false, chargeDate, amountCents = null } = {}) {
-  const fallback = interval === "year" ? 19900 : partner ? 999 : 1999;
+  const fallback = interval === "year" ? 39000 : partner ? 999 : 3900;
   const amount = dollars(Number.isInteger(amountCents) && amountCents > 0 ? amountCents : fallback);
   return `$1 today covers your first month. Then ${amount}/${interval === "year" ? "year" : "month"} starting ${formatChargeDate(chargeDate)}. Cancel anytime from your dashboard.`;
 }

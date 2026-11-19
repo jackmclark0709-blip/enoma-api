@@ -300,7 +300,7 @@ await test("every template passes the copy rules and carries the price line and 
   for (const t of Object.keys(S.FOLLOWUP_TEMPLATES)) {
     const e = S.renderFollowup(t, { businessName: "Acme Plumbing LLC", pageUrl: "https://enoma.io/acme-plumbing", dashboardUrl: "https://enoma.io/dashboard", originalSubject: "I built Acme Plumbing a new page" }, { unsubscribeUrl: "https://enoma.io/api/ga-metrics?action=unsubscribe&x=1", mailingAddress: "Enoma, 183 Fairway Dr, Attleboro, MA 02703" });
     assert.deepEqual(e.issues, [], t);
-    assert.ok(e.text.includes("$1 for your first month, then $19.99/month or $199/year. Cancel anytime."), t);
+    assert.ok(e.text.includes("$1 for your first month, then $39/month or $390/year. Cancel anytime."), t);
     assert.match(e.text, /Don't want these emails\? https:\/\/enoma\.io\/api\/ga-metrics\?action=unsubscribe/, t);
     assert.match(e.html, /Unsubscribe/, t);
   }

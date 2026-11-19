@@ -239,7 +239,7 @@ export default async function handler(req, res) {
                 We're building a free website for <strong>${esc(leadName)}</strong>. You'll get an email from me with the link within 1 business day.
               </p>
               <p style="font-size:14px;color:#374151;line-height:1.65;margin:0 0 20px;">
-                The page will have your services, your area, and a contact form so customers can reach you directly. Seeing it is free, no card. To keep it live: $1 for your first month, then $19.99/month or $199/year. Cancel anytime.
+                The page will have your services, your area, and a contact form so customers can reach you directly. Seeing it is free, no card. To keep it live: $1 for your first month, then $39/month or $390/year. Cancel anytime.
               </p>
               <p style="font-size:14px;color:#374151;margin:0;">
                 Any questions? Just reply to this email.<br><br>

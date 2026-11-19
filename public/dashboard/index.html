@@ -518,7 +518,7 @@ async function loadDashboard(profile, session) {
       const v2Preview = sub.pricing_version === 'v2_1dollar' && !sub.stripe_subscription_id && sub.provider !== 'comped';
       // Billing dates are Stripe's trial_end: 23:59 Eastern (api/_lib/billing.js).
       const fmtET = (d, opts) => d.toLocaleDateString('en-US', Object.assign({ timeZone: 'America/New_York' }, opts));
-      const PRICE_LINE = '$1 for your first month, then $19.99/month or $199/year. Cancel anytime.';
+      const PRICE_LINE = '$1 for your first month, then $39/month or $390/year. Cancel anytime.';
       // v2, paid the $1, in the first month: Stripe "trialing" with a subscription.
       const v2FirstMonth = sub.pricing_version === 'v2_1dollar' && subscribedInFreeMonth;
 
@@ -546,7 +546,7 @@ async function loadDashboard(profile, session) {
         renewalEl.textContent = 'Live on Google' + (periodEnd ? ` · ${yearly ? 'Yearly plan · renews' : 'Renews'} ${periodEndFmt}` : '');
 
       } else if (v2FirstMonth) {
-        // "● Live on Google · Paid $1 for your first month · Next charge $19.99 on Dec 13, 2026"
+        // "● Live on Google · Paid $1 for your first month · Next charge $39 on Dec 13, 2026"
         statusEl.textContent = '● Live on Google'; statusEl.className = 'pill active';
         firstMonth = { chargeOn: periodEnd, yearly, fmtET };
         renderFirstMonthLine(renewalEl, firstMonth, null);
@@ -783,11 +783,11 @@ function spotlightPrice(b) {
 // v2 owners who paid the $1 and are in their first month (set by
 // loadDashboard): { chargeOn: Date (Stripe trial_end), yearly, fmtET }.
 let firstMonth = null;
-// "Paid $1 for your first month · Next charge $19.99 on Dec 13, 2026" ($199 on
+// "Paid $1 for your first month · Next charge $39 on Dec 13, 2026" ($390 on
 // yearly). The amount is the live plan price once the billing summary is in.
 function renderFirstMonthLine(el, fm, pageAmountCents) {
   if (!el || !fm) return;
-  const amount = Number.isInteger(pageAmountCents) ? money(pageAmountCents) : (fm.yearly ? '$199' : '$19.99');
+  const amount = Number.isInteger(pageAmountCents) ? money(pageAmountCents) : (fm.yearly ? '$390' : '$39');
   el.textContent = fm.chargeOn
     ? `Paid $1 for your first month · Next charge ${amount} on ${fm.fmtET(fm.chargeOn, { month: 'short', day: 'numeric', year: 'numeric' })}`
     : 'Paid $1 for your first month';

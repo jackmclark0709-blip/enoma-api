@@ -10,7 +10,7 @@
 //   });
 //
 // Monthly is the default: it matches "$1 for your first month, then
-// $19.99/month" everywhere else. Yearly is preselected only when the owner
+// $39/month" everywhere else. Yearly is preselected only when the owner
 // picked it before claiming ("Prefer to pay yearly?" -> ?plan=year, saved as
 // planIntent). The server defaults to monthly too (billing.js normalizeInterval). It posts { business_id, interval } to
 // /api/create-checkout. "Your first charge is on …" shows only when the
@@ -22,8 +22,8 @@
   var ACCOUNT_MANAGER = "A real person as your account manager: text or email Jack any change and it’s on your page within two business days.";
   var V2_BUTTON = "Go live: $1 today →";
   var PLANS = {
-    year: { label: "Yearly", price: "$199/year — about $16.58 a month, saves $40.88", button: "Subscribe — $199/year →" },
-    month: { label: "Monthly", price: "$19.99/month", button: "Subscribe — $19.99/month →" },
+    year: { label: "Yearly", price: "$390/year — about $32.50 a month, saves $78", button: "Subscribe — $390/year →" },
+    month: { label: "Monthly", price: "$39/month", button: "Subscribe — $39/month →" },
   };
 
   // Date of the first charge if checkout will defer it to the end of the
@@ -44,7 +44,7 @@
   // server; tests/pricing.test.js checks they give the same instant.
   var FIRST_MONTH_DAYS = 30;
   var TZ = "America/New_York";
-  var PRICE_LINE = "$1 for your first month, then $19.99/month or $199/year. Cancel anytime.";
+  var PRICE_LINE = "$1 for your first month, then $39/month or $390/year. Cancel anytime.";
   function firstMonthOffer(sub) {
     return !!sub && sub.pricing_version === "v2_1dollar" && !sub.stripe_subscription_id && sub.provider !== "comped";
   }
@@ -67,9 +67,9 @@
     ms = wall - offsetMin(ms) * 60000;
     return new Date(ms);
   }
-  // "$1 today. Then $19.99/month starting {date 30 days from today}. Cancel anytime from your dashboard."
+  // "$1 today. Then $39/month starting {date 30 days from today}. Cancel anytime from your dashboard."
   function termsLine(interval, now) {
-    var then = interval === "year" ? "$199/year" : "$19.99/month";
+    var then = interval === "year" ? "$390/year" : "$39/month";
     return "$1 today. Then " + then + " starting " + fmtDate(firstFullChargeDate(now)) + ". Cancel anytime from your dashboard.";
   }
 
@@ -102,7 +102,7 @@
       '<span class="epp-opt__head">' + PLANS.month.label + "</span>" +
       '<span class="epp-opt__price">' + PLANS.month.price + "</span></label>" +
       '<label class="epp-opt"><input type="radio" name="' + name + '" value="year">' +
-      '<span class="epp-opt__head">' + PLANS.year.label + ' <span class="epp-save">Save $40.88</span></span>' +
+      '<span class="epp-opt__head">' + PLANS.year.label + ' <span class="epp-save">Save $78</span></span>' +
       '<span class="epp-opt__price">' + PLANS.year.price + "</span>" +
       '<span class="epp-opt__perk">' + ACCOUNT_MANAGER + "</span></label>" +
       "</fieldset>" +
