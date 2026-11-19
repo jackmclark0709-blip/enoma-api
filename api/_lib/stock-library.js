@@ -123,7 +123,9 @@ function asPhoto(row) {
  * taken: Set of ids already on the page (mutated).
  */
 export function stockForService({ persona, name = "", brief = "", seed = "", taken = new Set() } = {}) {
-  const key = tagForService(persona, `${name} ${brief}`);
+  // The service's own name decides first; the AI's photo brief ("hot water
+  // tank repair") only when the name matches nothing.
+  const key = tagForService(persona, name) || tagForService(persona, brief);
   // One photo per tag per page: three lawn shots in a row look like a template.
   const usedKeys = new Set(STOCK_LIBRARY.filter(r => taken.has(r.id)).map(r => `${r.persona}/${r.tag}`));
   const exact = key && !usedKeys.has(key) ? pickFrom(byKey.get(key) || [], `${seed}:${key}`, taken) : null;
