@@ -108,16 +108,6 @@ export function lintCopy(g, flags = {}) {
   return issues;
 }
 
-function stripBanned(text) {
-  return String(text || "")
-    .replace(BANNED_RE, "")
-    .replace(/\s{2,}/g, " ")
-    .replace(/\s+([,.;:!?])/g, "$1")
-    .replace(/^\s*[,–—-]\s*/, "")
-    .trim()
-    .replace(/^([a-z])/, c => c.toUpperCase());
-}
-
 // Deterministic last pass: drop badges with filler words and strip them from
 // short display fields. Longer prose is left to the AI retry.
 // Unsupported claims (see unsupportedIn) are removed sentence by sentence
@@ -143,8 +133,12 @@ export function scrubCopy(g, flags = {}) {
       return bad(a) ? { ...f, ...("a" in (f || {}) ? { a: dropSentences(a) } : { answer: dropSentences(a) }) } : f;
     }).filter(f => f && String(f.a ?? f.answer ?? "").trim());
   }
+  // Banned words are never cut out mid-sentence ("ensuring quality and
+  // integrity" became "ensuring and integrity"): the sentence goes whole,
+  // and the page falls back to its default headline/title when it's empty.
+  const dropBanned = text => String(text || "").split(/(?<=[.!?])\s+/).filter(sn => !bannedWordsIn(sn).length).join(" ").trim();
   for (const f of ["hero_headline", "seo_title"]) {
-    if (bannedWordsIn(out[f]).length) out[f] = stripBanned(out[f]);
+    if (bannedWordsIn(out[f]).length) out[f] = dropBanned(out[f]);
   }
   return out;
 }

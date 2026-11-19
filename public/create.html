@@ -194,6 +194,8 @@
     Add a service
   </button>
   <p class="wizard-next-error" id="servicesError">Add at least one service to continue.</p>
+  <label for="service_for_page" style="margin-top:1.5rem;">Which service should get its own page? <span class="label-hint">optional</span></label>
+  <select id="service_for_page" name="service_for_page"><option value="">No preference</option></select>
 </div>
 
 <!-- ── SECTION 3: About your business ── -->
@@ -711,6 +713,9 @@ if (!editBusinessId) {
   document.getElementById("wizardBack").addEventListener("click", () => goToStep(currentWizardStep - 1));
   form.business_name.addEventListener("input", () => { if (currentWizardStep === 1) validateStep1(false); });
   servicesEl.addEventListener("input", () => { if (currentWizardStep === 2) validateStep2(false); });
+  servicesEl.addEventListener("input", refreshServiceForPage);
+  new MutationObserver(refreshServiceForPage).observe(servicesEl, { childList: true });
+  refreshServiceForPage();
   logoInput?.addEventListener("change", updateStep3NextLabel);
   logoUrlInput?.addEventListener("input", updateStep3NextLabel);
   document.querySelector('input[name="images"]')?.addEventListener("change", updateStep3NextLabel);
@@ -721,6 +726,19 @@ if (!editBusinessId) {
 document.getElementById("stickySubmitBtn").addEventListener("click", () => {
   form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
 });
+
+// "Which service should get its own page?": the services they entered, kept
+// in step as they type. Saved to the fact sheet (owner.service_for_page).
+function refreshServiceForPage(keep) {
+  const sel = document.getElementById("service_for_page");
+  if (!sel) return;
+  const current = typeof keep === "string" ? keep : sel.value;
+  const names = [...new Set([...servicesEl.querySelectorAll(".service-name")].map(i => i.value.trim()).filter(Boolean))];
+  sel.innerHTML = "";
+  sel.add(new Option("No preference", ""));
+  names.forEach(n => sel.add(new Option(n, n)));
+  sel.value = names.includes(current) ? current : "";
+}
 
 // Load for edit
 async function loadBusinessForEdit(businessId) {
@@ -764,6 +782,7 @@ async function loadBusinessForEdit(businessId) {
   form.why_choose_us.value = data.why_choose_us || ""; form.services_intro.value = data.services_intro || "";
   form.trust_badges.value = Array.isArray(data.trust_badges) ? data.trust_badges.join("\n") : (data.trust_badges || "");
   (data.services || []).forEach(s => { addService(); fillServiceRow(servicesEl.lastElementChild, s); });
+  refreshServiceForPage(data.fact_sheet?.owner?.service_for_page || "");
   (data.testimonials || []).forEach(t => { addTestimonial(); const last = testimonialsEl.lastElementChild; last.querySelector(".testimonial-quote").value = t.quote || ""; last.querySelector(".testimonial-author").value = t.author || ""; if (t.rating) last.dataset.rating = t.rating; if (t.source) last.dataset.source = t.source; });
   if (data.logo_url) { logoUrlInput.value = data.logo_url; setLogoPreview(data.logo_url); }
   // If any manual copy is present, open the advanced panel

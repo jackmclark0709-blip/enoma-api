@@ -15,6 +15,14 @@
 
 import { ownerTokenMatches, isPageV2 } from "./owner-link.js";
 import { cleanOwnerSpecialty, rebuildBrandKit } from "./brand-kit.js";
+import { rebuildFactSheet } from "./fact-sheet.js";
+
+// The website v3 fact sheet follows the owner's answers (api/_lib/fact-sheet.js).
+function refreshFacts(supabaseAdmin, businessId, waitUntil) {
+  const job = rebuildFactSheet(supabaseAdmin, businessId).catch(e => console.warn("fact sheet rebuild failed:", e?.message || e));
+  try { if (waitUntil) waitUntil(job); } catch { /* the job still runs */ }
+  return job;
+}
 
 async function readJson(req) {
   if (req.body && typeof req.body === "object") return req.body;
@@ -73,6 +81,8 @@ export async function handleOwnerAction(req, res, { supabaseAdmin, waitUntil = n
       .update({ service_area: next.service_area, brand_kit: next.brand_kit, updated_at: new Date().toISOString() })
       .eq("business_id", profile.business_id);
     if (error) return res.status(500).json({ error: "Couldn't save. Try again." });
+    const facts = refreshFacts(supabaseAdmin, profile.business_id, waitUntil);
+    if (!waitUntil) await facts;
     return res.status(200).json({ ok: true, town: next.town });
   }
   if (action === "set_specialty") {
@@ -82,7 +92,8 @@ export async function handleOwnerAction(req, res, { supabaseAdmin, waitUntil = n
       .update({ brand_kit: next.brand_kit, updated_at: new Date().toISOString() })
       .eq("business_id", profile.business_id);
     if (error) return res.status(500).json({ error: "Couldn't save. Try again." });
-    const job = rebuildBrandKit(supabaseAdmin, profile.business_id).catch(e => console.warn("brand kit rebuild failed:", e?.message || e));
+    const job = rebuildBrandKit(supabaseAdmin, profile.business_id).catch(e => console.warn("brand kit rebuild failed:", e?.message || e))
+      .then(() => rebuildFactSheet(supabaseAdmin, profile.business_id)).catch(e => console.warn("fact sheet rebuild failed:", e?.message || e));
     try { waitUntil ? waitUntil(job) : await job; } catch { /* the job still runs */ }
     return res.status(200).json({ ok: true, specialty: next.specialty });
   }
