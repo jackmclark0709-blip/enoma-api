@@ -401,4 +401,14 @@ await test("seasonal top-bar line by trade, month and a matching service", () =>
   assert.equal(seasonalLine(f("painting", ["Interior painting"]), at(4)), "");
 });
 
+await test("a service card can use one of the owner's own work photos (named in the copy), never an outside URL", () => {
+  const a = clone(fixture("arno"));
+  a.fact_sheet.photos.work = ["https://example.com/drain-job.jpg"];
+  a.page_copy_v3.services[0].work_photo = "https://example.com/drain-job.jpg";
+  a.page_copy_v3.services[1].work_photo = "https://evil.example/not-theirs.jpg";
+  const s = render(a).blocks["{{BLOCK_SERVICES}}"];
+  assert.match(s, /src="https:\/\/example\.com\/drain-job\.jpg"/);
+  assert.doesNotMatch(s, /not-theirs/);
+});
+
 console.log(`\n${passed} passed`);
