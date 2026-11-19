@@ -13,8 +13,12 @@
 // closing ask + quote form · footer · phone bottom bar.
 //
 // The rule for every section: it renders from real content or it isn't in
-// the HTML at all. No placeholders for visitors, no stock in the hero, no
-// drawn scenes, no "How it works" or boilerplate About.
+// the HTML at all. The one exception is photos: until the owner adds their
+// own, the hero and service cards show placeholders from Enoma's self-hosted
+// stock library (stock-library.js), labeled "Sample photo" on unclaimed
+// previews and never captioned as the business's work. No drawn scenes, no
+// "How it works" or boilerplate About. The area map is Google's free embed;
+// common questions come from faq-bank.js (facts + trade questions).
 //
 // Pure: everything it needs (stock rows, town coordinates, spotlights) comes
 // in through ctx, so each section's show/hide rule is testable
@@ -28,6 +32,8 @@ import { stateCode, kitFor } from "./brand-kit.js";
 import { linkServicesToSpotlights } from "./spotlight-render.js";
 import { renderQuoteForm } from "./quote-form.js";
 import { sizedUrls, creditFor, STOCK_QUERIES } from "./stock-photos.js";
+import { stockForService, stockForHero } from "./stock-library.js";
+import { buildFaqs } from "./faq-bank.js";
 import {
   kitStyle, brandMark, mobileBar, ownerBar, googlePhotoSrc, attributionHtml, stockCredit,
 } from "./page-v2.js";
@@ -167,6 +173,24 @@ export function stockTagFor(brief, name, persona) {
   return hit ? `${persona}/${hit.tag}` : "";
 }
 
+/**
+ * The look/persona for a v3 business. Google's trade is often a vague
+ * "services", so the listing's primary type, its other types, the profile
+ * category and finally the service names are tried in turn.
+ */
+export function personaForProfile(rawProfile = {}) {
+  const fs = obj(rawProfile?.fact_sheet) || {};
+  const b = obj(fs.business) || {};
+  const c = obj(rawProfile?.page_copy_v3) || {};
+  const tries = [b.trade, b.primary_type, ...list(b.google_types), rawProfile?.primary_category,
+    list(c.services).map(s => str(s?.name)).join(" ")];
+  for (const t of tries) {
+    const pz = personaFor(str(t).replace(/_/g, " "));
+    if (pz !== "default") return pz;
+  }
+  return "default";
+}
+
 const SERVICES_HEADING = { plumbing: "What we fix", hvac: "What we fix", electrical: "What we fix", painting: "What we paint", cleaning: "What we clean" };
 
 /**
@@ -181,12 +205,13 @@ export function factsFor(rawProfile = {}, kit = null) {
   const o = obj(fs.owner) || {};
   const c = obj(rawProfile?.page_copy_v3) || {};
   const k = kit || kitFor(p);
-  const persona = personaFor(b.trade || p.primary_category);
+  const persona = personaForProfile(rawProfile);
 
   const phone = str(b.phone || p.phone);
   const address = str(b.address || p.address);
   const first = address.split(",")[0].trim();
-  const street = /^\d/.test(first) ? first : "";
+  // Google sometimes repeats the unit ("Bldg A Unit 3 Unit 3").
+  const street = /^\d/.test(first) ? first.replace(/\b((?:\S+\s+)?\S+)(?:\s+\1\b)+/g, "$1") : "";
   const zip = (address.match(/\b(\d{5})(?:-\d{4})?\b/) || [])[1] || "";
   const town = cleanTown(b.town || p.city);
   const state = stateCode(b.state || p.state) || "";
@@ -202,7 +227,7 @@ export function factsFor(rawProfile = {}, kit = null) {
 
   const services = list(c.services).filter(s => str(s?.name) && hasEvidence(s)).map(s => {
     const name = str(s.name);
-    return { name, slug: slugify(name), stock_subject: stockTagFor(s.stock_subject, name, persona), work_photo: null, photo: null, cta: "estimate", line: str(s.description) };
+    return { name, slug: slugify(name), stock_subject: stockTagFor(s.stock_subject, name, persona), brief: str(s.stock_subject), work_photo: null, photo: null, cta: "estimate", line: str(s.description) };
   });
 
   const towns = obj(fs.towns) || {};
@@ -230,6 +255,8 @@ export function factsFor(rawProfile = {}, kit = null) {
     address: { street, town, state, zip },
     hours: summarizeHours(b.hours) || (str(p.hero_availability) ? { text: str(p.hero_availability).replace(/\.+$/, ""), spec: [] } : null),
     offers_free_estimates: (o.offers_free_estimates ?? p.offers_free_estimates) === true,
+    offers_emergency: (o.offers_emergency ?? p.offers_emergency) === true,
+    is_insured: (o.is_insured ?? p.is_insured) === true,
     license: lic ? (kitLic || { state, kind: "License", number: lic, verify_url: null }) : null,
     google: {
       place_id: str(b.place_id || p.google_place_id) || null,
@@ -257,7 +284,12 @@ export function copyFor(rawProfile = {}, facts = null) {
     services: { heading: facts?.services_heading || "What we do", sub: "", lines: {} },
     owner_section: owner && str(owner.heading) && ownerBody.length ? { heading: str(owner.heading), body: ownerBody } : null,
     reviews_heading: "What neighbors say",
-    faqs: normalizeFaqs(list(c.faqs).filter(hasEvidence)),
+    faqs: facts ? buildFaqs({
+      persona: facts.trade,
+      serviceText: [...facts.services.map(s => s.name), facts.trade].join(" | "),
+      facts,
+      aiFaqs: normalizeFaqs(list(c.faqs).filter(hasEvidence)),
+    }) : normalizeFaqs(list(c.faqs).filter(hasEvidence)),
     closing: { heading: str(closing.heading) || "Let's get you on the schedule.", line: str(closing.line) },
   };
 }
@@ -365,25 +397,41 @@ export async function loadServiceStock(supabase, rawProfile, { log = console } =
   }
 }
 
-/** The photo for a service card: owner's work photo → chosen stock → stock by subject → none. */
+/**
+ * The photo for a service card: the owner's work photo for it, else a
+ * placeholder from Enoma's own stock library (stock-library.js: self-hosted,
+ * no credit line). null for an unknown trade.
+ */
 export function servicePhoto(service, kit, ctx, taken) {
   if (service.work_photo) {
     const w = workPhotoSrc(service.work_photo, kit, ctx);
     if (w) return { kind: "work", src: w.src, srcset: "", alt: `${service.name} by ${ctx.name}`, credit: w.credit };
   }
-  const pre = service.photo;
-  if (pre && httpUrl(pre.url) && !(pre.unsplash_id && taken.has(pre.unsplash_id))) {
-    if (pre.unsplash_id) taken.add(pre.unsplash_id);
-    return { kind: "stock", src: pre.url, srcset: str(pre.srcset), alt: str(pre.alt), credit: stockCredit(pre.credit).replace(/v2-credit/g, "v3-credit") };
+  const persona = ctx.persona;
+  if (!persona || persona === "default") return null;
+  const s = stockForService({ persona, name: service.name || service.service_name, brief: service.brief, seed: ctx.businessId || ctx.slug || "", taken: taken || new Set() });
+  return s ? { kind: "stock", src: s.src, srcset: s.srcset, alt: s.alt, credit: "" } : null;
+}
+
+/**
+ * The hero's photo, behind the headline: a Google listing work photo where
+ * allowed (claimed pages), else a placeholder from the stock library.
+ * Owner photos use the owner layout instead. { src, srcset, alt, credit, placeholder } or null.
+ */
+export function heroPhoto(facts, kit, ctx) {
+  if (ctx.googleOk) {
+    const g = facts.work_photos.find(w => /^google:/.test(w.url));
+    const w = g ? workPhotoSrc(g.url, kit, ctx) : null;
+    if (w) return { src: w.src, srcset: "", alt: `Work by ${facts.name}`, credit: w.credit, placeholder: false };
+    const own = facts.work_photos.find(x => !/^google:/.test(x.url));
+    if (own) return { src: own.url, srcset: "", alt: `Work by ${facts.name}`, credit: "", placeholder: false };
+  } else {
+    const own = facts.work_photos.find(x => !/^google:/.test(x.url));
+    if (own) return { src: own.url, srcset: "", alt: `Work by ${facts.name}`, credit: "", placeholder: false };
   }
-  if (service.stock_subject) {
-    const s = pickServiceStock(ctx.stockRows, service.stock_subject, { businessId: ctx.businessId, usage: ctx.stockUsage, taken });
-    if (s) {
-      taken.add(s.unsplash_id);
-      return { kind: "stock", src: s.url, srcset: s.srcset, alt: s.alt, credit: stockCredit(s.credit).replace(/v2-credit/g, "v3-credit") };
-    }
-  }
-  return null;
+  if (!facts.trade || facts.trade === "default") return null;
+  const s = stockForHero({ persona: facts.trade, mainService: facts.services[0]?.name || "", seed: ctx.businessId || ctx.slug || "", taken: ctx.taken || new Set() });
+  return s ? { src: s.src1600, srcset: s.srcset, alt: "", credit: "", placeholder: ctx.claimed !== true } : null;
 }
 
 /** Recent work: real photos only (owner uploads; Google only where allowed), captioned job · town. */
@@ -481,8 +529,9 @@ export function heroMode(facts) {
   return "form";
 }
 
-function heroBlock(facts, copy, ctx) {
+function heroBlock(facts, copy, ctx, kit = null) {
   const mode = heroMode(facts);
+  const bg = mode === "owner" ? null : heroPhoto(facts, kit, ctx);
   const call = facts.phone
     ? `<a class="v3-btn v3-btn--cta v3-btn--lg" href="${esc(telHref(facts.phone))}" data-contact="call">${ICON_CALL}Call ${esc(facts.phone)}</a>`
     : "";
@@ -501,7 +550,11 @@ function heroBlock(facts, copy, ctx) {
       <div class="v3-formcard"><h2 class="v3-formcard__h">${esc(estimateLabelV3(facts))}</h2>{{QUOTE_FORM}}</div>
     </div>`;
   }
-  return `<section class="v3-hero" aria-labelledby="heroHeadline">
+  const bgHtml = bg
+    ? `<div class="v3-hero__bg" data-v3-media aria-hidden="${bg.alt ? "false" : "true"}">${img({ src: bg.src, srcset: bg.srcset, sizes: "100vw", alt: bg.alt, eager: true })}${bg.credit}${bg.placeholder ? `<span class="v3-hero__ph">Sample photo</span>` : ""}</div>`
+    : "";
+  return `<section class="v3-hero${bg ? " has-photo" : ""}" aria-labelledby="heroHeadline">
+  ${bgHtml}
   <div class="v3-wrap v3-hero__in v3-hero--${mode}">
     <div class="v3-hero__copy">
       ${copy.hero.eyebrow ? `<p class="v3-eyebrow">${esc(copy.hero.eyebrow)}</p>` : ""}
@@ -525,7 +578,7 @@ export function proofBlock(copy) {
 function servicesBlock(facts, copy, kit, ctx) {
   if (!facts.services.length) return "";
   const { services } = linkServicesToSpotlights(facts.services.map(s => ({ ...s, service_name: s.name })), list(ctx.spotlights), ctx.slug);
-  const taken = new Set();
+  const taken = ctx.taken || new Set();
   const label = estimateLabelV3(facts);
   // Photos on every card or on none: a grid where some cards have a photo
   // and some don't looks unfinished.
@@ -614,7 +667,9 @@ function reviewsBlock(facts, copy) {
 </section>`;
 }
 
-// ── Map (inline SVG from data/towns/<ST>.json; no tiles, no paid APIs) ──
+// ── Map ──────────────────────────────────────────────────────────────────
+// areaMapSvg (drawn from data/towns/<ST>.json) is kept for tests and the
+// share image; the page itself shows the embedded Google map (mapEmbed).
 
 /** [name, st, lat, lon] rows → the row for a town (same state first). */
 export function findTown(coords, name, state) {
@@ -681,11 +736,28 @@ export function areaMapSvg(facts, coords, { name = "" } = {}) {
   </svg>`;
 }
 
+// Google Maps Embed API: free, no usage limits (developers.google.com/maps/
+// documentation/embed/usage-and-billing). Same browser key as the v1 page
+// (public/scripts/profile.js); GOOGLE_MAPS_EMBED_KEY overrides it.
+export const MAPS_EMBED_KEY = process.env.GOOGLE_MAPS_EMBED_KEY || "AIzaSyD2DZjVEIuq6luIvl-lVeOaxqd3BG2V7IA";
+
+/** The embedded Google map for the area section: the listing pin when we have a place id, else the town. "" with neither. */
+export function mapEmbed(facts) {
+  const pid = facts.google.place_id;
+  const town = [facts.towns.home || facts.address.town, facts.address.state].filter(Boolean).join(", ");
+  const addr = [facts.address.street, town].filter(Boolean).join(", ");
+  const q = pid ? `place_id:${pid}` : (addr || town);
+  if (!q) return "";
+  const zoom = pid ? "" : `&zoom=${facts.towns.confirmed.length > 3 ? 10 : 11}`;
+  const src = `https://www.google.com/maps/embed/v1/place?key=${encodeURIComponent(MAPS_EMBED_KEY)}&q=${encodeURIComponent(q)}${zoom}`;
+  return `<iframe class="v3-gmap" src="${esc(src)}" title="Map of ${esc(facts.name || town)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>`;
+}
+
 function areaBlock(facts, ctx) {
   const chips = facts.towns.confirmed.length ? facts.towns.confirmed : facts.towns.home ? [facts.towns.home] : [];
   if (!chips.length) return "";
-  const map = areaMapSvg(facts, ctx.townCoords, { name: facts.name });
-  const hasNearby = map && facts.towns.nearby.some(t => findTown(ctx.townCoords, t, facts.address.state));
+  const map = mapEmbed(facts);
+  const hasNearby = false;
   const base = [facts.address.street, facts.towns.home || facts.address.town].filter(Boolean).join(" in ");
   const text = facts.texts_ok
     ? ` Live in a nearby town? <a href="${esc(smsHref(facts.phone))}" data-contact="sms">Text us your town</a> and we'll tell you if we can get there.`
@@ -697,7 +769,7 @@ function areaBlock(facts, ctx) {
       <p>${base ? `Based ${facts.address.street ? "on" : "in"} ${esc(base)}.` : ""}${text}</p>
       <ul class="v3-chips">${chips.map(t => `<li>${esc(t)}</li>`).join("")}</ul>
     </div>
-    ${map ? `<figure class="v3-area__map">${map}${hasNearby ? `<figcaption>Gray towns are shown for location only.</figcaption>` : ""}</figure>` : ""}
+    ${map ? `<figure class="v3-area__map v3-area__map--g">${map}${hasNearby ? `<figcaption>Gray towns are shown for location only.</figcaption>` : ""}</figure>` : ""}
   </div>
 </section>`;
 }
@@ -808,7 +880,8 @@ export function localBusinessSchemaV3(facts, { canonical, image, rawProfile = {}
 export function v3Plan(rawProfile, kit, ctx = {}) {
   const facts = factsFor(rawProfile, kit);
   const copy = copyFor(rawProfile, facts);
-  const c = { ...ctx, name: facts.name, businessId: rawProfile?.business_id || "", googleOk: googlePhotosAllowed(rawProfile, ctx) };
+  const c = { ...ctx, name: facts.name, businessId: rawProfile?.business_id || "", googleOk: googlePhotosAllowed(rawProfile, ctx),
+    persona: facts.trade, claimed: rawProfile?.is_claimed === true, taken: new Set() };
   const work = recentWork(facts, kit, c);
   const spot = list(ctx.spotlights);
   return {
@@ -844,7 +917,7 @@ export function renderBlocksV3(rawProfile, kit, ctx = {}) {
   return {
     "{{BLOCK_TOPBAR}}": bar + topBar(facts, c),
     "{{BLOCK_HEADER}}": headerBlock(rawProfile, facts, kit, c, nav),
-    "{{BLOCK_HERO}}": heroBlock(facts, copy, c),
+    "{{BLOCK_HERO}}": heroBlock(facts, copy, c, kit),
     "{{BLOCK_PROOF}}": proofBlock(copy),
     "{{BLOCK_TRUST}}": "",
     "{{BLOCK_SERVICES}}": servicesBlock(facts, copy, kit, c),

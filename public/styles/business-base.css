@@ -1323,6 +1323,18 @@ body.page-v3 {
 .page-v3 .v3-review--pull blockquote p { font-family: var(--v3-head); font-weight: 800; font-size: clamp(1.35rem, 5vw, 1.9rem); line-height: 1.25; }
 .page-v3 .v3-reviews { display: grid; gap: 14px; }
 
+/* Hero with a photo behind it: the photo fills the band, the kit color
+   washes over it so white text keeps 4.5:1 (phone: an even wash; desktop:
+   solid on the text side, lighter on the photo side). */
+.page-v3 .v3-hero { position: relative; overflow: hidden; isolation: isolate; }
+.page-v3 .v3-hero__bg { position: absolute; inset: 0; z-index: -1; margin: 0; }
+.page-v3 .v3-hero__bg img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.page-v3 .v3-hero__bg::after { content: ""; position: absolute; inset: 0; background: color-mix(in srgb, var(--kit-identity-deep) 84%, transparent); }
+.page-v3 .v3-hero__bg .v3-credit { z-index: 1; }
+.page-v3 .v3-hero__ph { position: absolute; z-index: 1; right: 10px; bottom: 10px; padding: 3px 9px; border-radius: 6px; background: rgba(0,0,0,.55); color: #fff; font-size: 0.75rem; font-weight: 600; letter-spacing: .02em; }
+.page-v3 .v3-hero.has-photo .v3-h1, .page-v3 .v3-hero.has-photo .v3-sub, .page-v3 .v3-hero.has-photo .v3-eyebrow { text-shadow: 0 1px 2px rgba(0,0,0,.25); }
+.page-v3 .v3-hero.has-photo .v3-hero__in { padding-top: 44px; padding-bottom: 52px; }
+
 /* Proof strip */
 .page-v3 .v3-proof { background: #fff; border-bottom: 1px solid var(--line); }
 .page-v3 .v3-proof__list { list-style: none; margin: 0 auto; padding-top: 18px; padding-bottom: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; }
@@ -1385,6 +1397,10 @@ body.page-v3 {
 .page-v3 .v3-map__home { fill: var(--kit-cta); stroke: var(--ink); stroke-width: 2; }
 .page-v3 .v3-map__home-label { fill: var(--ink); font-size: 17px; font-weight: 700; }
 
+/* Embedded Google map */
+.page-v3 .v3-area__map--g { padding: 0; overflow: hidden; }
+.page-v3 .v3-gmap { display: block; width: 100%; height: 300px; border: 0; }
+
 /* FAQ */
 .page-v3 .v3-faq { border: 1px solid var(--line); border-radius: 12px; padding: 0 18px; margin: 0 0 12px; background: #fff; }
 .page-v3 .v3-faq summary { cursor: pointer; min-height: 52px; display: flex; align-items: center; font-weight: 700; font-size: 1.05rem; padding: 10px 0; }
@@ -1438,6 +1454,9 @@ body.page-v3 {
   .page-v3 .v3-hero__in { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 40px; padding-top: 52px; padding-bottom: 56px; }
   .page-v3 .v3-hero__in.v3-hero--form { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
   .page-v3 .v3-h1 { font-size: 3rem; }
+  .page-v3 .v3-hero.has-photo .v3-hero__in { padding-top: 76px; padding-bottom: 84px; }
+  .page-v3 .v3-hero__bg::after { background: linear-gradient(90deg, color-mix(in srgb, var(--kit-identity-deep) 94%, transparent) 0%, color-mix(in srgb, var(--kit-identity-deep) 86%, transparent) 45%, color-mix(in srgb, var(--kit-identity-deep) 28%, transparent) 100%); }
+  .page-v3 .v3-gmap { height: 380px; }
   .page-v3 .v3-band, .page-v3 .v3-closing { padding: 60px 0; }
   .page-v3 .v3-cards, .page-v3 .v3-work, .page-v3 .v3-reviews { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .page-v3 .v3-owner.has-photo, .page-v3 .v3-area.has-map { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 40px; }

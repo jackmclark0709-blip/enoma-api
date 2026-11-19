@@ -183,10 +183,11 @@ await test("service page sections: service + town H1, proof, call + estimate, wh
   assert.equal(parts.schema.provider.name, "Arno Plumbing & Heating");
 });
 
-await test("photo slot: same fallback as the service cards (stock by subject, else none)", () => {
-  assert.equal(renderService(autoSpot()).parts.blocks["{{BLOCK_WORK}}"], "", "no photo: no slot, no placeholder");
-  const rows = [{ unsplash_id: "d1", persona: "plumbing", service_tag: "drain", approved: true, raw_url: "https://images.unsplash.com/photo-d1?ixid=x", alt: "drain", photographer_name: "A", photographer_username: "a" }];
-  assert.match(renderService(autoSpot(), { stockRows: rows }).parts.blocks["{{BLOCK_WORK}}"], /<img data-v3-img[\s\S]*Unsplash/);
+await test("photo slot: same fallback as the service cards (own work photo, else a self-hosted placeholder)", () => {
+  const w = renderService(autoSpot()).parts.blocks["{{BLOCK_WORK}}"];
+  assert.match(w, /<img data-v3-img src="\/stock\/[\w-]+-800\.webp"/, "placeholder from the library");
+  assert.match(w, /alt="A drain"/, "picked for the service");
+  assert.doesNotMatch(w, /unsplash|Photo by/i, "no credit line");
 });
 
 await test("reviews: the cited ones, else ones naming the service", () => {

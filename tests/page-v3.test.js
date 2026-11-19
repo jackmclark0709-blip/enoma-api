@@ -114,7 +114,8 @@ await test("copy items without evidence ids aren't shown", () => {
   a.page_copy_v3.proof[2].evidence = [];
   const facts = factsFor(a), copy = copyFor(a, facts);
   assert.deepEqual(facts.services.map(s => s.name), ["Backed-up drains and sewer lines", "Heating"]);
-  assert.equal(copy.faqs.length, 2);
+  assert.ok(!copy.faqs.some(f => f.q === "How soon can you come out?"), "AI question without evidence dropped");
+  assert.ok(copy.faqs.some(f => f.q === "My sink, toilet and tub are all backing up. Can you help?"), "evidence-backed AI question kept");
   assert.equal(copy.proof.length, 2);
   const o = clone(fixture("let-it-roll")); o.page_copy_v3.owner_section.evidence = [];
   assert.equal(copyFor(o).owner_section, null);
@@ -157,19 +158,32 @@ await test("one estimate label everywhere: free only when the owner says so", ()
 
 // ── Hero ─────────────────────────────────────────────────────────────────
 
-await test("hero: owner photo + review card → review card alone → estimate form", () => {
+await test("hero: owner photo + review card → review card alone → estimate form; placeholder photo behind", () => {
   const a = fixture("arno");
   assert.equal(heroMode(factsFor(a)), "review");
   const hero = render(a).blocks["{{BLOCK_HERO}}"];
   assert.match(hero, /v3-review--big/);
   assert.match(hero, /Plumber in North Attleborough, MA/);
-  assert.doesNotMatch(hero, /<img/, "never stock or a drawing in the hero");
+  assert.match(hero, /class="v3-hero has-photo"/, "a placeholder photo behind the headline");
+  assert.match(hero, /<img data-v3-img src="\/stock\/[\w-]+-1600\.webp"/, "self-hosted, not hotlinked");
+  assert.match(hero, /Sample photo/, "labeled on an unclaimed preview");
+  assert.doesNotMatch(hero, /unsplash|Photo by/i, "no credit line, no Unsplash URL");
+  const claimed = clone(a); claimed.is_claimed = true;
+  assert.doesNotMatch(render(claimed).blocks["{{BLOCK_HERO}}"], /Sample photo/, "no label once claimed");
+  const unknown = clone(a); unknown.primary_category = "Notary"; unknown.fact_sheet.business.trade = "Notary"; unknown.fact_sheet.business.primary_type = "Notary"; unknown.fact_sheet.business.google_types = []; unknown.page_copy_v3.services = [];
+  assert.doesNotMatch(render(unknown).blocks["{{BLOCK_HERO}}"], /has-photo/, "no library for the trade: plain brand-color hero");
 
   const withOwner = clone(a); withOwner.fact_sheet.photos.owner = ["https://example.com/peter.jpg"];
   const ho = render(withOwner).blocks["{{BLOCK_HERO}}"];
   assert.equal(heroMode(factsFor(withOwner)), "owner");
   assert.match(ho, /src="https:\/\/example\.com\/peter\.jpg"/);
   assert.match(ho, /v3-review--hero/);
+  assert.doesNotMatch(ho, /has-photo/, "owner photo layout, no stock behind it");
+
+  const withWork = clone(a); withWork.fact_sheet.photos.work = ["https://example.com/leak.jpg"];
+  const hw = render(withWork).blocks["{{BLOCK_HERO}}"];
+  assert.match(hw, /v3-hero__bg[\s\S]*example\.com\/leak\.jpg/, "the owner's own work photo beats stock");
+  assert.doesNotMatch(hw, /Sample photo/);
 
   const noReviews = clone(a); noReviews.fact_sheet.reviews = [];
   const r = render(noReviews);
@@ -206,14 +220,18 @@ await test("services: no service page → estimate link; service page → See <s
   assert.match(withPage.blocks["{{BLOCK_HEADER}}"], /<a href="\/arno-plumbing-and-heating-2\/leaks-and-broken-pipes">Services<\/a>/, "menu Services goes to the service page");
 });
 
-await test("service photos: stock by subject, all cards or none, credited", () => {
+await test("service photos: self-hosted placeholders on every card, no credit, never twice on a page", () => {
   const a = fixture("arno");
-  assert.doesNotMatch(render(a).blocks["{{BLOCK_SERVICES}}"], /<img/, "no stock rows: finished cards without images");
-  const rows = [row("p1", "pipes"), row("d1", "drain"), row("b1", "boiler")];
-  const all = render(a, { stockRows: rows }).blocks["{{BLOCK_SERVICES}}"];
+  const { blocks } = render(a);
+  const all = blocks["{{BLOCK_SERVICES}}"];
   assert.equal(count(all, /<img data-v3-img/g), 3);
-  assert.match(all, /Photo by .*Unsplash/, "stock credited");
-  assert.equal(count(render(a, { stockRows: rows.slice(0, 2) }).blocks["{{BLOCK_SERVICES}}"], /<img/g), 0, "one card without a photo → none have photos");
+  assert.doesNotMatch(all, /unsplash|Photo by/i);
+  const ids = [...(blocks["{{BLOCK_HERO}}"] + all).matchAll(/src="\/stock\/([\w-]+?)-(?:800|1600)\.webp"/g)].map(m => m[1]);
+  assert.equal(new Set(ids).size, ids.length, "hero and cards all different photos");
+  const own = clone(a); own.page_copy_v3.services[0].work_photo = undefined;
+  const unknown = clone(a); unknown.primary_category = "Notary"; unknown.fact_sheet.business.trade = "Notary"; unknown.fact_sheet.business.primary_type = "Notary"; unknown.fact_sheet.business.google_types = [];
+  unknown.page_copy_v3.services = [{ name: "Signings", description: "x", evidence: ["g"] }];
+  assert.doesNotMatch(render(unknown).blocks["{{BLOCK_SERVICES}}"], /<img/, "unknown trade: finished cards without images");
 });
 
 await test("stock picker: never on more than 3 other businesses, never twice on a page", () => {
@@ -281,29 +299,34 @@ await test("reviews: rating + count + Read all on Google; pull quote only with 3
 
 // ── Area, FAQ, closing, footer ───────────────────────────────────────────
 
-await test("where we work: SVG map from town coordinates, confirmed chips, nearby for location only", () => {
+await test("where we work: Google's free embedded map, confirmed chips, text us your town", () => {
   const a = render(fixture("arno")).blocks["{{BLOCK_AREAS}}"];
-  assert.match(a, /<svg class="v3-map"/);
-  assert.match(a, /v3-map__home/);
-  assert.match(a, /v3-map__faint-label[^>]*>Plainville</);
-  assert.match(a, /shown for location only/);
+  assert.match(a, /<iframe class="v3-gmap" src="https:\/\/www\.google\.com\/maps\/embed\/v1\/place\?key=[^"&]+&amp;q=place_id%3AChIJ___T0axn5IkRogBUGMKq0cI"/);
+  assert.match(a, /loading="lazy"/);
   assert.match(a, /href="sms:\+?7745341403"[^>]*>Text us your town/);
   assert.match(a, /<ul class="v3-chips"><li>North Attleborough<\/li><\/ul>/, "chips are confirmed towns only");
-  assert.doesNotMatch(a, /maps\.googleapis|tile/);
-  assert.equal(areaMapSvg(factsFor(fixture("arno")), []), "", "no coordinates: no map");
-  assert.doesNotMatch(render(fixture("arno"), { townCoords: [] }).blocks["{{BLOCK_AREAS}}"], /<svg/);
+  const noPlace = clone(fixture("arno")); noPlace.fact_sheet.business.place_id = null; noPlace.google_place_id = null;
+  assert.match(render(noPlace).blocks["{{BLOCK_AREAS}}"], /q=3%20Kendall%20St%2C%20North%20Attleborough%2C%20MA&amp;zoom=11/, "no place id: the address");
+  assert.ok(areaMapSvg(factsFor(fixture("arno")), COORDS).startsWith("<svg"), "drawn map still available");
 });
 
-await test("FAQ: <details> from page copy, with FAQPage schema", () => {
+await test("FAQ: trade questions + facts + evidence-backed copy, with FAQPage schema", () => {
   const { html, blocks } = render(fixture("arno"));
-  assert.equal(count(blocks["{{BLOCK_FAQ}}"], /<details/g), 3);
+  const n = count(blocks["{{BLOCK_FAQ}}"], /<details/g);
+  assert.ok(n >= 4 && n <= 6, `4–6 questions, got ${n}`);
   const faq = jsonLd(html).find(j => j["@type"] === "FAQPage");
-  assert.equal(faq.mainEntity.length, 3);
-  assert.equal(faq.mainEntity[0].name, "How soon can you come out?");
+  assert.equal(faq.mainEntity.length, n);
+  const qs = faq.mainEntity.map(x => x.name);
+  assert.equal(qs[0], "Should I use a chemical drain cleaner on a clog?", "leads with a question about their main service");
+  assert.ok(qs.includes("How soon can you come out?"), "evidence-backed copy question kept");
+  assert.ok(qs.includes("What towns do you serve?"));
+  assert.ok(!qs.includes("What are your hours?"), "the copy's hours question is covered by the fact version");
+  assert.ok(qs.every(q => !/\bthey\b|\btheir\b/i.test(q)), "\"we\" voice only");
+  assert.ok(!/free estimate/i.test(blocks["{{BLOCK_FAQ}}"]), "never says free unless the owner did");
+  const lir = render(fixture("let-it-roll")).html;
+  assert.match(lir, /Are estimates free\?/, "free only when the owner says so");
   const none = clone(fixture("arno")); none.page_copy_v3.faqs = [];
-  const n = render(none);
-  assert.equal(n.blocks["{{BLOCK_FAQ}}"], "");
-  assert.equal(jsonLd(n.html).find(j => j["@type"] === "FAQPage"), undefined, "no FAQ, no FAQPage");
+  assert.ok(count(render(none).blocks["{{BLOCK_FAQ}}"], /<details/g) >= 4, "the bank still fills the section");
 });
 
 await test("LocalBusiness schema: confirmed towns only, Google rating we display", () => {
