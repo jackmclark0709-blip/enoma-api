@@ -183,11 +183,13 @@ await test("service page sections: service + town H1, proof, call + estimate, wh
   assert.equal(parts.schema.provider.name, "Arno Plumbing & Heating");
 });
 
-await test("photo slot: same fallback as the service cards (own work photo, else a self-hosted placeholder)", () => {
-  const w = renderService(autoSpot()).parts.blocks["{{BLOCK_WORK}}"];
-  assert.match(w, /<img data-v3-img src="\/stock\/[\w-]+-800\.webp"/, "placeholder from the library");
-  assert.match(w, /alt="A drain"/, "picked for the service");
-  assert.doesNotMatch(w, /unsplash|Photo by/i, "no credit line");
+await test("photo: the service's placeholder sits behind the headline (no credit), no extra band", () => {
+  const b = renderService(autoSpot()).parts.blocks;
+  assert.match(b["{{BLOCK_HERO}}"], /class="v3-hero v3-hero--service has-photo"/);
+  assert.match(b["{{BLOCK_HERO}}"], /<img data-v3-img src="\/stock\/[\w-]+-1600\.webp"/, "from the library, hero size");
+  assert.match(b["{{BLOCK_HERO}}"], /Sample photo/);
+  assert.doesNotMatch(b["{{BLOCK_HERO}}"], /unsplash|Photo by/i, "no credit line");
+  assert.equal(b["{{BLOCK_WORK}}"], "", "placeholder isn't repeated as a band");
 });
 
 await test("reviews: the cited ones, else ones naming the service", () => {
