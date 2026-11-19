@@ -118,7 +118,7 @@ function asPhoto(row) {
 
 /**
  * A placeholder photo for one service card: its own tag (unless that tag is
- * already on the page), then a photo from another of the persona's tags,
+ * already on the page twice), then a photo from another of the persona's tags,
  * then anything of the persona not used on this page. null for an unknown persona.
  * taken: Set of ids already on the page (mutated).
  */
@@ -126,9 +126,14 @@ export function stockForService({ persona, name = "", brief = "", seed = "", tak
   // The service's own name decides first; the AI's photo brief ("hot water
   // tank repair") only when the name matches nothing.
   const key = tagForService(persona, name) || tagForService(persona, brief);
-  // One photo per tag per page: three lawn shots in a row look like a template.
-  const usedKeys = new Set(STOCK_LIBRARY.filter(r => taken.has(r.id)).map(r => `${r.persona}/${r.tag}`));
-  const exact = key && !usedKeys.has(key) ? pickFrom(byKey.get(key) || [], `${seed}:${key}`, taken) : null;
+  // At most two photos of a tag per page: three lawn shots in a row look like a template.
+  const counts = {};
+  for (const r of STOCK_LIBRARY) if (taken.has(r.id)) counts[`${r.persona}/${r.tag}`] = (counts[`${r.persona}/${r.tag}`] || 0) + 1;
+  const usedKeys = new Set(Object.keys(counts).filter(k => counts[k] >= 2));
+  // A service named for the tag ("Roof replacements" → roof) may repeat it;
+  // a loose match (tick control → lawn) may not.
+  const own = (STOCK_QUERIES[persona] || []).slice(1).some(q => `${persona}/${q.tag}` === key && q.match.test(str(name).toLowerCase()));
+  const exact = key && (own || !usedKeys.has(key)) ? pickFrom(byKey.get(key) || [], `${seed}:${key}`, taken) : null;
   if (exact) return asPhoto(exact);
   const keys = libraryKeys().filter(k => k.startsWith(`${persona}/`));
   const general = (HERO_TAGS[persona] || []).map(t => `${persona}/${t}`).filter(k => byKey.has(k) && !usedKeys.has(k));
@@ -142,11 +147,14 @@ export function stockForService({ persona, name = "", brief = "", seed = "", tak
   return any ? asPhoto(any) : null;
 }
 
-/** The hero's placeholder photo: a wide, calm shot for the persona (HERO_TAGS order). */
+/** The hero's placeholder photo: a wide, calm shot for the persona (HERO_TAGS order; a contractor's main service first). */
 export function stockForHero({ persona, mainService = "", seed = "", taken = new Set() } = {}) {
   const tags = HERO_TAGS[persona];
   if (!tags) return null;
-  for (const tag of tags) {
+  // "Contractor" covers roofers, pavers and masons: lead with their own work.
+  const main = persona === "contractor" ? tagForService(persona, mainService) : "";
+  const order = main.startsWith(`${persona}/`) ? [main.split("/")[1], ...tags] : tags;
+  for (const tag of order) {
     const row = pickFrom(byKey.get(`${persona}/${tag}`) || [], `${seed}:hero:${tag}`, taken);
     if (row) return asPhoto(row);
   }
