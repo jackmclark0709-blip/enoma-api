@@ -1,0 +1,15 @@
+name: stock-sync
+on:
+  push:
+    branches: [stock-sync]
+    paths: [scripts/stock-manifest.txt, .github/workflows/stock-sync.yml]
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: stock-sync }
+      - name: hello
+        run: echo ok
