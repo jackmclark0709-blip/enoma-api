@@ -20,7 +20,7 @@ import { renderCompanyPage, heroVisual } from "./_lib/company-page.js";
 import { hasLiveStripeSubscription } from "./_lib/billing.js";
 import { kitFor, loadTownCoords, googlePhotoUri } from "./_lib/brand-kit.js";
 import { renderBlocksV2, kitStyle, v2Head, ogTitleFor, ogImageUrl } from "./_lib/page-v2.js";
-import { isPageV3, v3PageParts, loadServiceStock } from "./_lib/page-v3.js";
+import { isPageV3, v3PageParts, personaForProfile } from "./_lib/page-v3.js";
 import { AUTO_SOURCE, servicePageV3Parts, servicePageRobots, servicePageAskHtml, SERVICE_ASK_SCRIPT } from "./_lib/service-page-v3.js";
 import { isPageV2, ownerTokenMatches } from "./_lib/owner-link.js";
 import { utmFromQuery } from "./_lib/attribution.js";
@@ -345,7 +345,7 @@ async function serveServicePageV3(req, res, profile, spot) {
     .eq("business_id", profile.business_id).eq("status", "published").order("published_at", { ascending: true });
   const spotlights = [...(published || [])];
   if (!spotlights.some(x => x.service_slug === spot.service_slug)) spotlights.push({ service_slug: spot.service_slug, service_name: spot.content?.service_name });
-  const { stockRows, stockUsage } = await loadServiceStock(supabase, profile);
+  const stockRows = [], stockUsage = {}; // service photos now come from the self-hosted library (stock-library.js)
   const homeCanonical = profile.custom_domain ? `https://${profile.custom_domain}/` : `${baseUrl}/${encodeURIComponent(slug)}`;
   const canonical = `${baseUrl}/${encodeURIComponent(slug)}/${encodeURIComponent(spot.service_slug)}`;
   const shareImage = ogImageUrl(baseUrl, slug, kit);
@@ -372,7 +372,7 @@ async function serveServicePageV3(req, res, profile, spot) {
       "{{HERO_PRELOAD}}": "",
       "{{V2_HEAD}}": v3PageParts(profile, kit, ctx).head,
       "{{BRAND_COLOR_STYLE}}": kitStyle(kit),
-      "{{BODY_CLASS}}": escapeHtml(`page-v3 page-v3-service persona-${personaFor(profile.primary_category)}`),
+      "{{BODY_CLASS}}": escapeHtml(`page-v3 page-v3-service persona-${personaForProfile(profile)}`),
     },
   });
   res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -562,7 +562,7 @@ export default async function handler(req, res) {
       const m = UUID_RE.test(String(req.query.m || "")) ? String(req.query.m) : null;
       const shareImage = ogImageUrl(baseUrl, slug, kit);
       if (owner) startLaunchKitBuild(profile, kit);
-      const { stockRows, stockUsage } = await loadServiceStock(supabase, profile);
+      const stockRows = [], stockUsage = {}; // service photos now come from the self-hosted library (stock-library.js)
       const template = fs.readFileSync(path.join(process.cwd(), "public", "profile.html"), "utf8");
       // The included service page (website v3 PR C). Published: already in
       // spotlights. A draft is linked from a preview (noindex either way) but
@@ -596,7 +596,7 @@ export default async function handler(req, res) {
           "{{HERO_PRELOAD}}": "",
           "{{V2_HEAD}}": parts.head,
           "{{BRAND_COLOR_STYLE}}": parts.style,
-          "{{BODY_CLASS}}": escapeHtml(`page-v3 persona-${personaFor(profile.primary_category)}`),
+          "{{BODY_CLASS}}": escapeHtml(`page-v3 persona-${personaForProfile(profile)}`),
         },
       });
       res.setHeader("Content-Type", "text/html; charset=utf-8");
