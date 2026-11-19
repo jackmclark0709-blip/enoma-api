@@ -1,4 +1,7 @@
 name: stock-sync
+# One-off: copy the hand-approved stock photos (scripts/stock-manifest.txt)
+# into public/stock/ so pages serve them from enoma.io. Runs only on the
+# stock-sync branch; never on main.
 on:
   push:
     branches: [stock-sync]
@@ -11,5 +14,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { ref: stock-sync }
-      - name: hello
-        run: echo ok
+      - name: Download
+        run: |
+          mkdir -p public/stock review
+          while read -r persona tag kind id path; do
+            [ -z "$id" ] && continue
+            for w in 1600 800; do
+              out="public/stock/${id}-${w}.webp"
+              [ -s "$out" ] && continue
+              curl -sfL --retry 3 -o "$out" "https://images.unsplash.com/${path}?w=${w}&q=70&fm=webp&fit=max" || { echo "FAIL $id $w"; rm -f "$out"; }
+            done
+            [ -s "public/stock/${id}-800.webp" ] && echo "$persona/$tag/$kind $id" >> review/list.txt
+          done < scripts/stock-manifest.txt
+          du -sh public/stock; ls public/stock | wc -l
+      - name: Contact sheets
+        run: |
+          sudo apt-get install -y -qq imagemagick >/dev/null 2>&1 || true
+          cut -d' ' -f1 review/list.txt | sort -u | while read -r key; do
+            name=$(echo "$key" | tr '/' '_')
+            files=$(grep "^$key " review/list.txt | awk '{print "public/stock/"$2"-800.webp"}')
+            labels=$(grep "^$key " review/list.txt | awk '{print $2}')
+            args=""; for f in $files; do id=$(basename $f -800.webp); args="$args -label $id $f"; done
+            montage $args -tile 4x -geometry 360x240+4+4 -pointsize 14 "review/${name}.jpg" || echo "montage failed $key"
+          done
+          ls review | head -100
+      - name: Commit
+        run: |
+          git config user.name "enoma-stock-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add public/stock review
+          git commit -m "stock: self-hosted copies of approved photos + review sheets" || echo nothing
+          git push
