@@ -225,10 +225,6 @@ export function factsFor(rawProfile = {}, kit = null) {
     return { id: str(r.id) || `r${i + 1}`, quote: ex.text, author: str(r.author) || "Customer", rating: Number(r.rating) || null, context: "", strength: ex.score + (Number(r.rating) || 0) };
   }).filter(r => r.quote).slice(0, MAX_REVIEWS);
 
-  const services = list(c.services).filter(s => str(s?.name) && hasEvidence(s)).map(s => {
-    const name = str(s.name);
-    return { name, slug: slugify(name), stock_subject: stockTagFor(s.stock_subject, name, persona), brief: str(s.stock_subject), work_photo: null, photo: null, cta: "estimate", line: str(s.description) };
-  });
 
   const towns = obj(fs.towns) || {};
   const confirmed = (Array.isArray(towns.confirmed) ? towns.confirmed : list(k?.towns?.confirmed)).map(cleanTown).filter(Boolean);
@@ -242,6 +238,14 @@ export function factsFor(rawProfile = {}, kit = null) {
     .map(w => ({ url: httpUrl(w?.url), job: str(w?.job), town: cleanTown(w?.town) })).filter(w => w.url);
   // Google work photos stay refs on the kit; the page decides if they may show.
   const google = list(k?.google_photos).map((g, i) => ({ g, i })).filter(x => x.g?.kind === "work").map(x => ({ url: `google:${x.i}`, job: "", town: "" }));
+
+  // A card shows the owner's own photo when the copy points it at one of
+  // their work photos (never a URL from anywhere else).
+  const services = list(c.services).filter(s => str(s?.name) && hasEvidence(s)).map(s => {
+    const name = str(s.name);
+    const mine = own.find(w => w.url === httpUrl(s.work_photo));
+    return { name, slug: slugify(name), stock_subject: stockTagFor(s.stock_subject, name, persona), brief: str(s.stock_subject), work_photo: mine ? mine.url : null, photo: null, cta: "estimate", line: str(s.description) };
+  });
 
   const lic = (str(o.license_number) || str(p.license_number)).replace(/^#/, "");
   const kitLic = k?.license && str(k.license.number) === lic ? k.license : null;
