@@ -236,7 +236,7 @@ export default async function handler(req, res) {
             <div style="background:#fff;border:1px solid #e4edf5;border-top:none;border-radius:0 0 12px 12px;padding:28px;">
               <p style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 12px;">Hey, we got your request!</p>
               <p style="font-size:14px;color:#374151;line-height:1.65;margin:0 0 16px;">
-                We're building a free lead page for <strong>${esc(leadName)}</strong>. You'll get an email from me with the link within 1 business day.
+                We're building a free website for <strong>${esc(leadName)}</strong>. You'll get an email from me with the link within 1 business day.
               </p>
               <p style="font-size:14px;color:#374151;line-height:1.65;margin:0 0 20px;">
                 The page will have your services, your area, and a contact form so customers can reach you directly. Seeing it is free, no card. To keep it live: $1 for your first month, then $19.99/month or $199/year. Cancel anytime.
