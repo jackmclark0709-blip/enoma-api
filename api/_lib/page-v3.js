@@ -210,7 +210,8 @@ export function factsFor(rawProfile = {}, kit = null) {
   const phone = str(b.phone || p.phone);
   const address = str(b.address || p.address);
   const first = address.split(",")[0].trim();
-  const street = /^\d/.test(first) ? first : "";
+  // Google sometimes repeats the unit ("Bldg A Unit 3 Unit 3").
+  const street = /^\d/.test(first) ? first.replace(/\b((?:\S+\s+)?\S+)(?:\s+\1\b)+/g, "$1") : "";
   const zip = (address.match(/\b(\d{5})(?:-\d{4})?\b/) || [])[1] || "";
   const town = cleanTown(b.town || p.city);
   const state = stateCode(b.state || p.state) || "";

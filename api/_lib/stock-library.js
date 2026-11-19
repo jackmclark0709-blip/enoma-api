@@ -117,15 +117,25 @@ function asPhoto(row) {
 }
 
 /**
- * A placeholder photo for one service card: its own tag, then any photo of
- * the persona not used on this page. null for an unknown persona.
+ * A placeholder photo for one service card: its own tag (unless that tag is
+ * already on the page), then a photo from another of the persona's tags,
+ * then anything of the persona not used on this page. null for an unknown persona.
  * taken: Set of ids already on the page (mutated).
  */
 export function stockForService({ persona, name = "", brief = "", seed = "", taken = new Set() } = {}) {
   const key = tagForService(persona, `${name} ${brief}`);
-  const exact = key ? pickFrom(byKey.get(key) || [], `${seed}:${key}`, taken) : null;
+  // One photo per tag per page: three lawn shots in a row look like a template.
+  const usedKeys = new Set(STOCK_LIBRARY.filter(r => taken.has(r.id)).map(r => `${r.persona}/${r.tag}`));
+  const exact = key && !usedKeys.has(key) ? pickFrom(byKey.get(key) || [], `${seed}:${key}`, taken) : null;
   if (exact) return asPhoto(exact);
-  const all = libraryKeys().filter(k => k.startsWith(`${persona}/`)).flatMap(k => byKey.get(k));
+  const keys = libraryKeys().filter(k => k.startsWith(`${persona}/`));
+  const general = (HERO_TAGS[persona] || []).map(t => `${persona}/${t}`).filter(k => byKey.has(k) && !usedKeys.has(k));
+  const fresh = (general.length ? general : keys.filter(k => !usedKeys.has(k))).flatMap(k => byKey.get(k));
+  const anyFresh = pickFrom(fresh, `${seed}:${persona}:${name}`, taken);
+  if (anyFresh) return asPhoto(anyFresh);
+  const same = key ? pickFrom(byKey.get(key) || [], `${seed}:${key}`, taken) : null;
+  if (same) return asPhoto(same);
+  const all = keys.flatMap(k => byKey.get(k));
   const any = pickFrom(all, `${seed}:${persona}:${name}`, taken);
   return any ? asPhoto(any) : null;
 }
