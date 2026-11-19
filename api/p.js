@@ -21,6 +21,7 @@ import { hasLiveStripeSubscription } from "./_lib/billing.js";
 import { kitFor, loadTownCoords, googlePhotoUri } from "./_lib/brand-kit.js";
 import { renderBlocksV2, kitStyle, v2Head, ogTitleFor, ogImageUrl } from "./_lib/page-v2.js";
 import { isPageV3, v3PageParts, loadServiceStock } from "./_lib/page-v3.js";
+import { AUTO_SOURCE, servicePageV3Parts, servicePageRobots, servicePageAskHtml, SERVICE_ASK_SCRIPT } from "./_lib/service-page-v3.js";
 import { isPageV2, ownerTokenMatches } from "./_lib/owner-link.js";
 import { utmFromQuery } from "./_lib/attribution.js";
 import { renderOgPng, shareHeroImage } from "./_lib/og-card.js";
@@ -289,6 +290,14 @@ async function serveSpotlight(req, res, bizSlug, serviceSlug) {
     res.setHeader("Cache-Control", "public, max-age=0, s-maxage=60");
     return res.status(200).send(inactivePage(profile.business_name || bizSlug, absoluteBaseUrl(req)));
   }
+  // Website v3: the auto-drafted service page renders in the v3 shell.
+  if (spot.source === AUTO_SOURCE) {
+    if (!isPageV3(profile) || process.env.PAGE_V3 === "off" || process.env.PAGE_V2 === "off" || !spot.content?.hero) {
+      res.setHeader("Cache-Control", "public, max-age=0, s-maxage=60");
+      return res.redirect(302, `/${encodeURIComponent(bizSlug)}`);
+    }
+    return await serveServicePageV3(req, res, profile, spot);
+  }
   // First version still being written (or it failed): a holding page.
   if (!spot.content?.hero) {
     const msg = spot.generation_status === "failed"
@@ -316,6 +325,59 @@ async function serveSpotlight(req, res, bizSlug, serviceSlug) {
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   // Drafts change while the owner reviews them; published pages cache briefly.
   res.setHeader("Cache-Control", spot.status === "published" ? "public, max-age=0, s-maxage=300" : "private, no-store");
+  return res.status(200).send(html);
+}
+
+// enoma.io/<slug>/<service-slug> for the auto service page (website v3 PR C):
+// the same website as the home page (top bar, header + menu, footer, phone
+// bar), indexed only once it's published and the home page is indexed.
+async function serveServicePageV3(req, res, profile, spot) {
+  Object.assign(profile, stripWeakRatingClaims(profile));
+  const baseUrl = absoluteBaseUrl(req);
+  const slug = profile.username;
+  const townCoords = await loadTownCoords(profile.state);
+  const kit = kitFor(profile, { townCoords });
+  const o = String(req.query.o || "");
+  const owner = !!o && ownerTokenMatches(profile, o);
+  const billingState = await billingStateFor(profile.business_id);
+  const homeIndexable = pageIndexable({ profile, ...billingState });
+  const { data: published } = await supabase.from("service_spotlights").select("service_slug,service_name:content->>service_name")
+    .eq("business_id", profile.business_id).eq("status", "published").order("published_at", { ascending: true });
+  const spotlights = [...(published || [])];
+  if (!spotlights.some(x => x.service_slug === spot.service_slug)) spotlights.push({ service_slug: spot.service_slug, service_name: spot.content?.service_name });
+  const { stockRows, stockUsage } = await loadServiceStock(supabase, profile);
+  const homeCanonical = profile.custom_domain ? `https://${profile.custom_domain}/` : `${baseUrl}/${encodeURIComponent(slug)}`;
+  const canonical = `${baseUrl}/${encodeURIComponent(slug)}/${encodeURIComponent(spot.service_slug)}`;
+  const shareImage = ogImageUrl(baseUrl, slug, kit);
+  const ctx = {
+    slug, spotlights, quoteStatus: quoteStatus(req), owner, token: owner ? o : null,
+    m: UUID_RE.test(String(req.query.m || "")) ? String(req.query.m) : null, utm: utmFromQuery(req.query),
+    jackPhone: process.env.ENOMA_JACK_PHONE || null, launchKit: process.env.PAGE_LAUNCH_KIT === "on",
+    townCoords, stockRows, stockUsage, canonical, homeCanonical, image: shareImage,
+    serviceAsk: owner ? servicePageAskHtml(slug, spot, (profile.page_copy_v3?.services || []).map(x => x?.name).filter(Boolean)) + SERVICE_ASK_SCRIPT : "",
+  };
+  const parts = servicePageV3Parts(profile, kit, spot, ctx);
+  const template = fs.readFileSync(path.join(process.cwd(), "public", "profile.html"), "utf8");
+  const robots = owner ? "noindex,nofollow" : servicePageRobots(spot, homeIndexable);
+  const html = renderCompanyPage(template, profile, {
+    ...ctx, blocks: parts.blocks, schema: parts.schema, faqs: parts.faqs,
+    clientExtra: { owner_view: owner, service_slug: spot.service_slug },
+    head: {
+      "{{FINAL_TITLE}}": escapeHtml(parts.title),
+      "{{OG_TITLE}}": escapeHtml(parts.title),
+      "{{FINAL_DESCRIPTION}}": escapeHtml(parts.description),
+      "{{FINAL_OG_IMAGE}}": escapeHtml(shareImage),
+      "{{FINAL_CANONICAL_URL}}": escapeHtml(canonical),
+      "{{ROBOTS}}": escapeHtml(robots),
+      "{{HERO_PRELOAD}}": "",
+      "{{V2_HEAD}}": v3PageParts(profile, kit, ctx).head,
+      "{{BRAND_COLOR_STYLE}}": kitStyle(kit),
+      "{{BODY_CLASS}}": escapeHtml(`page-v3 page-v3-service persona-${personaFor(profile.primary_category)}`),
+    },
+  });
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  if (robots !== "index,follow") res.setHeader("X-Robots-Tag", "noindex");
+  res.setHeader("Cache-Control", owner || spot.status !== "published" ? "private, no-store" : "public, max-age=0, s-maxage=300");
   return res.status(200).send(html);
 }
 
@@ -502,8 +564,20 @@ export default async function handler(req, res) {
       if (owner) startLaunchKitBuild(profile, kit);
       const { stockRows, stockUsage } = await loadServiceStock(supabase, profile);
       const template = fs.readFileSync(path.join(process.cwd(), "public", "profile.html"), "utf8");
+      // The included service page (website v3 PR C). Published: already in
+      // spotlights. A draft is linked from a preview (noindex either way) but
+      // not from a live site until the owner approves it.
+      const { data: autoPage } = await supabase.from("service_spotlights")
+        .select("service_slug, status, approved_at, source, content").eq("business_id", profile.business_id)
+        .eq("source", AUTO_SOURCE).neq("status", "archived").maybeSingle();
+      const homeIndexable = robots === "index,follow";
+      const v3Spotlights = [...(spotlights || [])];
+      if (autoPage?.content?.hero && autoPage.status === "draft" && !homeIndexable && !v3Spotlights.some(x => x.service_slug === autoPage.service_slug)) {
+        v3Spotlights.push({ service_slug: autoPage.service_slug, service_name: autoPage.content.service_name });
+      }
       const ctx = {
-        slug, spotlights: spotlights || [], paying, quoteStatus: quoteStatus(req),
+        slug, spotlights: v3Spotlights, paying, quoteStatus: quoteStatus(req),
+        serviceAsk: owner && autoPage ? servicePageAskHtml(slug, autoPage, (profile.page_copy_v3?.services || []).map(x => x?.name).filter(Boolean)) + SERVICE_ASK_SCRIPT : "",
         owner, token: owner ? o : null, m, utm: utmFromQuery(req.query),
         jackPhone: process.env.ENOMA_JACK_PHONE || null, launchKit: process.env.PAGE_LAUNCH_KIT === "on",
         townCoords, stockRows, stockUsage, canonical, image: shareImage,

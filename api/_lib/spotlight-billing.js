@@ -1,6 +1,8 @@
 // api/_lib/spotlight-billing.js
-// Service pages (Service Spotlights, table service_spotlights) are an add-on:
-// $9.99/month per PUBLISHED page (Stripe lookup key enoma_spotlight_monthly),
+// Service pages (Service Spotlights, table service_spotlights): the FIRST
+// published page is included in the plan (website v3 PR C, Nov 18, 2026);
+// each published page after it is an add-on:
+// $9.99/month per page (billedQuantity = max(0, published − 1)) (Stripe lookup key enoma_spotlight_monthly),
 // not part of the base plan (decision of Nov 9, 2026). Owners on the yearly
 // page plan pay the yearly add-on price instead (enoma_spotlight_yearly,
 // decision of Nov 10, 2026), because Stripe requires every item on one
@@ -51,9 +53,18 @@ export class SpotlightBillingError extends Error {
 
 export const PRICE_MISSING_MESSAGE = "The service page price isn't set up yet, so it wasn't published. Email jack@enoma.io.";
 
-/** How many service pages are billed: only status "published". */
+/** How many service pages are published (only status "published" ever counts). */
 export function publishedCount(rows) {
   return (Array.isArray(rows) ? rows : []).filter((r) => r?.status === "published").length;
+}
+
+/** Service pages included in the plan before the add-on starts. */
+export const INCLUDED_SERVICE_PAGES = 1;
+
+/** The add-on quantity for `published` pages: the first one is included. */
+export function billedQuantity(published) {
+  const n = Number.isInteger(published) ? published : 0;
+  return Math.max(0, n - INCLUDED_SERVICE_PAGES);
 }
 
 function inFreeMonth(sub, now) {
@@ -114,9 +125,10 @@ export function quantityChange(stripeSub, published, lookupKey = null) {
  * price for the checkout's interval (spotlightLookupKeyFor(interval)).
  */
 export function checkoutSpotlightLine({ published = 0, billing = { billing: "at_checkout" }, spotlightPriceId = null } = {}) {
-  if (!published || billing.billing === "never") return { line: null };
+  const quantity = billedQuantity(published);
+  if (!quantity || billing.billing === "never") return { line: null };
   if (!spotlightPriceId) return { line: null, error: "price_missing" };
-  return { line: { price: spotlightPriceId, quantity: published } };
+  return { line: { price: spotlightPriceId, quantity } };
 }
 
 /**
@@ -161,11 +173,14 @@ export function chargeStartsOn({ billing, sub = null, now = Date.now() }) {
  */
 export function billingSummary({ published = 0, billing, sub = null, pageAmount = null, pageInterval = "month", spotlightAmount = null, billedQuantity = 0, now = Date.now() }) {
   const amount = Number.isInteger(spotlightAmount) ? spotlightAmount : spotlightFallbackAmount(pageInterval);
-  const billable = billing.billing === "never" ? 0 : published;
+  // (billedQuantity is a parameter here: the quantity on Stripe now.)
+  const billable = billing.billing === "never" ? 0 : Math.max(0, published - INCLUDED_SERVICE_PAGES);
   const spotlightTotal = billable * amount;
   const total = Number.isInteger(pageAmount) ? pageAmount + spotlightTotal : null;
   return {
     published,
+    included: Math.min(published, INCLUDED_SERVICE_PAGES),
+    billable,
     billing: billing.billing,
     reason: billing.reason,
     billed_quantity: billedQuantity,
@@ -228,7 +243,8 @@ export async function syncSpotlightQuantity({ stripe, supabase, businessId, now 
   // is the fallback.
   const interval = intervalOfStripeSubscription(stripeSub) || billing.interval || "month";
   const lookupKey = spotlightLookupKeyFor(interval);
-  const change = quantityChange(stripeSub, s.published, lookupKey);
+  // The first published page is included: the add-on quantity is published − 1.
+  const change = quantityChange(stripeSub, billedQuantity(s.published), lookupKey);
   const out = { ...result, interval, lookup_key: lookupKey, quantity: change.quantity, op: change.op, stripeSub };
   if (change.op === "none") return out;
   // Lowering the quantity is always allowed (never bill an unpublished page).

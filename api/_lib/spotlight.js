@@ -88,7 +88,11 @@ export function expandQuickIntake(intake = {}) {
   return out;
 }
 
-export function gapCheck(intake = {}) {
+// Auto-drafted pages (website v3, api/_lib/service-page-v3.js) are written
+// from the fact sheet's evidence, not the survey, so the 13-question check
+// doesn't apply. Only the server passes source; the intake can't claim it.
+export function gapCheck(intake = {}, { source = "manual" } = {}) {
+  if (source === "auto") return { missing: [], followUps: [], ready: true, skipped: "auto" };
   const required = intake.mode === "quick" ? QUICK_REQUIRED : REQUIRED;
   const missing = Object.entries(required)
     .filter(([k]) => {
@@ -433,7 +437,7 @@ export async function handleSpotlight(req, res, { supabaseAdmin, fetchImpl, stri
 
   if (action === "context") {
     const { data: spotlights } = await supabaseAdmin.from("service_spotlights")
-      .select("id,service_slug,status,service_name:content->>service_name,updated_at").eq("business_id", businessId).order("updated_at", { ascending: false });
+      .select("id,service_slug,status,source,service_name:content->>service_name,updated_at").eq("business_id", businessId).order("updated_at", { ascending: false });
     const kinds = profile.attachment_kinds || {};
     const photos = (Array.isArray(profile.attachments) ? profile.attachments : [])
       .map(a => (typeof a === "string" ? a : a?.url)).filter(u => u && (!kinds[u] || kinds[u] === "work"));
@@ -449,6 +453,7 @@ export async function handleSpotlight(req, res, { supabaseAdmin, fetchImpl, stri
 
   if (action === "generate") {
     const intake = expandQuickIntake(body.intake || {});
+    delete intake.source; // the manual intake page always gets the full check
     const gap = gapCheck(intake);
     if (!gap.ready) return res.status(400).json({ error: "Some required answers are missing.", ...gap });
     if (!body.skip_followups && gap.followUps.length) return res.status(200).json({ needs_followup: true, ...gap });
@@ -473,6 +478,7 @@ export async function handleSpotlight(req, res, { supabaseAdmin, fetchImpl, stri
       business_id: businessId, service_slug: serviceSlug, intake, created_by: user.id,
       generation_status: "generating", generation_error: null, generation_started_at: now,
       status: "draft", // a rewrite goes back to draft until the owner approves it again
+      source: "manual", // rewriting an auto page through the intake form makes it the owner's own
     };
     const { data: saved, error } = await supabaseAdmin.from("service_spotlights")
       .upsert(pending, { onConflict: "business_id,service_slug" }).select("id,service_slug,status").single();
@@ -524,8 +530,8 @@ export async function handleSpotlight(req, res, { supabaseAdmin, fetchImpl, stri
     return res.status(200).json({ ok: true });
   }
   if (action === "publish" || action === "unpublish") {
-    // Billing (api/_lib/spotlight-billing.js): a published service page is
-    // $9.99/month on the owner's plan (the yearly add-on on a yearly plan). The quantity is recomputed here, on the
+    // Billing (api/_lib/spotlight-billing.js): the first published service
+    // page is included; each one after it is $9.99/month on the owner's plan (the yearly add-on on a yearly plan). The quantity is recomputed here, on the
     // server, from service_spotlights — the browser never sends a count.
     const published = action === "publish";
     const before = { status: spot.status, published_at: spot.published_at || null };

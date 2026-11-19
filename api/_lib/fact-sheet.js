@@ -257,12 +257,29 @@ export async function saveFactSheet(supabaseAdmin, businessId, fs, { env = proce
       const { copy, cost_usd } = await generatePageCopyV3(fs, { fetchImpl });
       const { error: cErr } = await supabaseAdmin.from("small_business_profiles").update({ page_copy_v3: copy }).eq("business_id", businessId);
       if (cErr) console.warn("page_copy_v3 not saved:", cErr.message);
-      else console.log(`page_copy_v3 [${businessId}] $${cost_usd}`);
+      else {
+        console.log(`page_copy_v3 [${businessId}] $${cost_usd}`);
+        // Website v3 PR C: the copy's service_page becomes the one auto
+        // service page (a draft until the owner approves it).
+        const { syncAutoServicePage } = await import("./service-page-v3.js");
+        await syncAutoServicePage(supabaseAdmin, businessId, copy, fs, { onUnbill: () => syncQuantityQuietly(supabaseAdmin, businessId) });
+      }
     } catch (e) {
       console.warn("page_copy_v3 failed:", e?.message || e);
     }
   }
   return fs;
+}
+
+// A replaced auto service page that was live: put the add-on quantity back in line.
+async function syncQuantityQuietly(supabaseAdmin, businessId) {
+  try {
+    const [{ syncSpotlightQuantity }, { default: Stripe }] = await Promise.all([import("./spotlight-billing.js"), import("stripe")]);
+    const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
+    await syncSpotlightQuantity({ stripe, supabase: supabaseAdmin, businessId });
+  } catch (e) {
+    console.warn(`[spotlight-billing] sync after auto page change failed for ${businessId}:`, e?.message || e);
+  }
 }
 
 /**

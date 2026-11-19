@@ -1,5 +1,6 @@
 // Run with: node tests/spotlight-billing.test.js (also wired into `npm test`)
-// Service pages are a $9.99/month add-on per PUBLISHED page, or the yearly
+// The first published service page is included; each one after it is a
+// $9.99/month add-on (published − 1), or the yearly
 // add-on price on a yearly plan (api/_lib/spotlight-billing.js): the quantity
 // counts published pages only,
 // comped businesses are never billed, checkout adds the second line item with
@@ -9,6 +10,7 @@ import assert from "node:assert/strict";
 import {
   publishedCount, spotlightBilling, quantityChange, checkoutSpotlightLine, checkoutSubscriptionParams,
   chargeStartsOn, billingSummary, syncSpotlightQuantity, SPOTLIGHT_LOOKUP_KEY, SPOTLIGHT_YEARLY_LOOKUP_KEY, PRORATION,
+  billedQuantity, INCLUDED_SERVICE_PAGES,
 } from "../api/_lib/spotlight-billing.js";
 import { subscriptionFieldsFromStripe, intervalOfStripeSubscription, pageItemOf } from "../api/_lib/billing.js";
 import { handleSpotlight } from "../api/_lib/spotlight.js";
@@ -146,17 +148,17 @@ test("a yearly Stripe plan is billed now, on the yearly add-on", () => {
 });
 
 // ── Checkout ──
-test("checkout adds the service pages as a second line item, quantity = published", () => {
+test("checkout adds the service pages as a second line item, quantity = published − 1 (first page included)", () => {
   const p = checkoutSubscriptionParams({
     pagePriceId: "price_page", published: 3, billing: { billing: "at_checkout" },
     spotlightPriceId: "price_spot", trialEnd: 1765000000, metadata: { business_id: BIZ },
   });
-  assert.deepEqual(p.line_items, [{ price: "price_page", quantity: 1 }, { price: "price_spot", quantity: 3 }]);
+  assert.deepEqual(p.line_items, [{ price: "price_page", quantity: 1 }, { price: "price_spot", quantity: 2 }]);
   // One subscription, so the free month's trial_end covers both line items.
   assert.equal(p.subscription_data.trial_end, 1765000000);
-  assert.equal(p.subscription_data.metadata.spotlight_quantity, "3");
+  assert.equal(p.subscription_data.metadata.spotlight_quantity, "2");
   assert.equal(p.subscription_data.metadata.business_id, BIZ);
-  assert.equal(p.spotlightQuantity, 3);
+  assert.equal(p.spotlightQuantity, 2);
 });
 
 test("checkout: no second line item with no published pages, or for comped businesses", () => {
@@ -166,6 +168,16 @@ test("checkout: no second line item with no published pages, or for comped busin
   const comped = checkoutSubscriptionParams({ pagePriceId: "price_page", published: 4, billing: { billing: "never" }, spotlightPriceId: "price_spot" });
   assert.deepEqual(comped.line_items, [{ price: "price_page", quantity: 1 }]);
   assert.equal(comped.subscription_data.metadata.spotlight_quantity, "0");
+  // One published page is included in the plan: no add-on line, no add-on price needed.
+  const one = checkoutSubscriptionParams({ pagePriceId: "price_page", published: 1, billing: { billing: "at_checkout" }, spotlightPriceId: null });
+  assert.deepEqual(one.line_items, [{ price: "price_page", quantity: 1 }]);
+  assert.equal(one.error, undefined);
+});
+
+test("billed quantity is max(0, published − 1): the first service page is included", () => {
+  assert.equal(INCLUDED_SERVICE_PAGES, 1);
+  assert.deepEqual([0, 1, 2, 5].map(billedQuantity), [0, 0, 1, 4]);
+  assert.equal(billedQuantity(undefined), 0);
 });
 
 test("yearly checkout: the second line item is the yearly add-on, same trial_end", () => {
@@ -173,7 +185,7 @@ test("yearly checkout: the second line item is the yearly add-on, same trial_end
     pagePriceId: "price_page_annual", published: 2, billing: { billing: "at_checkout" },
     spotlightPriceId: "price_spot_year", trialEnd: 1765000000,
   });
-  assert.deepEqual(p.line_items, [{ price: "price_page_annual", quantity: 1 }, { price: "price_spot_year", quantity: 2 }]);
+  assert.deepEqual(p.line_items, [{ price: "price_page_annual", quantity: 1 }, { price: "price_spot_year", quantity: 1 }]);
   assert.equal(p.subscription_data.trial_end, 1765000000);
 });
 
@@ -199,9 +211,11 @@ test("subscription fields come from the page item even when the add-on is listed
 // ── Dashboard numbers ──
 test("monthly total = page plan + published service pages; comped pays nothing for them", () => {
   const s = billingSummary({ published: 2, billing: { billing: "subscription", reason: "subscribed" }, pageAmount: 1999, pageInterval: "month", spotlightAmount: 999, billedQuantity: 2, now: NOW });
-  assert.equal(s.spotlight_total, 1998);
-  assert.equal(s.monthly_total, 3997);
-  assert.equal(s.total, 3997);
+  assert.equal(s.included, 1);
+  assert.equal(s.billable, 1);
+  assert.equal(s.spotlight_total, 999, "2 published: the first is included");
+  assert.equal(s.monthly_total, 2998);
+  assert.equal(s.total, 2998);
   assert.equal(s.total_interval, "month");
   assert.equal(s.starts_on, new Date(NOW).toISOString());
   const c = billingSummary({ published: 2, billing: { billing: "never", reason: "comped" }, pageAmount: 0, spotlightAmount: 999, now: NOW });
@@ -213,8 +227,8 @@ test("monthly total = page plan + published service pages; comped pays nothing f
 test("yearly total = $199 page plan + published service pages at the yearly add-on price", () => {
   const y = billingSummary({ published: 2, billing: { billing: "subscription", reason: "subscribed", interval: "year" }, pageAmount: 19900, pageInterval: "year", spotlightAmount: 9900, now: NOW });
   assert.equal(y.spotlight_interval, "year");
-  assert.equal(y.spotlight_total, 19800);
-  assert.equal(y.total, 39700);
+  assert.equal(y.spotlight_total, 9900);
+  assert.equal(y.total, 29800);
   assert.equal(y.total_interval, "year");
   assert.equal(y.monthly_total, null);
   // No live amount: the display falls back to the yearly placeholder, never $9.99.
@@ -230,20 +244,20 @@ test("charge start date: today, the first charge, the end of the free month, or 
 });
 
 // ── Sync against Stripe (fakes) ──
-test("sync: published pages become the add-on quantity, with proration", async () => {
+test("sync: published pages after the first become the add-on quantity, with proration", async () => {
   const sb = fakeSupabase(tablesFor({ spotlights: [spot("a", "published"), spot("b", "draft"), spot("c", "published")] }));
   const sub = stripeSubWith(pageItem());
   const stripe = fakeStripe(sub);
   const r = await syncSpotlightQuantity({ stripe, supabase: sb, businessId: BIZ, now: NOW, env: ENV });
   assert.equal(r.op, "create");
-  assert.equal(r.quantity, 2);
+  assert.equal(r.quantity, 1, "2 published, first included");
   const create = stripe.calls.find((c) => c[0] === "create")[1];
-  assert.deepEqual(create, { subscription: "sub_1", price: "price_spot", quantity: 2, ...PRORATION });
+  assert.deepEqual(create, { subscription: "sub_1", price: "price_spot", quantity: 1, ...PRORATION });
   assert.equal(create.proration_behavior, "create_prorations");
 });
 
 test("sync: unpublishing lowers the quantity, and the last one removes the item", async () => {
-  const tables = tablesFor({ spotlights: [spot("a", "published"), spot("b", "draft")] });
+  const tables = tablesFor({ spotlights: [spot("a", "published"), spot("c", "published"), spot("b", "draft")] });
   const sub = stripeSubWith(pageItem(), spotItem(2));
   const stripe = fakeStripe(sub);
   let r = await syncSpotlightQuantity({ stripe, supabase: fakeSupabase(tables), businessId: BIZ, now: NOW, env: ENV });
@@ -254,6 +268,14 @@ test("sync: unpublishing lowers the quantity, and the last one removes the item"
   assert.equal(r.op, "delete");
   assert.deepEqual(stripe.calls.find((c) => c[0] === "del"), ["del", "si_spot", PRORATION]);
   assert.equal(sub.items.data.length, 1);
+});
+
+test("sync: one published page is included — no add-on item is created", async () => {
+  const stripe = fakeStripe(stripeSubWith(pageItem()));
+  const r = await syncSpotlightQuantity({ stripe, supabase: fakeSupabase(tablesFor({ spotlights: [spot("a", "published")] })), businessId: BIZ, now: NOW, env: ENV });
+  assert.equal(r.op, "none");
+  assert.equal(r.quantity, 0);
+  assert.equal(stripe.calls.filter((c) => c[0] !== "retrieve").length, 0);
 });
 
 test("sync: comped, free-month and grandfathered businesses make no Stripe calls", async () => {
@@ -277,20 +299,20 @@ test("sync: a yearly plan gets the yearly add-on price, with proration", async (
   const r = await syncSpotlightQuantity({ stripe, supabase: fakeSupabase(tablesFor({ spotlights: [spot("a", "published"), spot("b", "published")], sub: yearlyRow })), businessId: BIZ, now: NOW, env: ENV });
   assert.equal(r.op, "create");
   assert.equal(r.interval, "year");
-  assert.deepEqual(stripe.calls.find((c) => c[0] === "create")[1], { subscription: "sub_1", price: "price_spot_year", quantity: 2, ...PRORATION });
+  assert.deepEqual(stripe.calls.find((c) => c[0] === "create")[1], { subscription: "sub_1", price: "price_spot_year", quantity: 1, ...PRORATION });
 });
 
 test("sync: the Stripe subscription's interval wins over a stale row", async () => {
   // Row still says monthly, but the owner is on the yearly price in Stripe.
   const stripe = fakeStripe(stripeSubWith(pageItem("year", 19900)));
-  await syncSpotlightQuantity({ stripe, supabase: fakeSupabase(tablesFor({ spotlights: [spot("a", "published")], sub: activeRow() })), businessId: BIZ, now: NOW, env: ENV });
+  await syncSpotlightQuantity({ stripe, supabase: fakeSupabase(tablesFor({ spotlights: [spot("a", "published"), spot("b", "published")], sub: activeRow() })), businessId: BIZ, now: NOW, env: ENV });
   assert.equal(stripe.calls.find((c) => c[0] === "create")[1].price, "price_spot_year");
 });
 
 test("sync: after switching to yearly, a monthly add-on item is swapped for the yearly one", async () => {
   const sub = stripeSubWith(pageItem("year", 19900), spotItem(1));
   const stripe = fakeStripe(sub);
-  const r = await syncSpotlightQuantity({ stripe, supabase: fakeSupabase(tablesFor({ spotlights: [spot("a", "published")], sub: activeRow({ billing_interval: "year" }) })), businessId: BIZ, now: NOW, env: ENV });
+  const r = await syncSpotlightQuantity({ stripe, supabase: fakeSupabase(tablesFor({ spotlights: [spot("a", "published"), spot("b", "published")], sub: activeRow({ billing_interval: "year" }) })), businessId: BIZ, now: NOW, env: ENV });
   assert.equal(r.op, "replace");
   assert.deepEqual(stripe.calls.filter((c) => c[0] !== "retrieve").map((c) => c[0]), ["del", "create"]);
   assert.deepEqual(sub.items.data.map((i) => i.price.lookup_key), ["enoma_page_annual", SPOTLIGHT_YEARLY_LOOKUP_KEY]);
@@ -299,7 +321,7 @@ test("sync: after switching to yearly, a monthly add-on item is swapped for the 
 test("sync: a missing yearly add-on price refuses (never bills monthly on a yearly plan)", async () => {
   const stripe = fakeStripe(stripeSubWith(pageItem("year", 19900)), { prices: { [SPOTLIGHT_LOOKUP_KEY]: SPOT_PRICES[SPOTLIGHT_LOOKUP_KEY] } });
   await assert.rejects(
-    syncSpotlightQuantity({ stripe, supabase: fakeSupabase(tablesFor({ spotlights: [spot("a", "published")], sub: activeRow({ billing_interval: "year" }) })), businessId: BIZ, now: NOW, env: ENV }),
+    syncSpotlightQuantity({ stripe, supabase: fakeSupabase(tablesFor({ spotlights: [spot("a", "published"), spot("b", "published")], sub: activeRow({ billing_interval: "year" }) })), businessId: BIZ, now: NOW, env: ENV }),
     (e) => e.code === "price_missing",
   );
   assert.equal(stripe.calls.filter((c) => c[0] === "create").length, 0);
@@ -307,19 +329,19 @@ test("sync: a missing yearly add-on price refuses (never bills monthly on a year
 
 // ── The real publish / unpublish handler ──
 test("publish: the page goes live and the quantity is computed server-side (browser can't send one)", async () => {
-  const tables = tablesFor({ spotlights: [spot("a", "published"), spot("b", "draft")] });
+  const tables = tablesFor({ spotlights: [spot("a", "published"), spot("c", "published"), spot("b", "draft")] });
   const sub = stripeSubWith(pageItem(), spotItem(1));
   const stripe = fakeStripe(sub);
   const res = fakeRes();
   await handleSpotlight(req("publish", { service_slug: "b", quantity: 50 }), res, { supabaseAdmin: fakeSupabase(tables), stripe });
   assert.equal(res.code, 200, JSON.stringify(res.body));
-  assert.equal(tables.service_spotlights[1].status, "published");
-  assert.equal(res.body.billing.quantity, 2);
+  assert.equal(tables.service_spotlights[2].status, "published");
+  assert.equal(res.body.billing.quantity, 2, "3 published, first included");
   assert.deepEqual(stripe.calls.find((c) => c[0] === "update"), ["update", "si_spot", { quantity: 2, ...PRORATION }]);
 });
 
 test("publish: if Stripe refuses, the page goes back to draft and is not billed", async () => {
-  const tables = tablesFor({ spotlights: [spot("b", "draft")] });
+  const tables = tablesFor({ spotlights: [spot("b", "draft"), spot("a", "published")] });
   const stripe = fakeStripe(stripeSubWith(pageItem()), { failWrites: true });
   const res = fakeRes();
   await handleSpotlight(req("publish", { service_slug: "b" }), res, { supabaseAdmin: fakeSupabase(tables), stripe });
@@ -329,7 +351,7 @@ test("publish: if Stripe refuses, the page goes back to draft and is not billed"
 });
 
 test("publish on a yearly plan: live, billed on the yearly add-on", async () => {
-  const tables = tablesFor({ spotlights: [spot("b", "draft")], sub: activeRow({ billing_interval: "year" }) });
+  const tables = tablesFor({ spotlights: [spot("b", "draft"), spot("a", "published")], sub: activeRow({ billing_interval: "year" }) });
   const stripe = fakeStripe(stripeSubWith(pageItem("year", 19900)));
   const res = fakeRes();
   await handleSpotlight(req("publish", { service_slug: "b" }), res, { supabaseAdmin: fakeSupabase(tables), stripe });
@@ -339,7 +361,7 @@ test("publish on a yearly plan: live, billed on the yearly add-on", async () => 
 });
 
 test("publish on a yearly plan with no yearly add-on price in Stripe: back to draft", async () => {
-  const tables = tablesFor({ spotlights: [spot("b", "draft")], sub: activeRow({ billing_interval: "year" }) });
+  const tables = tablesFor({ spotlights: [spot("b", "draft"), spot("a", "published")], sub: activeRow({ billing_interval: "year" }) });
   const stripe = fakeStripe(stripeSubWith(pageItem("year", 19900)), { prices: {} });
   const res = fakeRes();
   await handleSpotlight(req("publish", { service_slug: "b" }), res, { supabaseAdmin: fakeSupabase(tables), stripe });
@@ -369,7 +391,7 @@ test("publish in the free month (no Stripe subscription yet): live now, billed a
 });
 
 test("unpublish: always succeeds and lowers the quantity; a Stripe failure doesn't republish", async () => {
-  const tables = tablesFor({ spotlights: [spot("a", "published"), spot("b", "published")] });
+  const tables = tablesFor({ spotlights: [spot("a", "published"), spot("b", "published"), spot("c", "published")] });
   const sub = stripeSubWith(pageItem(), spotItem(2));
   const stripe = fakeStripe(sub);
   let res = fakeRes();
