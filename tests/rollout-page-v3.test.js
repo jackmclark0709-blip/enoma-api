@@ -4,6 +4,8 @@
 // files use local assets with no scripts (nothing calls production).
 
 import assert from "node:assert/strict";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { parseArgs, argError, protectedReason, forFile, TEST_SET } from "../scripts/rollout-page-v3.mjs";
 
 let passed = 0;
@@ -38,9 +40,11 @@ test("the test set is the 10 PR A dry-run businesses", () => {
 });
 
 test("dry-run files: no scripts, local assets", () => {
-  const html = forFile('<head></head><link href="/styles/a.css"><script>fetch("/api/track")</script><img src="https://x/y.jpg"><a href="//cdn">', "C:/repo/public");
+  // An absolute path on whatever OS runs the test (CI is Linux, Jack is Windows).
+  const dir = resolve("repo-root", "public");
+  const html = forFile('<head></head><link href="/styles/a.css"><script>fetch("/api/track")</script><img src="https://x/y.jpg"><a href="//cdn">', dir);
   assert.doesNotMatch(html, /<script/);
-  assert.match(html, /href="file:\/\/\/C:\/repo\/public\/styles\/a\.css"/);
+  assert.ok(html.includes(`href="${pathToFileURL(dir).href}/styles/a.css"`), html);
   assert.match(html, /src="https:\/\/x\/y\.jpg"/);
   assert.match(html, /href="\/\/cdn"/);
 });
