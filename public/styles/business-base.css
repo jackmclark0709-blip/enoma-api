@@ -1356,8 +1356,9 @@ body.page-v3 {
 .page-v3 .v3-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
 .page-v3 .v3-card { background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
 .page-v3 .v3-card.is-noimg { border-top: 6px solid var(--kit-identity); }
-.page-v3 .v3-card__media { margin: 0; position: relative; aspect-ratio: 16 / 9; background: var(--v3-tint); }
-.page-v3 .v3-card__media img { width: 100%; height: 100%; object-fit: cover; }
+.page-v3 .v3-card__media { margin: 0; position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: var(--v3-tint); }
+/* Absolute so a tall (phone) photo can't stretch the card past 16:9. */
+.page-v3 .v3-card__media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .page-v3 .v3-card__body { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 8px; flex: 1 1 auto; }
 .page-v3 .v3-card__h { margin: 0; font-family: Inter, system-ui, sans-serif; font-size: 1.2rem; font-weight: 700; }
 .page-v3 .v3-card__p { margin: 0; font-size: 1rem; color: var(--ink-muted); }
