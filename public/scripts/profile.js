@@ -47,7 +47,7 @@ function setupClaimBox(pageSlug, businessName) {
   if (!banner || !box || !form || !pageSlug) return;
   const qs = new URLSearchParams(window.location.search);
   const outreachMsg = qs.get('m') || '';
-  // "Prefer to pay yearly? $199/year" on the preview landing claims with
+  // "Prefer to pay yearly? $390/year" on the preview landing claims with
   // ?plan=year. Checkout only happens after the claim, so remember the choice
   // for this tab and the dashboard's plan picker preselects it.
   const planIntent = qs.get('plan');

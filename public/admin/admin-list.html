@@ -90,7 +90,7 @@
     if (!btn) return;
     const session = await EnomaAdmin.requireAdminSession();
     if (!session) return alert('Sign in again.');
-    const yearly = confirm(`${btn.dataset.name}: yearly plan ($199/year)?\n\nOK = yearly, Cancel = monthly ($19.99/month).`);
+    const yearly = confirm(`${btn.dataset.name}: yearly plan ($390/year)?\n\nOK = yearly, Cancel = monthly ($39/month).`);
     const send = confirm('Email the link to the owner now?\n\nOK = email it, Cancel = just copy it.');
     btn.disabled = true;
     try {

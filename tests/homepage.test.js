@@ -45,8 +45,8 @@ test("the full price line is in the same view wherever $1 appears", () => {
 });
 
 test("hero: new headline and subhead, CTAs and search bar kept, price line under the CTAs", () => {
-  assert.match(stripTags(html), /Get found on Google and in AI answers\. Get the call, not a shared lead\./);
-  assert.ok(html.includes("Someone searching for a business like yours, on Google or by asking ChatGPT, finds a page built for your trade and town, and the call comes straight to you."));
+  assert.ok(html.includes("<h1>A real website for your business.</h1>"));
+  assert.ok(html.includes("<p class=\"hero__sub\">We build it from your Google reviews. You approve it.</p>"));
   assert.ok(html.includes("See your page in 30 seconds →"));
   assert.ok(html.includes("See live examples"));
   assert.ok(html.includes('id="queryText"'));

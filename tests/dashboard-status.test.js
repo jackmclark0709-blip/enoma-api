@@ -28,12 +28,12 @@ function helpers() {
   return { ctx, els };
 }
 
-test("paid first month: 'Paid $1 for your first month · Next charge $19.99 on Dec 13, 2026' ($199 yearly)", () => {
+test("paid first month: 'Paid $1 for your first month · Next charge $39 on Dec 13, 2026' ($390 yearly)", () => {
   const { ctx, els } = helpers();
   ctx.renderFirstMonthLine(els["renewal-date"], { chargeOn, yearly: false, fmtET }, null);
-  assert.equal(els["renewal-date"].textContent, "Paid $1 for your first month · Next charge $19.99 on Dec 13, 2026");
+  assert.equal(els["renewal-date"].textContent, "Paid $1 for your first month · Next charge $39 on Dec 13, 2026");
   ctx.renderFirstMonthLine(els["renewal-date"], { chargeOn, yearly: true, fmtET }, null);
-  assert.equal(els["renewal-date"].textContent, "Paid $1 for your first month · Next charge $199 on Dec 13, 2026");
+  assert.equal(els["renewal-date"].textContent, "Paid $1 for your first month · Next charge $390 on Dec 13, 2026");
   ctx.renderFirstMonthLine(els["renewal-date"], { chargeOn, yearly: false, fmtET }, 999);
   assert.equal(els["renewal-date"].textContent, "Paid $1 for your first month · Next charge $9.99 on Dec 13, 2026", "live price (partner)");
 });

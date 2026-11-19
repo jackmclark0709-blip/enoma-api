@@ -65,12 +65,16 @@ test("the rules allow progress labels like \"Pulling your Google listing\"", () 
 });
 
 // Service pages (Service Spotlights) are a separate $9.99/month add-on, never
-// part of the $19.99/month or $199/year plan. Flags any line that says
+// part of the $39/month or $390/year plan. Flags any line that says
 // they're included, unless it says "not included".
 const SERVICE_PAGES_INCLUDED = /(service (spotlight )?pages?|spotlights?)\b[^.<]{0,60}\b(are|is) included|\binclud(es?|ed|ing)\b[^.<]{0,60}\b(service (spotlight )?pages?|spotlights?)\b/i;
-const saysIncluded = (line) => SERVICE_PAGES_INCLUDED.test(line) && !/not included|aren['’]t included|isn['’]t included/i.test(line);
+// Website v3 PR C (Nov 18, 2026): ONE service page is included; more are the
+// $9.99 add-on. "One service page is included" is allowed; "service pages are
+// included" / "unlimited service pages" still isn't.
+const ONE_INCLUDED = /\b(one|first|1)\b[^.<]{0,30}service page\b[^.<]{0,20}\bis included|\bfirst one included\b/i;
+const saysIncluded = (line) => SERVICE_PAGES_INCLUDED.test(line) && !ONE_INCLUDED.test(line) && !/not included|aren['’]t included|isn['’]t included/i.test(line);
 
-test("no public page says service pages are included in the plan", () => {
+test("no public page says service pages (plural, unlimited) are included in the plan", () => {
   const hits = PAGES().flatMap(f => readFileSync(f, "utf8").split("\n")
     .map((line, i) => (saysIncluded(line) ? `${f}:${i + 1}` : null)).filter(Boolean));
   assert.deepEqual(hits, []);
@@ -82,6 +86,8 @@ test("the service-page rule catches the claim and allows the add-on wording", ()
   assert.equal(saysIncluded("Service pages are not included in either plan"), false);
   assert.equal(saysIncluded("Service pages aren't included; they're a separate add-on."), false);
   assert.equal(saysIncluded("Hosting, security, and maintenance included"), false);
+  assert.equal(saysIncluded("One service page is included in your plan. Each extra service page is this add-on."), false);
+  assert.equal(saysIncluded("Your plan includes every service page you want"), true);
 });
 
 console.log(`public-copy: ${passed} passed`);

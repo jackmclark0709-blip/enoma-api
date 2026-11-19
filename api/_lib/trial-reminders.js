@@ -367,13 +367,13 @@ export function buildFirstMonthConfirmationEmail({ businessName, ownerFirstName,
 export function buildCheckoutLinkEmail({ businessName, ownerFirstName, url, interval = "month", chargeDate, firstMonth = true, partner = false } = {}) {
   if (!url) return null;
   const name = businessName || "your page";
-  const monthlyPrice = partner ? "$9.99" : "$19.99";
+  const monthlyPrice = partner ? "$9.99" : "$39";
   const before = [
     ownerFirstName ? `Hi ${ownerFirstName},` : "Hi,",
     `Thanks for the call. Here's the link to put ${name} live. It works for 24 hours; if it runs out, just reply and I'll send another.`,
     firstMonth
       ? checkoutTermsLine({ interval, chargeDate, monthlyPrice })
-      : `${interval === "year" ? "$199/year" : `${monthlyPrice}/month`}. Cancel anytime from your dashboard.`,
+      : `${interval === "year" ? "$390/year" : `${monthlyPrice}/month`}. Cancel anytime from your dashboard.`,
     ...(firstMonth ? [`Your plan: ${priceLineFor({ partner })}`] : []),
   ];
   const { text, html } = renderEmail({ before, button: firstMonth ? "Go live for $1" : "Go live", buttonUrl: url, after: ["Questions? Just reply."] });

@@ -102,11 +102,11 @@ await test("search engines: v2 previews are noindex until checkout; legacy claim
 // ── Checkout plan ──
 await test("checkoutPlanFor: v2 gets the $1 item and a 30-day trial; re-subscribers and legacy don't", () => {
   const m = checkoutPlanFor({ interval: "month", sub: v2Preview, now: NOW });
-  assert.deepEqual(m, { lookupKey: "enoma_page_monthly", interval: "month", trialEnd: firstFullChargeUnix(NOW), firstMonthFee: true, pricingVersion: PRICING_V2 });
+  assert.deepEqual(m, { lookupKey: "website_monthly_39", interval: "month", trialEnd: firstFullChargeUnix(NOW), firstMonthFee: true, pricingVersion: PRICING_V2 });
   // 23:59 Eastern on Dec 12 (30 calendar days after Nov 12), not now + 30 days to the second.
   assert.equal(m.trialEnd, Date.parse("2026-12-13T04:59:00Z") / 1000);
   const y = checkoutPlanFor({ interval: "year", sub: v2Preview, now: NOW });
-  assert.equal(y.lookupKey, "enoma_page_annual");
+  assert.equal(y.lookupKey, "website_yearly_390");
   assert.equal(y.firstMonthFee, true);
   // Partner sign-ups: $1 today, then $9.99/month.
   const p = checkoutPlanFor({ referrer: { active: true, partner_pricing: true }, interval: "year", sub: v2Preview, now: NOW });
@@ -155,8 +155,8 @@ function mockSupabase(tables) {
 function mockStripe({ withFirstMonth = true } = {}) {
   const created = [];
   const prices = [
-    { id: "price_monthly", lookup_key: "enoma_page_monthly", unit_amount: 1999, recurring: { interval: "month" } },
-    { id: "price_annual", lookup_key: "enoma_page_annual", unit_amount: 19900, recurring: { interval: "year" } },
+    { id: "price_monthly", lookup_key: "website_monthly_39", unit_amount: 3900, recurring: { interval: "month" } },
+    { id: "price_annual", lookup_key: "website_yearly_390", unit_amount: 39000, recurring: { interval: "year" } },
     { id: "price_partner", lookup_key: "enoma_page_partner_monthly", unit_amount: 999, recurring: { interval: "month" } },
     ...(withFirstMonth ? [{ id: "price_first", lookup_key: "enoma_page_first_month", unit_amount: 100, recurring: null }] : []),
   ];
@@ -195,8 +195,8 @@ for (const interval of ["month", "year"]) {
     ]);
     assert.equal(s.subscription_data.trial_end, Date.parse("2026-12-13T04:59:00Z") / 1000, "end of day 30, Eastern");
     assert.equal(s.custom_text.submit.message, interval === "year"
-      ? "$1 today covers your first month. Then $199/year starting December 12, 2026. Cancel anytime from your dashboard."
-      : "$1 today covers your first month. Then $19.99/month starting December 12, 2026. Cancel anytime from your dashboard.");
+      ? "$1 today covers your first month. Then $390/year starting December 12, 2026. Cancel anytime from your dashboard."
+      : "$1 today covers your first month. Then $39/month starting December 12, 2026. Cancel anytime from your dashboard.");
     assert.equal(s.metadata.pricing_version, PRICING_V2);
     assert.equal(s.metadata.first_month_fee, "1");
     assert.equal(s.metadata.interval, interval);
@@ -246,7 +246,7 @@ await test("v2 monthly checkout started Nov 13: $1 line, trial_end Dec 13 23:59 
   assert.deepEqual(s.line_items, [{ price: "price_monthly", quantity: 1 }, { price: "price_first", quantity: 1 }]);
   assert.equal(s.subscription_data.trial_end, Date.parse("2026-12-14T04:59:00Z") / 1000);
   assert.ok((s.subscription_data.trial_end * 1000 - at) / DAY > 30, "Checkout rounds down: more than 30 full days reads as 30 days free");
-  assert.equal(s.custom_text.submit.message, "$1 today covers your first month. Then $19.99/month starting December 13, 2026. Cancel anytime from your dashboard.");
+  assert.equal(s.custom_text.submit.message, "$1 today covers your first month. Then $39/month starting December 13, 2026. Cancel anytime from your dashboard.");
   assert.ok(s.custom_text.submit.message.length <= 1200, "Stripe's limit");
 });
 
@@ -257,8 +257,8 @@ await test("first full charge is 23:59 Eastern on the 30th calendar day, across 
   assert.equal(iso("2026-10-10T12:00:00Z"), "2026-11-10T04:59:00.000Z"); // EDT -> EST: Nov 9 23:59 EST
   assert.equal(iso("2026-02-20T12:00:00Z"), "2026-03-23T03:59:00.000Z"); // EST -> EDT: Mar 22 23:59 EDT
   assert.equal(formatChargeDate(firstFullChargeUnix(Date.parse("2026-11-13T15:00:00Z"))), "December 13, 2026");
-  assert.equal(checkoutSubmitMessage({ interval: "month", chargeDate: Date.parse("2026-12-14T04:59:00Z") / 1000, amountCents: 1999 }),
-    "$1 today covers your first month. Then $19.99/month starting December 13, 2026. Cancel anytime from your dashboard.");
+  assert.equal(checkoutSubmitMessage({ interval: "month", chargeDate: Date.parse("2026-12-14T04:59:00Z") / 1000, amountCents: 3900 }),
+    "$1 today covers your first month. Then $39/month starting December 13, 2026. Cancel anytime from your dashboard.");
 });
 
 await test("already subscribed (v2 in its $1 month) can't check out twice", async () => {
@@ -272,9 +272,9 @@ await test("already subscribed (v2 in its $1 month) can't check out twice", asyn
 // ── What the owner sees next to the button ──
 await test("terms next to the button: computed date, monthly and annual wording", () => {
   const at = Math.floor(Date.parse("2026-12-12T15:00:00Z") / 1000);
-  assert.equal(checkoutTermsLine({ interval: "month", chargeDate: at }), "$1 today. Then $19.99/month starting December 12, 2026. Cancel anytime from your dashboard.");
-  assert.equal(checkoutTermsLine({ interval: "year", chargeDate: at }), "$1 today. Then $199/year starting December 12, 2026. Cancel anytime from your dashboard.");
-  assert.equal(PRICE_LINE, "$1 for your first month, then $19.99/month or $199/year. Cancel anytime.");
+  assert.equal(checkoutTermsLine({ interval: "month", chargeDate: at }), "$1 today. Then $39/month starting December 12, 2026. Cancel anytime from your dashboard.");
+  assert.equal(checkoutTermsLine({ interval: "year", chargeDate: at }), "$1 today. Then $390/year starting December 12, 2026. Cancel anytime from your dashboard.");
+  assert.equal(PRICE_LINE, "$1 for your first month, then $39/month or $390/year. Cancel anytime.");
   assert.equal(priceLineFor({ partner: true }), "$1 for your first month, then $9.99/month. Cancel anytime.");
 });
 
@@ -287,8 +287,8 @@ await test("plan picker (browser) shows the same terms, with the date computed f
   assert.equal(p.firstMonthOffer(legacyFreeMonth), false);
   assert.equal(p.firstMonthOffer({ ...v2Preview, stripe_subscription_id: "sub_1" }), false);
   assert.equal(p.firstMonthOffer({ ...v2Preview, provider: "comped" }), false);
-  assert.match(p.termsLine("month", NOW), /^\$1 today\. Then \$19\.99\/month starting December 12, 2026\. Cancel anytime from your dashboard\.$/);
-  assert.match(p.termsLine("year", NOW), /^\$1 today\. Then \$199\/year starting December 12, 2026\. Cancel anytime from your dashboard\.$/);
+  assert.match(p.termsLine("month", NOW), /^\$1 today\. Then \$39\/month starting December 12, 2026\. Cancel anytime from your dashboard\.$/);
+  assert.match(p.termsLine("year", NOW), /^\$1 today\. Then \$390\/year starting December 12, 2026\. Cancel anytime from your dashboard\.$/);
   assert.equal(p.PRICE_LINE, PRICE_LINE);
   assert.doesNotMatch(src, /starting (January|February|March|April|May|June|July|August|September|October|November|December) \d/, "no hard-coded date");
   // Same instant as Stripe's trial_end, whatever time of day it is.
@@ -372,7 +372,7 @@ await test("v2 previews get preview wording, not 'free month'; legacy keeps its 
 
 await test("Jack's checkout-link email carries the same terms and expiry", () => {
   const e = buildCheckoutLinkEmail({ businessName: "Smith Landscaping", url: "https://checkout.stripe.test/x", interval: "month", chargeDate: Date.parse("2026-12-12T15:00:00Z") });
-  assert.match(e.text, /\$1 today\. Then \$19\.99\/month starting December 12, 2026\./);
+  assert.match(e.text, /\$1 today\. Then \$39\/month starting December 12, 2026\./);
   assert.match(e.text, /works for 24 hours/);
   assert.ok(e.text.includes(PRICE_LINE));
   const ga = fs.readFileSync("api/ga-metrics.js", "utf8");

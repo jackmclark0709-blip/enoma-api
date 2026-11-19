@@ -1,12 +1,14 @@
 // api/create-checkout.js
-// Creates a Stripe Checkout session for the lead-page subscription.
+// Creates a Stripe Checkout session for the website subscription.
 // POST body: { business_id, interval: "month" | "year" (default "month") }.
-// Prices come from Stripe by lookup key (data/plans.mjs): enoma_page_monthly
-// ($19.99/month) or enoma_page_annual ($199/year), or
-// enoma_page_partner_monthly ($9.99/month, monthly only) when the business was
-// referred by a partner with partner_pricing on. STRIPE_MONTHLY_PRICE_ID is
-// only a fallback if the monthly lookup key isn't found; a missing yearly
-// price returns 503 rather than charging monthly.
+// Prices come from Stripe by lookup key (data/plans.mjs, decided Nov 18, 2026):
+// website_founding_29 ($29/month, while fewer than 25 paying customers:
+// api/_lib/founding.js), else website_monthly_39 ($39/month); yearly is
+// website_yearly_390 ($390/year); enoma_page_partner_monthly ($9.99/month,
+// monthly only) when the business was referred by a partner with
+// partner_pricing on. STRIPE_MONTHLY_PRICE_ID is only a fallback if the $39
+// monthly lookup key isn't found; a missing yearly price returns 503 rather
+// than charging monthly. Existing subscriptions keep their old price.
 //
 // The free month: while the owner's free month (subscriptions.is_trial,
 // trial_expires_at) has more than 48 hours left, the subscription gets a
@@ -21,10 +23,11 @@
 // "send checkout link" in api/ga-metrics.js).
 // Called from the dashboard, /upgrade and /website-live (public/scripts/plan-picker.js).
 //
-// Service pages: each PUBLISHED service page (service_spotlights) is a
-// $9.99/month add-on (lookup key enoma_spotlight_monthly), or the yearly add-on
-// (enoma_spotlight_yearly) on a yearly checkout. Checkout adds them
-// as a second line item, quantity = published service pages, on the same
+// Service pages: the first PUBLISHED service page (service_spotlights) is
+// included; each one after it is a $9.99/month add-on (lookup key
+// enoma_spotlight_monthly), or the yearly add-on (enoma_spotlight_yearly) on a
+// yearly checkout. Checkout adds them as a second line item, quantity =
+// published service pages - 1, on the same
 // subscription (same trial_end). Comped and internal businesses are never
 // billed for them. See api/_lib/spotlight-billing.js.
 //
@@ -40,7 +43,8 @@
 // to be enabled once in Stripe (Settings → Billing → Customer portal).
 //
 // GET ?action=plans (public, no auth) returns the live amounts for the plans
-// on the pricing page, so changing a price in Stripe updates the page.
+// on the pricing page, so changing a price in Stripe updates the page, plus
+// founding: { limit, left } for the founding offer line (public/scripts/founding.js).
 // It lives here because the Vercel Hobby plan is at its 12-function limit.
 
 import Stripe from 'stripe';
@@ -52,6 +56,7 @@ import {
   billingSummary, spotlightItemOf,
 } from './_lib/spotlight-billing.js';
 import { logFunnelEvent } from './_lib/tracking.js';
+import { foundingState } from './_lib/founding.js';
 import { createPageCheckoutSession, pricesByLookupKey as livePrices, referrerFor as referrerOf } from './_lib/page-checkout.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -76,8 +81,14 @@ async function handlePlans(req, res) {
         live: !!live,
       };
     });
-    res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=3600');
-    return res.status(200).json({ plans });
+    let founding = null;
+    try {
+      const f = await foundingState(supabase);
+      founding = { limit: f.limit, left: f.left };
+    } catch (e) { console.error('founding count failed:', e?.message); }
+    // Short edge cache: the spots-left number should stay close to real.
+    res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=600');
+    return res.status(200).json({ plans, founding });
   } catch (e) {
     console.error('plans lookup failed:', e?.message);
     return res.status(200).json({ plans: [], error: 'unavailable' });

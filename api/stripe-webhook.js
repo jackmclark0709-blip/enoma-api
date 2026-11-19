@@ -34,6 +34,7 @@ import { createClient } from '@supabase/supabase-js';
 import { subscriptionFieldsFromStripe } from './_lib/billing.js';
 import { logFunnelEvent } from './_lib/tracking.js';
 import { syncSpotlightQuantity, spotlightItemOf } from './_lib/spotlight-billing.js';
+import { publishApprovedAutoPage } from './_lib/service-page-v3.js';
 import { Resend } from 'resend';
 import { PRICING_V2 } from './_lib/pricing.js';
 import { buildFirstMonthConfirmationEmail, buildManageBillingUrl, FIRST_PAID_KIND } from './_lib/trial-reminders.js';
@@ -200,6 +201,15 @@ export default async function handler(req, res) {
           .from('businesses')
           .update({ is_published: true })
           .eq('id', business_id);
+
+        // Website v3: the service page the owner approved goes live with the
+        // site (the first one is included, so the sync below adds nothing for it).
+        try {
+          const published = await publishApprovedAutoPage(supabase, business_id, { live: true });
+          if (published) console.log(`service page: published the approved auto page for business ${business_id}`);
+        } catch (e) {
+          console.error(`service page: auto publish failed for business ${business_id}:`, e?.message || e);
+        }
 
         await keepSpotlightQuantityInSync(business_id, subscription, 'checkout.session.completed');
 

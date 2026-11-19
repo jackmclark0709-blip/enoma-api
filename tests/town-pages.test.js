@@ -61,8 +61,8 @@ test("a rendered page has the right title, canonical, price and no old pricing",
   const html = renderTownPage(p, data);
   assert.match(html, /<title>Website for Landscapers in Rehoboth, MA \| Enoma<\/title>/);
   assert.ok(html.includes('rel="canonical" href="https://enoma.io/for/website-for-landscapers-rehoboth-ma"'));
-  assert.ok(html.includes('"price":"19.99"'));
-  assert.ok(html.includes('$1 for your first month, then $19.99/month or $199/year'));
+  assert.ok(html.includes('"price":"39"'));
+  assert.ok(html.includes('$1 for your first month, then $39/month or $390/year'));
   assert.doesNotMatch(html, /first month free|free month|no credit card|5 minutes/i);
   assert.doesNotMatch(html, /\$49|\$99|free forever|for good/i);
   // valid JSON-LD

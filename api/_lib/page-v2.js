@@ -450,6 +450,7 @@ export function ownerBar(p, kit, ctx) {
     <p class="v2-owner__extra">${talk}${kitLink}</p>
   </div>
   ${kitStrip}
+  ${ctx.serviceAsk || ""}
   ${more ? `<details class="v2-owner__more"><summary>${items === 1 ? "1 quick thing" : `${items} quick things`} for your page</summary>${towns}${knownFor}${ask}<p class="v2-owner__extra-phone">${talk}${kitLink}</p></details>` : ""}
 </div>
 <script src="/scripts/funnel-track.js"></script>

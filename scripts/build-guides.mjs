@@ -141,6 +141,7 @@ ${faqs.length ? `  ${jsonLd(faqSchema(faqs))}\n` : ""}  ${jsonLd(articleSchema)}
       <a href="/examples" class="btn btn--on-dark" data-cta="hero-examples">See live examples</a>
     </div>
     <p class="lp-hero__proof">${CTA_PROOF}</p>
+    <p class="founding-line" data-founding>Founding price: $29/month for as long as you stay, for our first 25 customers. <span data-founding-left></span></p>
   </div>
 </section>
 
@@ -148,7 +149,7 @@ ${faqs.length ? `  ${jsonLd(faqSchema(faqs))}\n` : ""}  ${jsonLd(articleSchema)}
   <div class="lp-proof__inner">
     <div class="lp-stat"><p class="lp-stat__n">~30 sec</p><p class="lp-stat__l">to see your page. Type in your business name and it's built for you</p></div>
     <div class="lp-stat"><p class="lp-stat__n">$0</p><p class="lp-stat__l">per-lead fees. Every call and quote request goes straight to you</p></div>
-    <div class="lp-stat"><p class="lp-stat__n">$1</p><p class="lp-stat__l">for your first month, then $19.99/month or $199/year. Cancel anytime</p></div>
+    <div class="lp-stat"><p class="lp-stat__n">$1</p><p class="lp-stat__l">for your first month, then $39/month or $390/year. Cancel anytime</p></div>
   </div>
   <p class="lp-proof__note">Not on Google yet, or your info is out of date? I'll build it with you. <a href="/get-your-website" data-cta="proof">See your page →</a></p>
 </section>
@@ -169,6 +170,7 @@ ${faqs.length ? renderFaqSection(faqs, headline) + "\n" : ""}<section class="lp-
       <a href="/examples" class="btn btn--on-dark" data-cta="final-examples">See live examples</a>
     </div>
     <p class="lp-cta__proof">${CTA_PROOF}</p>
+    <p class="founding-line" data-founding>Founding price: $29/month for as long as you stay, for our first 25 customers. <span data-founding-left></span></p>
   </div>
 </section>
 
@@ -185,6 +187,7 @@ ${related.map(([href, text]) => `      <a href="${href}">${text}</a>`).join("\n"
 <script>fetch('/partials/footer.html').then(r=>r.text()).then(html=>{document.getElementById('footer').innerHTML=html});</script>
 <script src="/scripts/global-cta.js" defer></script>
 <script src="/scripts/cta-track.js" defer></script>
+<script src="/scripts/founding.js" defer></script>
 </body>
 </html>
 `;

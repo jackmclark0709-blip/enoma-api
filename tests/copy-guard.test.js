@@ -1,6 +1,6 @@
 // Run with: node tests/copy-guard.test.js (also wired into `npm test`)
-// Pricing v2: going live is "$1 for your first month, then $19.99/month or
-// $199/year". "Free" is only for seeing and claiming the preview. This fails
+// Pricing v2: going live is "$1 for your first month, then $39/month or
+// $390/year". "Free" is only for seeing and claiming the preview. This fails
 // if any page, script or email template in public/ or api/ still sells the
 // old free month or the old no-card subscription.
 //

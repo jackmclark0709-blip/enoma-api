@@ -303,7 +303,9 @@ export default async function handler(req, res) {
 
     /* ---------- OWNER BAR on a page v2: owner-link token, no login (api/_lib/owner-actions.js) ---------- */
     if (req.query?.kind === "owner") {
-      return await handleOwnerAction(req, res, { supabaseAdmin, waitUntil });
+      // Stripe: approving the included service page on a live site publishes it.
+      const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
+      return await handleOwnerAction(req, res, { supabaseAdmin, waitUntil, stripe });
     }
 
     /* ---------- ADMIN SHORTCUT ---------- */

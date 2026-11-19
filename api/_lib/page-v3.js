@@ -398,20 +398,20 @@ export function recentWork(facts, kit, ctx) {
 // ── Icons ─────────────────────────────────────────────────────────────────
 
 const I = (d, cls = "v3-i") => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${d}</svg>`;
-const ICON_CALL = I('<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.08 4.18 2 2 0 0 1 4.06 2h3a2 2 0 0 1 2 1.72c.12.86.31 1.7.57 2.5a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.58-1.09a2 2 0 0 1 2.11-.45c.8.26 1.64.45 2.5.57A2 2 0 0 1 22 16.92z"/>');
+export const ICON_CALL = I('<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.08 4.18 2 2 0 0 1 4.06 2h3a2 2 0 0 1 2 1.72c.12.86.31 1.7.57 2.5a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.58-1.09a2 2 0 0 1 2.11-.45c.8.26 1.64.45 2.5.57A2 2 0 0 1 22 16.92z"/>');
 const STARS = n => `<span class="v3-stars" role="img" aria-label="${n} out of 5 stars">${"★".repeat(n)}${"☆".repeat(5 - n)}</span>`;
 
 // Images: on error, try the next src in data-fallback, then drop the figure.
 // One capture listener in the top bar, before any image loads.
 const IMG_FALLBACK_SCRIPT = `<script>document.addEventListener("error",function(e){var t=e.target;if(!t||t.tagName!=="IMG"||!t.hasAttribute("data-v3-img"))return;var f=(t.getAttribute("data-fallback")||"").split(" ").filter(Boolean);if(f.length){t.removeAttribute("srcset");t.setAttribute("data-fallback",f.slice(1).join(" "));t.src=f[0];return}var box=t.closest("[data-v3-media]");if(box){var host=box.parentNode;box.remove();if(host&&host.classList)host.classList.add("is-noimg")}},true);</script>`;
 
-function img({ src, srcset = "", alt = "", sizes = "", eager = false, fallback = [] }) {
+export function img({ src, srcset = "", alt = "", sizes = "", eager = false, fallback = [] }) {
   return `<img data-v3-img src="${esc(src)}"${srcset ? ` srcset="${esc(srcset)}" sizes="${esc(sizes || "(min-width: 900px) 380px, 100vw")}"` : ""} alt="${esc(alt)}"${fallback.length ? ` data-fallback="${esc(fallback.join(" "))}"` : ""} ${eager ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async" />`;
 }
 
 // ── Sections ──────────────────────────────────────────────────────────────
 
-function topBar(facts, ctx) {
+export function topBar(facts, ctx) {
   const seasonal = seasonalLine(facts, ctx.now || new Date());
   const town = [facts.towns.home || facts.address.town, facts.address.state].filter(Boolean).join(", ");
   const hours = str(facts.hours?.text);
@@ -426,18 +426,24 @@ function topBar(facts, ctx) {
 </div>`;
 }
 
-function headerBlock(rawProfile, facts, kit, ctx, nav) {
+/**
+ * The header + menu. base: "" on the home page; "/<slug>" on a service page,
+ * so the menu's section links go back to the home page's sections.
+ */
+export function headerBlock(rawProfile, facts, kit, ctx, nav, base = "") {
   const p = { business_name: facts.name };
+  const at = hash => (base ? `${base}${hash}` : hash);
+  const services = nav.services && nav.services.startsWith("#") ? at(nav.services) : nav.services;
   const links = [
-    nav.services ? `<a href="${esc(nav.services)}">Services</a>` : "",
-    nav.work ? `<a href="#work">Our work</a>` : "",
-    nav.reviews ? `<a href="#reviews">Reviews</a>` : "",
-    nav.area ? `<a href="#area">Area</a>` : "",
+    services ? `<a href="${esc(services)}">Services</a>` : "",
+    nav.work ? `<a href="${esc(at("#work"))}">Our work</a>` : "",
+    nav.reviews ? `<a href="${esc(at("#reviews"))}">Reviews</a>` : "",
+    nav.area ? `<a href="${esc(at("#area"))}">Area</a>` : "",
     `<a href="#contact">Contact</a>`,
   ].filter(Boolean).join("");
   return `<header class="v3-header" id="contactStrip">
   <div class="v3-wrap v3-header__in">
-    <a class="v3-brand" href="#top">${brandMark(p, kit, ctx.slug)}</a>
+    <a class="v3-brand" href="${esc(base || "#top")}">${brandMark(p, kit, ctx.slug)}</a>
     <nav class="v3-nav" aria-label="Main">${links}</nav>
     <a class="v3-btn v3-btn--cta v3-header__cta" href="#contact" data-contact="quote">${esc(estimateLabelV3(facts))}</a>
   </div>
@@ -458,7 +464,7 @@ function reviewWho(r, facts) {
   return `${r.author}${facts.google.place_id || facts.google.count ? ", Google review" : ""}`;
 }
 
-function reviewCard(r, facts, cls) {
+export function reviewCard(r, facts, cls) {
   const n = r.rating ? Math.min(5, Math.max(1, Math.round(r.rating))) : 0;
   return `<figure class="${cls}">
     ${n ? STARS(n) : ""}
@@ -508,7 +514,7 @@ function heroBlock(facts, copy, ctx) {
 </section>`;
 }
 
-function proofBlock(copy) {
+export function proofBlock(copy) {
   const items = copy.proof.slice(0, MAX_PROOF);
   if (items.length < 2) return "";
   return `<section class="v3-proof" aria-label="At a glance">
@@ -706,7 +712,7 @@ function faqBlock(copy) {
 </section>`;
 }
 
-function closingBlock(facts, copy, formInHero) {
+export function closingBlock(facts, copy, formInHero) {
   const call = facts.phone
     ? `<a class="v3-btn v3-btn--cta v3-btn--lg" href="${esc(telHref(facts.phone))}" data-contact="call">${ICON_CALL}Call ${esc(facts.phone)}</a>`
     : "";
@@ -730,7 +736,7 @@ function licenseText(lic) {
   return `${[lic.state, lic.kind || "License"].filter(Boolean).join(" ")} #${str(lic.number).replace(/^#/, "")}`;
 }
 
-function footerBlock(facts, ctx) {
+export function footerBlock(facts, ctx) {
   const addr = [facts.address.street, [facts.address.town, [facts.address.state, facts.address.zip].filter(Boolean).join(" ")].filter(Boolean).join(", ")].filter(Boolean).join(", ");
   const lic = licenseText(facts.license);
   const { services } = linkServicesToSpotlights(facts.services.map(s => ({ ...s, service_name: s.name })), list(ctx.spotlights), ctx.slug);
@@ -744,7 +750,7 @@ function footerBlock(facts, ctx) {
       ${lic ? `<p>${esc(lic)}${facts.license.verify_url ? ` · <a href="${esc(facts.license.verify_url)}" target="_blank" rel="noopener">Verify</a>` : ""}</p>` : ""}
     </div>
     ${str(facts.hours?.text) ? `<div class="v3-footer__col"><p class="v3-footer__h">Hours</p><p>${esc(facts.hours.text)}</p></div>` : ""}
-    ${services.length ? `<div class="v3-footer__col"><p class="v3-footer__h">Services</p><ul>${services.map(s => `<li><a href="${esc(s.spotlight_url || "#services")}">${esc(s.name)}</a></li>`).join("")}</ul></div>` : ""}
+    ${services.length ? `<div class="v3-footer__col"><p class="v3-footer__h">Services</p><ul>${services.map(s => `<li><a href="${esc(s.spotlight_url || `${ctx.base || ""}#services`)}">${esc(s.name)}</a></li>`).join("")}</ul></div>` : ""}
     ${towns.length ? `<div class="v3-footer__col"><p class="v3-footer__h">Area</p><ul>${towns.map(t => `<li>${esc(t)}${facts.address.state ? `, ${esc(facts.address.state)}` : ""}</li>`).join("")}</ul></div>` : ""}
   </div>
   <div class="v3-wrap"><p class="v3-footer__by"><a href="https://enoma.io" target="_blank" rel="noopener">Website by Enoma</a></p></div>
