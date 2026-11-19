@@ -226,7 +226,15 @@ export function renderServicePageV3(rawProfile, kit, spot, ctx = {}) {
 
   const call = facts.phone
     ? `<a class="v3-btn v3-btn--cta v3-btn--lg" href="${esc(telHref(facts.phone))}" data-contact="call">${ICON_CALL}Call ${esc(facts.phone)}</a>` : "";
-  const hero = `<section class="v3-hero v3-hero--service" aria-labelledby="heroHeadline">
+  // The service's photo (own work photo → library placeholder) sits behind the
+  // headline, like the home page hero.
+  const photo = servicePhoto(matchingService(facts, content), kit, c, new Set());
+  const placeholder = photo && photo.kind === "stock" && c.claimed !== true;
+  const bg = photo
+    ? `<div class="v3-hero__bg" data-v3-media aria-hidden="true">${img({ src: photo.src.replace(/-800\.webp$/, "-1600.webp"), srcset: photo.srcset, sizes: "100vw", alt: "", eager: true })}${photo.credit}${placeholder ? `<span class="v3-hero__ph">Sample photo</span>` : ""}</div>`
+    : "";
+  const hero = `<section class="v3-hero v3-hero--service${photo ? " has-photo" : ""}" aria-labelledby="heroHeadline">
+  ${bg}
   <div class="v3-wrap v3-hero__in v3-hero--form">
     <div class="v3-hero__copy">
       <p class="v3-eyebrow"><a href="${esc(home)}">${esc(facts.name)}</a></p>
@@ -238,9 +246,9 @@ export function renderServicePageV3(rawProfile, kit, spot, ctx = {}) {
   </div>
 </section>`;
 
-  // Photo slot: the same fallback as the service cards (work photo → stock → none).
-  const photo = servicePhoto(matchingService(facts, content), kit, c, new Set());
-  const photoBand = photo ? `<section class="v3-band" id="work" aria-label="${esc(name)}">
+  // An owner's own work photo also gets a full-width band further down; a
+  // placeholder only appears behind the headline.
+  const photoBand = photo && photo.kind === "work" ? `<section class="v3-band" id="work" aria-label="${esc(name)}">
   <div class="v3-wrap"><figure class="v3-service-photo" data-v3-media>${img({ src: photo.src, srcset: photo.srcset, alt: photo.alt || name, sizes: "(min-width: 900px) 900px, 100vw" })}${photo.credit}</figure></div>
 </section>` : "";
 
