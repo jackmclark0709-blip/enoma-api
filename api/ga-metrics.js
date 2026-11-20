@@ -3,6 +3,7 @@
 // Protected the same way as the admin path in generate-business.js: requires
 // the x-admin-secret header to match ADMIN_SECRET.
 
+import { pickPreviewsToRemove } from "./_lib/preview-cleanup.js";
 import { BetaAnalyticsDataClient } from "@google-analytics/data";
 import { cleanAttribution, selfServeFirstTouch } from "./_lib/attribution.js";
 import { summarizeContent } from "./_lib/content-performance.js";
@@ -50,7 +51,7 @@ import {
 } from "./_lib/text-outreach.js";
 import { buildBrandKit, saveBrandKit } from "./_lib/brand-kit.js";
 import { buildFactSheet, saveFactSheet } from "./_lib/fact-sheet.js";
-import { ownerDestination, ownerPageUrl, ensureOwnerToken, isPageV2, pageV2Fields } from "./_lib/owner-link.js";
+import { ownerDestination, ownerPageUrl, ensureOwnerToken, isPageV2, pageV2Fields, ownerTokenMatches } from "./_lib/owner-link.js";
 import { waitUntil } from "@vercel/functions";
 import { generateLaunchKit, takeCreationBuild } from "./_lib/launch-kit-render.js";
 import { OUTREACH_LINE } from "./_lib/launch-kit.js";
@@ -793,6 +794,108 @@ async function generatePreviewForProspect(prospect, { homeHtml, force = false, g
   return { preview_url, slug, business_id: biz.id, site_checks: checks.signals || [], rating, reviewCount };
 }
 
+
+
+// ── Preview cleanup ──────────────────────────────────────────────────────
+// Unclaimed previews nobody wants are deleted (api/_lib/preview-cleanup.js
+// says which and why): the profile with its copied Google content, the
+// business row and what cascades from it. The prospect keeps its place_id
+// and status (preview_removed) so it isn't rebuilt or emailed again.
+// Reports only, unless PREVIEW_CLEANUP_APPLY=1. Daily cron + manual runs.
+// The 10 v3 test pages are kept unless PREVIEW_CLEANUP_KEEP says otherwise.
+const PREVIEW_CLEANUP_KEEP_DEFAULT = [
+  "anchor-property-maintenance", "arno-plumbing-and-heating-2", "c-ryan-asphalt-paving", "feathers-touch-electric",
+  "john-patrie-electric", "let-it-roll-painting", "mainely-grass", "maynard-roofing-40-yrs-family-business",
+  "qs-pressure-wash-and-paint", "rangel-cleaning",
+];
+const PREVIEW_CLEANUP_MAX_PER_RUN = 40;
+
+async function selectAll(table, cols, apply = q => q) {
+  const out = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await apply(supabase.from(table).select(cols)).range(from, from + 999);
+    if (error) throw error;
+    out.push(...(data || []));
+    if (!data || data.length < 1000) return out;
+  }
+}
+
+async function handlePreviewCleanup(req, res) {
+  const apply = process.env.PREVIEW_CLEANUP_APPLY === "1";
+  const keepSlugs = (process.env.PREVIEW_CLEANUP_KEEP || PREVIEW_CLEANUP_KEEP_DEFAULT.join(",")).split(",").map(x => x.trim()).filter(Boolean);
+  const [profiles, businesses, subs, members, leads, prospects, events] = await Promise.all([
+    selectAll("small_business_profiles", "business_id, username, is_claimed, is_public, created_at", q => q.eq("is_claimed", false)),
+    selectAll("businesses", "id, is_internal, created_at"),
+    selectAll("subscriptions", "business_id, provider, status, is_trial, trial_expires_at, stripe_subscription_id"),
+    selectAll("business_members", "business_id"),
+    selectAll("contact_submissions", "business_id"),
+    selectAll("prospects", "preview_business_id, preview_first_viewed_at, status", q => q.not("preview_business_id", "is", null)),
+    selectAll("page_events", "slug", q => q.eq("traffic_class", "human").eq("is_internal", false)),
+  ]);
+  const visited = new Set(events.map(e => e.slug));
+  const { remove, kept } = pickPreviewsToRemove({ profiles, businesses, subs, members, leads, prospects, visited }, { keepSlugs });
+  const byReason = remove.reduce((acc, r) => ({ ...acc, [r.reason]: (acc[r.reason] || 0) + 1 }), {});
+  const removed = [];
+  if (apply) {
+    for (const r of remove.slice(0, PREVIEW_CLEANUP_MAX_PER_RUN)) {
+      try {
+        const now = new Date().toISOString();
+        // The prospect first (its FK to businesses has no cascade).
+        const { error: pErr } = await supabase.from("prospects")
+          .update({ preview_url: null, preview_business_id: null, status: "preview_removed", updated_at: now })
+          .eq("preview_business_id", r.business_id).not("status", "eq", "removed_by_owner");
+        if (pErr) throw pErr;
+        await supabase.from("prospects").update({ preview_url: null, preview_business_id: null, updated_at: now })
+          .eq("preview_business_id", r.business_id);
+        await supabase.from("stock_photo_assignments").delete().eq("business_id", r.business_id);
+        const { error: profErr } = await supabase.from("small_business_profiles").delete().eq("business_id", r.business_id).eq("is_claimed", false);
+        if (profErr) throw profErr;
+        const { error: bizErr } = await supabase.from("businesses").delete().eq("id", r.business_id);
+        if (bizErr) throw bizErr;
+        removed.push(r);
+      } catch (e) {
+        removed.push({ ...r, error: String(e?.message || e) });
+      }
+    }
+  }
+  return res.status(200).json({
+    success: true, dry_run: !apply,
+    would_remove: remove.length, by_reason: byReason, kept,
+    removed: removed.filter(r => !r.error).length, errors: removed.filter(r => r.error),
+    sample: remove.slice(0, 25).map(r => ({ slug: r.slug, reason: r.reason })),
+    ...(apply ? {} : { note: "Dry run. Set PREVIEW_CLEANUP_APPLY=1 in Vercel to delete (max " + PREVIEW_CLEANUP_MAX_PER_RUN + " a run)." }),
+  });
+}
+
+// "Not interested? Remove this page", from the owner bar (the owner link's
+// ?o= token proves it's them). GET shows a confirm page; POST unpublishes
+// right away, stops emails to the prospect and marks it for the cleanup job.
+async function handleRemovePreview(req, res) {
+  const slug = String(req.query.slug || "").slice(0, 120);
+  const o = String(req.query.o || "");
+  const html = (title, body) => {
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${escapeForForward(title)}</title></head><body style="font-family:system-ui,sans-serif;max-width:520px;margin:60px auto;padding:0 20px;line-height:1.5;color:#0f2340">${body}</body></html>`;
+  };
+  const { data: page } = slug
+    ? await supabase.from("small_business_profiles").select("business_id, business_name, owner_token, is_claimed, is_public").eq("username", slug).maybeSingle()
+    : { data: null };
+  if (!page || !ownerTokenMatches(page, o)) return res.status(400).send(html("Link not valid", "<h1>This link isn't valid</h1><p>It may be old or copied wrong. Reply to the email we sent and we'll take the page down for you.</p>"));
+  if (page.is_claimed) return res.status(400).send(html("Your page", "<h1>This page is yours</h1><p>It's on your account, so it can't be removed from here. Reply to any email from us or text Jack and we'll help.</p>"));
+  const name = escapeForForward(page.business_name || "your business");
+  if (req.method !== "POST") {
+    const action = `/api/ga-metrics?action=remove_preview&slug=${encodeURIComponent(slug)}&o=${encodeURIComponent(o)}`;
+    return res.status(200).send(html("Remove this page", `<h1>Remove the page we made for ${name}?</h1><p>We'll take it down right away, delete what we built, and stop emailing you about it.</p><form method="post" action="${action}"><button type="submit" style="font:inherit;padding:12px 20px;border-radius:8px;border:0;background:#0f2340;color:#fff;cursor:pointer">Yes, remove it</button></form><p style="margin-top:24px"><a href="/${encodeURIComponent(slug)}?o=${encodeURIComponent(o)}">No, keep it</a></p>`));
+  }
+  const now = new Date().toISOString();
+  await supabase.from("small_business_profiles").update({ is_public: false, updated_at: now }).eq("business_id", page.business_id).eq("is_claimed", false);
+  const { data: ps } = await supabase.from("prospects").select("id, email").eq("preview_business_id", page.business_id);
+  for (const p of ps || []) {
+    await supabase.from("prospects").update({ status: "removed_by_owner", updated_at: now }).eq("id", p.id);
+    if (p.email) await supabase.from("suppression_list").upsert({ email: String(p.email).toLowerCase(), reason: "removed_page" }, { onConflict: "email" });
+  }
+  return res.status(200).send(html("Page removed", `<h1>Done. The page for ${name} is down.</h1><p>We won't email you about it again. Thanks for letting us know.</p>`));
+}
 
 // ── Monthly results email ─────────────────────────────────────────────────
 // On the 1st (vercel.json cron), every claimed, active customer gets last
@@ -3710,6 +3813,15 @@ export default async function handler(req, res) {
     }
   }
 
+  if (req.query.action === "remove_preview") {
+    try {
+      return await handleRemovePreview(req, res);
+    } catch (err) {
+      console.error("Remove preview failed:", err);
+      return res.status(500).send("Something went wrong. Reply to our email and we'll take the page down.");
+    }
+  }
+
   if (req.query.action === "unsubscribe") {
     try {
       return await handleUnsubscribe(req, res);
@@ -4030,6 +4142,15 @@ export default async function handler(req, res) {
       return await handleProcessSignals(req, res);
     } catch (err) {
       console.error("Process signals failed:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.query.action === "preview_cleanup") {
+    try {
+      return await handlePreviewCleanup(req, res);
+    } catch (err) {
+      console.error("Preview cleanup failed:", err);
       return res.status(500).json({ success: false, error: err.message });
     }
   }

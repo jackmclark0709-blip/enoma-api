@@ -452,6 +452,7 @@ export function ownerBar(p, kit, ctx) {
   ${kitStrip}
   ${ctx.serviceAsk || ""}
   ${more ? `<details class="v2-owner__more"><summary>${items === 1 ? "1 quick thing" : `${items} quick things`} for your page</summary>${towns}${knownFor}${ask}<p class="v2-owner__extra-phone">${talk}${kitLink}</p></details>` : ""}
+  <p class="v2-owner__remove"><a href="/api/ga-metrics?action=remove_preview&amp;slug=${encodeURIComponent(ctx.slug)}&amp;o=${encodeURIComponent(ctx.token)}" rel="nofollow">Not interested? Remove this page</a></p>
 </div>
 <script src="/scripts/funnel-track.js"></script>
 <script>
