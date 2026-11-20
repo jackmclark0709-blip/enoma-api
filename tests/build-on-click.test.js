@@ -114,4 +114,9 @@ await test("example pages: one per trade, labeled made-up, noindex, inert, made-
   }
 });
 
+await test("migration: outreach_messages.variant allows 'example'", () => {
+  const sql = read("supabase/migrations/20261120_outreach_variant_example.sql");
+  assert.match(sql, /check \(variant in \('a', 'b', 'example'\)\)/);
+});
+
 console.log(`\n${passed} passed`);
