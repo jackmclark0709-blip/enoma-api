@@ -52,12 +52,14 @@ await test("email: example + build links through action=go, honest about the sam
   assert.ok(f2.text.includes(L.build) && /won't email again/.test(f2.text));
 });
 
-await test("build page: auto-starts only for people, otherwise a button; polls build_status", () => {
+await test("build page: a button always; for people it also starts on the first touch/move/scroll/key, never on load", () => {
   const human = buildPageHtml({ messageId: MID, businessName: "Acme <b>", autoStart: true });
   const bot = buildPageHtml({ messageId: MID, businessName: "Acme", autoStart: false });
-  assert.match(human, /\nstart\(\);\n/);
-  assert.doesNotMatch(bot, /\nstart\(\);\n/);
+  assert.doesNotMatch(human, /\nstart\(\);\n/);
+  assert.match(human, /"pointermove","touchstart","scroll","keydown"/);
+  assert.doesNotMatch(bot, /pointermove/);
   assert.match(bot, /Build my page/);
+  assert.match(human, /Build my page/);
   assert.match(human, /action=build_start&m=/);
   assert.match(human, /action=build_status&m=/);
   assert.doesNotMatch(human, /Acme <b>/);

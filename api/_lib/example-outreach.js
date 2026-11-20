@@ -114,10 +114,12 @@ ${footerHtml(mailingAddress, unsubscribeUrl)}`);
 }
 
 /**
- * The page someone lands on after clicking "Build my page". It starts the
- * build itself (POST action=build_start) when autoStart is true, otherwise
- * shows a button (mail scanners that run scripts never click it). Then it
- * polls action=build_status until the page is ready and goes there.
+ * The page someone lands on after clicking "Build my page". It always shows
+ * a "Build my page" button. With autoStart (the click was classed human) the
+ * build also starts on the first sign of a person: a touch, a mouse move, a
+ * scroll or a key. Mail scanners that run scripts do none of those, so they
+ * never start a build. Then it polls action=build_status until the page is
+ * ready and goes there.
  */
 export function buildPageHtml({ messageId, businessName, autoStart, exampleHref = null }) {
   const name = escapeHtml(cleanBusinessName(businessName) || "your business");
@@ -130,8 +132,8 @@ h1{font-size:22px;margin:0 0 10px}p{margin:0 0 12px;line-height:1.5}.s{font-size
 .sp{width:44px;height:44px;border:4px solid #dbe4f0;border-top-color:#1a73e8;border-radius:50%;margin:8px auto 18px;animation:r 1s linear infinite}@keyframes r{to{transform:rotate(360deg)}}
 button{font:inherit;font-weight:700;padding:13px 22px;border-radius:10px;border:0;background:#1a73e8;color:#fff;cursor:pointer}.h{display:none}</style></head>
 <body><div class="c">
-<div id="go" class="${autoStart ? "h" : ""}"><h1>See ${name}'s page</h1><p>We'll build it from your Google listing: your name, services, reviews and towns. It takes about a minute.</p><button id="b" type="button">Build my page</button></div>
-<div id="wait" class="${autoStart ? "" : "h"}"><div class="sp"></div><h1>Building ${name}'s page…</h1><p>Pulling in your Google reviews, services and towns. This takes about a minute. Keep this tab open.</p>${ex}</div>
+<div id="go"><h1>See ${name}'s page</h1><p>We'll build it from your Google listing: your name, services, reviews and towns. It takes about a minute.</p><button id="b" type="button">Build my page</button></div>
+<div id="wait" class="h"><div class="sp"></div><h1>Building ${name}'s page…</h1><p>Pulling in your Google reviews, services and towns. This takes about a minute. Keep this tab open.</p>${ex}</div>
 <div id="err" class="h"><h1>Almost there</h1><p id="em">We couldn't finish it automatically. Jack has been told and will send you the link himself shortly.</p></div>
 </div>
 <script>(function(){
@@ -149,6 +151,6 @@ if(j.url){location.replace(j.url);return}
 if(!j.ok){fail(j.message);return}
 poll()}).catch(function(){poll()})}
 document.getElementById("b").addEventListener("click",start);
-${autoStart ? "start();" : ""}
+${autoStart ? `["pointermove","touchstart","scroll","keydown","wheel"].forEach(function(ev){window.addEventListener(ev,start,{once:true,passive:true})});` : ""}
 })();</script></body></html>`;
 }
