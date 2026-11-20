@@ -410,8 +410,9 @@ export function weakSub(sub, h1, businessName = "") {
 
 /** "Help with hot water tank failures, drain clogs and pipe leaks in North Attleborough." */
 export function factSub(facts) {
-  const names = facts.services.map(x => x.name).slice(0, 3);
+  let names = facts.services.map(x => x.name).slice(0, 3);
   if (!names.length) return "";
+  if (names.join(", ").length > 70) names = names.slice(0, 2);
   // Lower case inside a sentence, but acronyms (HVAC, EV) stay.
   const lower = names.map(n => n.split(/\s+/).map(w => (/^[A-Z][a-z]/.test(w) ? w.toLowerCase() : w)).join(" "));
   const joined = lower.length > 1 ? `${lower.slice(0, -1).join(", ")} and ${lower[lower.length - 1]}` : lower[0];

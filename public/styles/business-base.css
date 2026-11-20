@@ -1449,6 +1449,9 @@ body.page-v3 {
   .page-v3 .v3-top__in { flex-wrap: nowrap; }
   .page-v3 .v3-top__season { font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .page-v3 .v3-top:not(.has-season) .v3-top__in { justify-content: flex-end; }
+  /* The sticky bottom bar already has Estimate; the header keeps logo + menu. */
+  .page-v3 .v3-header__cta { display: none; }
+  .page-v3 .v3-hero.has-photo .v3-hero__in { padding-top: 28px; }
   /* Three proof items stay in one row; four go 2 x 2 (the base grid). */
   .page-v3 .v3-proof__list--n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 8px; }
   .page-v3 .v3-proof__list--n3 .v3-proof__big { font-size: 1.2rem; }
