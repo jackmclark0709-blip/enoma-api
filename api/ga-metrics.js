@@ -2624,7 +2624,18 @@ async function sendSecondFollowUpsOnce({ maxSends, captureReplies }) {
   return { sent, results };
 }
 
+// OUTREACH_SEND=off holds every cold email (first emails and both automatic
+// follow-ups) while the crons keep finding prospects and building pages.
+// ?dry_run=1 still renders. Visit follow-ups are separate: Jack sends those
+// himself from the alert email.
+function outreachSendOn(env = process.env) {
+  return String(env.OUTREACH_SEND || "").trim().toLowerCase() !== "off";
+}
+
 async function handleSendOutreach(req, res) {
+  if (!outreachSendOn() && req.query.dry_run !== "1") {
+    return res.status(200).json({ success: true, held: true, sent: 0, note: "OUTREACH_SEND=off: no outreach emails are sent. Set it to on (or remove it) in Vercel to resume." });
+  }
   const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString();
   const [{ count: sends7d }, { count: bounces7d }] = await Promise.all([
     supabase.from("outreach_messages").select("id", { count: "exact", head: true })
