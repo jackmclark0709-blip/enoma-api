@@ -69,6 +69,9 @@ await test("page: clean name everywhere, claims in the proof strip", () => {
   const parts = v3PageParts(p, kitFor(p), { slug: p.username, now: NOW });
   assert.match(parts.seo.title, /^Arno Plumbing and Heating — Plumbing in North Attleborough, MA$/);
   assert.doesNotMatch(parts.blocks["{{BLOCK_HEADER}}"], /40 yrs/i);
+  const raw = clone(fixture("arno")); raw.business_name = "Maynard Roofing /40 yrs Family Business"; raw.fact_sheet.business.name = raw.business_name;
+  raw.brand_kit = { ...kitFor(raw), wordmark: { line1: "MAYNARD", line2: "ROOFING /40 YRS FAMILY BUSINESS · TAUNTON MA", icon: "contractor" } };
+  assert.doesNotMatch(v3PageParts(raw, raw.brand_kit, { slug: "x", now: NOW }).blocks["{{BLOCK_HEADER}}"], /40 YRS/, "stored wordmark rebuilt from the clean name");
   assert.doesNotMatch(parts.blocks["{{BLOCK_FOOTER}}"], /40 yrs/i);
   assert.match(parts.blocks["{{BLOCK_PROOF}}"], /40 years<\/span><span class="v3-proof__small">Family business/);
   assert.equal(parts.schema.name, "Arno Plumbing and Heating");

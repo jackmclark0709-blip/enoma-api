@@ -28,7 +28,7 @@ import { telHref, smsHref, googleMapsUrl, schemaTypeFor, sameAsLinks, MAX_REVIEW
 import { normalizeProfile, normalizeFaqs } from "./page-ssr.js";
 import { personaFor, hashString, isStrongRating } from "./page-style.js";
 import { workPhotos } from "./photo-kinds.js";
-import { stateCode, kitFor } from "./brand-kit.js";
+import { stateCode, kitFor, wordmarkFor } from "./brand-kit.js";
 import { linkServicesToSpotlights } from "./spotlight-render.js";
 import { renderQuoteForm } from "./quote-form.js";
 import { sizedUrls, creditFor, STOCK_QUERIES } from "./stock-photos.js";
@@ -610,6 +610,12 @@ export function topBar(facts, ctx) {
  */
 export function headerBlock(rawProfile, facts, kit, ctx, nav, base = "") {
   const p = { business_name: facts.name };
+  // The stored wordmark was built from the raw Google name; when the name was
+  // cleaned ("/40 yrs Family Business" off), rebuild it from the clean one.
+  const raw = str(obj(rawProfile?.fact_sheet)?.business?.raw_name) || str(rawProfile?.business_name);
+  if (kit?.wordmark && raw && raw !== facts.name) {
+    kit = { ...kit, wordmark: { ...wordmarkFor({ ...(rawProfile || {}), business_name: facts.name }), icon: kit.wordmark.icon } };
+  }
   const at = hash => (base ? `${base}${hash}` : hash);
   const services = nav.services && nav.services.startsWith("#") ? at(nav.services) : nav.services;
   const links = [
