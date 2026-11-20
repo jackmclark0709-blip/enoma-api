@@ -2086,7 +2086,14 @@ async function prepareOutreachOnce({ limit = PREPARE_MAX_PER_RUN, deadline = Dat
         // Over today's cap: left where it is (verdict saved) for tomorrow.
         if (v3Left <= 0) { results.push({ business_name: prospect.business_name, email: prospect.email, mailbox, ready: false, verified: true, reason: "v3_daily_cap" }); return false; }
         v3Left--;
-        await supabase.from("prospects").update({ v3_queued_at: stamp() }).eq("id", prospect.id);
+        // Claim it: an overlapping run (a manual run during a cron) that got
+        // the same prospect finds it claimed today and skips it. Crons are
+        // >= 1h apart and runs <= 60s, so the cap can overshoot by at most one
+        // run's limit, and only on a manual overlap.
+        const today = new Date(); today.setUTCHours(0, 0, 0, 0);
+        const { data: claimed } = await supabase.from("prospects").update({ v3_queued_at: stamp() })
+          .eq("id", prospect.id).or(`v3_queued_at.is.null,v3_queued_at.lt.${today.toISOString()}`).select("id");
+        if (!claimed?.length) { results.push({ business_name: prospect.business_name, ready: false, verified: true, reason: "v3_claimed_elsewhere" }); return false; }
       }
       if (!preview_url) {
         const gen = await generatePreviewForProspect(prospect, { place, homeHtml });

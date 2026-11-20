@@ -81,9 +81,9 @@ await test("pipeline: parked prospects are drafted the old way if v3 is switched
 });
 
 await test("pipeline: one daily budget for new builds and upgrades of existing previews", () => {
-  const build = src.slice(src.indexOf("let preview_url = prospect.preview_url;"), src.indexOf("let preview_url = prospect.preview_url;") + 900);
+  const build = src.slice(src.indexOf("let preview_url = prospect.preview_url;"), src.indexOf("let preview_url = prospect.preview_url;") + 2000);
   assert.ok(build.indexOf("v3Left <= 0") < build.indexOf("if (!preview_url)"), "cap is checked before the new-build branch");
-  assert.match(build, /v3_queued_at: stamp\(\)/);
+  assert.match(src, /update\(\{ v3_queued_at: stamp\(\) \}\)\s*\.eq\("id", prospect\.id\)\.or\(`v3_queued_at\.is\.null/);
   assert.match(src, /\.gte\("v3_queued_at"/);
   assert.match(src, /count failed:[^\n]*return 0;/);   // fails closed (e.g. migration not applied)
   assert.ok(fs.existsSync(new URL("../supabase/migrations/20261120_prospect_v3_queued_at.sql", import.meta.url)));
