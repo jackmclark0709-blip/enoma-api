@@ -97,4 +97,11 @@ await test("cleanup: page views are looked up only for never-visited candidates;
   assert.ok(fn.indexOf("if (upErr) throw upErr;") < fn.indexOf('from("small_business_profiles").delete()'));
 });
 
+await test("cleanup + remove link: every write is checked before success is reported", () => {
+  const src = fs.readFileSync(new URL("../api/ga-metrics.js", import.meta.url), "utf8");
+  assert.match(src, /if \(unlinkErr\) throw unlinkErr;/);
+  assert.match(src, /if \(hideErr \|\| !hidden\?\.length\)[^\n]*return failed\(\);/);
+  assert.match(src, /if \(stErr \|\| supErr\)[^\n]*return failed\(\);/);
+});
+
 console.log(`\n${passed} passed`);

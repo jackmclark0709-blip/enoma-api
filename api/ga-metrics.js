@@ -866,9 +866,11 @@ async function handlePreviewCleanup(req, res) {
           .update({ preview_url: null, preview_business_id: null, status: "preview_removed", updated_at: now })
           .eq("preview_business_id", r.business_id).not("status", "eq", "removed_by_owner");
         if (pErr) throw pErr;
-        await supabase.from("prospects").update({ preview_url: null, preview_business_id: null, updated_at: now })
+        const { error: unlinkErr } = await supabase.from("prospects").update({ preview_url: null, preview_business_id: null, updated_at: now })
           .eq("preview_business_id", r.business_id);
-        await supabase.from("stock_photo_assignments").delete().eq("business_id", r.business_id);
+        if (unlinkErr) throw unlinkErr;
+        const { error: spaErr } = await supabase.from("stock_photo_assignments").delete().eq("business_id", r.business_id);
+        if (spaErr) throw spaErr;
         const { error: profErr } = await supabase.from("small_business_profiles").delete().eq("business_id", r.business_id).eq("is_claimed", false);
         if (profErr) throw profErr;
         const { error: bizErr } = await supabase.from("businesses").delete().eq("id", r.business_id);
@@ -909,11 +911,18 @@ async function handleRemovePreview(req, res) {
     return res.status(200).send(html("Remove this page", `<h1>Remove the page we made for ${name}?</h1><p>We'll take it down right away, delete what we built, and stop emailing you about it.</p><form method="post" action="${action}"><button type="submit" style="font:inherit;padding:12px 20px;border-radius:8px;border:0;background:#0f2340;color:#fff;cursor:pointer">Yes, remove it</button></form><p style="margin-top:24px"><a href="/${encodeURIComponent(slug)}?o=${encodeURIComponent(o)}">No, keep it</a></p>`));
   }
   const now = new Date().toISOString();
-  await supabase.from("small_business_profiles").update({ is_public: false, updated_at: now }).eq("business_id", page.business_id).eq("is_claimed", false);
-  const { data: ps } = await supabase.from("prospects").select("id, email").eq("preview_business_id", page.business_id);
+  const failed = () => res.status(500).send(html("Something went wrong", "<h1>Sorry, that didn't go through</h1><p>Please try the link again in a minute, or reply to the email we sent and we'll take the page down for you.</p>"));
+  const { data: hidden, error: hideErr } = await supabase.from("small_business_profiles").update({ is_public: false, updated_at: now })
+    .eq("business_id", page.business_id).eq("is_claimed", false).select("business_id");
+  if (hideErr || !hidden?.length) { console.warn("remove_preview: unpublish failed:", hideErr?.message || "no row"); return failed(); }
+  const { data: ps, error: psErr } = await supabase.from("prospects").select("id, email").eq("preview_business_id", page.business_id);
+  if (psErr) { console.warn("remove_preview: prospects:", psErr.message); return failed(); }
   for (const p of ps || []) {
-    await supabase.from("prospects").update({ status: "removed_by_owner", updated_at: now }).eq("id", p.id);
-    if (p.email) await supabase.from("suppression_list").upsert({ email: String(p.email).toLowerCase(), reason: "removed_page" }, { onConflict: "email" });
+    const { error: stErr } = await supabase.from("prospects").update({ status: "removed_by_owner", updated_at: now }).eq("id", p.id);
+    const { error: supErr } = p.email
+      ? await supabase.from("suppression_list").upsert({ email: String(p.email).toLowerCase(), reason: "removed_page" }, { onConflict: "email" })
+      : { error: null };
+    if (stErr || supErr) { console.warn("remove_preview: stop-emails failed:", (stErr || supErr).message); return failed(); }
   }
   return res.status(200).send(html("Page removed", `<h1>Done. The page for ${name} is down.</h1><p>We won't email you about it again. Thanks for letting us know.</p>`));
 }
