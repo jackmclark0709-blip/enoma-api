@@ -265,7 +265,9 @@ export function factsFor(rawProfile = {}, kit = null) {
   const nameClaims = Array.isArray(b.name_claims) ? b.name_claims : nm.claims;
   const ownerNames = (() => { const n = list(o.names).map(str).filter(Boolean); return n.length ? n : list(k?.owner_names); })();
   // People reviews name (review-people.js): only when the owner hasn't told us names.
-  const people = peopleInReviews(list(fs.reviews), { skip: [town, ...confirmed, ...nearby] });
+  // The business name's own words never count as a person ("Maynard always
+  // answers" is the brand), even when the name is a person's (John Patrie Electric).
+  const people = peopleInReviews(list(fs.reviews), { skip: [town, ...confirmed, ...nearby, nm.name, nm.raw] });
   const lead = ownerNames.length ? null : leadPerson(people);
 
   const lic = (str(o.license_number) || str(p.license_number)).replace(/^#/, "");

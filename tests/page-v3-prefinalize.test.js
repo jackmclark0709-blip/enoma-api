@@ -14,7 +14,7 @@ import {
   tradeWordFor, v3Seo, v3PageParts, localBusinessSchemaV3, servicePhoto,
 } from "../api/_lib/page-v3.js";
 import { tagForService } from "../api/_lib/stock-library.js";
-import { serviceHeadlineShown, serviceIntroShown, serviceTitle } from "../api/_lib/service-page-v3.js";
+import { serviceHeadlineShown, serviceIntroShown, serviceTitle, servicePageV3Parts } from "../api/_lib/service-page-v3.js";
 import { buildFactSheet } from "../api/_lib/fact-sheet.js";
 import { kitFor } from "../api/_lib/brand-kit.js";
 
@@ -132,6 +132,17 @@ await test("people: line shows under the hero sub; skipped when the owner gave n
   assert.match(hero, /class="v3-person">Customers mention Peter by name in 2 Google reviews\./);
   p.fact_sheet.owner.names = ["Peter"];
   assert.equal(factsFor(p, kit).person, null);
+});
+
+await test("people: the business name's own words never count, even used like a person", () => {
+  const p = clone(fixture("arno"));
+  p.fact_sheet.business.name = "Maynard Roofing"; p.business_name = "Maynard Roofing";
+  p.fact_sheet.owner.names = [];
+  p.fact_sheet.reviews = [
+    { id: "r1", author: "A B.", rating: 5, text: "Maynard always answers the phone." },
+    { id: "r2", author: "C D.", rating: 5, text: "Maynard did great work on our roof." },
+  ];
+  assert.equal(factsFor(p, { ...kitFor(p), owner_names: [] }).person, null);
 });
 
 // ── 3. Proof strip ───────────────────────────────────────────────────────
@@ -263,6 +274,15 @@ await test("service page: filler headlines and 'we specialize' sentences are not
   assert.equal(serviceIntroShown("Leaks spread fast. We specialize in finding leaks. We show you a photo of the problem."), "Leaks spread fast. We show you a photo of the problem.");
   const facts = { name: "Maynard Roofing", towns: { home: "Taunton" }, address: { state: "MA" } };
   assert.equal(serviceTitle("Roof Leak Repairs", facts), "Roof Leak Repairs in Taunton, MA | Maynard Roofing");
+});
+
+await test("service page metadata uses the filtered intro", () => {
+  const p = fixture("arno");
+  const intro = "Leaks spread fast. We specialize in finding leaks. We show you a photo.";
+  const spot = { service_slug: "pipe-leaks", content: { kind: "v3", service_name: "Pipe leaks", headline: "x", intro, seo: { title: "t", description: intro.slice(0, 158) }, what_we_do: [], signs: [], faqs: [], review_ids: [], hero: { headline: "x", subhead: intro } } };
+  const parts = servicePageV3Parts(p, kitFor(p), spot, { slug: p.username, canonical: "https://enoma.io/x/pipe-leaks", now: NOW });
+  assert.doesNotMatch(parts.description, /specialize/i);
+  assert.doesNotMatch(parts.schema.description, /specialize/i);
 });
 
 console.log(`\n${passed} passed`);
