@@ -50,6 +50,7 @@ import {
 } from "./_lib/text-outreach.js";
 import { buildBrandKit, saveBrandKit } from "./_lib/brand-kit.js";
 import { buildFactSheet, saveFactSheet } from "./_lib/fact-sheet.js";
+import { outreachReadiness, dailyV3Max } from "./_lib/page-v3.js";
 import { ownerDestination, ownerPageUrl, ensureOwnerToken, isPageV2, pageV2Fields } from "./_lib/owner-link.js";
 import { waitUntil } from "@vercel/functions";
 import { generateLaunchKit, takeCreationBuild } from "./_lib/launch-kit-render.js";
@@ -690,6 +691,103 @@ async function uniqueSlug(base) {
 
 // gate: false skips the outbound quality gate (instant previews a visitor asked
 // for). place: pass already-fetched details to skip a second Places call.
+// ── New previews on page v3 (PAGE_V3_NEW=on with PAGE_COPY_V3=on) ────────
+// A new preview starts on v2 and moves to v3 once its AI copy is saved (one
+// gpt-4o call + one gpt-4o-mini check per page). Outreach for it is drafted
+// only after that, and only if the page passes outreachReadiness (page-v3.js):
+// a thin page stays up but is never emailed. PAGE_V3_DAILY_MAX caps new
+// pages a day (OpenAI and Places spend); the rest wait for tomorrow.
+function v3FlagsOn(env = process.env) {
+  return env.PAGE_V3_NEW === "on" && env.PAGE_COPY_V3 === "on";
+}
+function v3PipelineOn(env = process.env) {
+  // PAGE_V3=off / PAGE_V2=off make api/p.js render v3 rows as something
+  // else, so the readiness check would be judging a page nobody sees.
+  return env.PAGE_V3_NEW === "on" && env.PAGE_COPY_V3 === "on" && env.PAGE_V3 !== "off" && env.PAGE_V2 !== "off";
+}
+const PAGE_V3_DAILY_MAX = dailyV3Max(process.env.PAGE_V3_DAILY_MAX);
+const V3_BUILD_GRACE_MS = 10 * 60 * 1000;     // background copy should be done by then
+const V3_BUILD_GIVE_UP_MS = 3 * 60 * 60 * 1000;
+
+async function promoteNewPreviewToV3(businessId) {
+  const { error } = await supabase.from("small_business_profiles")
+    .update({ page_version: 3, updated_at: new Date().toISOString() })
+    .eq("business_id", businessId).eq("is_claimed", false).eq("page_version", 2);
+  if (error) console.warn("v3 promote failed:", error.message);
+}
+
+async function v3BuildsLeftToday() {
+  const startOfDay = new Date(); startOfDay.setUTCHours(0, 0, 0, 0);
+  const { count, error } = await supabase.from("prospects").select("id", { count: "exact", head: true })
+    .gte("v3_queued_at", startOfDay.toISOString());
+  if (error) { console.warn("v3 cap: count failed:", error.message); return 0; }   // unknown -> build nothing
+  return Math.max(0, PAGE_V3_DAILY_MAX - (count || 0));
+}
+
+// Step 2 of a v3 build, on the next prepare run: when the page is on v3 and
+// passes the readiness floor, draft its outreach; otherwise park it at
+// page_not_ready (the page stays; no email). Copy that never arrived in the
+// background is generated here once.
+// v3 = false (the v3 flags were turned off while prospects were parked):
+// draft them the old way so nobody stays stuck at preview_building.
+async function finishV3Drafts({ limit = 5, deadline = Date.now() + 20000, v3 = true } = {}) {
+  const out = [];
+  const stamp = () => new Date().toISOString();
+  const { data: rows, error } = await supabase.from("prospects")
+    .select("id, business_name, trade, city, state, email, website, site_gaps, raw, preview_url, preview_business_id, updated_at")
+    .eq("status", "preview_building").order("updated_at", { ascending: true }).limit(limit);
+  if (error) { console.warn("v3 finish: query failed:", error.message); return out; }
+  const load = async (id) => (await supabase.from("small_business_profiles").select("*").eq("business_id", id).maybeSingle()).data;
+  for (const p of rows || []) {
+    if (Date.now() > deadline) break;
+    try {
+      if (!p.preview_business_id) {
+        await supabase.from("prospects").update({ status: "no_preview", updated_at: stamp() }).eq("id", p.id);
+        out.push({ business_name: p.business_name, ready: false, reason: "no_preview_business" });
+        continue;
+      }
+      let prof = await load(p.preview_business_id);
+      const age = Date.now() - Date.parse(p.updated_at || 0);
+      if (!v3) {
+        const draft = await generateDraftCopy({ ...p, draft_body: null, draft_subject: null }, null);
+        await supabase.from("prospects")
+          .update({ draft_subject: draft.subject, draft_body: draft.body, status: "drafted", updated_at: stamp() })
+          .eq("id", p.id).eq("status", "preview_building");
+        out.push({ business_name: p.business_name, email: p.email, preview_url: p.preview_url, subject: draft.subject, ready: true, v3: false });
+        continue;
+      }
+      if (prof && !prof.is_claimed && Number(prof.page_version) !== 3) {
+        if (prof.page_copy_v3) await promoteNewPreviewToV3(prof.business_id);
+        else if (prof.fact_sheet && age > V3_BUILD_GRACE_MS) {
+          await saveFactSheet(supabase, prof.business_id, prof.fact_sheet, { env: { PAGE_COPY_V3: "on" }, onCopy: () => promoteNewPreviewToV3(prof.business_id) });
+        }
+        prof = await load(p.preview_business_id);
+      }
+      if (!prof || Number(prof.page_version) !== 3) {
+        if (age > V3_BUILD_GIVE_UP_MS) {
+          await supabase.from("prospects").update({ status: "page_not_ready", updated_at: stamp() }).eq("id", p.id);
+          out.push({ business_name: p.business_name, ready: false, reason: "v3_not_built" });
+        }
+        continue;
+      }
+      const r = outreachReadiness(prof, prof.brand_kit || null);
+      if (!r.ok) {
+        await supabase.from("prospects").update({ status: "page_not_ready", updated_at: stamp() }).eq("id", p.id);
+        out.push({ business_name: p.business_name, preview_url: p.preview_url, ready: false, reason: "page_not_ready", reasons: r.reasons });
+        continue;
+      }
+      const draft = await generateDraftCopy({ ...p, draft_body: null, draft_subject: null }, null);
+      await supabase.from("prospects")
+        .update({ draft_subject: draft.subject, draft_body: draft.body, status: "drafted", updated_at: stamp() })
+        .eq("id", p.id).eq("status", "preview_building");
+      out.push({ business_name: p.business_name, email: p.email, preview_url: p.preview_url, subject: draft.subject, ready: true, v3: true });
+    } catch (err) {
+      out.push({ business_name: p.business_name, ready: false, reason: "v3_finish_error", error: err.message });
+    }
+  }
+  return out;
+}
+
 async function generatePreviewForProspect(prospect, { homeHtml, force = false, gate = true, trialDays = PREVIEW_TRIAL_DAYS, place: knownPlace } = {}) {
   if (prospect.preview_url && !force) return { skipped: "already_has_preview", preview_url: prospect.preview_url };
 
@@ -776,7 +874,8 @@ async function generatePreviewForProspect(prospect, { homeHtml, force = false, g
           await saveBrandKit(supabase, biz.id, kit);
           // The fact sheet again, now with the kit's towns and owner names.
           await factJob;
-          await saveFactSheet(supabase, biz.id, buildFactSheet({ profile: v2Profile, kit, ...factInputs }));
+          await saveFactSheet(supabase, biz.id, buildFactSheet({ profile: v2Profile, kit, ...factInputs }),
+            v3PipelineOn() ? { onCopy: () => promoteNewPreviewToV3(biz.id) } : {});
           // The launch kit (api/_lib/launch-kit.js) from the same kit, same run.
           // Capped per run (takeCreationBuild); the rest are made on the owner's first visit.
           if (process.env.PAGE_LAUNCH_KIT === "on" && takeCreationBuild()) await generateLaunchKit({ ...v2Profile, brand_kit: kit }, { supabase });
@@ -1720,7 +1819,7 @@ async function draftAllOnce({ limit = 8, force = false, deadline } = {}) {
     // with nothing honest to pitch — that verdict holds regardless of
     // force, it isn't a "haven't gotten to it yet" state like the others.
     .neq("status", "reviewed");
-  if (!force) q = q.not("status", "in", "(drafted,sending,approved,sent,invalid_email,claimed,needs_preview,verify_retry,no_preview)");
+  if (!force) q = q.not("status", "in", "(drafted,sending,approved,sent,invalid_email,claimed,needs_preview,verify_retry,no_preview,preview_building,page_not_ready,preview_removed,removed_by_owner)");
   q = q.order("updated_at", { ascending: true }).limit(cappedLimit);
 
   const { data: prospects, error } = await q;
@@ -1860,6 +1959,11 @@ async function prepareOutreachOnce({ limit = PREPARE_MAX_PER_RUN, deadline = Dat
     }
   }
 
+  // Pages built on an earlier run: draft the ones on v3 that pass the floor.
+  const v3Finished = await finishV3Drafts({ deadline: Math.min(deadline, Date.now() + 20000), v3: v3PipelineOn() });
+  results.push(...v3Finished);
+  let v3Left = v3PipelineOn() ? await v3BuildsLeftToday() : Infinity;
+
   const retryBefore = new Date(Date.now() - VERIFY_RETRY_AFTER_MS).toISOString();
   const { data: prospects, error } = await supabase
     .from("prospects")
@@ -1980,10 +2084,31 @@ async function prepareOutreachOnce({ limit = PREPARE_MAX_PER_RUN, deadline = Dat
   const built = await mapWithConcurrency(toBuild, BUILD_CONCURRENCY, async ({ prospect, place, homeHtml, mailbox }) => {
     try {
       let preview_url = prospect.preview_url;
+      if (v3PipelineOn()) {
+        // One daily budget for new builds and upgrades of existing previews.
+        // Over today's cap: left where it is (verdict saved) for tomorrow.
+        if (v3Left <= 0) { results.push({ business_name: prospect.business_name, email: prospect.email, mailbox, ready: false, verified: true, reason: "v3_daily_cap" }); return false; }
+        v3Left--;
+        // Claim it: an overlapping run (a manual run during a cron) that got
+        // the same prospect finds it claimed today and skips it. Crons are
+        // >= 1h apart and runs <= 60s, so the cap can overshoot by at most one
+        // run's limit, and only on a manual overlap.
+        const today = new Date(); today.setUTCHours(0, 0, 0, 0);
+        const { data: claimed } = await supabase.from("prospects").update({ v3_queued_at: stamp() })
+          .eq("id", prospect.id).or(`v3_queued_at.is.null,v3_queued_at.lt.${today.toISOString()}`).select("id");
+        if (!claimed?.length) { results.push({ business_name: prospect.business_name, ready: false, verified: true, reason: "v3_claimed_elsewhere" }); return false; }
+      }
       if (!preview_url) {
         const gen = await generatePreviewForProspect(prospect, { place, homeHtml });
         preview_url = gen.preview_url || null;
         if (!preview_url) return fail(prospect, "no_preview", `no_preview_${gen.skipped || "failed"}`, { verified: true });
+      }
+      if (v3PipelineOn()) {
+        // The v3 copy is written in the background; the next prepare run
+        // drafts the email once the page is on v3 and passes the floor.
+        await supabase.from("prospects").update({ status: "preview_building", updated_at: stamp() }).eq("id", prospect.id);
+        results.push({ business_name: prospect.business_name, email: prospect.email, mailbox, preview_url, verified: true, ready: false, reason: "building_v3" });
+        return true;
       }
       const draft = await generateDraftCopy({ ...prospect, preview_url, draft_body: null, draft_subject: null }, null);
       await supabase.from("prospects")
@@ -2428,7 +2553,12 @@ async function handleSendOutreach(req, res) {
   };
 
   const results = [];
-  for (const prospect of prospects || []) {
+  // A renderer rollback (PAGE_V3=off / PAGE_V2=off) with the v3 flags still on
+  // holds first emails (before anything is reserved): the page that would be
+  // linked isn't the one the readiness check approved.
+  const rolledBack = v3FlagsOn() && !v3PipelineOn();
+  if (rolledBack) results.push({ sent: false, reason: "renderer_rolled_back", held: (prospects || []).length });
+  for (const prospect of rolledBack ? [] : prospects || []) {
     if ((await usedToday()) >= Math.min(OUTREACH_DAILY_CAP, rampCap)) break;
     // Reserve this prospect: only one run can move it out of 'drafted', so
     // a cron retry or a manual run at the same time can't email it twice.
@@ -2449,6 +2579,18 @@ async function handleSendOutreach(req, res) {
       await supabase.from("prospects").update({ status: "invalid_email", updated_at: new Date().toISOString() }).eq("id", prospect.id);
       results.push({ business_name: prospect.business_name, email: prospect.email, sent: false, reason: "suppressed" });
       continue;
+    }
+    // With v3 previews on, the page is checked again right before the send:
+    // drafts made before the switch (v2 pages) and pages that changed since
+    // drafting wait at page_not_ready instead of going out.
+    if (v3PipelineOn()) {
+      const { data: page } = await supabase.from("small_business_profiles").select("*").eq("username", slug).maybeSingle();
+      const ready = page ? outreachReadiness(page, page.brand_kit || null) : { ok: false, reasons: ["no_page"] };
+      if (!ready.ok) {
+        await supabase.from("prospects").update({ status: "page_not_ready", updated_at: new Date().toISOString() }).eq("id", prospect.id);
+        results.push({ business_name: prospect.business_name, email: prospect.email, sent: false, reason: "page_not_ready", reasons: ready.reasons });
+        continue;
+      }
     }
     // Drafted prospects already passed prepareOutreachOnce (which verifies
     // related-domain addresses); this re-check only catches the hard fails.
