@@ -715,8 +715,9 @@ async function promoteNewPreviewToV3(businessId) {
 
 async function v3BuildsLeftToday() {
   const startOfDay = new Date(); startOfDay.setUTCHours(0, 0, 0, 0);
-  const { count } = await supabase.from("businesses").select("id", { count: "exact", head: true })
-    .eq("is_internal", false).gte("created_at", startOfDay.toISOString());
+  const { count, error } = await supabase.from("prospects").select("id", { count: "exact", head: true })
+    .gte("v3_queued_at", startOfDay.toISOString());
+  if (error) { console.warn("v3 cap: count failed:", error.message); return 0; }   // unknown -> build nothing
   return Math.max(0, PAGE_V3_DAILY_MAX - (count || 0));
 }
 
@@ -2080,12 +2081,14 @@ async function prepareOutreachOnce({ limit = PREPARE_MAX_PER_RUN, deadline = Dat
   const built = await mapWithConcurrency(toBuild, BUILD_CONCURRENCY, async ({ prospect, place, homeHtml, mailbox }) => {
     try {
       let preview_url = prospect.preview_url;
+      if (v3PipelineOn()) {
+        // One daily budget for new builds and upgrades of existing previews.
+        // Over today's cap: left where it is (verdict saved) for tomorrow.
+        if (v3Left <= 0) { results.push({ business_name: prospect.business_name, email: prospect.email, mailbox, ready: false, verified: true, reason: "v3_daily_cap" }); return false; }
+        v3Left--;
+        await supabase.from("prospects").update({ v3_queued_at: stamp() }).eq("id", prospect.id);
+      }
       if (!preview_url) {
-        if (v3PipelineOn()) {
-          // Over today's cap: left at needs_preview (verdict saved) for tomorrow.
-          if (v3Left <= 0) { results.push({ business_name: prospect.business_name, email: prospect.email, mailbox, ready: false, verified: true, reason: "v3_daily_cap" }); return false; }
-          v3Left--;
-        }
         const gen = await generatePreviewForProspect(prospect, { place, homeHtml });
         preview_url = gen.preview_url || null;
         if (!preview_url) return fail(prospect, "no_preview", `no_preview_${gen.skipped || "failed"}`, { verified: true });
