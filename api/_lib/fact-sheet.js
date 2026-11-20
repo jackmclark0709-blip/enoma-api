@@ -21,6 +21,7 @@
 // The top half is pure and unit-tested (tests/fact-sheet.test.js). The
 // bottom half (rebuildFactSheet) reads and writes one row.
 
+import { cleanBusinessName } from "./business-name.js";
 import { workPhotos, kindOf } from "./photo-kinds.js";
 import { stateCode, ownerNamesFrom, townsFor } from "./brand-kit.js";
 
@@ -134,8 +135,14 @@ export function buildFactSheet({ profile = {}, place = null, raw = null, reviews
   const hours = list(place?.regularOpeningHours?.weekdayDescriptions).length ? place.regularOpeningHours.weekdayDescriptions
     : list(pb.hours);
 
+  const rawName = s(p.business_name) || s(place?.displayName?.text) || s(r.name) || s(pb.raw_name) || s(pb.name);
+  const cleaned = cleanBusinessName(rawName, { now: new Date(now) });
   const business = {
-    name: s(p.business_name) || s(place?.displayName?.text) || s(r.name) || s(pb.name),
+    // The clean name shows on the page; the raw Google name (with any
+    // "/40 yrs Family Business" tail) stays here as listing evidence (g).
+    name: cleaned.name || rawName,
+    raw_name: rawName || null,
+    name_claims: cleaned.claims,
     trade: s(p.primary_category) || s(place?.primaryTypeDisplayName?.text) || s(r.type || r.category) || s(pb.trade),
     // Google's own primary type is sometimes just "Services"; the stored
     // listing's type ("Lawn care service") is better then.
@@ -214,7 +221,7 @@ function ownerText(field, v) {
 /** Listing text: what Google shows about the business. */
 export function listingText(b = {}) {
   return [
-    b.name, b.trade, b.primary_type, list(b.google_types).join(", "),
+    b.raw_name || b.name, b.trade, b.primary_type, list(b.google_types).join(", "),
     b.phone, b.address, [b.town, b.state].filter(Boolean).join(", "),
     list(b.hours).join("; "),
     b.rating ? `${b.rating} stars` : "", b.review_count ? `${b.review_count} Google reviews` : "",

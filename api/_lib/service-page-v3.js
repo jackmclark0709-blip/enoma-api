@@ -213,10 +213,28 @@ function listBand(id, heading, items, tint) {
  * same website as the home page. ctx is the home page's ctx (slug, owner,
  * token, townCoords, stockRows, stockUsage, quoteStatus, now, homeIndexable).
  */
+// Stored service-page copy, checked at render: an intro sentence that claims a
+// specialty ("We specialize in…") is dropped, and a headline that is only the
+// service name plus adjectives ("Fast and Effective Roof Leak Repairs") is
+// not shown.
+const HEADLINE_FILLER = new Set("fast effective reliable quality professional expert affordable trusted dependable efficient prompt and & for your the".split(" "));
+export function serviceHeadlineShown(headline, serviceName) {
+  const h = str(headline);
+  if (!h) return "";
+  const own = new Set(str(serviceName).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean));
+  const rest = h.toLowerCase().split(/[^a-z0-9]+/).filter(w => w && !own.has(w) && !own.has(w.replace(/s$/, "")));
+  return rest.length && rest.every(w => HEADLINE_FILLER.has(w)) ? "" : h;
+}
+export function serviceIntroShown(intro) {
+  const sentences = str(intro).match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [];
+  return sentences.map(x => x.trim()).filter(x => x && !/\bspeciali[sz]/i.test(x)).join(" ");
+}
+
 export function renderServicePageV3(rawProfile, kit, spot, ctx = {}) {
   const slug = ctx.slug || rawProfile?.username || "";
   const home = `/${encodeURIComponent(slug)}`;
-  const content = spot?.content || {};
+  const raw = spot?.content || {};
+  const content = { ...raw, headline: serviceHeadlineShown(raw.headline, raw.service_name), intro: serviceIntroShown(raw.intro) };
   const plan = v3Plan(rawProfile, kit, { ...ctx, slug, spotlights: ctx.spotlights || [] });
   const { facts, copy, nav } = plan;
   const c = { ...plan.ctx, base: home };
@@ -312,6 +330,17 @@ export function renderServicePageV3(rawProfile, kit, spot, ctx = {}) {
   };
 }
 
+/** "Roof Leak Repairs in Taunton, MA | Maynard Roofing" (70 characters at most). */
+export function serviceTitle(serviceName, facts) {
+  const name = str(serviceName);
+  if (!name) return "";
+  const town = facts?.towns?.home || facts?.address?.town || "";
+  const st = facts?.address?.state || "";
+  const head = `${name}${town ? ` in ${town}${st ? `, ${st}` : ""}` : ""}`;
+  const full = facts?.name ? `${head} | ${facts.name}` : head;
+  return full.length <= 70 ? full : head.slice(0, 70);
+}
+
 /** Service + LocalBusiness provider schema, FAQs, and head fields for a v3 service page. */
 export function servicePageV3Parts(rawProfile, kit, spot, ctx = {}) {
   const blocks = renderServicePageV3(rawProfile, kit, spot, ctx);
@@ -329,7 +358,8 @@ export function servicePageV3Parts(rawProfile, kit, spot, ctx = {}) {
     blocks,
     schema: JSON.parse(JSON.stringify(schema)),
     faqs: normalizeFaqs(list(content.faqs)),
-    title: content.seo?.title || `${content.service_name} | ${plan.facts.name}`,
+    // Rebuilt at render so a cleaned business name reaches stored pages too.
+    title: serviceTitle(content.service_name, plan.facts) || content.seo?.title || `${content.service_name} | ${plan.facts.name}`,
     description: content.seo?.description || content.intro || "",
   };
 }

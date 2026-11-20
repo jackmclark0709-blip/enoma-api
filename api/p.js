@@ -587,9 +587,9 @@ export default async function handler(req, res) {
         ...ctx, blocks: parts.blocks, schema: parts.schema, faqs: parts.faqs,
         clientExtra: { owner_view: owner },
         head: {
-          "{{FINAL_TITLE}}": escapeHtml(seoTitle),
+          "{{FINAL_TITLE}}": escapeHtml(parts.seo.title),
           "{{OG_TITLE}}": escapeHtml(ogTitleFor(profile, kit)),
-          "{{FINAL_DESCRIPTION}}": escapeHtml(seoDescription),
+          "{{FINAL_DESCRIPTION}}": escapeHtml(parts.seo.description),
           "{{FINAL_OG_IMAGE}}": escapeHtml(shareImage),
           "{{FINAL_CANONICAL_URL}}": escapeHtml(canonical),
           "{{ROBOTS}}": escapeHtml(owner ? "noindex,nofollow" : robots),

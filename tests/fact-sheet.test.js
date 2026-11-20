@@ -53,7 +53,7 @@ test("has the contract's shape", () => {
   assert.equal(fs.version, FACT_SHEET_VERSION);
   assert.equal(fs.built_at, "2026-11-18T00:00:00.000Z");
   assert.deepEqual(Object.keys(fs).sort(), ["built_at", "business", "owner", "photos", "reviews", "site_text", "towns", "version"]);
-  assert.deepEqual(Object.keys(fs.business).sort(), ["address", "google_types", "hours", "name", "phone", "place_id", "primary_type", "rating", "review_count", "state", "town", "trade"].sort());
+  assert.deepEqual(Object.keys(fs.business).sort(), ["address", "google_types", "hours", "name", "name_claims", "phone", "place_id", "primary_type", "rating", "raw_name", "review_count", "state", "town", "trade"].sort());
   for (const k of ["names", "years_in_business", "license_number", "is_insured", "offers_free_estimates", "offers_emergency", "blurb", "service_for_page"]) assert.ok(k in fs.owner, k);
   assert.deepEqual(Object.keys(fs.towns).sort(), ["confirmed", "home", "suggested"]);
   assert.deepEqual(Object.keys(fs.photos).sort(), ["google_work_count", "owner", "work"]);

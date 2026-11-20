@@ -26,13 +26,15 @@
 
 import { telHref, smsHref, googleMapsUrl, schemaTypeFor, sameAsLinks, MAX_REVIEWS } from "./company-page.js";
 import { normalizeProfile, normalizeFaqs } from "./page-ssr.js";
-import { personaFor, hashString } from "./page-style.js";
+import { personaFor, hashString, isStrongRating } from "./page-style.js";
 import { workPhotos } from "./photo-kinds.js";
-import { stateCode, kitFor } from "./brand-kit.js";
+import { stateCode, kitFor, wordmarkFor } from "./brand-kit.js";
 import { linkServicesToSpotlights } from "./spotlight-render.js";
 import { renderQuoteForm } from "./quote-form.js";
 import { sizedUrls, creditFor, STOCK_QUERIES } from "./stock-photos.js";
-import { stockForService, stockForHero } from "./stock-library.js";
+import { stockForService, stockForHero, tagForService } from "./stock-library.js";
+import { cleanBusinessName } from "./business-name.js";
+import { peopleInReviews, leadPerson, personLine } from "./review-people.js";
 import { buildFaqs } from "./faq-bank.js";
 import {
   kitStyle, brandMark, mobileBar, ownerBar, googlePhotoSrc, attributionHtml, stockCredit,
@@ -198,6 +200,17 @@ const SERVICES_HEADING = { plumbing: "What we fix", hvac: "What we fix", electri
  * with gaps filled from the profile row. Missing facts stay empty: nothing
  * is invented here.
  */
+/** A card's one line when the copy left it empty: the service page's first sentence or first "what we do" line. */
+export function serviceLineFallback(name, sp) {
+  if (!sp || !str(name)) return "";
+  const same = slugify(sp.service_name || sp.slug) === slugify(name);
+  if (!same) return "";
+  const intro = str(sp.intro).match(/^[^.!?]+[.!?]/);
+  if (intro && !WEAK_SUB.test(intro[0])) return intro[0].trim();
+  const w = list(sp.what_we_do).map(str).find(Boolean);
+  return w ? w.replace(/([^.!?])$/, "$1.") : "";
+}
+
 export function factsFor(rawProfile = {}, kit = null) {
   const p = normalizeProfile(rawProfile || {});
   const fs = obj(rawProfile?.fact_sheet) || {};
@@ -241,18 +254,29 @@ export function factsFor(rawProfile = {}, kit = null) {
 
   // A card shows the owner's own photo when the copy points it at one of
   // their work photos (never a URL from anywhere else).
+  const sp = obj(c.service_page);
   const services = list(c.services).filter(s => str(s?.name) && hasEvidence(s)).map(s => {
     const name = str(s.name);
     const mine = own.find(w => w.url === httpUrl(s.work_photo));
-    return { name, slug: slugify(name), stock_subject: stockTagFor(s.stock_subject, name, persona), brief: str(s.stock_subject), work_photo: mine ? mine.url : null, photo: null, cta: "estimate", line: str(s.description) };
+    return { name, slug: slugify(name), stock_subject: stockTagFor(s.stock_subject, name, persona), brief: str(s.stock_subject), work_photo: mine ? mine.url : null, photo: null, cta: "estimate", line: str(s.description) || serviceLineFallback(name, sp) };
   });
+
+  const nm = cleanBusinessName(str(b.raw_name) || str(b.name) || str(p.business_name));
+  const nameClaims = Array.isArray(b.name_claims) ? b.name_claims : nm.claims;
+  const ownerNames = (() => { const n = list(o.names).map(str).filter(Boolean); return n.length ? n : list(k?.owner_names); })();
+  // People reviews name (review-people.js): only when the owner hasn't told us names.
+  const people = peopleInReviews(list(fs.reviews), { skip: [town, ...confirmed, ...nearby] });
+  const lead = ownerNames.length ? null : leadPerson(people);
 
   const lic = (str(o.license_number) || str(p.license_number)).replace(/^#/, "");
   const kitLic = k?.license && str(k.license.number) === lic ? k.license : null;
-  const names = list(o.names).map(str).filter(Boolean);
 
   return {
-    name: str(b.name) || str(p.business_name),
+    name: nm.name || str(b.name) || str(p.business_name),
+    name_claims: nameClaims,
+    years_in_business: Number(o.years_in_business) > 0 ? Number(o.years_in_business) : null,
+    person: lead,
+    primary_type: str(b.primary_type) || str(p.primary_category),
     trade: persona,
     phone,
     texts_ok: !!phone,
@@ -271,7 +295,7 @@ export function factsFor(rawProfile = {}, kit = null) {
     services,
     services_heading: SERVICES_HEADING[persona] || "What we do",
     towns: { home, confirmed, nearby },
-    owner: { names: names.length ? names : list(k?.owner_names), photo_url: ownerPhoto || null },
+    owner: { names: ownerNames, photo_url: ownerPhoto || null },
     work_photos: [...own, ...google],
   };
 }
@@ -283,8 +307,12 @@ export function copyFor(rawProfile = {}, facts = null) {
   const closing = obj(c.closing) || {};
   const ownerBody = owner && hasEvidence(owner) ? str(owner.body).split(/\n\s*\n/).map(str).filter(Boolean) : [];
   return {
-    hero: { eyebrow: str(c.eyebrow), h1: str(c.hero_headline), sub: str(c.hero_sub) },
-    proof: list(c.proof).filter(hasEvidence).map(x => ({ big: str(x.value), small: str(x.label) })).filter(x => x.big && x.small),
+    hero: {
+      eyebrow: str(c.eyebrow), h1: str(c.hero_headline),
+      sub: facts && weakSub(c.hero_sub, c.hero_headline, facts.name) ? (factSub(facts) || str(c.hero_sub)) : str(c.hero_sub),
+      person: facts ? personLine(facts.person) : "",
+    },
+    proof: proofItemsV3(obj(rawProfile?.fact_sheet) || {}, facts, list(c.proof)),
     services: { heading: facts?.services_heading || "What we do", sub: "", lines: {} },
     owner_section: owner && str(owner.heading) && ownerBody.length ? { heading: str(owner.heading), body: ownerBody } : null,
     reviews_heading: "What neighbors say",
@@ -294,8 +322,102 @@ export function copyFor(rawProfile = {}, facts = null) {
       facts,
       aiFaqs: normalizeFaqs(list(c.faqs).filter(hasEvidence)),
     }) : normalizeFaqs(list(c.faqs).filter(hasEvidence)),
-    closing: { heading: str(closing.heading) || "Let's get you on the schedule.", line: str(closing.line) },
+    // Generic AI closings ("Ready to Paint?", "Need plumbing help?") read as a
+    // template; those fall back to a line built in code.
+    closing: closingCopyV3(facts, closing),
   };
+}
+
+// ── Proof strip: facts only ───────────────────────────────────────────────
+// Code builds every item it can check (rating, years, family/veteran owned,
+// license, insured, hours). Review themes stay only when they're a time or a
+// number said by 2+ reviews ("Same day · in 2 reviews"); free-text labels
+// like "how fast they showed up" read as machine-made and are dropped.
+
+export const PROOF_TIME_RE = /^(same[- ]day|next[- ](?:day|morning)|within (?:an?|one|\d+) (?:hour|day|minute)s?|\d+\+?\s*(?:years?|yrs?|hours?|days?|minutes?|mins?)|24\/7|on[- ]time)$/i;
+export const PROOF_IDENTITY_RE = /^(family[- ]owned|veteran[- ]owned|locally[- ]owned|woman[- ]owned|family business)$/i;
+
+export function proofItemsV3(fs = {}, facts = null, aiProof = []) {
+  const b = fs.business || {};
+  const out = [];
+  const rating = Number(facts?.google?.rating ?? b.rating);
+  const count = Number(facts?.google?.count ?? b.review_count);
+  if (isStrongRating(rating, count)) out.push({ big: `${rating.toFixed(1)} ★`, small: `${count} Google reviews` });
+  const claims = list(facts?.name_claims);
+  const years = Number(facts?.years_in_business) || Number(claims.find(x => x?.kind === "years")?.value) || 0;
+  const family = claims.some(x => x?.kind === "family");
+  const veteran = claims.some(x => x?.kind === "veteran");
+  if (years > 0) out.push({ big: `${years} years`, small: family ? "Family business" : veteran ? "Veteran owned" : "In business" });
+  else if (family) out.push({ big: "Family", small: "owned and run" });
+  if (veteran && !(years > 0 && !family)) out.push({ big: "Veteran", small: "owned" });
+  if (facts?.license?.number) out.push({ big: facts.is_insured ? "Licensed & insured" : "Licensed", small: [facts.license.state, `#${str(facts.license.number).replace(/^#/, "")}`].filter(Boolean).join(" ") });
+  else if (facts?.is_insured) out.push({ big: "Insured", small: "Fully insured" });
+  const hours = list(b.hours).map(String);
+  if (hours.length === 7) {
+    const open = hours.filter(h => !/closed/i.test(h));
+    if (hours.every(h => /open 24 hours/i.test(h))) out.push({ big: "24/7", small: "Open around the clock" });
+    else if (open.length === 7) out.push({ big: "7 days", small: "Open every day" });
+    else if (open.some(h => /^saturday/i.test(h))) out.push({ big: "Saturdays", small: "Open on Saturdays" });
+  }
+  for (const x of list(aiProof)) {
+    const ev = list(x?.evidence).map(str);
+    const reviews = new Set(ev.filter(e => /^r\d+$/.test(e)));
+    const value = str(x?.value);
+    if (!value || reviews.size < 2 || !hasEvidence(x)) continue;
+    if (PROOF_IDENTITY_RE.test(value)) {
+      if (/family/i.test(value) && (family || out.some(o => /family/i.test(`${o.big} ${o.small}`)))) continue;
+      out.push({ big: value.replace(/^(\w)/, c => c.toUpperCase()), small: `in ${reviews.size} reviews` });
+    } else if (PROOF_TIME_RE.test(value)) {
+      out.push({ big: value.replace(/^(\w)/, c => c.toUpperCase()), small: `in ${reviews.size} reviews` });
+    }
+  }
+  return out.slice(0, MAX_PROOF);
+}
+
+export const GENERIC_CLOSING = /^(?:need|ready|looking|want|time)\b[^?.!]{0,32}[?.!]?$/i;
+
+export function closingCopyV3(facts, ai = {}) {
+  const heading = str(ai?.heading);
+  const line = str(ai?.line);
+  const codeLine = facts?.phone ? `Call ${facts.phone}, or send a few details and we'll get back to you.` : "Send a few details and we'll get back to you.";
+  if (heading && !GENERIC_CLOSING.test(heading)) return { heading, line: line && !/^call us today\b/i.test(line) ? line : codeLine };
+  return { heading: "Let's get you on the schedule.", line: codeLine };
+}
+
+// ── Hero sub-line check ───────────────────────────────────────────────────
+// A sub that restates the H1, pads with adjectives or says "Providing …
+// services" reads as a template; the page builds a plain one from facts.
+
+export const WEAK_SUB = /^(providing|offering|serving)\b|\bspeciali[sz]/i;
+const PADDING = /\b(?:with|offering)\s+(?:quick|fast|great|detailed|attentive|meticulous|honest|timely|thorough|friendly|reliable)\b/i;
+const STOP_WORDS = new Set("a an the and or in of for to with on at by your you our we is are from".split(" "));
+const contentWords = t => str(t).toLowerCase().replace(/[^a-z0-9 ]+/g, " ").split(/\s+/).filter(w => w && !STOP_WORDS.has(w));
+
+export function weakSub(sub, h1, businessName = "") {
+  const t = str(sub);
+  if (!t) return true;
+  if (WEAK_SUB.test(t) || PADDING.test(t)) return true;
+  const first = str(businessName).split(/\s+/)[0];
+  if (first && first.length > 2 && new RegExp(`\\b${first.replace(/[^A-Za-z0-9]/g, "")}\\b`, "i").test(t)) return true;
+  const hw = new Set(contentWords(h1));
+  const sw = contentWords(t);
+  if (sw.length && hw.size) {
+    const overlap = sw.filter(w => hw.has(w)).length / Math.min(sw.length, hw.size);
+    if (overlap > 0.6) return true;
+  }
+  return false;
+}
+
+/** "Help with hot water tank failures, drain clogs and pipe leaks in North Attleborough." */
+export function factSub(facts) {
+  let names = facts.services.map(x => x.name).slice(0, 3);
+  if (!names.length) return "";
+  if (names.join(", ").length > 70) names = names.slice(0, 2);
+  // Lower case inside a sentence, but acronyms (HVAC, EV) stay.
+  const lower = names.map(n => n.split(/\s+/).map(w => (/^[A-Z][a-z]/.test(w) ? w.toLowerCase() : w)).join(" "));
+  const joined = lower.length > 1 ? `${lower.slice(0, -1).join(", ")} and ${lower[lower.length - 1]}` : lower[0];
+  const town = facts.towns.home || facts.address.town;
+  return `Help with ${joined}${town ? ` in ${town}` : ""}.${facts.offers_free_estimates ? " Free estimates." : ""}`;
 }
 
 /** The one estimate label used everywhere on the page. */
@@ -413,8 +535,13 @@ export function servicePhoto(service, kit, ctx, taken) {
   }
   const persona = ctx.persona;
   if (!persona || persona === "default") return null;
-  const s = stockForService({ persona, name: service.name || service.service_name, brief: service.brief, seed: ctx.businessId || ctx.slug || "", taken: taken || new Set() });
-  return s ? { kind: "stock", src: s.src, srcset: s.srcset, alt: s.alt, credit: "" } : null;
+  const name = service.name || service.service_name;
+  const s = stockForService({ persona, name, brief: service.brief, seed: ctx.businessId || ctx.slug || "", taken: taken || new Set() });
+  if (!s) return null;
+  // Describe the picture only when it is a picture of this service; a
+  // fallback photo from another tag gets the service's name, never a wrong subject.
+  const own = tagForService(persona, name);
+  return { kind: "stock", src: s.src, srcset: s.srcset, alt: own && own === s.key ? s.alt : str(name), credit: "" };
 }
 
 /**
@@ -484,6 +611,12 @@ export function topBar(facts, ctx) {
  */
 export function headerBlock(rawProfile, facts, kit, ctx, nav, base = "") {
   const p = { business_name: facts.name };
+  // The stored wordmark was built from the raw Google name; when the name was
+  // cleaned ("/40 yrs Family Business" off), rebuild it from the clean one.
+  const raw = str(obj(rawProfile?.fact_sheet)?.business?.raw_name) || str(rawProfile?.business_name);
+  if (kit?.wordmark && raw && raw !== facts.name) {
+    kit = { ...kit, wordmark: { ...wordmarkFor({ ...(rawProfile || {}), business_name: facts.name }), icon: kit.wordmark.icon } };
+  }
   const at = hash => (base ? `${base}${hash}` : hash);
   const services = nav.services && nav.services.startsWith("#") ? at(nav.services) : nav.services;
   const links = [
@@ -564,6 +697,7 @@ function heroBlock(facts, copy, ctx, kit = null) {
       ${copy.hero.eyebrow ? `<p class="v3-eyebrow">${esc(copy.hero.eyebrow)}</p>` : ""}
       <h1 id="heroHeadline" class="v3-h1">${esc(copy.hero.h1)}</h1>
       ${copy.hero.sub ? `<p class="v3-sub">${esc(copy.hero.sub)}</p>` : ""}
+      ${copy.hero.person ? `<p class="v3-person">${esc(copy.hero.person)}</p>` : ""}
       <div class="v3-actions" id="primaryAction">${call}${mode === "form" ? "" : estimate}</div>
     </div>
     ${side}
@@ -575,7 +709,7 @@ export function proofBlock(copy) {
   const items = copy.proof.slice(0, MAX_PROOF);
   if (items.length < 2) return "";
   return `<section class="v3-proof" aria-label="At a glance">
-  <ul class="v3-wrap v3-proof__list">${items.map(x => `<li><span class="v3-proof__big">${esc(x.big)}</span><span class="v3-proof__small">${esc(x.small)}</span></li>`).join("")}</ul>
+  <ul class="v3-wrap v3-proof__list v3-proof__list--n${items.length}">${items.map(x => `<li><span class="v3-proof__big">${esc(x.big)}</span><span class="v3-proof__small">${esc(x.small)}</span></li>`).join("")}</ul>
 </section>`;
 }
 
@@ -608,7 +742,7 @@ function servicesBlock(facts, copy, kit, ctx) {
   return `<section class="v3-band v3-band--tint" id="services" aria-labelledby="servicesHeading">
   <div class="v3-wrap">
     <div class="v3-head"><h2 id="servicesHeading" class="v3-h2">${esc(copy.services.heading)}</h2>${copy.services.sub ? `<p class="v3-lede">${esc(copy.services.sub)}</p>` : ""}</div>
-    <ul class="v3-cards">${cards}</ul>
+    <ul class="v3-cards v3-cards--n${Math.min(services.length, 6)}">${cards}</ul>
   </div>
 </section>`;
 }
@@ -800,7 +934,7 @@ export function closingBlock(facts, copy, formInHero) {
     <div class="v3-closing__text">
       <h2 id="closingHeading" class="v3-h2 v3-h2--light">${esc(copy.closing.heading)}</h2>
       ${copy.closing.line ? `<p>${esc(copy.closing.line)}</p>` : ""}
-      <div class="v3-actions">${call}${formInHero ? `<a class="v3-btn v3-btn--ghost v3-btn--lg" href="#contact" data-contact="quote">${esc(estimateLabelV3(facts))}</a>` : ""}</div>
+      ${formInHero ? `<div class="v3-actions">${call}<a class="v3-btn v3-btn--ghost v3-btn--lg" href="#contact" data-contact="quote">${esc(estimateLabelV3(facts))}</a></div>` : ""}
     </div>
     ${form}
   </div>
@@ -839,8 +973,8 @@ const DAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "
 
 /**
  * LocalBusiness JSON-LD for v3: name, address, phone, hours, areaServed
- * (confirmed towns only), aggregateRating only from the Google numbers the
- * page shows.
+ * (confirmed towns only). No aggregateRating (Google ratings are another
+ * site's reviews; see the note in the object).
  */
 export function localBusinessSchemaV3(facts, { canonical, image, rawProfile = {} } = {}) {
   const spec = list(facts.hours?.spec).filter(x => x.days?.length && /^\d\d:\d\d$/.test(str(x.opens)) && /^\d\d:\d\d$/.test(str(x.closes)));
@@ -866,9 +1000,8 @@ export function localBusinessSchemaV3(facts, { canonical, image, rawProfile = {}
     } : undefined,
     openingHoursSpecification: hoursSpec,
     areaServed: facts.towns.confirmed.length ? facts.towns.confirmed.map(name => ({ "@type": "City", name: a.state ? `${name}, ${a.state}` : name })) : undefined,
-    aggregateRating: facts.google.rating && facts.google.count
-      ? { "@type": "AggregateRating", ratingValue: facts.google.rating, reviewCount: facts.google.count, bestRating: 5 }
-      : undefined,
+    // No aggregateRating: Google's review-snippet rules say not to aggregate
+    // ratings from other sites, and LocalBusiness pages can't earn stars anyway.
     sameAs: sameAsLinks({ ...rawProfile, google_place_id: facts.google.place_id, business_name: facts.name }),
   };
   if (!schema.sameAs.length) delete schema.sameAs;
@@ -955,10 +1088,48 @@ export function v3PageParts(rawProfile, kit, ctx = {}) {
   const facts = factsFor(rawProfile, kit);
   const copy = copyFor(rawProfile, facts);
   return {
+    seo: v3Seo(facts, copy),
     blocks: renderBlocksV3(rawProfile, kit, ctx),
     schema: localBusinessSchemaV3(facts, { canonical: ctx.canonical, image: ctx.image, rawProfile }),
     faqs: copy.faqs,
     style: kitStyle(kit),
     head: v3Head(kit),
   };
+}
+
+// ── Title and description ─────────────────────────────────────────────────
+
+// Google's type → the trade word for titles. The persona's own word
+// ("Contracting") only when Google's type is generic.
+const TYPE_WORD = [
+  [/roof/i, "Roofing"], [/paving|asphalt|sealcoat/i, "Paving"], [/plumb/i, "Plumbing"], [/electric/i, "Electrical"],
+  [/hvac|heating|air condition/i, "Heating & cooling"], [/paint/i, "Painting"], [/lawn/i, "Lawn care"],
+  [/landscap/i, "Landscaping"], [/pressure wash|power wash/i, "Pressure washing"], [/house clean|maid/i, "House cleaning"],
+  [/clean/i, "Cleaning"], [/snow/i, "Snow removal"], [/tree/i, "Tree service"], [/fenc/i, "Fencing"],
+  [/masonry|mason|concrete/i, "Masonry"], [/handyman/i, "Handyman"], [/general contractor/i, "General contracting"],
+];
+const PERSONA_WORD = { landscaping: "Landscaping", plumbing: "Plumbing", hvac: "Heating & cooling", electrical: "Electrical", cleaning: "Cleaning", painting: "Painting", snow: "Snow removal", contractor: "Contracting" };
+
+export function tradeWordFor(primaryType, persona) {
+  const t = str(primaryType);
+  const hit = t && !/^(services?|contractors?|establishment|point of interest|business)$/i.test(t) ? TYPE_WORD.find(([re]) => re.test(t)) : null;
+  return hit ? hit[1] : (PERSONA_WORD[persona] || "Local service");
+}
+
+/** { title, description } for a v3 home page, built from facts (not the old generator's seo_title). */
+export function v3Seo(facts, copy) {
+  const word = tradeWordFor(facts.primary_type, facts.trade);
+  const town = facts.towns.home || facts.address.town;
+  const place = [town, facts.address.state].filter(Boolean).join(", ");
+  const title = `${facts.name}${place ? ` — ${word} in ${place}` : ` — ${word}`}`.slice(0, 70);
+  const h1 = str(copy?.hero?.h1).replace(/[.!?]+$/, "");
+  const parts = [
+    h1 ? `${h1}.` : "",
+    place ? `${word} in ${place}.` : "",
+    facts.google.rating && facts.google.count ? `${facts.google.rating.toFixed(1)}★ from ${facts.google.count} Google reviews.` : "",
+    facts.phone ? `Call ${facts.phone}.` : "",
+  ].filter(Boolean);
+  let description = parts.join(" ");
+  while (description.length > 155 && parts.length > 1) { parts.splice(parts.length > 2 ? 2 : 1, 1); description = parts.join(" "); }
+  return { title, description: description.slice(0, 155) };
 }
