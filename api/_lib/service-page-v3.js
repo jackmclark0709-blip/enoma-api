@@ -345,7 +345,9 @@ export function serviceTitle(serviceName, facts) {
 export function servicePageV3Parts(rawProfile, kit, spot, ctx = {}) {
   const blocks = renderServicePageV3(rawProfile, kit, spot, ctx);
   const plan = v3Plan(rawProfile, kit, { ...ctx, spotlights: ctx.spotlights || [] });
-  const content = spot.content || {};
+  const raw = spot.content || {};
+  // The same filtered intro the page shows (no "We specialize…" in metadata either).
+  const content = { ...raw, intro: serviceIntroShown(raw.intro) };
   const homeUrl = ctx.homeCanonical || ctx.canonical;
   const provider = localBusinessSchemaV3(plan.facts, { canonical: homeUrl, image: ctx.image, rawProfile });
   const schema = {
@@ -360,7 +362,7 @@ export function servicePageV3Parts(rawProfile, kit, spot, ctx = {}) {
     faqs: normalizeFaqs(list(content.faqs)),
     // Rebuilt at render so a cleaned business name reaches stored pages too.
     title: serviceTitle(content.service_name, plan.facts) || content.seo?.title || `${content.service_name} | ${plan.facts.name}`,
-    description: content.seo?.description || content.intro || "",
+    description: (content.seo?.description && content.seo.description.slice(0, 120) === str(raw.intro).slice(0, 120) ? content.intro.slice(0, 158) : content.seo?.description) || content.intro || "",
   };
 }
 
