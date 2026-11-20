@@ -87,4 +87,14 @@ await test("cleanup: copied Google/Outscraper data is cleared from the kept pros
   assert.match(src, /update\(\{ raw: trimProspectRaw\(p\.raw\) \}\)/);
 });
 
+await test("cleanup: page views are looked up only for never-visited candidates; raw errors stop the delete", () => {
+  const src = fs.readFileSync(new URL("../api/ga-metrics.js", import.meta.url), "utf8");
+  const fn = src.slice(src.indexOf("async function handlePreviewCleanup"), src.indexOf("async function handleRemovePreview"));
+  assert.ok(!/selectAll\("page_events"/.test(fn), "no full page_events scan");
+  assert.match(fn, /\.eq\("slug", slug\)[^;]*\.limit\(1\)/);
+  assert.match(fn, /if \(rawErr\) throw rawErr;/);
+  assert.match(fn, /if \(upErr\) throw upErr;/);
+  assert.ok(fn.indexOf("if (upErr) throw upErr;") < fn.indexOf('from("small_business_profiles").delete()'));
+});
+
 console.log(`\n${passed} passed`);

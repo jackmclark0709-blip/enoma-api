@@ -823,17 +823,30 @@ async function selectAll(table, cols, apply = q => q) {
 async function handlePreviewCleanup(req, res) {
   const apply = process.env.PREVIEW_CLEANUP_APPLY === "1";
   const keepSlugs = (process.env.PREVIEW_CLEANUP_KEEP || PREVIEW_CLEANUP_KEEP_DEFAULT.join(",")).split(",").map(x => x.trim()).filter(Boolean);
-  const [profiles, businesses, subs, members, leads, prospects, events] = await Promise.all([
+  const [profiles, businesses, subs, members, leads, prospects] = await Promise.all([
     selectAll("small_business_profiles", "business_id, username, is_claimed, is_public, created_at", q => q.eq("is_claimed", false)),
     selectAll("businesses", "id, is_internal, created_at"),
     selectAll("subscriptions", "business_id, provider, status, is_trial, trial_expires_at, stripe_subscription_id"),
     selectAll("business_members", "business_id"),
     selectAll("contact_submissions", "business_id"),
     selectAll("prospects", "preview_business_id, preview_first_viewed_at, status", q => q.not("preview_business_id", "is", null)),
-    selectAll("page_events", "slug", q => q.eq("traffic_class", "human").eq("is_internal", false)),
   ]);
-  const visited = new Set(events.map(e => e.slug));
-  const { remove, kept } = pickPreviewsToRemove({ profiles, businesses, subs, members, leads, prospects, visited }, { keepSlugs });
+  // Visits only matter for the never_visited reason, so look up page views
+  // for those candidate slugs alone (page_events is never pruned).
+  const input = { profiles, businesses, subs, members, leads, prospects };
+  const idle = pickPreviewsToRemove({ ...input, visited: new Set() }, { keepSlugs }).remove
+    .filter(r => r.reason === "never_visited").map(r => r.slug);
+  // One limit-1 lookup per candidate slug: a missed visit would delete a page
+  // someone saw, so no row caps that could hide one.
+  const visited = new Set();
+  let eventsErr = null;
+  await mapWithConcurrency(idle, 8, async (slug) => {
+    const { data, error } = await supabase.from("page_events").select("slug")
+      .eq("slug", slug).eq("traffic_class", "human").eq("is_internal", false).limit(1);
+    if (error) eventsErr = error; else if (data?.length) visited.add(slug);
+  });
+  if (eventsErr) return res.status(500).json({ ok: false, error: `page_events: ${eventsErr.message}` });
+  const { remove, kept } = pickPreviewsToRemove({ ...input, visited }, { keepSlugs });
   const byReason = remove.reduce((acc, r) => ({ ...acc, [r.reason]: (acc[r.reason] || 0) + 1 }), {});
   const removed = [];
   if (apply) {
@@ -843,9 +856,11 @@ async function handlePreviewCleanup(req, res) {
         // The prospect first (its FK to businesses has no cascade). Its copied
         // Google/Outscraper record (raw) goes too; google_place_id and status
         // stay so the business isn't rebuilt or re-emailed.
-        const { data: ps } = await supabase.from("prospects").select("id, raw").eq("preview_business_id", r.business_id);
+        const { data: ps, error: rawErr } = await supabase.from("prospects").select("id, raw").eq("preview_business_id", r.business_id);
+        if (rawErr) throw rawErr;
         for (const p of ps || []) {
-          await supabase.from("prospects").update({ raw: trimProspectRaw(p.raw) }).eq("id", p.id);
+          const { error: upErr } = await supabase.from("prospects").update({ raw: trimProspectRaw(p.raw) }).eq("id", p.id);
+          if (upErr) throw upErr;   // stop before anything is unlinked or deleted
         }
         const { error: pErr } = await supabase.from("prospects")
           .update({ preview_url: null, preview_business_id: null, status: "preview_removed", updated_at: now })
