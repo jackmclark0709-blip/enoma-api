@@ -74,7 +74,8 @@ await test("prepare: example arm drafts without building, before the v3 cap", ()
 await test("send: example arm goes out without a page and skips the page check; variant recorded", () => {
   const send = src.slice(src.indexOf("async function handleSendOutreach"), src.indexOf("async function handleSendOutreach") + 14000);
   assert.doesNotMatch(send, /\.not\("preview_url", "is", null\)/);
-  assert.match(send, /const exampleArm = !slug && exampleArmEligible\(prospect\);/);
+  assert.match(send, /const exampleArm = isExampleDraft\(prospect\);/);
+  assert.match(send, /x\.outreach_arm === "example" && exampleArmEligible\(x\)/);
   assert.match(send, /if \(v3PipelineOn\(\) && !exampleArm\)/);
   assert.match(send, /variant: EXAMPLE_VARIANT, email/);
   assert.equal(EXAMPLE_VARIANT, "example");
@@ -117,6 +118,8 @@ await test("example pages: one per trade, labeled made-up, noindex, inert, made-
 await test("migration: outreach_messages.variant allows 'example'", () => {
   const sql = read("supabase/migrations/20261120_outreach_variant_example.sql");
   assert.match(sql, /check \(variant in \('a', 'b', 'example'\)\)/);
+  assert.match(sql, /add column if not exists outreach_arm text/);
+  assert.match(src, /outreach_arm: "example", status: "drafted"/);
 });
 
 console.log(`\n${passed} passed`);

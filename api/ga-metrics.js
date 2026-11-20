@@ -2245,9 +2245,11 @@ async function prepareOutreachOnce({ limit = PREPARE_MAX_PER_RUN, deadline = Dat
       // page is built only if they click (action=build_page).
       if (outreachArmFor(prospect.id, process.env.OUTREACH_EXAMPLE_SHARE) === "example" && exampleArmEligible(prospect)) {
         const draft = buildExampleIntro(prospect);
-        await supabase.from("prospects")
-          .update({ draft_subject: draft.subject, draft_body: draft.body, status: "drafted", updated_at: stamp() })
+        const { error: armErr } = await supabase.from("prospects")
+          .update({ draft_subject: draft.subject, draft_body: draft.body, outreach_arm: "example", status: "drafted", updated_at: stamp() })
           .eq("id", prospect.id);
+        // e.g. migration 20261120_outreach_variant_example not applied yet
+        if (armErr) throw new Error(`example arm draft not saved: ${armErr.message}`);
         results.push({ business_name: prospect.business_name, email: prospect.email, mailbox, subject: draft.subject, verified: true, ready: true, arm: "example" });
         return true;
       }
@@ -2693,18 +2695,18 @@ async function handleSendOutreach(req, res) {
   const remaining = Math.max(0, dailyCap - usedSoFar);
   const limit = Math.min(parseInt(req.query.limit, 10) || OUTREACH_DAILY_CAP, remaining);
 
-  const { data: prospects, error } = limit > 0
-    ? await supabase
-      .from("prospects")
-      .select("id, business_name, trade, city, state, email, website, site_gaps, raw, draft_subject, draft_body, preview_url")
-      .eq("status", "drafted")
-      .not("email", "is", null)
-      // No page, no email, except in the example arm (no page yet: the email
-      // shows the trade's example and builds theirs on click). Checked below.
-      .order("updated_at", { ascending: true })
-      .limit(limit)
-    : { data: [], error: null };
+  // No page, no email, except in the example arm (no page yet: the email
+  // shows the trade's example and builds theirs on click). Checked below.
+  // outreach_arm comes from migration 20261120_outreach_variant_example; read
+  // without it until that's applied (then nobody is in the example arm).
+  const draftedQuery = (cols) => supabase.from("prospects").select(cols)
+    .eq("status", "drafted").not("email", "is", null)
+    .order("updated_at", { ascending: true }).limit(limit);
+  const DRAFTED_COLS = "id, business_name, trade, city, state, email, website, site_gaps, raw, draft_subject, draft_body, preview_url";
+  let { data: prospects, error } = limit > 0 ? await draftedQuery(`${DRAFTED_COLS}, outreach_arm`) : { data: [], error: null };
+  if (error && /outreach_arm/.test(error.message || "")) ({ data: prospects, error } = await draftedQuery(DRAFTED_COLS));
   if (error) throw error;
+  const isExampleDraft = (x) => !slugFromPreviewUrl(x.preview_url) && x.outreach_arm === "example" && exampleArmEligible(x);
 
   // A or B (outreach-variant-b.js pickFirstEmail): template drafts follow the
   // 50/50 split, hand-edited drafts go out as written with variant null.
@@ -2735,7 +2737,7 @@ async function handleSendOutreach(req, res) {
   // ?dry_run=1 renders the next queued email as HTML (sample message id,
   // nothing written or sent) so the template can be checked in a browser.
   if (req.query.dry_run === "1") {
-    const p = (prospects || []).find(x => slugFromPreviewUrl(x.preview_url) || exampleArmEligible(x));
+    const p = (prospects || []).find(x => slugFromPreviewUrl(x.preview_url) || isExampleDraft(x));
     if (!p) return res.status(200).json({ success: true, dry_run: true, note: "No drafted prospect with a preview page (or in the example arm) is queued" });
     const sample = slugFromPreviewUrl(p.preview_url)
       ? firstEmailFor(p, "00000000-0000-4000-8000-000000000000", slugFromPreviewUrl(p.preview_url))
@@ -2769,7 +2771,7 @@ async function handleSendOutreach(req, res) {
     if (!reserved?.length) continue;
 
     const slug = slugFromPreviewUrl(prospect.preview_url);
-    const exampleArm = !slug && exampleArmEligible(prospect);
+    const exampleArm = isExampleDraft(prospect);
     if (!slug && !exampleArm) {
       await supabase.from("prospects").update({ status: "no_preview", updated_at: new Date().toISOString() }).eq("id", prospect.id);
       results.push({ business_name: prospect.business_name, sent: false, reason: "bad_preview_url" });
