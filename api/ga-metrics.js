@@ -50,7 +50,7 @@ import {
 } from "./_lib/text-outreach.js";
 import { buildBrandKit, saveBrandKit } from "./_lib/brand-kit.js";
 import { buildFactSheet, saveFactSheet } from "./_lib/fact-sheet.js";
-import { outreachReadiness } from "./_lib/page-v3.js";
+import { outreachReadiness, dailyV3Max } from "./_lib/page-v3.js";
 import { ownerDestination, ownerPageUrl, ensureOwnerToken, isPageV2, pageV2Fields } from "./_lib/owner-link.js";
 import { waitUntil } from "@vercel/functions";
 import { generateLaunchKit, takeCreationBuild } from "./_lib/launch-kit-render.js";
@@ -698,9 +698,11 @@ async function uniqueSlug(base) {
 // a thin page stays up but is never emailed. PAGE_V3_DAILY_MAX caps new
 // pages a day (OpenAI and Places spend); the rest wait for tomorrow.
 function v3PipelineOn(env = process.env) {
-  return env.PAGE_V3_NEW === "on" && env.PAGE_COPY_V3 === "on";
+  // PAGE_V3=off / PAGE_V2=off make api/p.js render v3 rows as something
+  // else, so the readiness check would be judging a page nobody sees.
+  return env.PAGE_V3_NEW === "on" && env.PAGE_COPY_V3 === "on" && env.PAGE_V3 !== "off" && env.PAGE_V2 !== "off";
 }
-const PAGE_V3_DAILY_MAX = Math.max(0, parseInt(process.env.PAGE_V3_DAILY_MAX, 10) || 15);
+const PAGE_V3_DAILY_MAX = dailyV3Max(process.env.PAGE_V3_DAILY_MAX);
 const V3_BUILD_GRACE_MS = 10 * 60 * 1000;     // background copy should be done by then
 const V3_BUILD_GIVE_UP_MS = 3 * 60 * 60 * 1000;
 
@@ -722,7 +724,9 @@ async function v3BuildsLeftToday() {
 // passes the readiness floor, draft its outreach; otherwise park it at
 // page_not_ready (the page stays; no email). Copy that never arrived in the
 // background is generated here once.
-async function finishV3Drafts({ limit = 5, deadline = Date.now() + 20000 } = {}) {
+// v3 = false (the v3 flags were turned off while prospects were parked):
+// draft them the old way so nobody stays stuck at preview_building.
+async function finishV3Drafts({ limit = 5, deadline = Date.now() + 20000, v3 = true } = {}) {
   const out = [];
   const stamp = () => new Date().toISOString();
   const { data: rows, error } = await supabase.from("prospects")
@@ -740,6 +744,14 @@ async function finishV3Drafts({ limit = 5, deadline = Date.now() + 20000 } = {})
       }
       let prof = await load(p.preview_business_id);
       const age = Date.now() - Date.parse(p.updated_at || 0);
+      if (!v3) {
+        const draft = await generateDraftCopy({ ...p, draft_body: null, draft_subject: null }, null);
+        await supabase.from("prospects")
+          .update({ draft_subject: draft.subject, draft_body: draft.body, status: "drafted", updated_at: stamp() })
+          .eq("id", p.id).eq("status", "preview_building");
+        out.push({ business_name: p.business_name, email: p.email, preview_url: p.preview_url, subject: draft.subject, ready: true, v3: false });
+        continue;
+      }
       if (prof && !prof.is_claimed && Number(prof.page_version) !== 3) {
         if (prof.page_copy_v3) await promoteNewPreviewToV3(prof.business_id);
         else if (prof.fact_sheet && age > V3_BUILD_GRACE_MS) {
@@ -1944,7 +1956,7 @@ async function prepareOutreachOnce({ limit = PREPARE_MAX_PER_RUN, deadline = Dat
   }
 
   // Pages built on an earlier run: draft the ones on v3 that pass the floor.
-  const v3Finished = v3PipelineOn() ? await finishV3Drafts({ deadline: Math.min(deadline, Date.now() + 20000) }) : [];
+  const v3Finished = await finishV3Drafts({ deadline: Math.min(deadline, Date.now() + 20000), v3: v3PipelineOn() });
   results.push(...v3Finished);
   let v3Left = v3PipelineOn() ? await v3BuildsLeftToday() : Infinity;
 

@@ -6,7 +6,7 @@
 
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { outreachReadiness, READY_MIN_REVIEWS } from "../api/_lib/page-v3.js";
+import { outreachReadiness, READY_MIN_REVIEWS, dailyV3Max } from "../api/_lib/page-v3.js";
 
 let passed = 0;
 async function test(name, fn) {
@@ -65,6 +65,19 @@ await test("pipeline: every send re-checks the page when v3 is on", () => {
 
 await test("pipeline: draft_all never re-drafts parked or building prospects", () => {
   assert.match(src, /no_preview,preview_building,page_not_ready,preview_removed,removed_by_owner\)/);
+});
+
+await test("pipeline: off when the renderer kill switches are off; 0 pauses builds", () => {
+  assert.match(src, /env\.PAGE_V3 !== "off" && env\.PAGE_V2 !== "off"/);
+  assert.equal(dailyV3Max(undefined), 15);
+  assert.equal(dailyV3Max("abc"), 15);
+  assert.equal(dailyV3Max("0"), 0);
+  assert.equal(dailyV3Max("8"), 8);
+});
+
+await test("pipeline: parked prospects are drafted the old way if v3 is switched off", () => {
+  assert.match(src, /finishV3Drafts\(\{ deadline: [^}]*v3: v3PipelineOn\(\) \}\)/);
+  assert.match(src, /if \(!v3\) \{\s*const draft = await generateDraftCopy/);
 });
 
 console.log(`\n${passed} passed`);

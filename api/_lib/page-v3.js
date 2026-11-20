@@ -1162,3 +1162,9 @@ export function outreachReadiness(rawProfile, kit = null) {
   if (!str(copy.hero.sub)) reasons.push("no_hero_sub");
   return { ok: reasons.length === 0, reasons };
 }
+
+// PAGE_V3_DAILY_MAX: new v3 builds a day. Unset/invalid -> 15; 0 pauses builds.
+export function dailyV3Max(value) {
+  const n = parseInt(value, 10);
+  return Number.isFinite(n) && n >= 0 ? n : 15;
+}
