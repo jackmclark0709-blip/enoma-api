@@ -898,8 +898,9 @@ async function generatePreviewForProspect(prospect, { homeHtml, force = false, g
 // ── Preview cleanup ──────────────────────────────────────────────────────
 // Unclaimed previews nobody wants are deleted (api/_lib/preview-cleanup.js
 // says which and why): the profile with its copied Google content, the
-// business row and what cascades from it. The prospect keeps its place_id
-// and status (preview_removed) so it isn't rebuilt or emailed again.
+// business row and what cascades from it. The prospect keeps its place_id,
+// name, email, website, trade and town (dedupe + do-not-email) and status
+// preview_removed; its raw listing record, phone and address are cleared.
 // Reports only, unless PREVIEW_CLEANUP_APPLY=1. Daily cron + manual runs.
 // The 10 v3 test pages are kept unless PREVIEW_CLEANUP_KEEP says otherwise.
 const PREVIEW_CLEANUP_KEEP_DEFAULT = [
@@ -967,7 +968,7 @@ async function handlePreviewCleanup(req, res) {
         const { data: ps, error: rawErr } = await supabase.from("prospects").select("id, raw").eq("preview_business_id", r.business_id);
         if (rawErr) throw rawErr;
         for (const p of ps || []) {
-          const { error: upErr } = await supabase.from("prospects").update({ raw: trimProspectRaw(p.raw) }).eq("id", p.id);
+          const { error: upErr } = await supabase.from("prospects").update({ raw: trimProspectRaw(p.raw), phone: null, address: null }).eq("id", p.id);
           if (upErr) throw upErr;   // stop before anything is unlinked or deleted
         }
         const { error: pErr } = await supabase.from("prospects")
@@ -983,6 +984,12 @@ async function handlePreviewCleanup(req, res) {
         // the private kit. Before the rows, so a failure leaves it rediscoverable.
         await removeStoragePrefix(supabase.storage, "business-images", `launch-kit/${r.business_id}`);
         await removeStoragePrefix(supabase.storage, "launch-kits", r.business_id);
+        // Last look for an account right before the irreversible deletes
+        // (claim-business adds the member before flipping is_claimed).
+        const { count: lateMembers, error: lmErr } = await supabase.from("business_members")
+          .select("business_id", { count: "exact", head: true }).eq("business_id", r.business_id);
+        if (lmErr) throw lmErr;
+        if (lateMembers) throw new Error("account created during cleanup; profile and business kept");
         const { data: gone, error: profErr } = await supabase.from("small_business_profiles").delete()
           .eq("business_id", r.business_id).eq("is_claimed", false).select("business_id");
         if (profErr) throw profErr;

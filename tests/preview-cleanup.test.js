@@ -84,7 +84,7 @@ await test("cleanup: copied Google/Outscraper data is cleared from the kept pros
   assert.deepEqual(trimProspectRaw({ ip_hash: "abc", rating: 5 }), { ip_hash: "abc" });
   assert.equal(trimProspectRaw(null), null);
   const src = fs.readFileSync(new URL("../api/ga-metrics.js", import.meta.url), "utf8");
-  assert.match(src, /update\(\{ raw: trimProspectRaw\(p\.raw\) \}\)/);
+  assert.match(src, /update\(\{ raw: trimProspectRaw\(p\.raw\), phone: null, address: null \}\)/);
 });
 
 await test("cleanup: page views are looked up only for never-visited candidates; raw errors stop the delete", () => {
@@ -128,6 +128,7 @@ await test("cleanup: re-checks claim/account right before deleting, and the busi
   const recheck = fn.indexOf("claimed_since_snapshot");
   assert.ok(recheck > 0 && recheck < fn.indexOf('select("id, raw")'), "re-check comes before any write");
   assert.match(fn, /if \(!gone\?\.length\) throw/);
+  assert.ok(fn.indexOf("if (lateMembers) throw") < fn.indexOf('from("small_business_profiles").delete()'));
   assert.ok(fn.indexOf("if (!gone?.length) throw") < fn.indexOf('from("businesses").delete()'));
 });
 
