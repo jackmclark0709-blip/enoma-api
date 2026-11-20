@@ -132,4 +132,12 @@ await test("cleanup: re-checks claim/account right before deleting, and the busi
   assert.ok(fn.indexOf("if (!gone?.length) throw") < fn.indexOf('from("businesses").delete()'));
 });
 
+await test("remove link: suppression reason is one the table allows (suppression_list_reason_check)", () => {
+  const src = fs.readFileSync(new URL("../api/ga-metrics.js", import.meta.url), "utf8");
+  const fn = src.slice(src.indexOf("async function handleRemovePreview"), src.indexOf("async function handleRemovePreview") + 4000);
+  const reasons = [...fn.matchAll(/suppression_list"\)\.upsert\(\{[^}]*reason: "([a-z_]+)"/g)].map(m => m[1]);
+  assert.ok(reasons.length >= 1);
+  for (const r of reasons) assert.ok(["opted_out", "bounced", "requested_removal", "other"].includes(r), r);
+});
+
 console.log(`\n${passed} passed`);
