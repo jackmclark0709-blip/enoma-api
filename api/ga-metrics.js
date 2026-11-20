@@ -697,6 +697,9 @@ async function uniqueSlug(base) {
 // only after that, and only if the page passes outreachReadiness (page-v3.js):
 // a thin page stays up but is never emailed. PAGE_V3_DAILY_MAX caps new
 // pages a day (OpenAI and Places spend); the rest wait for tomorrow.
+function v3FlagsOn(env = process.env) {
+  return env.PAGE_V3_NEW === "on" && env.PAGE_COPY_V3 === "on";
+}
 function v3PipelineOn(env = process.env) {
   // PAGE_V3=off / PAGE_V2=off make api/p.js render v3 rows as something
   // else, so the readiness check would be judging a page nobody sees.
@@ -2550,7 +2553,12 @@ async function handleSendOutreach(req, res) {
   };
 
   const results = [];
-  for (const prospect of prospects || []) {
+  // A renderer rollback (PAGE_V3=off / PAGE_V2=off) with the v3 flags still on
+  // holds first emails (before anything is reserved): the page that would be
+  // linked isn't the one the readiness check approved.
+  const rolledBack = v3FlagsOn() && !v3PipelineOn();
+  if (rolledBack) results.push({ sent: false, reason: "renderer_rolled_back", held: (prospects || []).length });
+  for (const prospect of rolledBack ? [] : prospects || []) {
     if ((await usedToday()) >= Math.min(OUTREACH_DAILY_CAP, rampCap)) break;
     // Reserve this prospect: only one run can move it out of 'drafted', so
     // a cron retry or a manual run at the same time can't email it twice.

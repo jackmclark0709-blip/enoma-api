@@ -89,4 +89,11 @@ await test("pipeline: one daily budget for new builds and upgrades of existing p
   assert.ok(fs.existsSync(new URL("../supabase/migrations/20261120_prospect_v3_queued_at.sql", import.meta.url)));
 });
 
+await test("pipeline: a renderer rollback holds sends while the v3 flags are on", () => {
+  const send = src.slice(src.indexOf("async function handleSendOutreach"), src.indexOf("async function handleSendOutreach") + 9000);
+  assert.match(send, /const rolledBack = v3FlagsOn\(\) && !v3PipelineOn\(\);/);
+  assert.match(send, /for \(const prospect of rolledBack \? \[\] : prospects \|\| \[\]\)/);
+  assert.ok(send.indexOf("rolledBack ? []") < send.indexOf('status: "sending"'), "held before any prospect is reserved");
+});
+
 console.log(`\n${passed} passed`);
