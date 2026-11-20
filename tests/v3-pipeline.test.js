@@ -58,8 +58,8 @@ await test("pipeline: new previews wait at preview_building; drafts only after t
 });
 
 await test("pipeline: every send re-checks the page when v3 is on", () => {
-  const send = src.slice(src.indexOf("async function handleSendOutreach"), src.indexOf("async function handleSendOutreach") + 8000);
-  assert.match(send, /if \(v3PipelineOn\(\)\) \{\s*const \{ data: page \}/);
+  const send = src.slice(src.indexOf("async function handleSendOutreach"), src.indexOf("async function handleSendOutreach") + 14000);
+  assert.match(send, /if \(v3PipelineOn\(\)(?: && !exampleArm)?\) \{\s*const \{ data: page \}/);
   assert.match(send, /reason: "page_not_ready"/);
 });
 

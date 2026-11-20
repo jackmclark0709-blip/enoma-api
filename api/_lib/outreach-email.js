@@ -86,6 +86,20 @@ const REASONS = [
 ];
 
 /**
+ * The one verified site problem worth leading with (REASONS order), or the
+ * no-website line, or null. Used by the example-arm email
+ * (api/_lib/example-outreach.js); buildOutreachIntro below has its own copy
+ * of this choice and is unchanged.
+ */
+export function siteProblemLine({ website, site_gaps } = {}) {
+  const site = website ? String(website).replace(/%3F.*$/i, "").replace(/^https?:\/\//i, "").replace(/^www\./i, "").replace(/\/.*$/, "") : "";
+  if (!site) return `Your Google listing doesn't link to a website, so people who find you there have nowhere to check you out before they call.`;
+  const gaps = Array.isArray(site_gaps) ? site_gaps : [];
+  for (const r of REASONS) if (gaps.some(g => r.match.test(String(g)))) return r.line(site);
+  return null;
+}
+
+/**
  * The cold email body, built around one reason and one link (the link and
  * the reply line are added by buildOutreachEmail). Deterministic: no model,
  * so every claim traces to a verified site check or the Google listing.

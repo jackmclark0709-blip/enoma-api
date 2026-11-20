@@ -34,7 +34,9 @@ export const SCANNER_BURST_MS = 2 * 1000;
 // scanner rendering the page it was redirected to.
 export const SCANNER_FOLLOW_MS = 10 * 60 * 1000;
 
-export const OUTREACH_CLICK_EVENTS = new Set(["outreach_page_click", "outreach_claim_click"]);
+// The example arm's two links (api/_lib/example-outreach.js) are clicks on the same
+// email too, so a scanner opening them back to back is caught as a burst.
+export const OUTREACH_CLICK_EVENTS = new Set(["outreach_page_click", "outreach_claim_click", "outreach_example_click", "outreach_build_click"]);
 
 export const INTERNAL_COOKIE = "enoma_internal";
 
