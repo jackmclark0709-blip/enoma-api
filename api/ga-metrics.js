@@ -1041,7 +1041,7 @@ async function handleRemovePreview(req, res) {
   for (const p of ps || []) {
     const { error: stErr } = await supabase.from("prospects").update({ status: "removed_by_owner", updated_at: now }).eq("id", p.id);
     const { error: supErr } = p.email
-      ? await supabase.from("suppression_list").upsert({ email: String(p.email).toLowerCase(), reason: "removed_page" }, { onConflict: "email" })
+      ? await supabase.from("suppression_list").upsert({ email: String(p.email).toLowerCase(), reason: "requested_removal", notes: "Removed their preview page (owner link)" }, { onConflict: "email" })
       : { error: null };
     if (stErr || supErr) { console.warn("remove_preview: stop-emails failed:", (stErr || supErr).message); return failed(); }
   }
