@@ -28,7 +28,7 @@ const ROOT = path.resolve(arg("root") || HERE);
 process.chdir(ROOT); // loadTownCoords and p.js read data/ and public/ relative to cwd
 const PORT = Number(arg("port") || process.env.PORT || 4173);
 const FIX = path.join(HERE, "tests", "fixtures", "page-v3");
-const TYPES = { ".css": "text/css", ".js": "text/javascript", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon", ".webp": "image/webp", ".jpg": "image/jpeg" };
+const TYPES = { ".html": "text/html; charset=utf-8", ".css": "text/css", ".js": "text/javascript", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon", ".webp": "image/webp", ".jpg": "image/jpeg" };
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 
 let supabase = null;
@@ -37,14 +37,16 @@ if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
   supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 }
 
-export async function renderFixture(name, { owner = false, month = null } = {}) {
-  const profile = JSON.parse(fs.readFileSync(path.join(FIX, `${name}.json`), "utf8"));
+// profile: render this object instead of tests/fixtures/page-v3/<name>.json
+// (scripts/build-example-pages.mjs uses it for the per-trade example pages).
+export async function renderFixture(name, { owner = false, month = null, profile: given = null, canonical: canon = null } = {}) {
+  const profile = given ? structuredClone(given) : JSON.parse(fs.readFileSync(path.join(FIX, `${name}.json`), "utf8"));
   if (owner) profile.owner_token = "previewpreviewpreview123";
   const townCoords = await loadTownCoords(profile.state);
   const kit = kitFor(profile, { townCoords });
   const { stockRows, stockUsage } = await loadServiceStock(supabase, profile);
   const now = month ? new Date(2026, Number(month) - 1, 15) : new Date();
-  const canonical = `http://localhost:${PORT}/${name}`;
+  const canonical = canon || `http://localhost:${PORT}/${name}`;
   const ctx = { slug: profile.username, spotlights: [], townCoords, stockRows, stockUsage, now, canonical,
     owner, token: owner ? profile.owner_token : null, launchKit: false };
   const parts = v3PageParts(profile, kit, ctx);

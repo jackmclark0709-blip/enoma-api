@@ -21,6 +21,8 @@ import { qualifiesForPreview, cheapPreviewGate, isWeakEnoughSite, buildFactsProm
 import { verifyUnsubscribeToken, appendComplianceFooter, buildUnsubscribeUrl, MAILING_ADDRESS } from "./_lib/outreach-footer.js";
 import { buildOutreachEmail, buildOutreachIntro, buildFollowUpEmail, isFollowUpDue, FOLLOW_UP_AFTER_DAYS, FOLLOW_UP_MAX_AGE_DAYS, buildSecondFollowUpEmail, isSecondFollowUpDue, FOLLOW_UP_2_AFTER_FIRST_FOLLOW_UP_DAYS, FOLLOW_UP_2_MIN_AGE_DAYS, FOLLOW_UP_2_MAX_AGE_DAYS, FOLLOW_UP_2_SKIP_PROSPECT_STATUSES, buildOwnerVisitAlert, trackedLinks, replyToFor, slugFromPreviewUrl, messageIdFromReplyAddress, classifyReplyIntent, isUuid } from "./_lib/outreach-email.js";
 import { classifyRequest, markBurstPartners, logFunnelEvent } from "./_lib/tracking.js";
+import { exampleForTrade, exampleUrl, outreachArmFor, exampleArmEligible } from "./_lib/example-pages.js";
+import { EXAMPLE_VARIANT, buildExampleIntro, buildExampleEmail, buildExampleFollowUpEmail, buildExampleSecondFollowUpEmail, exampleLinks, buildPageHtml } from "./_lib/example-outreach.js";
 import { buildOutreachIntroB, buildOutreachEmailB, buildFollowUpEmailB, buildSecondFollowUpEmailB, pickFirstEmail, variantForProspect, variantBEnabled, proofLineFromEnv } from "./_lib/outreach-variant-b.js";
 import { classifyTraffic, isHumanOpenLikely } from "./_lib/traffic-classifier.js";
 import { verifyMailbox, checkZeroBounceAccount, mapWithConcurrency } from "./_lib/mailbox-verify.js";
@@ -2238,6 +2240,19 @@ async function prepareOutreachOnce({ limit = PREPARE_MAX_PER_RUN, deadline = Dat
   t = Date.now();
   const built = await mapWithConcurrency(toBuild, BUILD_CONCURRENCY, async ({ prospect, place, homeHtml, mailbox }) => {
     try {
+      // Example arm (OUTREACH_EXAMPLE_SHARE, api/_lib/example-pages.js): no
+      // page now. The email shows the trade's example page and their own
+      // page is built only if they click (action=build_page).
+      if (outreachArmFor(prospect.id, process.env.OUTREACH_EXAMPLE_SHARE) === "example" && exampleArmEligible(prospect)) {
+        const draft = buildExampleIntro(prospect);
+        const { error: armErr } = await supabase.from("prospects")
+          .update({ draft_subject: draft.subject, draft_body: draft.body, outreach_arm: "example", status: "drafted", updated_at: stamp() })
+          .eq("id", prospect.id);
+        // e.g. migration 20261120_outreach_variant_example not applied yet
+        if (armErr) throw new Error(`example arm draft not saved: ${armErr.message}`);
+        results.push({ business_name: prospect.business_name, email: prospect.email, mailbox, subject: draft.subject, verified: true, ready: true, arm: "example" });
+        return true;
+      }
       let preview_url = prospect.preview_url;
       if (v3PipelineOn()) {
         // One daily budget for new builds and upgrades of existing previews.
@@ -2483,7 +2498,7 @@ async function sendFollowUpsOnce({ maxSends, captureReplies }) {
   if (!maxSends) return { sent: 0, results };
   const now = Date.now();
   const { data: rows, error } = await supabase.from("outreach_messages")
-    .select("id, sent_at, draft_subject, followup_sent_at, response_status, variant, prospects(id, business_name, email, preview_url, status)")
+    .select("id, sent_at, draft_subject, followup_sent_at, response_status, variant, prospects(id, business_name, email, preview_url, status, trade)")
     .eq("channel", "email").eq("status", "sent")
     .is("followup_sent_at", null).is("response_status", null)
     .gte("sent_at", new Date(now - FOLLOW_UP_MAX_AGE_DAYS * 864e5).toISOString())
@@ -2499,13 +2514,17 @@ async function sendFollowUpsOnce({ maxSends, captureReplies }) {
     const slug = slugFromPreviewUrl(p?.preview_url);
     const skip = (reason) => results.push({ business_name: p?.business_name, sent: false, reason });
     if (!isFollowUpDue({ sentAt: row.sent_at, followupSentAt: row.followup_sent_at, responseStatus: row.response_status, now })) continue;
-    if (!p?.email || !slug) { skip("no_email_or_page"); continue; }
+    // Example arm, page not built yet: the follow-up offers the build again.
+    const exampleNoPage = row.variant === EXAMPLE_VARIANT && !slug;
+    if (!p?.email || (!slug && !exampleNoPage)) { skip("no_email_or_page"); continue; }
     if (p.status !== "sent") { skip(`prospect_${p.status}`); continue; }
     const { data: suppressed } = await supabase.from("suppression_list").select("id").eq("email", p.email).maybeSingle();
     if (suppressed) { skip("suppressed"); continue; }
-    const { data: page } = await supabase.from("small_business_profiles")
-      .select("is_public, is_claimed").eq("username", slug).maybeSingle();
-    if (!page?.is_public || page.is_claimed !== false) { skip("page_not_live_or_claimed"); continue; }
+    if (!exampleNoPage) {
+      const { data: page } = await supabase.from("small_business_profiles")
+        .select("is_public, is_claimed").eq("username", slug).maybeSingle();
+      if (!page?.is_public || page.is_claimed !== false) { skip("page_not_live_or_claimed"); continue; }
+    }
     // Jack already wrote to them personally after they opened the page.
     const { data: visitNote } = await supabase.from("visit_followups")
       .select("id").eq("prospect_id", p.id).in("status", ["sending", "sent"]).maybeSingle();
@@ -2519,8 +2538,8 @@ async function sendFollowUpsOnce({ maxSends, captureReplies }) {
 
     try {
       // Follow-ups stay in the variant the first email was sent in.
-      const email = (row.variant === "b" ? buildFollowUpEmailB : buildFollowUpEmail)({
-        businessName: p.business_name, prospectId: p.id, originalSubject: row.draft_subject, messageId: row.id, slug,
+      const email = (exampleNoPage ? buildExampleFollowUpEmail : row.variant === "b" ? buildFollowUpEmailB : buildFollowUpEmail)({
+        businessName: p.business_name, prospectId: p.id, trade: p.trade, originalSubject: row.draft_subject, messageId: row.id, slug,
         unsubscribeUrl: buildUnsubscribeUrl(p.email), mailingAddress: MAILING_ADDRESS
       });
       const { data: sendData, error: sendErr } = await resend.emails.send({
@@ -2557,7 +2576,7 @@ async function sendSecondFollowUpsOnce({ maxSends, captureReplies }) {
   if (!maxSends) return { sent: 0, results };
   const now = Date.now();
   const { data: rows, error } = await supabase.from("outreach_messages")
-    .select("id, sent_at, draft_subject, followup_sent_at, followup2_sent_at, response_status, preview_visited_at, variant, prospects(id, business_name, email, preview_url, status)")
+    .select("id, sent_at, draft_subject, followup_sent_at, followup2_sent_at, response_status, preview_visited_at, variant, prospects(id, business_name, email, preview_url, status, trade)")
     .eq("channel", "email").eq("status", "sent")
     .not("followup_sent_at", "is", null).is("followup2_sent_at", null)
     .is("response_status", null).is("preview_visited_at", null)
@@ -2578,13 +2597,16 @@ async function sendSecondFollowUpsOnce({ maxSends, captureReplies }) {
       sentAt: row.sent_at, followupSentAt: row.followup_sent_at, followup2SentAt: row.followup2_sent_at,
       responseStatus: row.response_status, previewVisited: !!row.preview_visited_at, now
     })) continue;
-    if (!p?.email || !slug) { skip("no_email_or_page"); continue; }
+    const exampleNoPage = row.variant === EXAMPLE_VARIANT && !slug;
+    if (!p?.email || (!slug && !exampleNoPage)) { skip("no_email_or_page"); continue; }
     if (FOLLOW_UP_2_SKIP_PROSPECT_STATUSES.includes(p.status) || p.status !== "sent") { skip(`prospect_${p.status}`); continue; }
     const { data: suppressed } = await supabase.from("suppression_list").select("id").eq("email", p.email).maybeSingle();
     if (suppressed) { skip("suppressed"); continue; }
-    const { data: page } = await supabase.from("small_business_profiles")
-      .select("is_public, is_claimed").eq("username", slug).maybeSingle();
-    if (!page?.is_public || page.is_claimed !== false) { skip("page_not_live_or_claimed"); continue; }
+    if (!exampleNoPage) {
+      const { data: page } = await supabase.from("small_business_profiles")
+        .select("is_public, is_claimed").eq("username", slug).maybeSingle();
+      if (!page?.is_public || page.is_claimed !== false) { skip("page_not_live_or_claimed"); continue; }
+    }
     const { data: visitNote } = await supabase.from("visit_followups")
       .select("id").eq("prospect_id", p.id).in("status", ["sending", "sent"]).maybeSingle();
     if (visitNote) { skip("visit_followup_sent"); continue; }
@@ -2597,7 +2619,7 @@ async function sendSecondFollowUpsOnce({ maxSends, captureReplies }) {
 
     try {
       if (!resend) throw new Error("RESEND_API_KEY not configured");
-      const email = (row.variant === "b" ? buildSecondFollowUpEmailB : buildSecondFollowUpEmail)({
+      const email = (exampleNoPage ? buildExampleSecondFollowUpEmail : row.variant === "b" ? buildSecondFollowUpEmailB : buildSecondFollowUpEmail)({
         businessName: p.business_name, prospectId: p.id, originalSubject: row.draft_subject, messageId: row.id, slug,
         unsubscribeUrl: buildUnsubscribeUrl(p.email), mailingAddress: MAILING_ADDRESS
       });
@@ -2673,18 +2695,18 @@ async function handleSendOutreach(req, res) {
   const remaining = Math.max(0, dailyCap - usedSoFar);
   const limit = Math.min(parseInt(req.query.limit, 10) || OUTREACH_DAILY_CAP, remaining);
 
-  const { data: prospects, error } = limit > 0
-    ? await supabase
-      .from("prospects")
-      .select("id, business_name, trade, city, state, email, website, site_gaps, raw, draft_subject, draft_body, preview_url")
-      .eq("status", "drafted")
-      .not("email", "is", null)
-      // No page, no email: every send shows the prospect their own page.
-      .not("preview_url", "is", null)
-      .order("updated_at", { ascending: true })
-      .limit(limit)
-    : { data: [], error: null };
+  // No page, no email, except in the example arm (no page yet: the email
+  // shows the trade's example and builds theirs on click). Checked below.
+  // outreach_arm comes from migration 20261120_outreach_variant_example; read
+  // without it until that's applied (then nobody is in the example arm).
+  const draftedQuery = (cols) => supabase.from("prospects").select(cols)
+    .eq("status", "drafted").not("email", "is", null)
+    .order("updated_at", { ascending: true }).limit(limit);
+  const DRAFTED_COLS = "id, business_name, trade, city, state, email, website, site_gaps, raw, draft_subject, draft_body, preview_url";
+  let { data: prospects, error } = limit > 0 ? await draftedQuery(`${DRAFTED_COLS}, outreach_arm`) : { data: [], error: null };
+  if (error && /outreach_arm/.test(error.message || "")) ({ data: prospects, error } = await draftedQuery(DRAFTED_COLS));
   if (error) throw error;
+  const isExampleDraft = (x) => !slugFromPreviewUrl(x.preview_url) && x.outreach_arm === "example" && exampleArmEligible(x);
 
   // A or B (outreach-variant-b.js pickFirstEmail): template drafts follow the
   // 50/50 split, hand-edited drafts go out as written with variant null.
@@ -2699,12 +2721,27 @@ async function handleSendOutreach(req, res) {
     return { ...pick, email };
   };
 
+  // Example arm: the drafted intro (buildExampleIntro, or Jack's edit of it)
+  // around the example and build links.
+  const exampleFirstEmailFor = (prospect, messageId) => {
+    const fallback = buildExampleIntro(prospect);
+    const subject = String(prospect.draft_subject || "").trim() || fallback.subject;
+    const intro = String(prospect.draft_body || "").trim() || fallback.body;
+    const email = buildExampleEmail({
+      intro, businessName: prospect.business_name, trade: prospect.trade, messageId,
+      unsubscribeUrl: buildUnsubscribeUrl(prospect.email), mailingAddress: MAILING_ADDRESS
+    });
+    return { subject, intro, variant: EXAMPLE_VARIANT, email };
+  };
+
   // ?dry_run=1 renders the next queued email as HTML (sample message id,
   // nothing written or sent) so the template can be checked in a browser.
   if (req.query.dry_run === "1") {
-    const p = (prospects || [])[0];
-    if (!p) return res.status(200).json({ success: true, dry_run: true, note: "No drafted prospect with a preview page is queued" });
-    const sample = firstEmailFor(p, "00000000-0000-4000-8000-000000000000", slugFromPreviewUrl(p.preview_url));
+    const p = (prospects || []).find(x => slugFromPreviewUrl(x.preview_url) || isExampleDraft(x));
+    if (!p) return res.status(200).json({ success: true, dry_run: true, note: "No drafted prospect with a preview page (or in the example arm) is queued" });
+    const sample = slugFromPreviewUrl(p.preview_url)
+      ? firstEmailFor(p, "00000000-0000-4000-8000-000000000000", slugFromPreviewUrl(p.preview_url))
+      : exampleFirstEmailFor(p, "00000000-0000-4000-8000-000000000000");
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     return res.status(200).send(`<!-- To: ${p.email} | Subject: ${sample.subject} | Variant: ${sample.variant || "none (hand-edited draft)"} -->\n${sample.email.html}`);
   }
@@ -2734,7 +2771,8 @@ async function handleSendOutreach(req, res) {
     if (!reserved?.length) continue;
 
     const slug = slugFromPreviewUrl(prospect.preview_url);
-    if (!slug) {
+    const exampleArm = isExampleDraft(prospect);
+    if (!slug && !exampleArm) {
       await supabase.from("prospects").update({ status: "no_preview", updated_at: new Date().toISOString() }).eq("id", prospect.id);
       results.push({ business_name: prospect.business_name, sent: false, reason: "bad_preview_url" });
       continue;
@@ -2749,7 +2787,7 @@ async function handleSendOutreach(req, res) {
     // With v3 previews on, the page is checked again right before the send:
     // drafts made before the switch (v2 pages) and pages that changed since
     // drafting wait at page_not_ready instead of going out.
-    if (v3PipelineOn()) {
+    if (v3PipelineOn() && !exampleArm) {
       const { data: page } = await supabase.from("small_business_profiles").select("*").eq("username", slug).maybeSingle();
       const ready = page ? outreachReadiness(page, page.brand_kit || null) : { ok: false, reasons: ["no_page"] };
       if (!ready.ok) {
@@ -2778,14 +2816,16 @@ async function handleSendOutreach(req, res) {
     let sendAccepted = false;
     try {
       if (!resend) throw new Error("RESEND_API_KEY not configured");
-      const pick = pickFirstEmail(prospect, { enabled: variantBOn });
+      const pick = exampleArm ? exampleFirstEmailFor(prospect, null) : pickFirstEmail(prospect, { enabled: variantBOn });
       const { data: msg, error: msgErr } = await supabase.from("outreach_messages")
         .insert({ prospect_id: prospect.id, channel: "email", status: "drafted", draft_subject: pick.subject, draft_body: pick.intro, variant: pick.variant })
         .select("id").single();
       if (msgErr) throw msgErr;
       messageId = msg.id;
 
-      const { email, subject, variant } = firstEmailFor(prospect, messageId, slug, pick, await launchKitLine(slug));
+      const { email, subject, variant } = exampleArm
+        ? exampleFirstEmailFor(prospect, messageId)
+        : firstEmailFor(prospect, messageId, slug, pick, await launchKitLine(slug));
       const { data: sendData, error: sendErr } = await resend.emails.send({
         from: SEND_OUTREACH_FROM,
         to: prospect.email,
@@ -3118,14 +3158,21 @@ async function handleBrandKitAdmin(req, res) {
 // from the query string, so this can't be used as an open redirect.
 async function handleOutreachRedirect(req, res) {
   const m = String(req.query.m || "");
-  const to = req.query.to === "claim" ? "claim" : "page";
+  const asked = String(req.query.to || "");
+  let to = asked === "claim" ? "claim" : "page";
   if (!isUuid(m)) return res.redirect(302, "https://enoma.io/");
 
   const { data: msg } = await supabase.from("outreach_messages")
-    .select("id, sent_at, delivered_at, followup_sent_at, followup2_sent_at, preview_visited_at, draft_subject, response_status, prospects(id, business_name, email, status, phone, city, state, preview_url, preview_business_id, preview_first_viewed_at, preview_alerted_at)")
+    .select("id, sent_at, delivered_at, followup_sent_at, followup2_sent_at, preview_visited_at, draft_subject, response_status, variant, prospects(id, business_name, email, status, phone, city, state, trade, preview_url, preview_business_id, preview_first_viewed_at, preview_alerted_at)")
     .eq("id", m).maybeSingle();
   const slug = slugFromPreviewUrl(msg?.prospects?.preview_url);
-  if (!msg || !slug) return res.redirect(302, "https://enoma.io/");
+  if (!msg) return res.redirect(302, "https://enoma.io/");
+  // Example arm (api/_lib/example-outreach.js): the example link, and the
+  // build link while their page doesn't exist yet. Once it's built, the
+  // build link opens it like a page link.
+  if (asked === "example") return handleExampleClick(req, res, msg, "example");
+  if (!slug && (asked === "build" || msg.variant === EXAMPLE_VARIANT)) return handleExampleClick(req, res, msg, "build");
+  if (!slug) return res.redirect(302, "https://enoma.io/");
 
   const links = trackedLinks(msg.id, slug);
   const utm = {};
@@ -3200,6 +3247,187 @@ async function handleOutreachRedirect(req, res) {
   const dest = new URL(destUrl);
   for (const [k, v] of Object.entries(utm)) dest.searchParams.set(k, v);
   return res.redirect(302, dest.toString());
+}
+
+// ── Example arm: build the page when they click ─────────────────────────
+// The example-arm email (api/_lib/example-outreach.js) links to the trade's
+// example page and to "Build <name>'s page". The build click lands on
+// action=build_page, which starts the build from the browser (scripts only
+// auto-start for traffic classed human; anything else gets a button, so mail
+// scanners never trigger a build), then polls build_status until the page
+// is ready and sends them to it with the owner bar, like a page click.
+const BUILD_ON_CLICK_DAILY_MAX = (() => {   // unset/invalid -> 20; 0 turns on-click builds off
+  const n = Number.parseInt(process.env.BUILD_ON_CLICK_DAILY_MAX, 10);
+  return Number.isFinite(n) && n >= 0 ? n : 20;
+})();
+const BUILD_CLAIM_MS = 15 * 60 * 1000;      // a build in progress holds the prospect this long
+const BUILD_COPY_RETRY_AFTER_MS = 45 * 1000; // v3 copy not saved by then: write it in build_status
+const BUILD_READY_ANYWAY_MS = 150 * 1000;   // after this, show whatever page exists
+
+async function handleExampleClick(req, res, msg, kind) {
+  const prospect = msg.prospects || {};
+  const entry = exampleForTrade(prospect.trade);
+  const now = Date.now();
+  const event = kind === "example" ? "outreach_example_click" : "outreach_build_click";
+  try {
+    const c = await classifyRequest(supabase, req, {
+      event, at: now, messageId: msg.id,
+      outreach: { sentAt: msg.sent_at, deliveredAt: msg.delivered_at, followupSentAt: msg.followup_sent_at, followup2SentAt: msg.followup2_sent_at }
+    });
+    await supabase.from("page_events").insert({
+      slug: entry ? `example-${entry.key}` : "example", event,
+      metadata: { m: msg.id, ...(c.trafficClass !== "human" ? { traffic_reason: c.reason } : {}) },
+      referrer: req.headers.referer || null, user_agent: c.userAgent || null, ip: c.ip,
+      is_internal: c.trafficClass === "internal", traffic_class: c.trafficClass
+    });
+    await markBurstPartners(supabase, c, { event, at: now });
+  } catch (e) {
+    console.error("Example click logging failed:", e);
+  }
+  if (kind === "example") return res.redirect(302, exampleUrl(entry) || "https://enoma.io/examples");
+  return res.redirect(302, exampleLinks(msg.id).buildDest);
+}
+
+async function loadBuildMessage(m) {
+  if (!isUuid(m)) return null;
+  const { data: msg } = await supabase.from("outreach_messages")
+    .select("id, channel, status, sent_at, delivered_at, followup_sent_at, followup2_sent_at, preview_visited_at, variant, prospects(id, source, business_name, trade, city, state, phone, address, email, website, google_place_id, raw, status, preview_url, preview_business_id, preview_first_viewed_at, preview_alerted_at, v3_queued_at)")
+    .eq("id", m).maybeSingle();
+  return msg?.prospects && msg.channel === "email" && msg.sent_at ? msg : null;
+}
+
+async function handleBuildPage(req, res) {
+  const m = String(req.query.m || "");
+  const msg = await loadBuildMessage(m);
+  if (!msg) return res.redirect(302, "https://enoma.io/");
+  const p = msg.prospects;
+  // Already built: the normal page link (logged, owner bar).
+  if (slugFromPreviewUrl(p.preview_url)) return res.redirect(302, `https://enoma.io/api/ga-metrics?action=go&m=${encodeURIComponent(msg.id)}&to=page`);
+  let autoStart = false;
+  try {
+    const c = await classifyRequest(supabase, req, {
+      event: "outreach_build_page", at: Date.now(), messageId: msg.id,
+      outreach: { sentAt: msg.sent_at, deliveredAt: msg.delivered_at, followupSentAt: msg.followup_sent_at, followup2SentAt: msg.followup2_sent_at }
+    });
+    autoStart = c.trafficClass === "human";
+  } catch (e) { console.warn("build page classify failed:", e?.message || e); }
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("X-Robots-Tag", "noindex");
+  return res.status(200).send(buildPageHtml({ messageId: msg.id, businessName: p.business_name, autoStart, exampleHref: exampleUrl(exampleForTrade(p.trade)) }));
+}
+
+async function alertJackBuildProblem(p, reason) {
+  try {
+    if (!resend) return;
+    await resend.emails.send({
+      from: "Enoma <noreply@enoma.io>", to: "jack@enoma.io",
+      subject: `${p.business_name} clicked "build my page" but it wasn't built`,
+      text: `${p.business_name}${p.city ? ` (${p.city}${p.state ? `, ${p.state}` : ""})` : ""} clicked to build their page from the example email, and it didn't finish: ${reason}.
+Phone: ${p.phone || "not on file"}
+Email: ${p.email || "none"}
+They were told you'd send the link yourself.`
+    });
+  } catch (e) {
+    await logNotificationFailure("build-problem-alert", "jack@enoma.io", e, { prospect_id: p.id });
+  }
+}
+
+// The owner is here: what a human page click does in handleOutreachRedirect.
+async function noteOwnerBuiltPage(msg, prospect, slug, at) {
+  try {
+    if (!msg.preview_visited_at) await supabase.from("outreach_messages").update({ preview_visited_at: at, updated_at: at }).eq("id", msg.id);
+    if (!prospect.preview_first_viewed_at) await supabase.from("prospects").update({ preview_first_viewed_at: at }).eq("id", prospect.id);
+    if (!prospect.preview_alerted_at) {
+      let followup = null;
+      try { followup = await createVisitFollowup(prospect, msg, slug, at); }
+      catch (e) { await logNotificationFailure("visit-followup-create", "jack@enoma.io", e, { prospect_id: prospect.id }); }
+      if (!followup?.internal) await alertJackOwnerVisit(prospect, "page", msg.followup2_sent_at || msg.followup_sent_at || msg.sent_at, at, followup?.section || null);
+    }
+    await recordVisit(signalDeps(), { slug, at: Date.parse(at), trafficClass: "human", messageId: msg.id, prospect });
+  } catch (e) {
+    console.error("Build visit bookkeeping failed:", e);
+  }
+}
+
+async function handleBuildStart(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ ok: false });
+  res.setHeader("Cache-Control", "no-store");
+  const msg = await loadBuildMessage(String(req.query.m || ""));
+  if (!msg) return res.status(404).json({ ok: false, message: "This link isn't valid anymore. Reply to the email and Jack will send you your page." });
+  const p = msg.prospects;
+  if (slugFromPreviewUrl(p.preview_url)) return res.status(200).json({ ok: true, built: true });
+  if (["opted_out", "invalid_email", "removed_by_owner"].includes(p.status)) {
+    return res.status(200).json({ ok: false, message: "This page isn't available anymore." });
+  }
+  const startOfDay = new Date(); startOfDay.setUTCHours(0, 0, 0, 0);
+  const { count: startedToday } = await supabase.from("page_events").select("id", { count: "exact", head: true })
+    .eq("event", "outreach_build_start").gte("created_at", startOfDay.toISOString());
+  if ((startedToday || 0) >= BUILD_ON_CLICK_DAILY_MAX) {
+    await alertJackBuildProblem(p, `today's limit of ${BUILD_ON_CLICK_DAILY_MAX} on-click builds was reached (BUILD_ON_CLICK_DAILY_MAX)`);
+    return res.status(200).json({ ok: false, message: "We're building a lot of pages today. Jack will build yours and email you the link shortly." });
+  }
+  // One build at a time per prospect (a double click, two tabs).
+  const now = new Date();
+  const { data: claimed } = await supabase.from("prospects").update({ v3_queued_at: now.toISOString() })
+    .eq("id", p.id).is("preview_url", null)
+    .or(`v3_queued_at.is.null,v3_queued_at.lt.${new Date(now.getTime() - BUILD_CLAIM_MS).toISOString()}`).select("id");
+  if (!claimed?.length) return res.status(200).json({ ok: true, building: true });
+  const entry = exampleForTrade(p.trade);
+  await supabase.from("page_events").insert({
+    slug: entry ? `example-${entry.key}` : "example", event: "outreach_build_start", metadata: { m: msg.id },
+    user_agent: String(req.headers["user-agent"] || "").slice(0, 400) || null, traffic_class: "human", is_internal: false
+  });
+  let gen = null;
+  try {
+    gen = await generatePreviewForProspect(p, { gate: false });
+  } catch (e) {
+    console.error("On-click build failed:", e);
+    await supabase.from("prospects").update({ v3_queued_at: null }).eq("id", p.id);
+    await alertJackBuildProblem(p, `the build failed (${e?.message || e})`);
+    return res.status(200).json({ ok: false });
+  }
+  if (!gen?.preview_url) {
+    await alertJackBuildProblem(p, `the build was skipped (${gen?.skipped || "unknown"})`);
+    return res.status(200).json({ ok: false });
+  }
+  await noteOwnerBuiltPage(msg, { ...p, preview_url: gen.preview_url, preview_business_id: gen.business_id }, gen.slug, new Date().toISOString());
+  return res.status(200).json({ ok: true, building: true });
+}
+
+async function handleBuildStatus(req, res) {
+  res.setHeader("Cache-Control", "no-store");
+  const msg = await loadBuildMessage(String(req.query.m || ""));
+  if (!msg) return res.status(404).json({ error: true, message: "This link isn't valid anymore." });
+  const slug = slugFromPreviewUrl(msg.prospects.preview_url);
+  if (!slug) {
+    const since = Date.parse(msg.prospects.v3_queued_at || 0);
+    const stuck = Number.isFinite(since) && since > 0 && Date.now() - since > BUILD_CLAIM_MS;
+    return res.status(200).json(stuck ? { error: true } : { ready: false });
+  }
+  const load = async () => (await supabase.from("small_business_profiles")
+    .select("business_id, page_version, owner_token, is_claimed, fact_sheet, page_copy_v3, created_at").eq("username", slug).maybeSingle()).data;
+  let prof = await load();
+  if (!prof) return res.status(200).json({ ready: false });
+  const age = Date.now() - Date.parse(prof.created_at || 0);
+  let ready = !v3PipelineOn() || Number(prof.page_version) === 3 || age > BUILD_READY_ANYWAY_MS;
+  // The background copy didn't make it in the build request: write it here,
+  // once (the page polls one request at a time).
+  if (!ready && age > BUILD_COPY_RETRY_AFTER_MS && prof.fact_sheet && !prof.page_copy_v3 && !prof.is_claimed) {
+    const { count } = await supabase.from("page_events").select("id", { count: "exact", head: true })
+      .eq("slug", slug).eq("event", "outreach_build_copy");
+    if (!count) {
+      await supabase.from("page_events").insert({ slug, event: "outreach_build_copy", metadata: { m: msg.id }, traffic_class: "human", is_internal: false });
+      await saveFactSheet(supabase, prof.business_id, prof.fact_sheet, { env: { PAGE_COPY_V3: "on" }, onCopy: () => promoteNewPreviewToV3(prof.business_id) });
+      prof = (await load()) || prof;
+      ready = Number(prof.page_version) === 3;
+    }
+  }
+  if (!ready) return res.status(200).json({ ready: false });
+  const url = isPageV2(prof) && process.env.PAGE_V2 !== "off"
+    ? await ownerDestination(supabase, prof, slug, { m: msg.id })
+    : trackedLinks(msg.id, slug).pageDest;
+  return res.status(200).json({ ready: true, url });
 }
 
 // Public — Resend's servers call this, they can't send ADMIN_SECRET/
@@ -4122,6 +4350,19 @@ export default async function handler(req, res) {
     } catch (err) {
       console.error("Outreach redirect failed:", err);
       return res.redirect(302, "https://enoma.io/");
+    }
+  }
+
+  // Example arm: build their page when they click (public; the message id
+  // in the link is the key, like action=go).
+  if (req.query.action === "build_page" || req.query.action === "build_start" || req.query.action === "build_status") {
+    try {
+      if (req.query.action === "build_page") return await handleBuildPage(req, res);
+      if (req.query.action === "build_start") return await handleBuildStart(req, res);
+      return await handleBuildStatus(req, res);
+    } catch (err) {
+      console.error(`${req.query.action} failed:`, err);
+      return req.query.action === "build_page" ? res.redirect(302, "https://enoma.io/") : res.status(500).json({ ok: false, error: true });
     }
   }
 
