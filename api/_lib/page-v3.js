@@ -1135,3 +1135,30 @@ export function v3Seo(facts, copy) {
   while (description.length > 155 && parts.length > 1) { parts.splice(parts.length > 2 ? 2 : 1, 1); description = parts.join(" "); }
   return { title, description: description.slice(0, 155) };
 }
+
+// ── Outreach readiness ────────────────────────────────────────────────────
+// A cold email shows a business its own page, so the page has to be good
+// enough to sell. A page below this floor still exists (and can be improved
+// by the owner), but no outreach goes out with it. Pure; reads stored rows.
+
+export const READY_MIN_REVIEWS = 3;   // Google review count behind the page
+export const READY_MIN_SERVICES = 2;  // evidence-backed services
+
+/** { ok, reasons: [] } for a page about to be emailed. */
+export function outreachReadiness(rawProfile, kit = null) {
+  const reasons = [];
+  if (Number(rawProfile?.page_version) !== 3) reasons.push("not_v3");
+  const c = obj(rawProfile?.page_copy_v3);
+  if (!c || !str(c.hero_headline)) { reasons.push("no_v3_copy"); return { ok: false, reasons }; }
+  if (rawProfile?.is_public === false) reasons.push("not_public");
+  const facts = factsFor(rawProfile, kit);
+  const copy = copyFor(rawProfile, facts);
+  if (!facts.phone) reasons.push("no_phone");
+  if (!(facts.google.count >= READY_MIN_REVIEWS)) reasons.push("few_reviews");
+  if (facts.reviews.length < 2) reasons.push("few_review_quotes");
+  if (facts.services.length < READY_MIN_SERVICES) reasons.push("few_services");
+  if (facts.services.some(s => !str(s.line))) reasons.push("empty_service_card");
+  if (copy.proof.length < 2) reasons.push("thin_proof");
+  if (!str(copy.hero.sub)) reasons.push("no_hero_sub");
+  return { ok: reasons.length === 0, reasons };
+}

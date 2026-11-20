@@ -255,7 +255,9 @@ export function evidenceMap(fs = {}) {
  * migration 20261118_fact_sheet_v3 is applied the columns don't exist, so
  * this logs and returns null instead of throwing.
  */
-export async function saveFactSheet(supabaseAdmin, businessId, fs, { env = process.env, fetchImpl = globalThis.fetch } = {}) {
+// onCopy(copy): called after page_copy_v3 is saved (the pipeline uses it to
+// move a new preview to page v3).
+export async function saveFactSheet(supabaseAdmin, businessId, fs, { env = process.env, fetchImpl = globalThis.fetch, onCopy = null } = {}) {
   const { error } = await supabaseAdmin.from("small_business_profiles").update({ fact_sheet: fs }).eq("business_id", businessId);
   if (error) { console.warn("fact sheet not saved:", error.message); return null; }
   if (env.PAGE_COPY_V3 === "on") {
@@ -266,6 +268,7 @@ export async function saveFactSheet(supabaseAdmin, businessId, fs, { env = proce
       if (cErr) console.warn("page_copy_v3 not saved:", cErr.message);
       else {
         console.log(`page_copy_v3 [${businessId}] $${cost_usd}`);
+        if (onCopy) { try { await onCopy(copy); } catch (e) { console.warn("onCopy failed:", e?.message || e); } }
         // Website v3 PR C: the copy's service_page becomes the one auto
         // service page (a draft until the owner approves it).
         const { syncAutoServicePage } = await import("./service-page-v3.js");
