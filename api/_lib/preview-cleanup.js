@@ -81,3 +81,28 @@ export function pickPreviewsToRemove(rows, { now = Date.now(), windowDays = PREV
 export function trimProspectRaw(raw) {
   return raw && typeof raw === "object" && raw.ip_hash ? { ip_hash: raw.ip_hash } : null;
 }
+
+// Deletes every object under `prefix` in a storage bucket (folders walked up
+// to `depth` levels). Launch kits sit at <prefix>/<fingerprint>/<file>.
+// Throws on any storage error so the caller can stop before deleting rows.
+export async function removeStoragePrefix(storage, bucket, prefix, { depth = 3 } = {}) {
+  const files = [];
+  const walk = async (dir, level) => {
+    for (let offset = 0; ; offset += 100) {
+      const { data, error } = await storage.from(bucket).list(dir, { limit: 100, offset });
+      if (error) throw new Error(`${bucket}/${dir}: ${error.message}`);
+      for (const e of data || []) {
+        const path = `${dir}/${e.name}`;
+        if (e.id) files.push(path);                       // a file
+        else if (level < depth) await walk(path, level + 1); // a folder
+      }
+      if (!data || data.length < 100) break;
+    }
+  };
+  await walk(prefix.replace(/\/+$/, ""), 1);
+  for (let i = 0; i < files.length; i += 100) {
+    const { error } = await storage.from(bucket).remove(files.slice(i, i + 100));
+    if (error) throw new Error(`${bucket} remove: ${error.message}`);
+  }
+  return files.length;
+}

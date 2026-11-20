@@ -3,7 +3,7 @@
 // Protected the same way as the admin path in generate-business.js: requires
 // the x-admin-secret header to match ADMIN_SECRET.
 
-import { pickPreviewsToRemove, trimProspectRaw } from "./_lib/preview-cleanup.js";
+import { pickPreviewsToRemove, trimProspectRaw, removeStoragePrefix } from "./_lib/preview-cleanup.js";
 import { BetaAnalyticsDataClient } from "@google-analytics/data";
 import { cleanAttribution, selfServeFirstTouch } from "./_lib/attribution.js";
 import { summarizeContent } from "./_lib/content-performance.js";
@@ -871,6 +871,10 @@ async function handlePreviewCleanup(req, res) {
         if (unlinkErr) throw unlinkErr;
         const { error: spaErr } = await supabase.from("stock_photo_assignments").delete().eq("business_id", r.business_id);
         if (spaErr) throw spaErr;
+        // Launch-kit files (api/_lib/launch-kit-render.js): public previews and
+        // the private kit. Before the rows, so a failure leaves it rediscoverable.
+        await removeStoragePrefix(supabase.storage, "business-images", `launch-kit/${r.business_id}`);
+        await removeStoragePrefix(supabase.storage, "launch-kits", r.business_id);
         const { error: profErr } = await supabase.from("small_business_profiles").delete().eq("business_id", r.business_id).eq("is_claimed", false);
         if (profErr) throw profErr;
         const { error: bizErr } = await supabase.from("businesses").delete().eq("id", r.business_id);

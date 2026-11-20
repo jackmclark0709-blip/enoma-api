@@ -3,7 +3,7 @@
 
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { pickPreviewsToRemove, trimProspectRaw, PREVIEW_WINDOW_DAYS, PREVIEW_IDLE_DAYS } from "../api/_lib/preview-cleanup.js";
+import { pickPreviewsToRemove, trimProspectRaw, removeStoragePrefix, PREVIEW_WINDOW_DAYS, PREVIEW_IDLE_DAYS } from "../api/_lib/preview-cleanup.js";
 import { ownerBar } from "../api/_lib/page-v2.js";
 
 let passed = 0;
@@ -102,6 +102,24 @@ await test("cleanup + remove link: every write is checked before success is repo
   assert.match(src, /if \(unlinkErr\) throw unlinkErr;/);
   assert.match(src, /if \(hideErr \|\| !hidden\?\.length\)[^\n]*return failed\(\);/);
   assert.match(src, /if \(stErr \|\| supErr\)[^\n]*return failed\(\);/);
+});
+
+await test("cleanup: launch-kit files are deleted from both buckets", async () => {
+  const tree = { "launch-kit/b1": [{ name: "fp1", id: null }], "launch-kit/b1/fp1": [{ name: "a-preview.jpg", id: "1" }, { name: "a-mini.jpg", id: "2" }] };
+  const removed = [];
+  const storage = { from: () => ({
+    list: async (dir) => ({ data: tree[dir] || [], error: null }),
+    remove: async (paths) => { removed.push(...paths); return { error: null }; },
+  }) };
+  assert.equal(await removeStoragePrefix(storage, "business-images", "launch-kit/b1"), 2);
+  assert.deepEqual(removed, ["launch-kit/b1/fp1/a-preview.jpg", "launch-kit/b1/fp1/a-mini.jpg"]);
+  const bad = { from: () => ({ list: async () => ({ data: null, error: { message: "nope" } }) }) };
+  await assert.rejects(() => removeStoragePrefix(bad, "launch-kits", "b1"), /nope/);
+  const src = fs.readFileSync(new URL("../api/ga-metrics.js", import.meta.url), "utf8");
+  const fn = src.slice(src.indexOf("async function handlePreviewCleanup"), src.indexOf("async function handleRemovePreview"));
+  assert.match(fn, /removeStoragePrefix\(supabase\.storage, "business-images", `launch-kit\/\$\{r\.business_id\}`\)/);
+  assert.match(fn, /removeStoragePrefix\(supabase\.storage, "launch-kits", r\.business_id\)/);
+  assert.ok(fn.indexOf('"launch-kits"') < fn.indexOf('from("small_business_profiles").delete()'));
 });
 
 console.log(`\n${passed} passed`);
