@@ -1051,6 +1051,9 @@ body.page-v2 { background: #faf8f5; color: var(--ink); font-family: Inter, syste
 .v2-owner__keep { flex: 0 0 auto; display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 999px; background: var(--kit-cta); color: var(--kit-cta-text); font-weight: 800; text-decoration: none; white-space: nowrap; }
 .v2-owner__keep:hover { background: var(--kit-cta-hover); }
 .v2-owner__extra { display: none; margin: 0; white-space: nowrap; }
+/* Owner bar: the owner's own way out (api/ga-metrics.js action=remove_preview). */
+.v2-owner__remove { max-width: 1120px; margin: 0 auto; padding: 0 16px 8px; font-size: 0.82rem; color: #f3f1ed; opacity: 0.85; }
+.v2-owner__remove a { color: inherit; }
 .v2-owner__link { color: #fff; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; display: inline-flex; align-items: center; min-height: 44px; }
 .v2-owner__more { max-width: 1120px; margin: 0 auto; padding: 0 16px 10px; }
 .v2-owner__more summary { cursor: pointer; min-height: 40px; display: flex; align-items: center; color: #fde68a; font-weight: 700; }
