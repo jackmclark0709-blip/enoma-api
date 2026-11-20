@@ -75,3 +75,9 @@ export function pickPreviewsToRemove(rows, { now = Date.now(), windowDays = PREV
   }
   return { remove, kept };
 }
+
+// What's left of prospects.raw after cleanup: only the inbound form's
+// ip_hash (rate limiting). Everything copied from Google/Outscraper goes.
+export function trimProspectRaw(raw) {
+  return raw && typeof raw === "object" && raw.ip_hash ? { ip_hash: raw.ip_hash } : null;
+}

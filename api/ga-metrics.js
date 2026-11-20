@@ -3,7 +3,7 @@
 // Protected the same way as the admin path in generate-business.js: requires
 // the x-admin-secret header to match ADMIN_SECRET.
 
-import { pickPreviewsToRemove } from "./_lib/preview-cleanup.js";
+import { pickPreviewsToRemove, trimProspectRaw } from "./_lib/preview-cleanup.js";
 import { BetaAnalyticsDataClient } from "@google-analytics/data";
 import { cleanAttribution, selfServeFirstTouch } from "./_lib/attribution.js";
 import { summarizeContent } from "./_lib/content-performance.js";
@@ -840,7 +840,13 @@ async function handlePreviewCleanup(req, res) {
     for (const r of remove.slice(0, PREVIEW_CLEANUP_MAX_PER_RUN)) {
       try {
         const now = new Date().toISOString();
-        // The prospect first (its FK to businesses has no cascade).
+        // The prospect first (its FK to businesses has no cascade). Its copied
+        // Google/Outscraper record (raw) goes too; google_place_id and status
+        // stay so the business isn't rebuilt or re-emailed.
+        const { data: ps } = await supabase.from("prospects").select("id, raw").eq("preview_business_id", r.business_id);
+        for (const p of ps || []) {
+          await supabase.from("prospects").update({ raw: trimProspectRaw(p.raw) }).eq("id", p.id);
+        }
         const { error: pErr } = await supabase.from("prospects")
           .update({ preview_url: null, preview_business_id: null, status: "preview_removed", updated_at: now })
           .eq("preview_business_id", r.business_id).not("status", "eq", "removed_by_owner");

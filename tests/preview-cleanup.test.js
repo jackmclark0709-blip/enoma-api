@@ -3,7 +3,7 @@
 
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { pickPreviewsToRemove, PREVIEW_WINDOW_DAYS, PREVIEW_IDLE_DAYS } from "../api/_lib/preview-cleanup.js";
+import { pickPreviewsToRemove, trimProspectRaw, PREVIEW_WINDOW_DAYS, PREVIEW_IDLE_DAYS } from "../api/_lib/preview-cleanup.js";
 import { ownerBar } from "../api/_lib/page-v2.js";
 
 let passed = 0;
@@ -77,6 +77,14 @@ await test("the job only deletes with PREVIEW_CLEANUP_APPLY=1, and remove_previe
   const gate = src.indexOf("const isValidCron");
   assert.ok(src.indexOf('req.query.action === "remove_preview"') < gate);
   assert.ok(src.indexOf('req.query.action === "preview_cleanup"') > gate);
+});
+
+await test("cleanup: copied Google/Outscraper data is cleared from the kept prospect", () => {
+  assert.equal(trimProspectRaw({ rating: 4.8, reviews: 52, phone: "x", type: "Plumber" }), null);
+  assert.deepEqual(trimProspectRaw({ ip_hash: "abc", rating: 5 }), { ip_hash: "abc" });
+  assert.equal(trimProspectRaw(null), null);
+  const src = fs.readFileSync(new URL("../api/ga-metrics.js", import.meta.url), "utf8");
+  assert.match(src, /update\(\{ raw: trimProspectRaw\(p\.raw\) \}\)/);
 });
 
 console.log(`\n${passed} passed`);
