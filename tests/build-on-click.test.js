@@ -93,6 +93,8 @@ await test("routes: build_* are public (before the cron/admin gate); build_start
   const start = src.slice(src.indexOf("async function handleBuildStart"), src.indexOf("async function handleBuildStatus"));
   assert.match(start, /if \(req\.method !== "POST"\)/);
   assert.match(start, /BUILD_ON_CLICK_DAILY_MAX/);
+  assert.doesNotMatch(src, /BUILD_ON_CLICK_DAILY_MAX, 10\) \|\| 20/);
+  assert.match(src, /Number\.isFinite\(n\) && n >= 0 \? n : 20/);
   assert.ok(start.indexOf("BUILD_ON_CLICK_DAILY_MAX") < start.indexOf("generatePreviewForProspect("));
   assert.ok(start.indexOf('.is("preview_url", null)') < start.indexOf("generatePreviewForProspect("));
   assert.match(start, /gate: false/);

@@ -3256,7 +3256,10 @@ async function handleOutreachRedirect(req, res) {
 // auto-start for traffic classed human; anything else gets a button, so mail
 // scanners never trigger a build), then polls build_status until the page
 // is ready and sends them to it with the owner bar, like a page click.
-const BUILD_ON_CLICK_DAILY_MAX = Math.max(0, Number.parseInt(process.env.BUILD_ON_CLICK_DAILY_MAX, 10) || 20);
+const BUILD_ON_CLICK_DAILY_MAX = (() => {   // unset/invalid -> 20; 0 turns on-click builds off
+  const n = Number.parseInt(process.env.BUILD_ON_CLICK_DAILY_MAX, 10);
+  return Number.isFinite(n) && n >= 0 ? n : 20;
+})();
 const BUILD_CLAIM_MS = 15 * 60 * 1000;      // a build in progress holds the prospect this long
 const BUILD_COPY_RETRY_AFTER_MS = 45 * 1000; // v3 copy not saved by then: write it in build_status
 const BUILD_READY_ANYWAY_MS = 150 * 1000;   // after this, show whatever page exists
