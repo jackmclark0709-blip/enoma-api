@@ -122,4 +122,13 @@ await test("cleanup: launch-kit files are deleted from both buckets", async () =
   assert.ok(fn.indexOf('"launch-kits"') < fn.indexOf('from("small_business_profiles").delete()'));
 });
 
+await test("cleanup: re-checks claim/account right before deleting, and the business only goes if the profile did", () => {
+  const src = fs.readFileSync(new URL("../api/ga-metrics.js", import.meta.url), "utf8");
+  const fn = src.slice(src.indexOf("async function handlePreviewCleanup"), src.indexOf("async function handleRemovePreview"));
+  const recheck = fn.indexOf("claimed_since_snapshot");
+  assert.ok(recheck > 0 && recheck < fn.indexOf('select("id, raw")'), "re-check comes before any write");
+  assert.match(fn, /if \(!gone\?\.length\) throw/);
+  assert.ok(fn.indexOf("if (!gone?.length) throw") < fn.indexOf('from("businesses").delete()'));
+});
+
 console.log(`\n${passed} passed`);

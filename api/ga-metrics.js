@@ -849,6 +849,7 @@ async function handlePreviewCleanup(req, res) {
   const { remove, kept } = pickPreviewsToRemove({ ...input, visited }, { keepSlugs });
   const byReason = remove.reduce((acc, r) => ({ ...acc, [r.reason]: (acc[r.reason] || 0) + 1 }), {});
   const removed = [];
+  const skipped = [];
   if (apply) {
     for (const r of remove.slice(0, PREVIEW_CLEANUP_MAX_PER_RUN)) {
       try {
@@ -856,6 +857,14 @@ async function handlePreviewCleanup(req, res) {
         // The prospect first (its FK to businesses has no cascade). Its copied
         // Google/Outscraper record (raw) goes too; google_place_id and status
         // stay so the business isn't rebuilt or re-emailed.
+        // Re-check right before touching anything: the snapshot above may be
+        // minutes old, and an owner can claim or sign up in between.
+        const [{ data: fresh, error: fErr }, { count: memberCount, error: mErr }] = await Promise.all([
+          supabase.from("small_business_profiles").select("is_claimed").eq("business_id", r.business_id).maybeSingle(),
+          supabase.from("business_members").select("business_id", { count: "exact", head: true }).eq("business_id", r.business_id),
+        ]);
+        if (fErr || mErr) throw fErr || mErr;
+        if (!fresh || fresh.is_claimed || memberCount) { skipped.push({ ...r, why: "claimed_since_snapshot" }); continue; }
         const { data: ps, error: rawErr } = await supabase.from("prospects").select("id, raw").eq("preview_business_id", r.business_id);
         if (rawErr) throw rawErr;
         for (const p of ps || []) {
@@ -875,8 +884,10 @@ async function handlePreviewCleanup(req, res) {
         // the private kit. Before the rows, so a failure leaves it rediscoverable.
         await removeStoragePrefix(supabase.storage, "business-images", `launch-kit/${r.business_id}`);
         await removeStoragePrefix(supabase.storage, "launch-kits", r.business_id);
-        const { error: profErr } = await supabase.from("small_business_profiles").delete().eq("business_id", r.business_id).eq("is_claimed", false);
+        const { data: gone, error: profErr } = await supabase.from("small_business_profiles").delete()
+          .eq("business_id", r.business_id).eq("is_claimed", false).select("business_id");
         if (profErr) throw profErr;
+        if (!gone?.length) throw new Error("profile not deleted (claimed since the check?); business kept");
         const { error: bizErr } = await supabase.from("businesses").delete().eq("id", r.business_id);
         if (bizErr) throw bizErr;
         removed.push(r);
@@ -888,7 +899,7 @@ async function handlePreviewCleanup(req, res) {
   return res.status(200).json({
     success: true, dry_run: !apply,
     would_remove: remove.length, by_reason: byReason, kept,
-    removed: removed.filter(r => !r.error).length, errors: removed.filter(r => r.error),
+    removed: removed.filter(r => !r.error).length, errors: removed.filter(r => r.error), skipped,
     sample: remove.slice(0, 25).map(r => ({ slug: r.slug, reason: r.reason })),
     ...(apply ? {} : { note: "Dry run. Set PREVIEW_CLEANUP_APPLY=1 in Vercel to delete (max " + PREVIEW_CLEANUP_MAX_PER_RUN + " a run)." }),
   });
