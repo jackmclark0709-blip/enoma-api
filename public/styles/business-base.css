@@ -1440,6 +1440,20 @@ body.page-v3 {
 .page-v3 .v3-footer__phone { font-weight: 700; }
 .page-v3 .v3-footer .v3-footer__by { margin: 18px 0 0; font-size: 0.88rem; }
 
+/* Hero: the person reviews name (review-people.js). */
+.page-v3 .v3-person { margin: 10px 0 0; font-size: 1rem; font-weight: 600; color: #fff; max-width: 34em; }
+.page-v3 .v3-hero.has-photo .v3-person { text-shadow: 0 1px 2px rgba(0,0,0,.25); }
+@media (max-width: 639px) {
+  /* Phone: one-line top bar (seasonal line or nothing, plus the phone) so the H1 sits higher. */
+  .page-v3 .v3-top__hours { display: none; }
+  .page-v3 .v3-top__in { flex-wrap: nowrap; }
+  .page-v3 .v3-top__season { font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .page-v3 .v3-top:not(.has-season) .v3-top__in { justify-content: flex-end; }
+  /* Three proof items stay in one row; four go 2 x 2 (the base grid). */
+  .page-v3 .v3-proof__list--n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 8px; }
+  .page-v3 .v3-proof__list--n3 .v3-proof__big { font-size: 1.2rem; }
+  .page-v3 .v3-proof__list--n3 .v3-proof__small { font-size: 0.82rem; }
+}
 @media (min-width: 640px) {
   .page-v3 .v3-wrap { padding-left: 20px; padding-right: 20px; }
   .page-v3 .v3-actions .v3-btn { flex: 0 0 auto; }
@@ -1460,6 +1474,11 @@ body.page-v3 {
   .page-v3 .v3-gmap { height: 380px; }
   .page-v3 .v3-band, .page-v3 .v3-closing { padding: 60px 0; }
   .page-v3 .v3-cards, .page-v3 .v3-work, .page-v3 .v3-reviews { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  /* No orphan card: 4 go 2 x 2, 5 go 3 + 2 centered. */
+  .page-v3 .v3-cards.v3-cards--n4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .page-v3 .v3-cards.v3-cards--n5 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .page-v3 .v3-cards.v3-cards--n5 > li { grid-column: span 2; }
+  .page-v3 .v3-cards.v3-cards--n5 > li:nth-child(4) { grid-column: 2 / span 2; }
   .page-v3 .v3-owner.has-photo, .page-v3 .v3-area.has-map { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 40px; }
   .page-v3 .v3-closing__in { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 40px; }
   .page-v3 .v3-closing__in.is-noform { grid-template-columns: 1fr; }

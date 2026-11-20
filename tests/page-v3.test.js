@@ -197,12 +197,16 @@ await test("hero: owner photo + review card → review card alone → estimate f
 // ── Proof ────────────────────────────────────────────────────────────────
 
 await test("proof strip: 2–4 items, hidden under 2", () => {
-  assert.equal(count(render(fixture("arno")).blocks["{{BLOCK_PROOF}}"], /<li>/g), 3);
+  // Rating and hours built in code, plus the review-backed time phrase.
+  const arno = render(fixture("arno")).blocks["{{BLOCK_PROOF}}"];
+  assert.equal(count(arno, /<li>/g), 3);
+  assert.match(arno, /Next morning<\/span><span class="v3-proof__small">in 3 reviews/);
   assert.equal(render(fixture("c-ryan")).blocks["{{BLOCK_PROOF}}"], "", "C Ryan has none");
-  const one = clone(fixture("arno")); one.page_copy_v3.proof = one.page_copy_v3.proof.slice(0, 1);
-  assert.equal(render(one).blocks["{{BLOCK_PROOF}}"], "");
+  const one = clone(fixture("arno")); one.page_copy_v3.proof = []; one.fact_sheet.business.hours = [];
+  assert.equal(render(one).blocks["{{BLOCK_PROOF}}"], "", "rating alone is under 2");
   const five = clone(fixture("arno"));
-  five.page_copy_v3.proof.push({ value: "A", label: "a", evidence: ["g"] }, { value: "B", label: "b", evidence: ["g"] });
+  five.fact_sheet.owner.license_number = "12345"; five.fact_sheet.owner.years_in_business = 20;
+  five.page_copy_v3.proof.push({ value: "Same day", label: "x", evidence: ["r1", "r2"] });
   assert.equal(count(render(five).blocks["{{BLOCK_PROOF}}"], /<li>/g), 4);
 });
 
@@ -329,7 +333,7 @@ await test("FAQ: trade questions + facts + evidence-backed copy, with FAQPage sc
   assert.ok(count(render(none).blocks["{{BLOCK_FAQ}}"], /<details/g) >= 4, "the bank still fills the section");
 });
 
-await test("LocalBusiness schema: confirmed towns only, Google rating we display", () => {
+await test("LocalBusiness schema: confirmed towns only, no aggregateRating", () => {
   const { html } = render(fixture("arno"));
   const lb = jsonLd(html).find(j => j["@type"] === "Plumber");
   assert.equal(lb.name, "Arno Plumbing & Heating");
@@ -337,7 +341,7 @@ await test("LocalBusiness schema: confirmed towns only, Google rating we display
   assert.equal(lb.address.streetAddress, "3 Kendall St");
   assert.equal(lb.address.postalCode, "02760");
   assert.deepEqual(lb.areaServed.map(a => a.name), ["North Attleborough, MA"]);
-  assert.deepEqual(lb.aggregateRating, { "@type": "AggregateRating", ratingValue: 4.6, reviewCount: 22, bestRating: 5 });
+  assert.equal(lb.aggregateRating, undefined, "Google's rules: don't aggregate ratings from other sites");
   assert.equal(lb.openingHoursSpecification[0].opens, "08:00");
   assert.equal(lb.openingHoursSpecification[0].dayOfWeek.length, 7);
   const cr = localBusinessSchemaV3(factsFor(fixture("c-ryan")), { canonical: "x", rawProfile: fixture("c-ryan") });

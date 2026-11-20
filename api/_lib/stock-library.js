@@ -41,7 +41,7 @@ export const TAG_ALT = Object.freeze({
   "painting/cabinets": "Painted kitchen cabinets", "painting/commercial": "A painted office", "painting/deck-stain": "A stained deck",
   "painting/exterior": "A freshly painted house", "painting/interior": "A freshly painted room", "painting/trim": "Painted trim",
   "plumbing/bathroom": "A bathroom", "plumbing/boiler": "Heating pipes", "plumbing/drain": "A drain", "plumbing/fixtures": "A bathroom faucet",
-  "plumbing/kitchen-sink": "A kitchen sink", "plumbing/pipes": "Copper pipes",
+  "plumbing/kitchen-sink": "A kitchen sink", "plumbing/pipes": "Copper pipes", "plumbing/water-heater": "A water heater",
   "snow/driveway": "A snowy driveway", "snow/parking-lot": "A plowed lot", "snow/plow": "A snow plow", "snow/salt": "A winter road",
   "snow/shovel": "A cleared sidewalk", "snow/winter-house": "A house in the snow",
 });
@@ -70,7 +70,11 @@ const CROSS = [
   [/hot tub|spa|generator|inlet/i, "electrical/panel"],
   [/mini ?split|hvac/i, "hvac/mini-split"],
   [/tick|weed|restor|seed|aerat/i, "landscaping/lawn"],
-  [/water heater|hot water|tank/i, "plumbing/fixtures"],
+  // Water heaters: their own tag once photos are approved; until then the
+  // utility-room shots, never a bathroom vanity (plumbing/fixtures).
+  [/water heater|hot water|tank/i, "plumbing/water-heater"],
+  [/water heater|hot water|tank/i, "plumbing/boiler"],
+  [/water heater|hot water|tank/i, "plumbing/pipes"],
   [/root|sewer|drain|clog/i, "plumbing/kitchen-sink"],
   [/leak|pipe/i, "plumbing/pipes"],
 ];
