@@ -122,4 +122,15 @@ await test("wiring: page_not_ready keeps its reasons; parked statuses aren't re-
   assert.match(text, /"excluded_franchise"/);
 });
 
+await test("wiring: follow-ups and parked v3 drafts respect franchises and OUTREACH_STATES (Codex review)", () => {
+  for (const fn of ["async function sendFollowUpsOnce", "async function sendSecondFollowUpsOnce"]) {
+    const f = slice(fn, 3500);
+    assert.match(f, /prospects\(id, business_name, email, preview_url, status, trade, state, website\)/, fn);
+    assert.match(f, /const excluded = outreachExclusion\(p\);\n    if \(excluded\) \{ skip\(excluded\); continue; \}/, fn);
+  }
+  const fin = slice("async function finishV3Drafts", 4000);
+  assert.match(fin, /if \(states\) rowsQuery = rowsQuery\.in\("state", states\);/);
+  assert.ok(fin.indexOf("rowsQuery.in(") < fin.indexOf("generateDraftCopy"), "filtered before any draft");
+});
+
 console.log(`\n${passed} passed`);

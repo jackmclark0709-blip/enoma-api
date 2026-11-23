@@ -54,7 +54,7 @@ import {
 import { buildBrandKit, saveBrandKit } from "./_lib/brand-kit.js";
 import { buildFactSheet, saveFactSheet } from "./_lib/fact-sheet.js";
 import { outreachReadiness, dailyV3Max } from "./_lib/page-v3.js";
-import { isFranchiseDealer, parseStateAllowlist, stateQueryValues } from "./_lib/prospect-filters.js";
+import { isFranchiseDealer, outreachExclusion, parseStateAllowlist, stateQueryValues } from "./_lib/prospect-filters.js";
 import { noteBuildFailure, noteNotReady } from "./_lib/build-errors.js";
 import { ownerDestination, ownerPageUrl, ensureOwnerToken, isPageV2, pageV2Fields, ownerTokenMatches } from "./_lib/owner-link.js";
 import { waitUntil } from "@vercel/functions";
@@ -738,9 +738,13 @@ async function v3BuildsLeftToday() {
 async function finishV3Drafts({ limit = 5, deadline = Date.now() + 20000, v3 = true } = {}) {
   const out = [];
   const stamp = () => new Date().toISOString();
-  const { data: rows, error } = await supabase.from("prospects")
+  // OUTREACH_STATES: pages from other states wait here, undrafted (no AI call).
+  const states = stateQueryValues(parseStateAllowlist(process.env.OUTREACH_STATES));
+  let rowsQuery = supabase.from("prospects")
     .select("id, business_name, trade, city, state, email, website, site_gaps, raw, preview_url, preview_business_id, updated_at")
-    .eq("status", "preview_building").order("updated_at", { ascending: true }).limit(limit);
+    .eq("status", "preview_building");
+  if (states) rowsQuery = rowsQuery.in("state", states);
+  const { data: rows, error } = await rowsQuery.order("updated_at", { ascending: true }).limit(limit);
   if (error) { console.warn("v3 finish: query failed:", error.message); return out; }
   const load = async (id) => (await supabase.from("small_business_profiles").select("*").eq("business_id", id).maybeSingle()).data;
   for (const p of rows || []) {
@@ -2538,7 +2542,7 @@ async function sendFollowUpsOnce({ maxSends, captureReplies }) {
   if (!maxSends) return { sent: 0, results };
   const now = Date.now();
   const { data: rows, error } = await supabase.from("outreach_messages")
-    .select("id, sent_at, draft_subject, followup_sent_at, response_status, variant, prospects(id, business_name, email, preview_url, status, trade)")
+    .select("id, sent_at, draft_subject, followup_sent_at, response_status, variant, prospects(id, business_name, email, preview_url, status, trade, state, website)")
     .eq("channel", "email").eq("status", "sent")
     .is("followup_sent_at", null).is("response_status", null)
     .gte("sent_at", new Date(now - FOLLOW_UP_MAX_AGE_DAYS * 864e5).toISOString())
@@ -2560,6 +2564,9 @@ async function sendFollowUpsOnce({ maxSends, captureReplies }) {
     if (p.status !== "sent") { skip(`prospect_${p.status}`); continue; }
     const { data: suppressed } = await supabase.from("suppression_list").select("id").eq("email", p.email).maybeSingle();
     if (suppressed) { skip("suppressed"); continue; }
+    // Franchise dealers and OUTREACH_STATES apply to follow-ups too.
+    const excluded = outreachExclusion(p);
+    if (excluded) { skip(excluded); continue; }
     if (!exampleNoPage) {
       const { data: page } = await supabase.from("small_business_profiles")
         .select("is_public, is_claimed").eq("username", slug).maybeSingle();
@@ -2616,7 +2623,7 @@ async function sendSecondFollowUpsOnce({ maxSends, captureReplies }) {
   if (!maxSends) return { sent: 0, results };
   const now = Date.now();
   const { data: rows, error } = await supabase.from("outreach_messages")
-    .select("id, sent_at, draft_subject, followup_sent_at, followup2_sent_at, response_status, preview_visited_at, variant, prospects(id, business_name, email, preview_url, status, trade)")
+    .select("id, sent_at, draft_subject, followup_sent_at, followup2_sent_at, response_status, preview_visited_at, variant, prospects(id, business_name, email, preview_url, status, trade, state, website)")
     .eq("channel", "email").eq("status", "sent")
     .not("followup_sent_at", "is", null).is("followup2_sent_at", null)
     .is("response_status", null).is("preview_visited_at", null)
@@ -2642,6 +2649,9 @@ async function sendSecondFollowUpsOnce({ maxSends, captureReplies }) {
     if (FOLLOW_UP_2_SKIP_PROSPECT_STATUSES.includes(p.status) || p.status !== "sent") { skip(`prospect_${p.status}`); continue; }
     const { data: suppressed } = await supabase.from("suppression_list").select("id").eq("email", p.email).maybeSingle();
     if (suppressed) { skip("suppressed"); continue; }
+    // Franchise dealers and OUTREACH_STATES apply to follow-ups too.
+    const excluded = outreachExclusion(p);
+    if (excluded) { skip(excluded); continue; }
     if (!exampleNoPage) {
       const { data: page } = await supabase.from("small_business_profiles")
         .select("is_public, is_claimed").eq("username", slug).maybeSingle();
