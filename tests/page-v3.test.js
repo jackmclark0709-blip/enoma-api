@@ -418,3 +418,7 @@ await test("a service card can use one of the owner's own work photos (named in 
 });
 
 console.log(`\n${passed} passed`);
+
+// The page fixes from the Nov 20 example-page audit run with this file, so
+// npm test picks them up without another entry in package.json.
+await import("./page-fixes.test.js");
