@@ -54,6 +54,8 @@ import {
 import { buildBrandKit, saveBrandKit } from "./_lib/brand-kit.js";
 import { buildFactSheet, saveFactSheet } from "./_lib/fact-sheet.js";
 import { outreachReadiness, dailyV3Max } from "./_lib/page-v3.js";
+import { isFranchiseDealer, parseStateAllowlist, stateQueryValues } from "./_lib/prospect-filters.js";
+import { noteBuildFailure, noteNotReady } from "./_lib/build-errors.js";
 import { ownerDestination, ownerPageUrl, ensureOwnerToken, isPageV2, pageV2Fields, ownerTokenMatches } from "./_lib/owner-link.js";
 import { waitUntil } from "@vercel/functions";
 import { generateLaunchKit, takeCreationBuild } from "./_lib/launch-kit-render.js";
@@ -775,7 +777,9 @@ async function finishV3Drafts({ limit = 5, deadline = Date.now() + 20000, v3 = t
       }
       const r = outreachReadiness(prof, prof.brand_kit || null);
       if (!r.ok) {
-        await supabase.from("prospects").update({ status: "page_not_ready", updated_at: stamp() }).eq("id", p.id);
+        // The reasons are kept on the prospect (raw.enoma_ready) so a parked
+        // page says why without re-running the check.
+        await supabase.from("prospects").update({ status: "page_not_ready", raw: noteNotReady(p.raw, r.reasons), updated_at: stamp() }).eq("id", p.id);
         out.push({ business_name: p.business_name, preview_url: p.preview_url, ready: false, reason: "page_not_ready", reasons: r.reasons });
         continue;
       }
@@ -1976,7 +1980,7 @@ async function draftAllOnce({ limit = 8, force = false, deadline } = {}) {
     // with nothing honest to pitch — that verdict holds regardless of
     // force, it isn't a "haven't gotten to it yet" state like the others.
     .neq("status", "reviewed");
-  if (!force) q = q.not("status", "in", "(drafted,sending,approved,sent,invalid_email,claimed,needs_preview,verify_retry,no_preview,preview_building,page_not_ready,preview_removed,removed_by_owner)");
+  if (!force) q = q.not("status", "in", "(drafted,sending,approved,sent,invalid_email,claimed,needs_preview,verify_retry,no_preview,preview_building,page_not_ready,preview_removed,removed_by_owner,excluded_franchise)");
   q = q.order("updated_at", { ascending: true }).limit(cappedLimit);
 
   const { data: prospects, error } = await q;
@@ -2122,11 +2126,16 @@ async function prepareOutreachOnce({ limit = PREPARE_MAX_PER_RUN, deadline = Dat
   let v3Left = v3PipelineOn() ? await v3BuildsLeftToday() : Infinity;
 
   const retryBefore = new Date(Date.now() - VERIFY_RETRY_AFTER_MS).toISOString();
-  const { data: prospects, error } = await supabase
+  let prospectQuery = supabase
     .from("prospects")
     .select("id, business_name, trade, city, state, phone, address, email, website, site_gaps, preview_url, google_place_id, raw, status, draft_subject, draft_body, mailbox_status, mailbox_verified_at")
     .not("email", "is", null)
-    .or(`status.eq.needs_preview,and(status.eq.verify_retry,updated_at.lt.${retryBefore})`)
+    .or(`status.eq.needs_preview,and(status.eq.verify_retry,updated_at.lt.${retryBefore})`);
+  // OUTREACH_STATES (e.g. "MA,RI,CT"): only those states are prepared. Others
+  // keep their status and are picked up if the list widens. Unset: all states.
+  const stateValues = stateQueryValues(parseStateAllowlist(process.env.OUTREACH_STATES));
+  if (stateValues) prospectQuery = prospectQuery.in("state", stateValues);
+  const { data: prospects, error } = await prospectQuery
     .order("updated_at", { ascending: true })
     .limit(Math.min(limit || PREPARE_MAX_PER_RUN, PREPARE_MAX_PER_RUN));
   if (error) throw error;
@@ -2151,6 +2160,11 @@ async function prepareOutreachOnce({ limit = PREPARE_MAX_PER_RUN, deadline = Dat
       const { data: suppressed } = await supabase
         .from("suppression_list").select("id").eq("email", prospect.email).maybeSingle();
       if (suppressed) return fail(prospect, "invalid_email", "suppressed");
+
+      // Franchise dealers (prospect-filters.js): the brand owns the website,
+      // so there's nothing for the owner to buy. Checked before any paid step.
+      // (Out-of-area prospects never get here: the query filters by state.)
+      if (isFranchiseDealer(prospect)) return fail(prospect, "excluded_franchise", "franchise_dealer");
 
       // Addresses found before the crawler's quality filter (classifyEmail)
       // existed may be mis-parsed, off-site or role mailboxes: skip, don't guess.
@@ -2238,7 +2252,27 @@ async function prepareOutreachOnce({ limit = PREPARE_MAX_PER_RUN, deadline = Dat
 
   // 3-4. Page + draft, only for verified prospects, while there's time.
   t = Date.now();
-  const built = await mapWithConcurrency(toBuild, BUILD_CONCURRENCY, async ({ prospect, place, homeHtml, mailbox }) => {
+  // v3 builds run one at a time: several page builds at once ran into
+  // failures (Nov 20-23: most second and third builds in a run failed).
+  // Failures are recorded on the prospect (buildFailed) and give their daily
+  // slot back.
+  const buildFailed = async (p, err, { claimedV3, mailbox }) => {
+    const note = noteBuildFailure(p.raw, err);
+    const patch = { raw: note.raw, updated_at: stamp() };
+    if (claimedV3) patch.v3_queued_at = null;   // the slot goes back to today's cap
+    if (note.giveUp) patch.status = "no_preview";
+    console.warn(`prepare: page build failed for ${p.id} (attempt ${note.attempts}): ${note.message}`);
+    const { error: noteErr } = await supabase.from("prospects").update(patch).eq("id", p.id);
+    if (noteErr) {
+      console.warn(`prepare: could not record the build failure for ${p.id}: ${noteErr.message}`);
+      return errored(p, err, { verified: true, mailbox });
+    }
+    results.push({ business_name: p.business_name, email: p.email, mailbox, ready: false, verified: true, error: note.message, attempts: note.attempts, gave_up: note.giveUp });
+    return null;
+  };
+  const buildConcurrency = v3PipelineOn() ? 1 : BUILD_CONCURRENCY;
+  const built = await mapWithConcurrency(toBuild, buildConcurrency, async ({ prospect, place, homeHtml, mailbox }) => {
+    let claimedV3 = false;
     try {
       // Example arm (OUTREACH_EXAMPLE_SHARE, api/_lib/example-pages.js): no
       // page now. The email shows the trade's example page and their own
@@ -2267,11 +2301,17 @@ async function prepareOutreachOnce({ limit = PREPARE_MAX_PER_RUN, deadline = Dat
         const { data: claimed } = await supabase.from("prospects").update({ v3_queued_at: stamp() })
           .eq("id", prospect.id).or(`v3_queued_at.is.null,v3_queued_at.lt.${today.toISOString()}`).select("id");
         if (!claimed?.length) { results.push({ business_name: prospect.business_name, ready: false, verified: true, reason: "v3_claimed_elsewhere" }); return false; }
+        claimedV3 = true;
       }
       if (!preview_url) {
         const gen = await generatePreviewForProspect(prospect, { place, homeHtml });
         preview_url = gen.preview_url || null;
-        if (!preview_url) return fail(prospect, "no_preview", `no_preview_${gen.skipped || "failed"}`, { verified: true });
+        if (!preview_url) {
+          // Skipped by the page's own gate (no phone, too few reviews): no
+          // page was built, so the day's slot goes back too.
+          if (claimedV3) await supabase.from("prospects").update({ v3_queued_at: null }).eq("id", prospect.id);
+          return fail(prospect, "no_preview", `no_preview_${gen.skipped || "failed"}`, { verified: true });
+        }
       }
       if (v3PipelineOn()) {
         // The v3 copy is written in the background; the next prepare run
@@ -2287,7 +2327,7 @@ async function prepareOutreachOnce({ limit = PREPARE_MAX_PER_RUN, deadline = Dat
       results.push({ business_name: prospect.business_name, email: prospect.email, mailbox, preview_url, subject: draft.subject, verified: true, ready: true });
       return true;
     } catch (err) {
-      return errored(prospect, err, { verified: true });
+      return buildFailed(prospect, err, { claimedV3, mailbox });
     }
   }, { shouldStart: timeLeft });
   timings.build_and_draft = Date.now() - t;
@@ -2699,9 +2739,14 @@ async function handleSendOutreach(req, res) {
   // shows the trade's example and builds theirs on click). Checked below.
   // outreach_arm comes from migration 20261120_outreach_variant_example; read
   // without it until that's applied (then nobody is in the example arm).
-  const draftedQuery = (cols) => supabase.from("prospects").select(cols)
-    .eq("status", "drafted").not("email", "is", null)
-    .order("updated_at", { ascending: true }).limit(limit);
+  // OUTREACH_STATES: drafts from other states stay drafted, unsent.
+  const sendStates = stateQueryValues(parseStateAllowlist(process.env.OUTREACH_STATES));
+  const draftedQuery = (cols) => {
+    let q = supabase.from("prospects").select(cols)
+      .eq("status", "drafted").not("email", "is", null);
+    if (sendStates) q = q.in("state", sendStates);
+    return q.order("updated_at", { ascending: true }).limit(limit);
+  };
   const DRAFTED_COLS = "id, business_name, trade, city, state, email, website, site_gaps, raw, draft_subject, draft_body, preview_url";
   let { data: prospects, error } = limit > 0 ? await draftedQuery(`${DRAFTED_COLS}, outreach_arm`) : { data: [], error: null };
   if (error && /outreach_arm/.test(error.message || "")) ({ data: prospects, error } = await draftedQuery(DRAFTED_COLS));
@@ -2784,6 +2829,12 @@ async function handleSendOutreach(req, res) {
       results.push({ business_name: prospect.business_name, email: prospect.email, sent: false, reason: "suppressed" });
       continue;
     }
+    // Drafted before the franchise filter existed (prospect-filters.js).
+    if (isFranchiseDealer(prospect)) {
+      await supabase.from("prospects").update({ status: "excluded_franchise", updated_at: new Date().toISOString() }).eq("id", prospect.id);
+      results.push({ business_name: prospect.business_name, email: prospect.email, sent: false, reason: "franchise_dealer" });
+      continue;
+    }
     // With v3 previews on, the page is checked again right before the send:
     // drafts made before the switch (v2 pages) and pages that changed since
     // drafting wait at page_not_ready instead of going out.
@@ -2791,7 +2842,7 @@ async function handleSendOutreach(req, res) {
       const { data: page } = await supabase.from("small_business_profiles").select("*").eq("username", slug).maybeSingle();
       const ready = page ? outreachReadiness(page, page.brand_kit || null) : { ok: false, reasons: ["no_page"] };
       if (!ready.ok) {
-        await supabase.from("prospects").update({ status: "page_not_ready", updated_at: new Date().toISOString() }).eq("id", prospect.id);
+        await supabase.from("prospects").update({ status: "page_not_ready", raw: noteNotReady(prospect.raw, ready.reasons), updated_at: new Date().toISOString() }).eq("id", prospect.id);
         results.push({ business_name: prospect.business_name, email: prospect.email, sent: false, reason: "page_not_ready", reasons: ready.reasons });
         continue;
       }
