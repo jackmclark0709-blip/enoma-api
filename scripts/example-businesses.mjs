@@ -2,7 +2,9 @@
 // (api/_lib/example-pages.js; built by scripts/build-example-pages.mjs).
 // Names, phone numbers (555-01xx, reserved for fiction) and reviews are
 // invented, and every page says so in its banner. Copy follows the v3 rules:
-// each line traces to a sample review (r1-r3) or the sample listing (g).
+// each line traces to a sample review (r1-r6) or the sample listing (g).
+// Six reviews each, so the review grid still has cards after the pull quote
+// and the hero card's review are taken out.
 
 const HOURS_WEEK = ["Monday: 7:00 AM – 5:00 PM", "Tuesday: 7:00 AM – 5:00 PM", "Wednesday: 7:00 AM – 5:00 PM", "Thursday: 7:00 AM – 5:00 PM", "Friday: 7:00 AM – 5:00 PM", "Saturday: 8:00 AM – 12:00 PM", "Sunday: Closed"];
 
@@ -15,6 +17,9 @@ const SPECS = [
       ["Karen M.", "Dave and his crew redid our front beds and walkway this spring. They showed up when they said they would, cleaned up every day and the yard looks better than it has in twenty years."],
       ["Steve P.", "We use Birchline for weekly mowing and the fall cleanup. Dave texts the day before, the crew is quick and careful around the gardens, and the price has been fair from day one."],
       ["Lisa R.", "Called about a patio and Dave came out the same week to measure. The stone patio was finished in four days and he walked us through everything before he left."],
+      ["Tom H.", "Birchline has done our mowing for three seasons. Always on time, the edges are sharp and they never leave clippings on the walk."],
+      ["Priya S.", "Dave's crew put in new garden beds along the driveway. They talked us through the plants that would do well in the shade and the beds look great a year later."],
+      ["Carl W.", "Fall cleanup done in one morning. The crew showed up on time, hauled everything away and even cleared the gutters over the porch."],
     ],
     copy: {
       eyebrow: "Landscaper in Mansfield, MA",
@@ -25,7 +30,7 @@ const SPECS = [
       proof: [
         { value: "4.9 ★", label: "41 Google reviews", evidence: ["g"] },
         { value: "14 years", label: "in business", evidence: ["g"] },
-        { value: "Same week", label: "for an estimate, customers say", evidence: ["r3"] },
+        { value: "On time", label: "customers say", evidence: ["r4", "r6"] },
       ],
       services: [
         { name: "Lawn mowing and care", description: "Weekly mowing with a text the day before, careful around your gardens.", evidence: ["r2"], stock_subject: "freshly mowed lawn stripes" },
@@ -49,6 +54,9 @@ const SPECS = [
       ["Janet D.", "Our water heater started leaking on a Sunday morning. Mike called back within the hour, had a new one in by the afternoon and explained every charge before he started."],
       ["Tom W.", "Copperfield fixed a slow kitchen drain that two other companies couldn't. Mike found roots in the line, cleared it and showed us the camera footage."],
       ["Angela F.", "Had them replace our old boiler. Fair quote, clean work, and they came back a week later to check the pressure without us asking. Mike is the real deal."],
+      ["Rick M.", "No hot water on a Monday and Copperfield had a new water heater in the same day. Mike gave us two options and the price didn't change."],
+      ["Donna C.", "Mike found a slow leak behind our bathroom wall that was rotting the subfloor. He fixed it, showed us the damage and recommended someone for the drywall."],
+      ["Steve L.", "Our basement drain backed up during a storm. They came out that evening, cleared it and explained how to keep it from happening again."],
     ],
     copy: {
       eyebrow: "Plumber in Attleboro, MA",
@@ -59,7 +67,7 @@ const SPECS = [
       proof: [
         { value: "4.8 ★", label: "67 Google reviews", evidence: ["g"] },
         { value: "22 years", label: "in business", evidence: ["g"] },
-        { value: "Same day", label: "water heater swaps, customers say", evidence: ["r1"] },
+        { value: "Same day", label: "water heater swaps, customers say", evidence: ["r1", "r4"] },
       ],
       services: [
         { name: "Water heaters", description: "Leaking or out of hot water? Repairs and same-day replacements, priced before we start.", evidence: ["r1"], stock_subject: "water heater installation" },
@@ -83,6 +91,9 @@ const SPECS = [
       ["Paul K.", "Jess upgraded our old fuse box to a 200 amp panel. Licensed, on time, pulled the permit and passed inspection the first time. Highly recommend Brightwire."],
       ["Maria G.", "We had recessed lights and two ceiling fans put in. Jess was tidy, patched everything and even labeled the breakers for us."],
       ["Ron S.", "Outlet in the kitchen stopped working and started to smell. Brightwire came out that afternoon, found a burnt wire and fixed it safely. Great communication from Jess."],
+      ["Linda P.", "Jess added outlets and lighting to our finished basement. She explained the permit, worked around our schedule and left the place spotless."],
+      ["Mike D.", "Half the house lost power on a Friday. Brightwire came out the same day, found a failed breaker and replaced it. Fair price, no drama."],
+      ["Karen T.", "We needed an EV charger installed. Jess walked us through the panel capacity and had it done in one visit."],
     ],
     copy: {
       eyebrow: "Electrician in Taunton, MA",
@@ -93,7 +104,7 @@ const SPECS = [
       proof: [
         { value: "5.0 ★", label: "33 Google reviews", evidence: ["g"] },
         { value: "Licensed", label: "permits pulled for you", evidence: ["r1"] },
-        { value: "Same afternoon", label: "for urgent repairs, customers say", evidence: ["r3"] },
+        { value: "Same day", label: "for urgent repairs, customers say", evidence: ["r3", "r5"] },
       ],
       services: [
         { name: "Panel upgrades", description: "Old fuse boxes replaced with a modern panel, permit and inspection handled.", evidence: ["r1"], stock_subject: "electrical panel" },
@@ -116,6 +127,9 @@ const SPECS = [
       ["Diane L.", "Our furnace quit on the coldest night of the year. Chris got back to us that evening and had the heat running by morning. Honest and reasonably priced."],
       ["Greg H.", "Hearthside installed ductless mini splits upstairs. The bedrooms are finally comfortable in July, and Chris showed us how to use the remotes and clean the filters."],
       ["Beth A.", "We have them do the yearly tune-up on our system. Always on time, they explain what they checked, and no pushy upselling. Chris is great."],
+      ["Paul R.", "AC died in a July heat wave. Hearthside had a tech here the next morning and we were cool again by lunch."],
+      ["Maureen K.", "Chris replaced our 25-year-old furnace. He gave us three options with honest pros and cons and the install crew was neat and quick."],
+      ["Dan F.", "Called on a Saturday about a strange noise from the boiler. Chris talked me through it on the phone and came by Monday to fix it."],
     ],
     copy: {
       eyebrow: "Heating and cooling in Franklin, MA",
@@ -126,7 +140,7 @@ const SPECS = [
       proof: [
         { value: "4.9 ★", label: "58 Google reviews", evidence: ["g"] },
         { value: "17 years", label: "in business", evidence: ["g"] },
-        { value: "Next morning", label: "heat back on, customers say", evidence: ["r1"] },
+        { value: "Next morning", label: "heat back on, customers say", evidence: ["r1", "r4"] },
       ],
       services: [
         { name: "Furnace and heating repair", description: "No heat? We call back fast and get the system running again.", evidence: ["r1"], stock_subject: "thermostat" },
@@ -149,6 +163,9 @@ const SPECS = [
       ["Joe B.", "Ridgecap replaced our whole roof in two days. Nate gave us a clear written quote, the crew used tarps to protect the gardens and the magnet sweep picked up every nail."],
       ["Sandra T.", "We had a leak around the chimney after a storm. Nate came out the next day, found the bad flashing and fixed it for much less than we expected."],
       ["Kevin O.", "Second roof we've had Ridgecap do. Nate helped us with the insurance paperwork after the hail and the new roof looks fantastic."],
+      ["Gina F.", "New roof in 2 days, and the crew ran a magnet over the whole yard for nails. Nate checked in with us at the end of each day."],
+      ["Ed M.", "Nate replaced the flashing around our skylight that two other roofers missed. No more drip in the kitchen."],
+      ["Rose H.", "Honest quote, no pressure. Nate told us the roof had a few more years in it and just fixed the problem spots."],
     ],
     copy: {
       eyebrow: "Roofer in Plymouth, MA",
@@ -159,7 +176,7 @@ const SPECS = [
       proof: [
         { value: "4.8 ★", label: "46 Google reviews", evidence: ["g"] },
         { value: "19 years", label: "in business", evidence: ["g"] },
-        { value: "2 days", label: "for a full roof, customers say", evidence: ["r1"] },
+        { value: "2 days", label: "for a full roof, customers say", evidence: ["r1", "r4"] },
       ],
       services: [
         { name: "Roof replacement", description: "Full tear-offs and new roofs, quoted in writing and finished fast.", evidence: ["r1"], stock_subject: "roof shingles" },
@@ -182,6 +199,9 @@ const SPECS = [
       ["Rachel B.", "Trueline painted the inside of our whole house while we were living in it. Ana's crew covered everything, kept the cat in mind and the lines are perfect."],
       ["Mark V.", "We had the exterior done, including scraping and priming the old trim. Ana gave us a detailed quote and they finished a day early."],
       ["Holly C.", "Ana painted our kitchen cabinets white and they look brand new. Smooth finish, no brush marks, and the crew was so respectful of our home."],
+      ["Jeff S.", "Trueline repainted our living room and hallway. They started on time every morning and the lines along the ceiling are perfect."],
+      ["Meg O.", "Ana helped us pick colors for the whole outside of the house. The crew was careful with our plants and finished on time."],
+      ["Liz D.", "Our deck and railings were peeling badly. Trueline scraped, primed and stained everything and it still looks new after a winter."],
     ],
     copy: {
       eyebrow: "Painter in Walpole, MA",
@@ -192,7 +212,7 @@ const SPECS = [
       proof: [
         { value: "4.9 ★", label: "39 Google reviews", evidence: ["g"] },
         { value: "11 years", label: "in business", evidence: ["g"] },
-        { value: "A day early", label: "on an exterior job, customers say", evidence: ["r2"] },
+        { value: "On time", label: "customers say", evidence: ["r4", "r5"] },
       ],
       services: [
         { name: "Interior painting", description: "Whole rooms or whole houses, with furniture and floors covered while you live there.", evidence: ["r1"], stock_subject: "interior painting" },
@@ -215,6 +235,9 @@ const SPECS = [
       ["Emily W.", "Rosa and her team clean our house every other week and it's the best part of the month. They're thorough, trustworthy and always leave the kitchen sparkling."],
       ["Jim T.", "Booked a move-out clean on short notice. Sparrow Lane fit us in two days later and we got our full deposit back. Thank you Rosa!"],
       ["Nicole P.", "Same two cleaners every visit, they remember what we like and they're great with our dogs. Rosa is easy to reach by text."],
+      ["Sam B.", "Needed a deep clean before family came for the holidays. Rosa fit us in 2 days later and the kitchen has never looked better."],
+      ["Alicia M.", "Sparrow Lane cleans our place every two weeks. They use the products we asked for and never miss a spot in the bathrooms."],
+      ["Hank J.", "Used them for my mom's apartment before she moved. Thorough, friendly and very reasonable."],
     ],
     copy: {
       eyebrow: "House cleaning in Bridgewater, MA",
@@ -225,7 +248,7 @@ const SPECS = [
       proof: [
         { value: "5.0 ★", label: "52 Google reviews", evidence: ["g"] },
         { value: "Same team", label: "every visit, customers say", evidence: ["r3"] },
-        { value: "2 days", label: "notice for a move-out clean", evidence: ["r2"] },
+        { value: "2 days", label: "notice for a move-out clean", evidence: ["r2", "r4"] },
       ],
       services: [
         { name: "Recurring cleaning", description: "Weekly or every-other-week cleans from the same people, who remember what you like.", evidence: ["r1", "r3"], stock_subject: "clean living room" },
@@ -248,6 +271,9 @@ const SPECS = [
       ["Laura N.", "Oakbeam remodeled our kitchen top to bottom. Matt kept us updated every day, stayed on budget and the cabinets and counters came out beautiful."],
       ["Brian E.", "Built us a new deck with stairs down to the yard. Solid work, permit handled, and Matt's crew cleaned up every night."],
       ["Susan G.", "We hired Matt for a bathroom and ended up having him do the mudroom too. Honest, careful, and the schedule he gave us was the schedule we got."],
+      ["Tony R.", "Matt finished our bathroom remodel on time, even with a back-ordered vanity. The tile work is beautiful."],
+      ["Kelly W.", "Oakbeam built our mudroom bench and cubbies from a sketch on a napkin. Matt's crew cleaned up every day."],
+      ["Frank P.", "Second project with Oakbeam. Clear written estimate, on time, and Matt answers his phone."],
     ],
     copy: {
       eyebrow: "General contractor in Easton, MA",
@@ -258,7 +284,7 @@ const SPECS = [
       proof: [
         { value: "4.9 ★", label: "28 Google reviews", evidence: ["g"] },
         { value: "16 years", label: "in business", evidence: ["g"] },
-        { value: "On budget", label: "on a full kitchen, customers say", evidence: ["r1"] },
+        { value: "On time", label: "customers say", evidence: ["r4", "r6"] },
       ],
       services: [
         { name: "Kitchen remodels", description: "Cabinets, counters and layout, with daily updates and a budget we stick to.", evidence: ["r1"], stock_subject: "kitchen remodel" },
@@ -281,7 +307,7 @@ const idFor = i => `00000000-0000-4000-8000-0000000ex${String(i).padStart(3, "0"
 export function exampleProfiles() {
   return SPECS.map((s, i) => {
     const address = `${s.town}, MA`;
-    const reviews = s.reviews.map(([author, text], j) => ({ id: `r${j + 1}`, author, rating: 5, relative_time: ["2 months ago", "5 months ago", "a year ago"][j], text }));
+    const reviews = s.reviews.map(([author, text], j) => ({ id: `r${j + 1}`, author, rating: 5, relative_time: ["2 months ago", "5 months ago", "a year ago", "3 weeks ago", "8 months ago", "2 years ago"][j] || "a year ago", text }));
     return {
       key: s.key,
       profile: {

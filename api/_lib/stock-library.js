@@ -77,6 +77,9 @@ const CROSS = [
   [/water heater|hot water|tank/i, "plumbing/pipes"],
   [/root|sewer|drain|clog/i, "plumbing/kitchen-sink"],
   [/leak|pipe/i, "plumbing/pipes"],
+  // A remodeler's "Bathrooms" card showed a roof (the contractor library has
+  // no bathroom tag, so it fell back to a general photo).
+  [/bath|shower|vanity/i, "plumbing/bathroom"],
 ];
 
 const byKey = new Map();

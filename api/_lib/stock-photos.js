@@ -96,7 +96,7 @@ export const STOCK_QUERIES = Object.freeze({
   ],
   contractor: [
     { tag: "framing", query: "house framing construction", match: /contract|construct|build|framing|addition/ },
-    { tag: "kitchen-remodel", query: "kitchen remodel", match: /kitchen|remodel|renovat/ },
+    { tag: "kitchen-remodel", query: "kitchen remodel", match: /kitchen|^(?!.*bath).*(?:remodel|renovat)/ },   // "Bathroom remodels" → a bathroom (stock-library CROSS), not a kitchen
     { tag: "roof", query: "new roof shingles", match: /roof|shingle/ },
     { tag: "siding", query: "house siding exterior", match: /siding|exterior/ },
     { tag: "deck", query: "new wood deck", match: /deck|porch|carpent/ },
