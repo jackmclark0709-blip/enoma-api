@@ -2260,23 +2260,27 @@ async function prepareOutreachOnce({ limit = PREPARE_MAX_PER_RUN, deadline = Dat
   // failures (Nov 20-23: most second and third builds in a run failed).
   // Failures are recorded on the prospect (buildFailed) and give their daily
   // slot back.
-  const buildFailed = async (p, err, { claimedV3, mailbox }) => {
+  // pageReady: the page exists and only the email draft failed. That keeps
+  // its slot and is never parked, so the next run retries the draft.
+  const buildFailed = async (p, err, { claimedV3, mailbox, pageReady = false }) => {
     const note = noteBuildFailure(p.raw, err);
+    const giveUp = note.giveUp && !pageReady;
     const patch = { raw: note.raw, updated_at: stamp() };
-    if (claimedV3) patch.v3_queued_at = null;   // the slot goes back to today's cap
-    if (note.giveUp) patch.status = "no_preview";
+    if (claimedV3 && !pageReady) patch.v3_queued_at = null;   // the slot goes back to today's cap
+    if (giveUp) patch.status = "no_preview";
     console.warn(`prepare: page build failed for ${p.id} (attempt ${note.attempts}): ${note.message}`);
     const { error: noteErr } = await supabase.from("prospects").update(patch).eq("id", p.id);
     if (noteErr) {
       console.warn(`prepare: could not record the build failure for ${p.id}: ${noteErr.message}`);
       return errored(p, err, { verified: true, mailbox });
     }
-    results.push({ business_name: p.business_name, email: p.email, mailbox, ready: false, verified: true, error: note.message, attempts: note.attempts, gave_up: note.giveUp });
+    results.push({ business_name: p.business_name, email: p.email, mailbox, ready: false, verified: true, error: note.message, attempts: note.attempts, gave_up: giveUp, page_ready: pageReady });
     return null;
   };
   const buildConcurrency = v3PipelineOn() ? 1 : BUILD_CONCURRENCY;
   const built = await mapWithConcurrency(toBuild, buildConcurrency, async ({ prospect, place, homeHtml, mailbox }) => {
     let claimedV3 = false;
+    let pageReady = false;
     try {
       // Example arm (OUTREACH_EXAMPLE_SHARE, api/_lib/example-pages.js): no
       // page now. The email shows the trade's example page and their own
@@ -2317,6 +2321,7 @@ async function prepareOutreachOnce({ limit = PREPARE_MAX_PER_RUN, deadline = Dat
           return fail(prospect, "no_preview", `no_preview_${gen.skipped || "failed"}`, { verified: true });
         }
       }
+      pageReady = true;
       if (v3PipelineOn()) {
         // The v3 copy is written in the background; the next prepare run
         // drafts the email once the page is on v3 and passes the floor.
@@ -2331,7 +2336,7 @@ async function prepareOutreachOnce({ limit = PREPARE_MAX_PER_RUN, deadline = Dat
       results.push({ business_name: prospect.business_name, email: prospect.email, mailbox, preview_url, subject: draft.subject, verified: true, ready: true });
       return true;
     } catch (err) {
-      return buildFailed(prospect, err, { claimedV3, mailbox });
+      return buildFailed(prospect, err, { claimedV3, mailbox, pageReady });
     }
   }, { shouldStart: timeLeft });
   timings.build_and_draft = Date.now() - t;

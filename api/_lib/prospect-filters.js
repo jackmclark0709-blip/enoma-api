@@ -42,7 +42,8 @@ export function isFranchiseDealer(prospect = {}) {
 
 const CODE_BY_NAME = Object.fromEntries(US_STATE_NAMES.map((n, i) => [n, US_STATE_ABBR[i].toUpperCase()]));
 const NAME_BY_CODE = Object.fromEntries(US_STATE_ABBR.map((c, i) => [c.toUpperCase(), US_STATE_NAMES[i]]));
-const titleCase = s => s.replace(/\b[a-z]/g, c => c.toUpperCase());
+// "district of columbia" -> "District of Columbia" (as stored on prospects).
+const titleCase = s => s.replace(/\b[a-z]/g, c => c.toUpperCase()).replace(/ Of /g, " of ");
 
 export function stateCodeOf(value) {
   const v = String(value || "").trim();

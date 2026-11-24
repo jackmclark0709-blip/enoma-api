@@ -99,12 +99,9 @@ await test("wiring: v3 builds run one at a time and failures give the slot back"
   const b = slice("const buildFailed = async", 9000);
   assert.match(b, /const buildConcurrency = v3PipelineOn\(\) \? 1 : BUILD_CONCURRENCY;/);
   assert.match(b, /mapWithConcurrency\(toBuild, buildConcurrency,/);
-  assert.match(b, /if \(claimedV3\) patch\.v3_queued_at = null;/);
-  assert.match(b, /if \(note\.giveUp\) patch\.status = "no_preview";/);
-  assert.match(b, /console\.warn\(`prepare: page build failed/);
+      assert.match(b, /console\.warn\(`prepare: page build failed/);
   assert.match(b, /claimedV3 = true;/);
-  assert.match(b, /return buildFailed\(prospect, err, \{ claimedV3, mailbox \}\);/);
-  assert.match(b, /if \(claimedV3\) await supabase\.from\("prospects"\)\.update\(\{ v3_queued_at: null \}\)/);
+    assert.match(b, /if \(claimedV3\) await supabase\.from\("prospects"\)\.update\(\{ v3_queued_at: null \}\)/);
 });
 
 await test("wiring: send holds out-of-area drafts and parks franchise drafts", () => {
@@ -131,6 +128,17 @@ await test("wiring: follow-ups and parked v3 drafts respect franchises and OUTRE
   const fin = slice("async function finishV3Drafts", 4000);
   assert.match(fin, /if \(states\) rowsQuery = rowsQuery\.in\("state", states\);/);
   assert.ok(fin.indexOf("rowsQuery.in(") < fin.indexOf("generateDraftCopy"), "filtered before any draft");
+});
+
+await test("review 2: DC keeps its stored capitalization; a failed draft on a built page isn't parked", () => {
+  assert.deepEqual(stateQueryValues(parseStateAllowlist("DC")), ["DC", "District of Columbia"]);
+  const b = slice("const buildFailed = async", 9000);
+  assert.match(b, /const giveUp = note\.giveUp && !pageReady;/);
+  assert.match(b, /if \(claimedV3 && !pageReady\) patch\.v3_queued_at = null;/);
+  assert.match(b, /if \(giveUp\) patch\.status = "no_preview";/);
+  assert.ok(b.indexOf("pageReady = true;") > b.indexOf("generatePreviewForProspect(prospect"), "set once the page exists");
+  assert.ok(b.indexOf("pageReady = true;") < b.indexOf("generateDraftCopy("), "before the draft is written");
+  assert.match(b, /return buildFailed\(prospect, err, \{ claimedV3, mailbox, pageReady \}\);/);
 });
 
 console.log(`\n${passed} passed`);
