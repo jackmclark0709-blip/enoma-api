@@ -37,7 +37,11 @@ const STYLE = `<style id="example-page-style">
 .ex-banner{position:sticky;top:0;z-index:1000;background:#111827;color:#fff;font:500 14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;padding:10px 16px;text-align:center}
 .ex-banner strong{color:#ffe14d}
 .ex-banner a{color:#111827;background:#ffe14d;border-radius:999px;padding:5px 12px;margin-left:10px;font-weight:700;text-decoration:none;white-space:nowrap;display:inline-block}
-.ex-tag{display:block;width:max-content;max-width:calc(100% - 24px);margin:10px auto 6px;background:#ffe14d;color:#111827;font:700 12px/1.3 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;letter-spacing:.01em;padding:5px 11px;border-radius:999px;box-shadow:0 1px 4px rgba(0,0,0,.18);text-align:center}
+.ex-banner .ex-short{display:none}
+@media (max-width:640px){.ex-banner{padding:8px 12px;font-size:13px}.ex-banner .ex-long{display:none}.ex-banner .ex-short{display:inline}.ex-banner a{margin-left:8px;padding:4px 10px}}
+/* !important: the page's own rules (white hero text, gray area text) are
+   more specific than one class and turned the pill text white or gray. */
+.ex-tag{display:block;width:max-content;max-width:calc(100% - 24px);margin:10px auto 6px;background:#ffe14d!important;color:#111827!important;font:700 12px/1.3 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif!important;letter-spacing:.01em;text-transform:none!important;text-shadow:none!important;opacity:1!important;padding:5px 11px;border-radius:999px;box-shadow:0 1px 4px rgba(0,0,0,.18);text-align:center}
 .ex-tag::before{content:"\\270E  "}
 .ex-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;color:#fff;font:500 14px/1.4 system-ui,sans-serif;padding:12px 16px;border-radius:10px;z-index:1001;max-width:90vw;box-shadow:0 4px 18px rgba(0,0,0,.3)}
 .claim-box,#claimForm,#claimCodeForm,.v3-top{display:none!important}
@@ -58,7 +62,7 @@ export function decorateExample(html, entry) {
   // Canonical and robots: examples are for people, not search.
   out = out.replace(/<link rel="canonical" href="[^"]*"/, `<link rel="canonical" href="${esc(exampleUrl(entry))}"`);
   out = out.replace("</head>", `${STYLE}\n${SHIM}\n</head>`);
-  const banner = `<div class="ex-banner" role="note"><strong>Example page.</strong> ${esc(entry.business)} is a made-up business, and its reviews are samples. Yours is built from your own Google listing: your name, services, reviews and towns. <a href="https://enoma.io/get-your-website?ref=example-${esc(entry.key)}">Get yours free</a></div>`;
+  const banner = `<div class="ex-banner" role="note"><strong>Example page.</strong> <span class="ex-long">${esc(entry.business)} is a made-up business, and its reviews are samples. Yours is built from your own Google listing: your name, services, reviews and towns.</span><span class="ex-short">A made-up business.</span> <a href="https://enoma.io/get-your-website?ref=example-${esc(entry.key)}">Get yours free</a></div>`;
   out = out.replace(/(<body[^>]*>)/, `$1\n${banner}`);
   for (const [cls, text, where] of CALLOUTS) {
     const re = new RegExp(`(<[a-z0-9]+[^>]*class="${cls}(?:\\s[^"]*)?"[^>]*>)`);

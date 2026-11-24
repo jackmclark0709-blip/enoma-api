@@ -408,7 +408,11 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 .ex-banner{position:sticky;top:0;z-index:1000;background:#111827;color:#fff;font:500 14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;padding:10px 16px;text-align:center}
 .ex-banner strong{color:#ffe14d}
 .ex-banner a{color:#111827;background:#ffe14d;border-radius:999px;padding:5px 12px;margin-left:10px;font-weight:700;text-decoration:none;white-space:nowrap;display:inline-block}
-.ex-tag{display:block;width:max-content;max-width:calc(100% - 24px);margin:10px auto 6px;background:#ffe14d;color:#111827;font:700 12px/1.3 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;letter-spacing:.01em;padding:5px 11px;border-radius:999px;box-shadow:0 1px 4px rgba(0,0,0,.18);text-align:center}
+.ex-banner .ex-short{display:none}
+@media (max-width:640px){.ex-banner{padding:8px 12px;font-size:13px}.ex-banner .ex-long{display:none}.ex-banner .ex-short{display:inline}.ex-banner a{margin-left:8px;padding:4px 10px}}
+/* !important: the page's own rules (white hero text, gray area text) are
+   more specific than one class and turned the pill text white or gray. */
+.ex-tag{display:block;width:max-content;max-width:calc(100% - 24px);margin:10px auto 6px;background:#ffe14d!important;color:#111827!important;font:700 12px/1.3 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif!important;letter-spacing:.01em;text-transform:none!important;text-shadow:none!important;opacity:1!important;padding:5px 11px;border-radius:999px;box-shadow:0 1px 4px rgba(0,0,0,.18);text-align:center}
 .ex-tag::before{content:"\270E  "}
 .ex-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;color:#fff;font:500 14px/1.4 system-ui,sans-serif;padding:12px 16px;border-radius:10px;z-index:1001;max-width:90vw;box-shadow:0 4px 18px rgba(0,0,0,.3)}
 .claim-box,#claimForm,#claimCodeForm,.v3-top{display:none!important}
@@ -423,7 +427,7 @@ if(navigator.sendBeacon){navigator.sendBeacon=function(){return true}}
 </head>
 
 <body class="page-v3 persona-painting" id="top">
-<div class="ex-banner" role="note"><strong>Example page.</strong> Trueline Painting is a made-up business, and its reviews are samples. Yours is built from your own Google listing: your name, services, reviews and towns. <a href="https://enoma.io/get-your-website?ref=example-painting">Get yours free</a></div>
+<div class="ex-banner" role="note"><strong>Example page.</strong> <span class="ex-long">Trueline Painting is a made-up business, and its reviews are samples. Yours is built from your own Google listing: your name, services, reviews and towns.</span><span class="ex-short">A made-up business.</span> <a href="https://enoma.io/get-your-website?ref=example-painting">Get yours free</a></div>
 <script>window.__PROFILE__ = {"business_id":"00000000-0000-4000-8000-0000000e0006","username":"example-painting","business_name":"Trueline Painting","primary_category":"painting contractor","phone":"(508) 555-0196","logo_url":null,"brand_color":null,"is_claimed":false,"google_place_id":null,"address":"Walpole, MA","city":"Walpole","state":"MA","service_area":["Walpole","Norwood","Westwood","Medfield","Sharon"],"is_local_radius":true,"open_schedule":null,"before_after_images":[],"attachments":[],"hero_availability":null,"hero_response_time":null,"call_cta_label":"Call for a quote","services":[{"service_name":"Interior painting"},{"service_name":"Exterior painting"},{"service_name":"Cabinet painting"}],"average_rating":4.9,"testimonials":[],"images":null,"owner_blurb":null,"response_time":null,"license_number":null,"is_insured":null,"offers_free_estimates":null,"page_version":3,"owner_view":false};</script>
 
 <!-- UNCLAIMED PAGE BANNER -->
@@ -500,12 +504,12 @@ if(navigator.sendBeacon){navigator.sendBeacon=function(){return true}}
     </div>
     <div class="v3-hero__side"><figure class="v3-review v3-review--hero v3-review--big">
     <span class="v3-stars" role="img" aria-label="5 out of 5 stars">★★★★★</span>
-    <blockquote><p>“We had the exterior done, including scraping and priming the old trim. Ana gave us a detailed quote and they finished a day early.”</p></blockquote>
-    <figcaption>Mark V., Google review</figcaption>
+    <blockquote><p>“Ana helped us pick colors for the whole outside of the house. The crew was careful with our plants and finished on time.”</p></blockquote>
+    <figcaption>Meg O., Google review</figcaption>
   </figure></div>
   </div>
 </section><p class="ex-tag">Your rating, review count and years in business</p><section class="v3-proof" aria-label="At a glance">
-  <ul class="v3-wrap v3-proof__list v3-proof__list--n3"><li><span class="v3-proof__big">4.9 ★</span><span class="v3-proof__small">39 Google reviews</span></li><li><span class="v3-proof__big">11 years</span><span class="v3-proof__small">In business</span></li><li><span class="v3-proof__big">Saturdays</span><span class="v3-proof__small">Open on Saturdays</span></li></ul>
+  <ul class="v3-wrap v3-proof__list v3-proof__list--n3"><li><span class="v3-proof__big">4.9 ★</span><span class="v3-proof__small">39 Google reviews</span></li><li><span class="v3-proof__big">11 years</span><span class="v3-proof__small">In business</span></li><li><span class="v3-proof__big">On time</span><span class="v3-proof__small">in 2 reviews</span></li></ul>
 </section>
 
 
@@ -557,10 +561,14 @@ if(navigator.sendBeacon){navigator.sendBeacon=function(){return true}}
     </div>
     <figure class="v3-review v3-review--pull">
     <span class="v3-stars" role="img" aria-label="5 out of 5 stars">★★★★★</span>
-    <blockquote><p>“Trueline painted the inside of our whole house while we were living in it. Ana&#39;s crew covered everything, kept the cat in mind and the lines are perfect.”</p></blockquote>
-    <figcaption>Rachel B., Google review</figcaption>
+    <blockquote><p>“Trueline repainted our living room and hallway. They started on time every morning and the lines along the ceiling are perfect.”</p></blockquote>
+    <figcaption>Jeff S., Google review</figcaption>
   </figure>
     <p class="ex-tag">Your real Google reviews</p><div class="v3-reviews"><figure class="v3-review">
+      <span class="v3-stars" role="img" aria-label="5 out of 5 stars">★★★★★</span>
+      <blockquote><p>“Trueline painted the inside of our whole house while we were living in it. Ana&#39;s crew covered everything, kept the cat in mind and the lines are perfect.”</p></blockquote>
+      <figcaption>Rachel B.</figcaption>
+    </figure><figure class="v3-review">
       <span class="v3-stars" role="img" aria-label="5 out of 5 stars">★★★★★</span>
       <blockquote><p>“We had the exterior done, including scraping and priming the old trim. Ana gave us a detailed quote and they finished a day early.”</p></blockquote>
       <figcaption>Mark V.</figcaption>
@@ -584,9 +592,9 @@ if(navigator.sendBeacon){navigator.sendBeacon=function(){return true}}
   </div>
 </section>
 <section class="v3-band" id="faqs" aria-labelledby="faqHeading">
-  <div class="v3-wrap v3-wrap--narrow">
-    <h2 id="faqHeading" class="v3-h2">Common questions</h2>
-    <details class="v3-faq" open><summary>How long does it take to paint a room?</summary><p>A typical bedroom often takes about a day, including prep, two coats and cleanup. Repairs, high ceilings, trim and big color changes add time. You&#39;ll get a timeline with your estimate.</p></details><details class="v3-faq"><summary>Can you paint while we&#39;re living in the house?</summary><p>Yes. We cover and protect everything and work around your day.</p></details><details class="v3-faq"><summary>How do I get an estimate?</summary><p>Call or text us at (508) 555-0196, or fill out the form on this page with a few details about the job, and we&#39;ll get back to you.</p></details><details class="v3-faq"><summary>What towns do you serve?</summary><p>We&#39;re based in Walpole and work in Norwood, Westwood, Medfield and Sharon. Not sure we cover your town? Text us at (508) 555-0196 and we&#39;ll let you know.</p></details><details class="v3-faq"><summary>What&#39;s the best time of year to paint a house exterior?</summary><p>Late spring through early fall, on dry days when temperatures stay above about 50°F (the paint label has the exact limit). Fresh paint needs a few dry hours before rain or heavy dew.</p></details><details class="v3-faq"><summary>Do you prep the old trim before painting?</summary><p>Yes. We scrape and prime first, so the paint lasts.</p></details>
+  <div class="v3-wrap">
+    <div class="v3-head"><h2 id="faqHeading" class="v3-h2">Common questions</h2></div>
+    <div class="v3-faqs"><details class="v3-faq" open><summary>How long does it take to paint a room?</summary><p>A typical bedroom often takes about a day, including prep, two coats and cleanup. Repairs, high ceilings, trim and big color changes add time. You&#39;ll get a timeline with your estimate.</p></details><details class="v3-faq"><summary>Can you paint while we&#39;re living in the house?</summary><p>Yes. We cover and protect everything and work around your day.</p></details><details class="v3-faq"><summary>How do I get an estimate?</summary><p>Call or text us at (508) 555-0196, or fill out the form on this page with a few details about the job, and we&#39;ll get back to you.</p></details><details class="v3-faq"><summary>What towns do you serve?</summary><p>We&#39;re based in Walpole and work in Norwood, Westwood, Medfield and Sharon. Not sure we cover your town? Text us at (508) 555-0196 and we&#39;ll let you know.</p></details><details class="v3-faq"><summary>What&#39;s the best time of year to paint a house exterior?</summary><p>Late spring through early fall, on dry days when temperatures stay above about 50°F (the paint label has the exact limit). Fresh paint needs a few dry hours before rain or heavy dew.</p></details><details class="v3-faq"><summary>Do you prep the old trim before painting?</summary><p>Yes. We scrape and prime first, so the paint lasts.</p></details></div>
   </div>
 </section>
 

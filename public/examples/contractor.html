@@ -408,7 +408,11 @@ a, button { transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s
 .ex-banner{position:sticky;top:0;z-index:1000;background:#111827;color:#fff;font:500 14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;padding:10px 16px;text-align:center}
 .ex-banner strong{color:#ffe14d}
 .ex-banner a{color:#111827;background:#ffe14d;border-radius:999px;padding:5px 12px;margin-left:10px;font-weight:700;text-decoration:none;white-space:nowrap;display:inline-block}
-.ex-tag{display:block;width:max-content;max-width:calc(100% - 24px);margin:10px auto 6px;background:#ffe14d;color:#111827;font:700 12px/1.3 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;letter-spacing:.01em;padding:5px 11px;border-radius:999px;box-shadow:0 1px 4px rgba(0,0,0,.18);text-align:center}
+.ex-banner .ex-short{display:none}
+@media (max-width:640px){.ex-banner{padding:8px 12px;font-size:13px}.ex-banner .ex-long{display:none}.ex-banner .ex-short{display:inline}.ex-banner a{margin-left:8px;padding:4px 10px}}
+/* !important: the page's own rules (white hero text, gray area text) are
+   more specific than one class and turned the pill text white or gray. */
+.ex-tag{display:block;width:max-content;max-width:calc(100% - 24px);margin:10px auto 6px;background:#ffe14d!important;color:#111827!important;font:700 12px/1.3 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif!important;letter-spacing:.01em;text-transform:none!important;text-shadow:none!important;opacity:1!important;padding:5px 11px;border-radius:999px;box-shadow:0 1px 4px rgba(0,0,0,.18);text-align:center}
 .ex-tag::before{content:"\270E  "}
 .ex-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;color:#fff;font:500 14px/1.4 system-ui,sans-serif;padding:12px 16px;border-radius:10px;z-index:1001;max-width:90vw;box-shadow:0 4px 18px rgba(0,0,0,.3)}
 .claim-box,#claimForm,#claimCodeForm,.v3-top{display:none!important}
@@ -423,7 +427,7 @@ if(navigator.sendBeacon){navigator.sendBeacon=function(){return true}}
 </head>
 
 <body class="page-v3 persona-contractor" id="top">
-<div class="ex-banner" role="note"><strong>Example page.</strong> Oakbeam Builders is a made-up business, and its reviews are samples. Yours is built from your own Google listing: your name, services, reviews and towns. <a href="https://enoma.io/get-your-website?ref=example-contractor">Get yours free</a></div>
+<div class="ex-banner" role="note"><strong>Example page.</strong> <span class="ex-long">Oakbeam Builders is a made-up business, and its reviews are samples. Yours is built from your own Google listing: your name, services, reviews and towns.</span><span class="ex-short">A made-up business.</span> <a href="https://enoma.io/get-your-website?ref=example-contractor">Get yours free</a></div>
 <script>window.__PROFILE__ = {"business_id":"00000000-0000-4000-8000-0000000e0008","username":"example-contractor","business_name":"Oakbeam Builders","primary_category":"general contractor","phone":"(508) 555-0127","logo_url":null,"brand_color":null,"is_claimed":false,"google_place_id":null,"address":"Easton, MA","city":"Easton","state":"MA","service_area":["Easton","Stoughton","Brockton","Sharon","Canton"],"is_local_radius":true,"open_schedule":null,"before_after_images":[],"attachments":[],"hero_availability":null,"hero_response_time":null,"call_cta_label":"Call for a quote","services":[{"service_name":"Kitchen remodels"},{"service_name":"Bathrooms and mudrooms"},{"service_name":"Decks"}],"average_rating":4.9,"testimonials":[],"images":null,"owner_blurb":null,"response_time":null,"license_number":null,"is_insured":null,"offers_free_estimates":null,"page_version":3,"owner_view":false};</script>
 
 <!-- UNCLAIMED PAGE BANNER -->
@@ -505,7 +509,7 @@ if(navigator.sendBeacon){navigator.sendBeacon=function(){return true}}
   </figure></div>
   </div>
 </section><p class="ex-tag">Your rating, review count and years in business</p><section class="v3-proof" aria-label="At a glance">
-  <ul class="v3-wrap v3-proof__list v3-proof__list--n3"><li><span class="v3-proof__big">4.9 ★</span><span class="v3-proof__small">28 Google reviews</span></li><li><span class="v3-proof__big">16 years</span><span class="v3-proof__small">In business</span></li><li><span class="v3-proof__big">Saturdays</span><span class="v3-proof__small">Open on Saturdays</span></li></ul>
+  <ul class="v3-wrap v3-proof__list v3-proof__list--n3"><li><span class="v3-proof__big">4.9 ★</span><span class="v3-proof__small">28 Google reviews</span></li><li><span class="v3-proof__big">16 years</span><span class="v3-proof__small">In business</span></li><li><span class="v3-proof__big">On time</span><span class="v3-proof__small">in 2 reviews</span></li></ul>
 </section>
 
 
@@ -521,7 +525,7 @@ if(navigator.sendBeacon){navigator.sendBeacon=function(){return true}}
         <a class="v3-card__go" href="#quote?service=kitchen-remodels" data-service-quote="kitchen-remodels">Get an estimate <span aria-hidden="true">→</span></a>
       </div>
     </li><li class="v3-card">
-      <figure class="v3-card__media" data-v3-media><img data-v3-img src="/stock/rmIPODeK8WM-800.webp" srcset="/stock/rmIPODeK8WM-800.webp 800w, /stock/rmIPODeK8WM-1600.webp 1600w" sizes="(min-width: 900px) 380px, 100vw" alt="Bathrooms and mudrooms" loading="lazy" decoding="async" /></figure>
+      <figure class="v3-card__media" data-v3-media><img data-v3-img src="/stock/VCUbsNJdZpQ-800.webp" srcset="/stock/VCUbsNJdZpQ-800.webp 800w, /stock/VCUbsNJdZpQ-1600.webp 1600w" sizes="(min-width: 900px) 380px, 100vw" alt="A bathroom" loading="lazy" decoding="async" /></figure>
       <div class="v3-card__body">
         <h3 class="v3-card__h">Bathrooms and mudrooms</h3>
         <p class="v3-card__p">Bathroom and mudroom remodels finished on the schedule we give you.</p>
@@ -562,12 +566,16 @@ if(navigator.sendBeacon){navigator.sendBeacon=function(){return true}}
   </figure>
     <p class="ex-tag">Your real Google reviews</p><div class="v3-reviews"><figure class="v3-review">
       <span class="v3-stars" role="img" aria-label="5 out of 5 stars">★★★★★</span>
-      <blockquote><p>“Built us a new deck with stairs down to the yard. Solid work, permit handled, and Matt&#39;s crew cleaned up every night.”</p></blockquote>
-      <figcaption>Brian E.</figcaption>
-    </figure><figure class="v3-review">
-      <span class="v3-stars" role="img" aria-label="5 out of 5 stars">★★★★★</span>
       <blockquote><p>“We hired Matt for a bathroom and ended up having him do the mudroom too. Honest, careful, and the schedule he gave us was the schedule we got.”</p></blockquote>
       <figcaption>Susan G.</figcaption>
+    </figure><figure class="v3-review">
+      <span class="v3-stars" role="img" aria-label="5 out of 5 stars">★★★★★</span>
+      <blockquote><p>“Matt finished our bathroom remodel on time, even with a back-ordered vanity. The tile work is beautiful.”</p></blockquote>
+      <figcaption>Tony R.</figcaption>
+    </figure><figure class="v3-review">
+      <span class="v3-stars" role="img" aria-label="5 out of 5 stars">★★★★★</span>
+      <blockquote><p>“Oakbeam built our mudroom bench and cubbies from a sketch on a napkin. Matt&#39;s crew cleaned up every day.”</p></blockquote>
+      <figcaption>Kelly W.</figcaption>
     </figure></div>
   </div>
 </section>
@@ -584,9 +592,9 @@ if(navigator.sendBeacon){navigator.sendBeacon=function(){return true}}
   </div>
 </section>
 <section class="v3-band" id="faqs" aria-labelledby="faqHeading">
-  <div class="v3-wrap v3-wrap--narrow">
-    <h2 id="faqHeading" class="v3-h2">Common questions</h2>
-    <details class="v3-faq" open><summary>Should I build my deck with wood or composite?</summary><p>Pressure-treated wood costs less up front but needs staining or sealing every few years. Composite costs more but needs little upkeep beyond cleaning.</p></details><details class="v3-faq"><summary>Will you keep me updated during the job?</summary><p>Yes. You&#39;ll hear from us every day while we&#39;re working.</p></details><details class="v3-faq"><summary>How do I get an estimate?</summary><p>Call or text us at (508) 555-0127, or fill out the form on this page with a few details about the job, and we&#39;ll get back to you.</p></details><details class="v3-faq"><summary>What towns do you serve?</summary><p>We&#39;re based in Easton and work in Stoughton, Brockton, Sharon and Canton. Not sure we cover your town? Text us at (508) 555-0127 and we&#39;ll let you know.</p></details><details class="v3-faq"><summary>Do I need a permit for my project?</summary><p>Many projects need a building permit, depending on the work and your town&#39;s rules. It&#39;s a good question to ask when you get your estimate.</p></details><details class="v3-faq"><summary>Do you handle permits?</summary><p>Yes, for the work that needs one.</p></details>
+  <div class="v3-wrap">
+    <div class="v3-head"><h2 id="faqHeading" class="v3-h2">Common questions</h2></div>
+    <div class="v3-faqs"><details class="v3-faq" open><summary>Should I build my deck with wood or composite?</summary><p>Pressure-treated wood costs less up front but needs staining or sealing every few years. Composite costs more but needs little upkeep beyond cleaning.</p></details><details class="v3-faq"><summary>Will you keep me updated during the job?</summary><p>Yes. You&#39;ll hear from us every day while we&#39;re working.</p></details><details class="v3-faq"><summary>How do I get an estimate?</summary><p>Call or text us at (508) 555-0127, or fill out the form on this page with a few details about the job, and we&#39;ll get back to you.</p></details><details class="v3-faq"><summary>What towns do you serve?</summary><p>We&#39;re based in Easton and work in Stoughton, Brockton, Sharon and Canton. Not sure we cover your town? Text us at (508) 555-0127 and we&#39;ll let you know.</p></details><details class="v3-faq"><summary>Do I need a permit for my project?</summary><p>Many projects need a building permit, depending on the work and your town&#39;s rules. It&#39;s a good question to ask when you get your estimate.</p></details><details class="v3-faq"><summary>Do you handle permits?</summary><p>Yes, for the work that needs one.</p></details></div>
   </div>
 </section>
 

@@ -9,7 +9,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import {
-  isPageV3, factsFor, copyFor, seasonalLine, heroMode, heroReview, pullQuote, pickServiceStock, summarizeHours, reviewExcerpt,
+  isPageV3, factsFor, copyFor, seasonalLine, heroMode, heroReview, heroReviewShown, pullQuote, pickServiceStock, summarizeHours, reviewExcerpt,
   stockTagFor, v3PageParts, localBusinessSchemaV3, areaMapSvg, estimateLabelV3, STOCK_MAX_BUSINESSES,
 } from "../api/_lib/page-v3.js";
 import { renderBlocks, renderCompanyPage, clientProfile, CONTACT_SECTION } from "../api/_lib/company-page.js";
@@ -290,11 +290,13 @@ await test("reviews: rating + count + Read all on Google; pull quote only with 3
   assert.equal(count(r, /v3-review--pull/g), 1);
   const reviews = factsFor(fixture("arno")).reviews;
   assert.notEqual(heroReview(reviews), pullQuote(reviews), "hero card and pull quote are different reviews");
-  assert.equal(count(r, /<figure class="v3-review">/g), 2, "the other two as cards");
+  const heroShown = heroReviewShown(factsFor(fixture("arno")));
+  assert.equal(count(r, /<figure class="v3-review">/g), heroShown ? 1 : 2, "the rest as cards, minus the hero card's review");
+  if (heroShown) assert.ok(!r.includes(heroShown.quote.slice(0, 40)), "the hero card's review isn't repeated in the grid");
   const one = clone(fixture("arno")); one.fact_sheet.reviews = one.fact_sheet.reviews.slice(0, 1);
   const r1 = render(one).blocks["{{BLOCK_REVIEWS}}"];
   assert.doesNotMatch(r1, /v3-review--pull/);
-  assert.equal(count(r1, /<figure class="v3-review">/g), 1);
+  assert.equal(count(r1, /<figure class="v3-review">/g), heroReviewShown(factsFor(one)) ? 0 : 1);
   assert.equal(pullQuote(factsFor(one).reviews), null);
   assert.equal(render(fixture("c-ryan")).blocks["{{BLOCK_REVIEWS}}"], "", "no reviews, no rating: no section");
   const low = clone(fixture("arno")); low.fact_sheet.reviews[0].rating = 2;
@@ -416,3 +418,7 @@ await test("a service card can use one of the owner's own work photos (named in 
 });
 
 console.log(`\n${passed} passed`);
+
+// The page fixes from the Nov 20 example-page audit run with this file, so
+// npm test picks them up without another entry in package.json.
+await import("./page-fixes.test.js");

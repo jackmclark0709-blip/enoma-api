@@ -355,11 +355,15 @@ export function proofItemsV3(fs = {}, facts = null, aiProof = []) {
   if (facts?.license?.number) out.push({ big: facts.is_insured ? "Licensed & insured" : "Licensed", small: [facts.license.state, `#${str(facts.license.number).replace(/^#/, "")}`].filter(Boolean).join(" ") });
   else if (facts?.is_insured) out.push({ big: "Insured", small: "Fully insured" });
   const hours = list(b.hours).map(String);
+  // "Open on Saturdays" is the weakest stat (and showed on every example
+  // page): it goes after the review-backed ones, and only fills a row that
+  // would otherwise have fewer than 3.
+  let saturdays = null;
   if (hours.length === 7) {
     const open = hours.filter(h => !/closed/i.test(h));
     if (hours.every(h => /open 24 hours/i.test(h))) out.push({ big: "24/7", small: "Open around the clock" });
     else if (open.length === 7) out.push({ big: "7 days", small: "Open every day" });
-    else if (open.some(h => /^saturday/i.test(h))) out.push({ big: "Saturdays", small: "Open on Saturdays" });
+    else if (open.some(h => /^saturday/i.test(h))) saturdays = { big: "Saturdays", small: "Open on Saturdays" };
   }
   for (const x of list(aiProof)) {
     const ev = list(x?.evidence).map(str);
@@ -373,6 +377,7 @@ export function proofItemsV3(fs = {}, facts = null, aiProof = []) {
       out.push({ big: value.replace(/^(\w)/, c => c.toUpperCase()), small: `in ${reviews.size} reviews` });
     }
   }
+  if (saturdays && out.length < 3) out.push(saturdays);
   return out.slice(0, MAX_PROOF);
 }
 
@@ -646,6 +651,11 @@ export function heroReview(reviews) {
   return [...(pool.length ? pool : reviews)].sort((a, b) => (b.strength - a.strength) || (a.quote.length - b.quote.length))[0];
 }
 
+/** The review the hero actually shows: none when the hero holds the form. */
+export function heroReviewShown(facts) {
+  return heroMode(facts) === "form" ? null : heroReview(facts.reviews);
+}
+
 /** "Russ B., Google review" / "Julie S." */
 function reviewWho(r, facts) {
   return `${r.author}${facts.google.place_id || facts.google.count ? ", Google review" : ""}`;
@@ -786,7 +796,11 @@ function reviewsBlock(facts, copy) {
   if (!facts.reviews.length && !showRating) return "";
   const maps = googleMapsUrl({ business_name: facts.name, google_place_id: g.place_id });
   const pull = pullQuote(facts.reviews);
-  const rest = facts.reviews.filter(r => r !== pull);
+  // The hero card's review isn't repeated in the grid below it.
+  const hero = heroReviewShown(facts);
+  const others = facts.reviews.filter(r => r !== pull && r !== hero);
+  // Full rows of three on desktop: 4 cards left one alone on a second row.
+  const rest = others.length > 3 ? others.slice(0, others.length - (others.length % 3)) : others;
   const n = showRating ? Math.round(g.rating) : 0;
   return `<section class="v3-band" id="reviews" aria-labelledby="reviewsHeading">
   <div class="v3-wrap">
@@ -917,9 +931,9 @@ function areaBlock(facts, ctx) {
 function faqBlock(copy) {
   if (!copy.faqs.length) return "";
   return `<section class="v3-band" id="faqs" aria-labelledby="faqHeading">
-  <div class="v3-wrap v3-wrap--narrow">
-    <h2 id="faqHeading" class="v3-h2">Common questions</h2>
-    ${copy.faqs.map((f, i) => `<details class="v3-faq"${i === 0 ? " open" : ""}><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join("")}
+  <div class="v3-wrap">
+    <div class="v3-head"><h2 id="faqHeading" class="v3-h2">Common questions</h2></div>
+    <div class="v3-faqs">${copy.faqs.map((f, i) => `<details class="v3-faq"${i === 0 ? " open" : ""}><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join("")}</div>
   </div>
 </section>`;
 }
