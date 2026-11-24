@@ -17,7 +17,7 @@ export const TEXT_REMIND_AFTER_DAYS = 2;
 
 // Prospect statuses that must never be texted.
 export const NEVER_TEXT_STATUSES = new Set([
-  "excluded_existing_customer", "excluded_wrong_category", "excluded_no_contact",
+  "excluded_existing_customer", "excluded_wrong_category", "excluded_no_contact", "excluded_franchise",
   "dedup_match", "skipped", "opted_out", "claimed", "customer",
 ]);
 
