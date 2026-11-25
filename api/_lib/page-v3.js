@@ -17,8 +17,8 @@
 // own, the hero and service cards show placeholders from Enoma's self-hosted
 // stock library (stock-library.js), labeled "Sample photo" on unclaimed
 // previews and never captioned as the business's work. No drawn scenes, no
-// "How it works" or boilerplate About. The area map is Google's free embed;
-// common questions come from faq-bank.js (facts + trade questions).
+// "How it works" or boilerplate About. The area map is drawn from Census
+// town coordinates (Google's free embed only as a fallback); common questions come from faq-bank.js (facts + trade questions).
 //
 // Pure: everything it needs (stock rows, town coordinates, spotlights) comes
 // in through ctx, so each section's show/hide rule is testable
@@ -863,8 +863,11 @@ function reviewsBlock(facts, copy) {
 }
 
 // ── Map ──────────────────────────────────────────────────────────────────
-// areaMapSvg (drawn from data/towns/<ST>.json) is kept for tests and the
-// share image; the page itself shows the embedded Google map (mapEmbed).
+// "Where we work" draws its own map from the Census town coordinates in
+// data/towns/<ST>.json: the home pin, a dot and label for every town served,
+// a soft shaded area around them, other towns as small gray dots for
+// context, and a scale bar. No tiles, no API calls, $0. When the home town
+// isn't in the data, the page falls back to Google's free embedded map.
 
 /** [name, st, lat, lon] rows → the row for a town (same state first). */
 export function findTown(coords, name, state) {
@@ -874,66 +877,155 @@ export function findTown(coords, name, state) {
   return rows.find(r => r[1] === state) || rows[0] || null;
 }
 
-const MAP_W = 440, MAP_H = 280, PAD = 40;
+const MI = 1 / 69;            // degrees of latitude per mile
+const AREA_MI = 3.5;          // shaded radius around each town served
+const MAX_MI = 60;            // served towns farther than this are left off the map
 const labelW = (t, size) => t.length * size * 0.56;
+const milesApart = (a, b) => {
+  const cos = Math.cos(((a[2] + b[2]) / 2) * Math.PI / 180);
+  return Math.hypot((a[3] - b[3]) * cos, a[2] - b[2]) / MI;
+};
+const r1 = n => Math.round(n * 10) / 10;
+
+/** Convex hull (monotone chain) of [x, y] points, counter-clockwise. */
+function convexHull(points) {
+  const pts = [...new Map(points.map(p => [`${p[0]},${p[1]}`, p])).values()].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  if (pts.length < 3) return pts;
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const half = list => {
+    const out = [];
+    for (const p of list) {
+      while (out.length >= 2 && cross(out[out.length - 2], out[out.length - 1], p) <= 0) out.pop();
+      out.push(p);
+    }
+    out.pop();
+    return out;
+  };
+  return [...half(pts), ...half([...pts].reverse())];
+}
 
 /**
- * The service-area map: home town marked, confirmed towns as labeled dots,
- * nearby towns faint ("for location only"). Returns "" without coordinates
- * for the home town.
+ * The service-area map (inline SVG). Returns "" without coordinates for the
+ * home town.
  */
-export function areaMapSvg(facts, coords, { name = "" } = {}) {
+export function areaMapSvg(facts, coords, { name = "", width: MAP_W = 460, height: MAP_H = 320, variant = "" } = {}) {
   const st = facts.address.state;
   const home = findTown(coords, facts.towns.home, st);
   if (!home) return "";
-  const confirmed = facts.towns.confirmed.filter(t => !sameTown(t, facts.towns.home)).map(t => ({ t, r: findTown(coords, t, st) })).filter(x => x.r);
-  const nearby = facts.towns.nearby.map(t => ({ t, r: findTown(coords, t, st) })).filter(x => x.r).slice(0, 8);
-  const all = [home, ...confirmed.map(x => x.r), ...nearby.map(x => x.r)];
+  const served = facts.towns.confirmed.filter(t => !sameTown(t, facts.towns.home))
+    .map(t => ({ t: cleanTown(t), r: findTown(coords, t, st) }))
+    .filter(x => x.r && milesApart(home, x.r) <= MAX_MI);
   const cos = Math.cos(home[2] * Math.PI / 180);
-  const xs = all.map(r => r[3] * cos), ys = all.map(r => r[2]);
-  let minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
-  // A lone town (or a tight cluster) still gets a ~10 mile frame.
-  const minSpan = 0.15;
+  const area = [home, ...served.map(x => x.r)];
+  const xs = area.map(r => r[3] * cos), ys = area.map(r => r[2]);
+  const pad = AREA_MI * MI * 1.15;
+  let minX = Math.min(...xs) - pad, maxX = Math.max(...xs) + pad, minY = Math.min(...ys) - pad, maxY = Math.max(...ys) + pad;
+  // A lone town (or a tight cluster) still gets a ~16 mile frame.
+  const minSpan = 16 * MI;
   if (maxX - minX < minSpan) { const c = (minX + maxX) / 2; minX = c - minSpan / 2; maxX = c + minSpan / 2; }
-  if (maxY - minY < minSpan) { const c = (minY + maxY) / 2; minY = c - minSpan / 2; maxY = c + minSpan / 2; }
-  const scale = Math.min((MAP_W - 2 * PAD - 80) / (maxX - minX), (MAP_H - 2 * PAD) / (maxY - minY));
+  if (maxY - minY < minSpan * 0.66) { const c = (minY + maxY) / 2; minY = c - minSpan * 0.33; maxY = c + minSpan * 0.33; }
+  const PX = 64, PY = 30;
+  const scale = Math.min((MAP_W - 2 * PX) / (maxX - minX), (MAP_H - 2 * PY) / (maxY - minY));
   const ox = (MAP_W - (maxX - minX) * scale) / 2, oy = (MAP_H - (maxY - minY) * scale) / 2;
-  const pt = r => [Math.round(ox + (r[3] * cos - minX) * scale), Math.round(oy + (maxY - r[2]) * scale)];
+  const pt = r => [r1(ox + (r[3] * cos - minX) * scale), r1(oy + (maxY - r[2]) * scale)];
+  const inside = ([x, y], m = 8) => x >= m && x <= MAP_W - m && y >= m && y <= MAP_H - m;
 
   const placed = [];
-  const fits = box => box.x >= 2 && box.x + box.w <= MAP_W - 2 && box.y >= 2 && box.y + box.h <= MAP_H - 2
+  const fits = box => box.x >= 4 && box.x + box.w <= MAP_W - 4 && box.y >= 4 && box.y + box.h <= MAP_H - 4
     && !placed.some(b => box.x < b.x + b.w && box.x + box.w > b.x && box.y < b.y + b.h && box.y + box.h > b.y);
-  const label = (text, [x, y], size, cls, r) => {
+  const label = (text, [x, y], size, cls, r, { up = 0 } = {}) => {
     const w = labelW(text, size), h = size + 2;
-    const tries = [[x + r + 4, y + size / 2 - 1, "start"], [x - r - 4 - w, y + size / 2 - 1, "end"], [x - w / 2, y - r - 4, "middle"], [x - w / 2, y + r + size + 2, "middle"]];
+    const cy = y - up;
+    const tries = [[x + r + 5, cy + size * 0.35, "start"], [x - r - 5, cy + size * 0.35, "end"], [x, y - up - r - 5, "middle"], [x, y + r + size + 1, "middle"]];
     for (const [tx, ty, anchor] of tries) {
-      const bx = anchor === "start" ? tx : anchor === "end" ? tx : tx;
-      const box = { x: bx, y: ty - size, w, h };
+      const left = anchor === "start" ? tx : anchor === "end" ? tx - w : tx - w / 2;
+      const box = { x: left, y: ty - size, w, h };
       if (!fits(box)) continue;
       placed.push(box);
-      const ax = anchor === "start" ? tx : anchor === "end" ? tx + w : tx + w / 2;
-      return `<text class="${cls}" x="${Math.round(ax)}" y="${Math.round(ty)}" text-anchor="${anchor}">${esc(text)}</text>`;
+      return `<text class="${cls}" x="${r1(tx)}" y="${r1(ty)}" text-anchor="${anchor}">${esc(text)}</text>`;
     }
     return "";
   };
 
+  // Marks first (labels must not cover them), then labels by priority. The
+  // bottom-left corner is kept for the scale bar.
+  const barBox = { x: 0, y: MAP_H - 30, w: 170, h: 30 };
+  placed.push(barBox);
   const hp = pt(home);
-  placed.push({ x: hp[0] - 11, y: hp[1] - 11, w: 22, h: 22 });
-  const homeLabel = label(cleanTown(facts.towns.home), hp, 17, "v3-map__home-label", 11);
-  const conf = confirmed.map(x => { const p = pt(x.r); placed.push({ x: p[0] - 6, y: p[1] - 6, w: 12, h: 12 }); return { x, p }; })
-    .map(({ x, p }) => `<circle class="v3-map__dot" cx="${p[0]}" cy="${p[1]}" r="6"></circle>${label(x.t, p, 15, "v3-map__label", 6)}`).join("");
-  const near = nearby.map(x => { const p = pt(x.r); return `<circle class="v3-map__faint" cx="${p[0]}" cy="${p[1]}" r="3.5"></circle>${label(x.t, p, 14, "v3-map__faint-label", 4)}`; }).join("");
-  const title = `Map of ${cleanTown(facts.towns.home)}${confirmed.length ? ` and the towns ${name || "we"} serve` : ""}`;
-  return `<svg class="v3-map" viewBox="0 0 ${MAP_W} ${MAP_H}" width="100%" role="img" aria-label="${esc(title)}">
+  placed.push({ x: hp[0] - 11, y: hp[1] - 30, w: 22, h: 31 });
+  const servedPts = served.map(x => ({ ...x, p: pt(x.r) }));
+  for (const { p } of servedPts) placed.push({ x: p[0] - 6, y: p[1] - 6, w: 12, h: 12 });
+
+  const homeLabel = label(cleanTown(facts.towns.home), hp, 18, "v3-map__home-label", 10, { up: 19 });
+  const servedLabels = servedPts.map(x => label(x.t, x.p, 15, "v3-map__label", 6)).join("");
+
+  // Context: other towns in the frame as small gray dots; a few labeled faintly.
+  const plotted = new Set([cleanTown(facts.towns.home), ...served.map(x => x.t)].map(t => t.toLowerCase()));
+  const nearbyNames = new Set(facts.towns.nearby.map(t => cleanTown(t).toLowerCase()));
+  const grid = new Set(area.map(r => pt(r)).map(([x, y]) => `${Math.round(x / 12)},${Math.round(y / 12)}`));
+  const context = [];
+  for (const r of Array.isArray(coords) ? coords : []) {
+    if (!Array.isArray(r) || plotted.has(String(r[0]).toLowerCase())) continue;
+    const p = pt(r);
+    if (!inside(p) || (p[0] < barBox.w && p[1] > barBox.y)) continue;
+    const key = `${Math.round(p[0] / 12)},${Math.round(p[1] / 12)}`;
+    if (grid.has(key)) continue;
+    grid.add(key);
+    context.push({ name: String(r[0]), p, nearby: nearbyNames.has(String(r[0]).toLowerCase()) });
+    if (context.length >= 90) break;
+  }
+  // Label up to 8 of them faintly: the suggested nearby towns first, then
+  // the closest to home. Labels that would collide are skipped.
+  for (const c of context) placed.push({ x: c.p[0] - 3, y: c.p[1] - 3, w: 6, h: 6 });
+  // Villages named after a town on the map ("North Plymouth") read like a
+  // town we serve, and "X Center" repeats its town, so they stay unlabeled.
+  const plottedWords = [...plotted].map(t => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i"));
+  const faintOrder = [...context].filter(c => !/\bCent(er|re)$/i.test(c.name) && !plottedWords.some(re => re.test(c.name))).sort((a, b) => (b.nearby - a.nearby) || (Math.hypot(a.p[0] - hp[0], a.p[1] - hp[1]) - Math.hypot(b.p[0] - hp[0], b.p[1] - hp[1])));
+  const contextLabels = [], labeled = new Set();
+  for (const c of faintOrder) {
+    if (contextLabels.length >= 8) break;
+    if (labeled.has(c.name.toLowerCase())) continue;
+    labeled.add(c.name.toLowerCase());
+    const l = label(c.name, c.p, 12, "v3-map__faint-label", 2.5);
+    if (l) contextLabels.push(l);
+  }
+  const contextDots = context.map(c => `<circle class="v3-map__ctx" cx="${c.p[0]}" cy="${c.p[1]}" r="2.5"></circle>`).join("");
+
+  // The shaded area: the convex hull of the towns, widened by AREA_MI on every
+  // side (a round-joined stroke of width 2r around the hull). One town is a
+  // circle, two a capsule. An outline layer sits under the fill layer.
+  const rad = AREA_MI * MI * scale;
+  const hull = convexHull([hp, ...servedPts.map(x => x.p)]);
+  const d = `M${hull.map(([x, y]) => `${x} ${y}`).join("L")}Z`;
+  const areaSvg = `<path class="v3-map__area-edge" d="${d}" stroke-width="${r1(2 * rad + 3)}"></path>`
+    + `<path class="v3-map__area" d="${d}" stroke-width="${r1(2 * rad)}"></path>`;
+
+  // Scale bar: a round number of miles about 70–110px long.
+  const pxPerMi = MI * scale;
+  const miles = [1, 2, 5, 10, 20, 25, 50].find(m => m * pxPerMi >= 60) || 50;
+  const barW = r1(miles * pxPerMi);
+  const bx = 14, by = MAP_H - 14;
+  const bar = `<g class="v3-map__scale"><path d="M${bx} ${by - 5}V${by}H${r1(bx + barW)}V${by - 5}"></path><text x="${r1(bx + barW + 6)}" y="${by}">${miles} mi</text></g>`;
+
+  const servedNames = served.map(x => x.t);
+  const title = servedNames.length
+    ? `Map of the area ${name || "we"} ${name ? "serves" : "serve"}: ${cleanTown(facts.towns.home)}, ${servedNames.join(", ")}`
+    : `Map of ${cleanTown(facts.towns.home)}`;
+  const pin = `<path class="v3-map__pin" d="M${hp[0]} ${hp[1]}c-2.5-6.5-10-11-10-18.5a10 10 0 1 1 20 0c0 7.5-7.5 12-10 18.5z"></path><circle class="v3-map__pin-dot" cx="${hp[0]}" cy="${r1(hp[1] - 18.5)}" r="3.8"></circle>`;
+  return `<svg class="v3-map${variant ? ` v3-map--${variant}` : ""}" viewBox="0 0 ${MAP_W} ${MAP_H}" width="100%" role="img" aria-label="${esc(title)}">
     <rect class="v3-map__bg" x="0" y="0" width="${MAP_W}" height="${MAP_H}" rx="10"></rect>
-    ${near}${conf}
-    <circle class="v3-map__home" cx="${hp[0]}" cy="${hp[1]}" r="10"></circle>${homeLabel}
+    ${areaSvg}${contextDots}
+    ${servedPts.map(x => `<circle class="v3-map__dot" cx="${x.p[0]}" cy="${x.p[1]}" r="6"></circle>`).join("")}
+    ${pin}
+    <g class="v3-map__labels">${homeLabel}${servedLabels}${contextLabels.join("")}</g>
+    ${bar}
   </svg>`;
 }
 
 // Google Maps Embed API: free, no usage limits (developers.google.com/maps/
 // documentation/embed/usage-and-billing). Same browser key as the v1 page
-// (public/scripts/profile.js); GOOGLE_MAPS_EMBED_KEY overrides it.
+// (public/scripts/profile.js); GOOGLE_MAPS_EMBED_KEY overrides it. Only used
+// when the drawn map can't find the home town.
 export const MAPS_EMBED_KEY = process.env.GOOGLE_MAPS_EMBED_KEY || "AIzaSyD2DZjVEIuq6luIvl-lVeOaxqd3BG2V7IA";
 
 /** The embedded Google map for the area section: the listing pin when we have a place id, else the town. "" with neither. */
@@ -948,23 +1040,38 @@ export function mapEmbed(facts) {
   return `<iframe class="v3-gmap" src="${esc(src)}" title="Map of ${esc(facts.name || town)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>`;
 }
 
+/** "Open in Google Maps": the listing when we have a place id, else a search for the home town. */
+export function mapsLink(facts) {
+  const listing = googleMapsUrl({ business_name: facts.name, google_place_id: facts.google.place_id });
+  if (listing) return listing;
+  const town = [facts.towns.home || facts.address.town, facts.address.state].filter(Boolean).join(", ");
+  return town ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(town)}` : null;
+}
+
 function areaBlock(facts, ctx) {
   const chips = facts.towns.confirmed.length ? facts.towns.confirmed : facts.towns.home ? [facts.towns.home] : [];
   if (!chips.length) return "";
-  const map = mapEmbed(facts);
-  const hasNearby = false;
+  // Two drawings of the same map: wide for desktop, squarer for phones so
+  // the labels stay readable at phone width (CSS shows one).
+  const wide = areaMapSvg(facts, ctx.townCoords, { name: facts.name, variant: "wide" });
+  const drawn = wide && wide + areaMapSvg(facts, ctx.townCoords, { name: facts.name, width: 340, height: 300, variant: "narrow" });
+  const embed = drawn ? "" : mapEmbed(facts);
+  const link = drawn ? mapsLink(facts) : null;
   const base = [facts.address.street, facts.towns.home || facts.address.town].filter(Boolean).join(" in ");
   const text = facts.texts_ok
     ? ` Live in a nearby town? <a href="${esc(smsHref(facts.phone))}" data-contact="sms">Text us your town</a> and we'll tell you if we can get there.`
     : facts.phone ? ` Live in a nearby town? <a href="${esc(telHref(facts.phone))}" data-contact="call">Call us</a> and we'll tell you if we can get there.` : "";
+  const figure = drawn
+    ? `<figure class="v3-area__map v3-area__map--drawn">${drawn}<figcaption><span class="v3-map__key"><i aria-hidden="true"></i>${facts.towns.confirmed.length > 1 ? "Towns we serve" : "Our area"}</span>${link ? `<a href="${esc(link)}" target="_blank" rel="noopener" data-maps-link="area">Open in Google Maps →</a>` : ""}</figcaption></figure>`
+    : embed ? `<figure class="v3-area__map v3-area__map--g">${embed}</figure>` : "";
   return `<section class="v3-band v3-band--tint" id="area" aria-labelledby="areaHeading">
-  <div class="v3-wrap v3-area${map ? " has-map" : ""}">
+  <div class="v3-wrap v3-area${figure ? " has-map" : ""}">
     <div class="v3-area__text">
       <h2 id="areaHeading" class="v3-h2">Where we work</h2>
       <p>${base ? `Based ${facts.address.street ? "on" : "in"} ${esc(base)}.` : ""}${text}</p>
       <ul class="v3-chips">${chips.map(t => `<li>${esc(t)}</li>`).join("")}</ul>
     </div>
-    ${map ? `<figure class="v3-area__map v3-area__map--g">${map}${hasNearby ? `<figcaption>Gray towns are shown for location only.</figcaption>` : ""}</figure>` : ""}
+    ${figure}
   </div>
 </section>`;
 }

@@ -1423,14 +1423,26 @@ body.page-v3 {
 .page-v3 .v3-chips li { padding: 8px 14px; border-radius: 999px; background: #fff; border: 1px solid var(--line-strong); font-weight: 600; font-size: 0.95rem; }
 .page-v3 .v3-area__map { margin: 0; background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 10px; }
 .page-v3 .v3-area__map figcaption { font-size: 0.85rem; color: var(--ink-muted); padding: 6px 4px 0; }
-.page-v3 .v3-map { display: block; font-family: Inter, system-ui, sans-serif; }
-.page-v3 .v3-map__bg { fill: var(--v3-tint); }
-.page-v3 .v3-map__faint { fill: #a6adb3; }
-.page-v3 .v3-map__faint-label { fill: #5f666c; font-size: 14px; }
-.page-v3 .v3-map__dot { fill: var(--kit-identity); stroke: #fff; stroke-width: 2; }
+.page-v3 .v3-area__map--drawn figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 16px; padding: 10px 6px 2px; }
+.page-v3 .v3-area__map--drawn figcaption a { color: var(--kit-identity); font-weight: 700; text-decoration: none; }
+.page-v3 .v3-area__map--drawn figcaption a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.page-v3 .v3-map__key { display: inline-flex; align-items: center; gap: 8px; }
+.page-v3 .v3-map__key i { width: 14px; height: 14px; border-radius: 50%; background: var(--kit-identity); box-shadow: 0 0 0 4px color-mix(in srgb, var(--kit-identity) 18%, #fff); }
+.page-v3 .v3-map { display: block; font-family: Inter, system-ui, sans-serif; border-radius: 10px; }
+.page-v3 .v3-map__bg { fill: #f7f7f6; }
+.page-v3 .v3-map__ctx { fill: #a9aeb2; }
+.page-v3 .v3-map__area-edge { fill: none; stroke: color-mix(in srgb, var(--kit-identity) 45%, #fff); stroke-linejoin: round; stroke-linecap: round; }
+.page-v3 .v3-map__area { fill: color-mix(in srgb, var(--kit-identity) 13%, #fff); stroke: color-mix(in srgb, var(--kit-identity) 13%, #fff); stroke-linejoin: round; stroke-linecap: round; }
+.page-v3 .v3-map__dot { fill: var(--kit-identity); stroke: #fff; stroke-width: 2.5; }
+.page-v3 .v3-map__pin { fill: var(--kit-cta); stroke: #fff; stroke-width: 2; }
+.page-v3 .v3-map__pin-dot { fill: #fff; }
+.page-v3 .v3-map__labels text { paint-order: stroke; stroke: #fff; stroke-width: 4px; stroke-linejoin: round; }
 .page-v3 .v3-map__label { fill: var(--ink); font-size: 15px; font-weight: 600; }
-.page-v3 .v3-map__home { fill: var(--kit-cta); stroke: var(--ink); stroke-width: 2; }
-.page-v3 .v3-map__home-label { fill: var(--ink); font-size: 17px; font-weight: 700; }
+.page-v3 .v3-map__home-label { fill: var(--ink); font-size: 18px; font-weight: 800; }
+.page-v3 .v3-map__faint-label { fill: #6f7478; font-size: 12px; font-weight: 500; }
+.page-v3 .v3-map__scale path { fill: none; stroke: #5f666c; stroke-width: 1.5; }
+.page-v3 .v3-map--narrow { display: none; }
+.page-v3 .v3-map__scale text { fill: #5f666c; font-size: 11px; font-weight: 600; }
 
 /* Embedded Google map */
 .page-v3 .v3-area__map--g { padding: 0; overflow: hidden; }
@@ -1480,6 +1492,9 @@ body.page-v3 {
 .page-v3 .v3-person { margin: 10px 0 0; font-size: 1rem; font-weight: 600; color: #fff; max-width: 34em; }
 .page-v3 .v3-hero.has-photo .v3-person { text-shadow: 0 1px 2px rgba(0,0,0,.25); }
 @media (max-width: 639px) {
+  /* Phone: the squarer area map. */
+  .page-v3 .v3-map--wide { display: none; }
+  .page-v3 .v3-map--narrow { display: block; }
   /* Phone: one-line top bar (seasonal line or nothing, plus the phone) so the H1 sits higher. */
   .page-v3 .v3-top__hours { display: none; }
   .page-v3 .v3-top__in { flex-wrap: nowrap; }
