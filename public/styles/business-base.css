@@ -1297,6 +1297,26 @@ body.page-v3 {
 .page-v3 .v3-nav a { color: var(--ink); text-decoration: none; display: inline-flex; align-items: center; min-height: 44px; }
 .page-v3 .v3-nav a:hover { color: var(--kit-identity); text-decoration: underline; }
 .page-v3 .v3-header__cta { min-height: 44px; padding: 0 16px; font-size: 0.95rem; }
+/* Services dropdown: shown only when the business has service pages.
+   "Services" still scrolls to the section; the chevron button (or hover with
+   a mouse) opens the list of service pages. */
+.page-v3 .v3-header { position: relative; z-index: 20; }
+.page-v3 .v3-navdrop { position: relative; display: inline-flex; align-items: center; gap: 2px; }
+.page-v3 .v3-navdrop__btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; min-height: 44px; padding: 0; border: 0; background: none; color: var(--ink); cursor: pointer; border-radius: 8px; }
+.page-v3 .v3-navdrop__btn svg { transition: transform .15s ease; }
+.page-v3 .v3-navdrop__btn:hover { color: var(--kit-identity); }
+.page-v3 .v3-navdrop__menu { visibility: hidden; opacity: 0; transition: opacity .12s ease, visibility 0s linear .12s; position: absolute; top: 100%; left: 0; z-index: 30; min-width: 230px; max-width: calc(100vw - 32px); margin: 0; padding: 6px; list-style: none; background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 28px rgba(0,0,0,.14); }
+.page-v3 .v3-navdrop__menu a { display: flex; min-height: 44px; padding: 0 12px; border-radius: 8px; font-weight: 600; white-space: nowrap; }
+.page-v3 .v3-navdrop__menu a:hover, .page-v3 .v3-navdrop__menu a:focus-visible { background: var(--v3-tint); text-decoration: none; }
+.page-v3 .v3-navdrop__menu a[aria-current="page"] { color: var(--kit-identity); box-shadow: inset 3px 0 0 var(--kit-cta); }
+.page-v3 .v3-navdrop__menu li:first-child a { border-bottom: 1px solid var(--line); border-radius: 8px 8px 0 0; margin-bottom: 4px; }
+.page-v3 .v3-navdrop.is-open .v3-navdrop__menu { visibility: visible; opacity: 1; transition: opacity .12s ease, visibility 0s; }
+.page-v3 .v3-navdrop.is-open .v3-navdrop__btn svg { transform: rotate(180deg); }
+@media (hover: hover) and (pointer: fine) {
+  /* A short delay so the menu doesn't flicker as the mouse passes over. */
+  .page-v3 .v3-navdrop:hover .v3-navdrop__menu, .page-v3 .v3-navdrop:focus-within .v3-navdrop__menu { visibility: visible; opacity: 1; transition: opacity .12s ease .08s, visibility 0s linear .08s; }
+  .page-v3 .v3-navdrop:hover .v3-navdrop__btn svg { transform: rotate(180deg); }
+}
 
 /* Hero */
 .page-v3 .v3-hero { background: var(--kit-identity); color: #fff; }
@@ -1366,6 +1386,16 @@ body.page-v3 {
 .page-v3 .v3-card__h { margin: 0; font-family: Inter, system-ui, sans-serif; font-size: 1.2rem; font-weight: 700; }
 .page-v3 .v3-card__p { margin: 0; font-size: 1rem; color: var(--ink-muted); }
 .page-v3 .v3-card__go { margin-top: auto; display: inline-flex; align-items: center; gap: 4px; min-height: 44px; font-weight: 700; color: var(--kit-identity); text-decoration: underline; text-underline-offset: 3px; }
+/* A service with its own page: outlined in the accent the estimate button
+   uses, a "Full details" tag, a filled "Learn more" button, and the whole
+   card opens the page. */
+.page-v3 .v3-card.is-page { position: relative; border-color: transparent; box-shadow: 0 0 0 2px var(--kit-cta), 0 6px 18px rgba(0,0,0,.08); }
+.page-v3 .v3-card__tag { position: absolute; top: 12px; left: 12px; z-index: 2; padding: 4px 10px; border-radius: 999px; background: var(--kit-cta); color: var(--kit-cta-text); font-size: 0.78rem; font-weight: 800; letter-spacing: .01em; pointer-events: none; }
+.page-v3 .v3-card.is-noimg .v3-card__tag { position: static; align-self: flex-start; margin: 16px 20px 0; }
+.page-v3 .v3-card__go--page { align-self: flex-start; padding: 0 16px; border-radius: 999px; background: var(--kit-cta); color: var(--kit-cta-text); text-decoration: none; }
+.page-v3 .v3-card__go--page::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: 14px; }
+.page-v3 .v3-card.is-page:hover { box-shadow: 0 0 0 3px var(--kit-cta), 0 10px 24px rgba(0,0,0,.12); }
+.page-v3 .v3-card.is-page .v3-credit { z-index: 3; }
 .page-v3 .v3-credit { position: absolute; right: 8px; bottom: 8px; margin: 0; padding: 2px 8px; border-radius: 6px; background: rgba(0,0,0,.66); color: #fff; font-size: 0.75rem; }
 .page-v3 .v3-credit a { color: #fff; text-decoration: underline; }
 

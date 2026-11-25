@@ -306,7 +306,7 @@ export function renderServicePageV3(rawProfile, kit, spot, ctx = {}) {
 
   return {
     "{{BLOCK_TOPBAR}}": bar + topBar(facts, c),
-    "{{BLOCK_HEADER}}": headerBlock(rawProfile, facts, kit, c, nav, home),
+    "{{BLOCK_HEADER}}": headerBlock(rawProfile, facts, kit, c, { ...nav, current: spot?.service_slug }, home),
     "{{BLOCK_HERO}}": hero,
     "{{BLOCK_PROOF}}": proofBlock(copy),
     "{{BLOCK_TRUST}}": "",

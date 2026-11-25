@@ -146,6 +146,15 @@ function renderService(spot, ctx = {}) {
   return { html, parts };
 }
 
+await test("service page header: Services goes home to the section; the dropdown marks this page", () => {
+  const spot = autoSpot();
+  const { parts } = renderService(spot, { spotlights: [{ service_slug: spot.service_slug, service_name: spot.content.service_name }] });
+  const h = parts.blocks["{{BLOCK_HEADER}}"];
+  assert.match(h, /<a href="\/arno-plumbing-and-heating-2#services">Services<\/a>/);
+  assert.match(h, /<a href="\/arno-plumbing-and-heating-2#services">All services<\/a>/);
+  assert.match(h, new RegExp(`data-spotlight-link="${spot.service_slug}" data-spotlight-from="nav" aria-current="page"`));
+});
+
 await test("the service page uses the v3 shell: top bar, header + menu, footer, phone bar", () => {
   const { html, parts } = renderService(autoSpot());
   const b = parts.blocks;
@@ -202,8 +211,9 @@ await test("home page: the matching service card and the menu link to the servic
   const a = arno();
   const spot = autoSpot();
   const b = v3PageParts(a, kitFor(a), { slug: a.username, spotlights: [{ service_slug: spot.service_slug, service_name: spot.content.service_name }], townCoords: COORDS, now: NOV }).blocks;
-  assert.match(b["{{BLOCK_SERVICES}}"], /href="\/arno-plumbing-and-heating-2\/backed-up-drains-and-sewer-lines"[^>]*>See backed-up drains and sewer lines/);
-  assert.match(b["{{BLOCK_HEADER}}"], /<a href="\/arno-plumbing-and-heating-2\/backed-up-drains-and-sewer-lines">Services<\/a>/);
+  assert.match(b["{{BLOCK_SERVICES}}"], /href="\/arno-plumbing-and-heating-2\/backed-up-drains-and-sewer-lines"[^>]*aria-label="Learn more about backed-up drains and sewer lines">Learn more/);
+  assert.match(b["{{BLOCK_HEADER}}"], /<a href="#services">Services<\/a>/, "Services scrolls to the section");
+  assert.match(b["{{BLOCK_HEADER}}"], /<a href="\/arno-plumbing-and-heating-2\/backed-up-drains-and-sewer-lines" data-spotlight-link="backed-up-drains-and-sewer-lines" data-spotlight-from="nav">/, "the dropdown lists the service page");
   assert.match(b["{{BLOCK_FOOTER}}"], /href="\/arno-plumbing-and-heating-2\/backed-up-drains-and-sewer-lines"/);
 });
 

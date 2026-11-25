@@ -39,7 +39,9 @@ if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
 
 // profile: render this object instead of tests/fixtures/page-v3/<name>.json
 // (scripts/build-example-pages.mjs uses it for the per-trade example pages).
-export async function renderFixture(name, { owner = false, month = null, profile: given = null, canonical: canon = null } = {}) {
+// spotlights: [{ service_slug, service_name }] to preview service-page links
+// (?spot=leaks-and-broken-pipes,heating on the preview server).
+export async function renderFixture(name, { owner = false, month = null, profile: given = null, canonical: canon = null, spotlights = [] } = {}) {
   const profile = given ? structuredClone(given) : JSON.parse(fs.readFileSync(path.join(FIX, `${name}.json`), "utf8"));
   if (owner) profile.owner_token = "previewpreviewpreview123";
   const townCoords = await loadTownCoords(profile.state);
@@ -47,7 +49,7 @@ export async function renderFixture(name, { owner = false, month = null, profile
   const { stockRows, stockUsage } = await loadServiceStock(supabase, profile);
   const now = month ? new Date(2026, Number(month) - 1, 15) : new Date();
   const canonical = canon || `http://localhost:${PORT}/${name}`;
-  const ctx = { slug: profile.username, spotlights: [], townCoords, stockRows, stockUsage, now, canonical,
+  const ctx = { slug: profile.username, spotlights, townCoords, stockRows, stockUsage, now, canonical,
     owner, token: owner ? profile.owner_token : null, launchKit: false };
   const parts = v3PageParts(profile, kit, ctx);
   const template = fs.readFileSync(path.join(ROOT, "public", "profile.html"), "utf8");
@@ -99,7 +101,9 @@ if (String(process.argv[1] || "").endsWith("preview-page-v3.mjs")) {
       }
       const name = u.pathname.replace(/^\/+|\/+$/g, "") || "arno";
       if (!fs.existsSync(path.join(FIX, `${name}.json`))) { res.writeHead(404); return res.end("No such fixture"); }
-      const html = await renderFixture(name, { owner: u.searchParams.get("owner") === "1", month: u.searchParams.get("month") });
+      const spotlights = String(u.searchParams.get("spot") || "").split(",").filter(Boolean)
+        .map(sl => ({ service_slug: sl, service_name: sl.replace(/-/g, " ") }));
+      const html = await renderFixture(name, { owner: u.searchParams.get("owner") === "1", month: u.searchParams.get("month"), spotlights });
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
       res.end(html);
     } catch (e) {

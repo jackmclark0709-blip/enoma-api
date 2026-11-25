@@ -214,14 +214,26 @@ await test("proof strip: 2–4 items, hidden under 2", () => {
 
 const row = (id, tag, persona = "plumbing") => ({ unsplash_id: id, persona, service_tag: tag, approved: true, raw_url: `https://images.unsplash.com/photo-${id}?ixid=x`, alt: `${tag} ${id}`, photographer_name: "A B", photographer_username: "ab" });
 
-await test("services: no service page → estimate link; service page → See <service>", () => {
+await test("services: no service page → estimate link, plain Services link; service page → outlined card, Learn more, dropdown", () => {
   const a = fixture("arno");
-  const s = render(a).blocks["{{BLOCK_SERVICES}}"];
+  const plain = render(a).blocks;
+  const s = plain["{{BLOCK_SERVICES}}"];
   assert.match(s, /href="#quote\?service=leaks-and-broken-pipes"[^>]*>Get an estimate/);
-  assert.doesNotMatch(s, /See /);
-  const withPage = render(a, { spotlights: [{ service_slug: "leaks-and-broken-pipes", service_name: "Leaks and broken pipes" }] });
-  assert.match(withPage.blocks["{{BLOCK_SERVICES}}"], /href="\/arno-plumbing-and-heating-2\/leaks-and-broken-pipes"[^>]*>See leaks and broken pipes/);
-  assert.match(withPage.blocks["{{BLOCK_HEADER}}"], /<a href="\/arno-plumbing-and-heating-2\/leaks-and-broken-pipes">Services<\/a>/, "menu Services goes to the service page");
+  assert.doesNotMatch(s, /Learn more|is-page|Full details/);
+  assert.match(plain["{{BLOCK_HEADER}}"], /<a href="#services">Services<\/a>/);
+  assert.doesNotMatch(plain["{{BLOCK_HEADER}}"], /v3-navdrop|<script/, "no dropdown without service pages");
+
+  const withPage = render(a, { spotlights: [{ service_slug: "leaks-and-broken-pipes", service_name: "Leaks and broken pipes" }] }).blocks;
+  const sv = withPage["{{BLOCK_SERVICES}}"];
+  assert.match(sv, /<li class="v3-card[^"]* is-page">/);
+  assert.equal(count(sv, /is-page/g), 1, "only the card with a page is highlighted");
+  assert.match(sv, /<span class="v3-card__tag">Full details<\/span>/);
+  assert.match(sv, /class="v3-card__go v3-card__go--page" href="\/arno-plumbing-and-heating-2\/leaks-and-broken-pipes" data-spotlight-link="leaks-and-broken-pipes" data-spotlight-from="card" aria-label="Learn more about leaks and broken pipes">Learn more /);
+  const h = withPage["{{BLOCK_HEADER}}"];
+  assert.match(h, /<div class="v3-navdrop" data-navdrop>\s*<a href="#services">Services<\/a>/, "Services still scrolls to the section");
+  assert.match(h, /<button type="button" class="v3-navdrop__btn" aria-expanded="false" aria-controls="v3NavDrop"/);
+  assert.match(h, /<li><a href="#services">All services<\/a><\/li><li><a href="\/arno-plumbing-and-heating-2\/leaks-and-broken-pipes" data-spotlight-link="leaks-and-broken-pipes" data-spotlight-from="nav">Leaks and broken pipes<\/a><\/li>/);
+  assert.match(h, /<script>\(function\(\)\{var d=document\.querySelector\("\[data-navdrop\]"\)/);
 });
 
 await test("service photos: self-hosted placeholders on every card, no credit, never twice on a page", () => {
