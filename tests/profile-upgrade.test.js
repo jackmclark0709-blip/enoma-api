@@ -95,7 +95,8 @@ await test("the new page events are allowlisted", () => {
 await test("profile.js sends sms taps as contact_click type sms, service and spotlight clicks with the slug only, and respects the internal flag", () => {
   const js = fs.readFileSync(new URL("../public/scripts/profile.js", import.meta.url), "utf8");
   assert.match(js, /trackPageEvent\('service_quote_click', \{ service \}\)/);
-  assert.match(js, /trackPageEvent\('spotlight_link_click', \{ service: spot \}\)/);
+  // from: "card" or "nav" (the Services dropdown), added Nov 2026.
+  assert.match(js, /trackPageEvent\('spotlight_link_click', \{ service: spot, from: a\.getAttribute\('data-spotlight-from'\) \|\| 'card' \}\)/);
   assert.match(js, /const contact = a\.getAttribute\('data-contact'\);\s*if \(contact\) trackContactClick\(contact\);/);
   assert.match(js, /event: 'contact_click', metadata: \{ type \}, internal: enomaIsInternal\(\) \|\| undefined/);
   assert.match(js, /body: JSON\.stringify\(\{ slug, event, metadata: metadata \|\| \{\}, internal: enomaIsInternal\(\) \|\| undefined \}\)/);

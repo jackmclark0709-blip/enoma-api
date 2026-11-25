@@ -344,7 +344,7 @@ function setupClickTracking() {
       return;
     }
     const spot = a.getAttribute('data-spotlight-link');
-    if (spot !== null) { trackPageEvent('spotlight_link_click', { service: spot }); return; }
+    if (spot !== null) { trackPageEvent('spotlight_link_click', { service: spot, from: a.getAttribute('data-spotlight-from') || 'card' }); return; }
     const contact = a.getAttribute('data-contact');
     if (contact) trackContactClick(contact);
   });
