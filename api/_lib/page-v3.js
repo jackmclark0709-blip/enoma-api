@@ -634,8 +634,9 @@ export function headerBlock(rawProfile, facts, kit, ctx, nav, base = "") {
   }
   const at = hash => (base ? `${base}${hash}` : hash);
   const services = nav.services && nav.services.startsWith("#") ? at(nav.services) : nav.services;
+  const pages = list(nav.servicePages);
   const links = [
-    services ? `<a href="${esc(services)}">Services</a>` : "",
+    services && pages.length ? servicesDropdown(services, pages, nav.current) : services ? `<a href="${esc(services)}">Services</a>` : "",
     nav.work ? `<a href="${esc(at("#work"))}">Our work</a>` : "",
     nav.reviews ? `<a href="${esc(at("#reviews"))}">Reviews</a>` : "",
     nav.area ? `<a href="${esc(at("#area"))}">Area</a>` : "",
@@ -647,8 +648,36 @@ export function headerBlock(rawProfile, facts, kit, ctx, nav, base = "") {
     <nav class="v3-nav" aria-label="Main">${links}</nav>
     <a class="v3-btn v3-btn--cta v3-header__cta" href="#contact" data-contact="quote">${esc(estimateLabelV3(facts))}</a>
   </div>
-</header>`;
+</header>${services && pages.length ? NAV_DROP_SCRIPT : ""}`;
 }
+
+/** The business's service pages, in card order: [{ name, slug, url }]. */
+export function servicePagesFor(facts, ctx = {}) {
+  if (!facts.services.length || !list(ctx.spotlights).length) return [];
+  const { services } = linkServicesToSpotlights(facts.services.map(s => ({ ...s, service_name: s.name })), list(ctx.spotlights), ctx.slug);
+  return services.filter(s => s.spotlight_url).map(s => ({ name: s.name, slug: s.slug, url: s.spotlight_url }));
+}
+
+/**
+ * "Services" stays a link to the section. Beside it, a button opens the list
+ * of service pages: on hover or keyboard focus with a mouse, on tap on a
+ * phone (NAV_DROP_SCRIPT). The page being viewed is marked.
+ */
+function servicesDropdown(href, pages, current) {
+  const items = pages.map(pg => {
+    const here = current && pg.slug === current;
+    return `<li><a href="${esc(pg.url)}" data-spotlight-link="${esc(pg.slug)}" data-spotlight-from="nav"${here ? ' aria-current="page"' : ""}>${esc(pg.name)}</a></li>`;
+  }).join("");
+  return `<div class="v3-navdrop" data-navdrop>
+      <a href="${esc(href)}">Services</a>
+      <button type="button" class="v3-navdrop__btn" aria-expanded="false" aria-controls="v3NavDrop" aria-label="Service pages"><svg viewBox="0 0 12 8" width="12" height="8" aria-hidden="true"><path d="M1 1.5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <ul class="v3-navdrop__menu" id="v3NavDrop"><li><a href="${esc(href)}">All services</a></li>${items}</ul>
+    </div>`;
+}
+
+// Tap/keyboard toggle for the Services dropdown (hover is CSS). Closes on
+// Esc, on a click outside, and after choosing a link.
+const NAV_DROP_SCRIPT = `<script>(function(){var d=document.querySelector("[data-navdrop]");if(!d)return;var b=d.querySelector(".v3-navdrop__btn");function set(o){d.classList.toggle("is-open",o);if(o)d.classList.remove("is-dismissed");b.setAttribute("aria-expanded",o?"true":"false")}b.addEventListener("click",function(e){e.preventDefault();set(!d.classList.contains("is-open"))});document.addEventListener("click",function(e){if(!d.contains(e.target))set(false)});d.addEventListener("keydown",function(e){if(e.key==="Escape"){set(false);d.classList.add("is-dismissed");b.focus()}});d.addEventListener("focusout",function(e){if(!d.contains(e.relatedTarget))d.classList.remove("is-dismissed")});d.addEventListener("mouseleave",function(){d.classList.remove("is-dismissed")});d.querySelectorAll(".v3-navdrop__menu a").forEach(function(a){a.addEventListener("click",function(){set(false)})})})();</script>`;
 
 /** The review the hero card uses: one marked hero, else the strongest short one. */
 export function heroReview(reviews) {
@@ -745,13 +774,17 @@ function servicesBlock(facts, copy, kit, ctx) {
   const cards = services.map((s, i) => {
     const photo = photos[i];
     const line = str(copy.services.lines[s.slug]) || s.line;
+    // A service with its own page: outlined in the page's accent, labeled,
+    // and the whole card opens the page.
     const link = s.spotlight_url
-      ? `<a class="v3-card__go" href="${esc(s.spotlight_url)}" data-spotlight-link="${esc(s.slug)}">See ${esc(s.name.toLowerCase())} <span aria-hidden="true">→</span></a>`
+      ? `<a class="v3-card__go v3-card__go--page" href="${esc(s.spotlight_url)}" data-spotlight-link="${esc(s.slug)}" data-spotlight-from="card" aria-label="Learn more about ${esc(s.name.toLowerCase())}">Learn more <span aria-hidden="true">→</span></a>`
       : s.cta === "call" && facts.phone
         ? `<a class="v3-card__go" href="${esc(telHref(facts.phone))}" data-contact="call">Call about ${esc(s.name.toLowerCase())} <span aria-hidden="true">→</span></a>`
         : `<a class="v3-card__go" href="#quote?service=${esc(s.slug)}" data-service-quote="${esc(s.slug)}">${esc(label)} <span aria-hidden="true">→</span></a>`;
-    return `<li class="v3-card${photo ? "" : " is-noimg"}">
+    const page = !!s.spotlight_url;
+    return `<li class="v3-card${photo ? "" : " is-noimg"}${page ? " is-page" : ""}">
       ${photo ? `<figure class="v3-card__media" data-v3-media>${img({ src: photo.src, srcset: photo.srcset, alt: photo.alt })}${photo.credit}</figure>` : ""}
+      ${page ? `<span class="v3-card__tag">Full details</span>` : ""}
       <div class="v3-card__body">
         <h3 class="v3-card__h">${esc(s.name)}</h3>
         ${line ? `<p class="v3-card__p">${esc(line)}</p>` : ""}
@@ -1044,11 +1077,13 @@ export function v3Plan(rawProfile, kit, ctx = {}) {
   const c = { ...ctx, name: facts.name, businessId: rawProfile?.business_id || "", googleOk: googlePhotosAllowed(rawProfile, ctx),
     persona: facts.trade, claimed: rawProfile?.is_claimed === true, taken: new Set() };
   const work = recentWork(facts, kit, c);
-  const spot = list(ctx.spotlights);
   return {
     facts, copy, ctx: c, work,
     nav: {
-      services: facts.services.length ? (spot.length ? `/${encodeURIComponent(ctx.slug)}/${encodeURIComponent(spot[0].service_slug)}` : "#services") : null,
+      // Services always scrolls to the section; service pages, when a
+      // business has them, open from a dropdown beside it (servicePagesFor).
+      services: facts.services.length ? "#services" : null,
+      servicePages: servicePagesFor(facts, ctx),
       work: work.length > 0,
       reviews: facts.reviews.length > 0 || !!(facts.google.rating && facts.google.count),
       area: facts.towns.confirmed.length > 0 || !!facts.towns.home,
