@@ -1310,12 +1310,13 @@ body.page-v3 {
 .page-v3 .v3-navdrop__menu a:hover, .page-v3 .v3-navdrop__menu a:focus-visible { background: var(--v3-tint); text-decoration: none; }
 .page-v3 .v3-navdrop__menu a[aria-current="page"] { color: var(--kit-identity); box-shadow: inset 3px 0 0 var(--kit-cta); }
 .page-v3 .v3-navdrop__menu li:first-child a { border-bottom: 1px solid var(--line); border-radius: 8px 8px 0 0; margin-bottom: 4px; }
+/* Escape adds .is-dismissed so hover/focus-within can't keep the menu open; it clears on focusout or mouseleave. */
 .page-v3 .v3-navdrop.is-open .v3-navdrop__menu { visibility: visible; opacity: 1; transition: opacity .12s ease, visibility 0s; }
 .page-v3 .v3-navdrop.is-open .v3-navdrop__btn svg { transform: rotate(180deg); }
 @media (hover: hover) and (pointer: fine) {
   /* A short delay so the menu doesn't flicker as the mouse passes over. */
-  .page-v3 .v3-navdrop:hover .v3-navdrop__menu, .page-v3 .v3-navdrop:focus-within .v3-navdrop__menu { visibility: visible; opacity: 1; transition: opacity .12s ease .08s, visibility 0s linear .08s; }
-  .page-v3 .v3-navdrop:hover .v3-navdrop__btn svg { transform: rotate(180deg); }
+  .page-v3 .v3-navdrop:not(.is-dismissed):hover .v3-navdrop__menu, .page-v3 .v3-navdrop:not(.is-dismissed):focus-within .v3-navdrop__menu { visibility: visible; opacity: 1; transition: opacity .12s ease .08s, visibility 0s linear .08s; }
+  .page-v3 .v3-navdrop:not(.is-dismissed):hover .v3-navdrop__btn svg { transform: rotate(180deg); }
 }
 
 /* Hero */
