@@ -64,7 +64,7 @@ await test("pipeline: every send re-checks the page when v3 is on", () => {
 });
 
 await test("pipeline: draft_all never re-drafts parked or building prospects", () => {
-  assert.match(src, /no_preview,preview_building,page_not_ready,preview_removed,removed_by_owner(,excluded_franchise)?\)/);
+  assert.match(src, /no_preview,preview_building,page_not_ready,preview_removed,removed_by_owner(,excluded_\w+)*\)/);
 });
 
 await test("pipeline: off when the renderer kill switches are off; 0 pauses builds", () => {

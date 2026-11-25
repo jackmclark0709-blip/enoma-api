@@ -54,7 +54,7 @@ import {
 import { buildBrandKit, saveBrandKit } from "./_lib/brand-kit.js";
 import { buildFactSheet, saveFactSheet } from "./_lib/fact-sheet.js";
 import { outreachReadiness, dailyV3Max } from "./_lib/page-v3.js";
-import { isFranchiseDealer, outreachExclusion, parseStateAllowlist, stateQueryValues } from "./_lib/prospect-filters.js";
+import { isFranchiseDealer, isUnsupportedCategory, outreachExclusion, parseStateAllowlist, stateQueryValues } from "./_lib/prospect-filters.js";
 import { noteBuildFailure, noteNotReady } from "./_lib/build-errors.js";
 import { ownerDestination, ownerPageUrl, ensureOwnerToken, isPageV2, pageV2Fields, ownerTokenMatches } from "./_lib/owner-link.js";
 import { waitUntil } from "@vercel/functions";
@@ -684,12 +684,21 @@ async function gatherSiteText(website, homeHtmlHint) {
   return { text: [htmlToText(home.html), ...extra].join("\n\n").slice(0, 12000), homeHtml: home.html, homeUrl: base.toString() };
 }
 
+// A slug is free only when no page (small_business_profiles.username) and no
+// business (businesses.slug, unique) uses it. Checking pages alone let builds
+// fail on "businesses_slug_key" when an earlier half-finished build had left
+// a business with no page behind (26 of them from Nov 12-13).
 async function uniqueSlug(base) {
-  let slug = base || "business";
+  const root = base || "business";
+  let slug = root;
   for (let i = 1; i < 50; i++) {
-    const { data } = await supabase.from("small_business_profiles").select("id").eq("username", slug).maybeSingle();
-    if (!data) return slug;
-    slug = `${base}-${i + 1}`;
+    const [{ data: page, error: pageErr }, { data: biz, error: bizErr }] = await Promise.all([
+      supabase.from("small_business_profiles").select("id").eq("username", slug).limit(1),
+      supabase.from("businesses").select("id").eq("slug", slug).limit(1),
+    ]);
+    if (pageErr || bizErr) throw pageErr || bizErr;
+    if (!page?.length && !biz?.length) return slug;
+    slug = `${root}-${i + 1}`;
   }
   throw new Error("Could not find a free slug");
 }
@@ -1984,7 +1993,7 @@ async function draftAllOnce({ limit = 8, force = false, deadline } = {}) {
     // with nothing honest to pitch — that verdict holds regardless of
     // force, it isn't a "haven't gotten to it yet" state like the others.
     .neq("status", "reviewed");
-  if (!force) q = q.not("status", "in", "(drafted,sending,approved,sent,invalid_email,claimed,needs_preview,verify_retry,no_preview,preview_building,page_not_ready,preview_removed,removed_by_owner,excluded_franchise)");
+  if (!force) q = q.not("status", "in", "(drafted,sending,approved,sent,invalid_email,claimed,needs_preview,verify_retry,no_preview,preview_building,page_not_ready,preview_removed,removed_by_owner,excluded_franchise,excluded_wrong_category)");
   q = q.order("updated_at", { ascending: true }).limit(cappedLimit);
 
   const { data: prospects, error } = await q;
@@ -2169,6 +2178,7 @@ async function prepareOutreachOnce({ limit = PREPARE_MAX_PER_RUN, deadline = Dat
       // so there's nothing for the owner to buy. Checked before any paid step.
       // (Out-of-area prospects never get here: the query filters by state.)
       if (isFranchiseDealer(prospect)) return fail(prospect, "excluded_franchise", "franchise_dealer");
+      if (isUnsupportedCategory(prospect)) return fail(prospect, "excluded_wrong_category", "category_not_supported");
 
       // Addresses found before the crawler's quality filter (classifyEmail)
       // existed may be mis-parsed, off-site or role mailboxes: skip, don't guess.
@@ -2844,10 +2854,15 @@ async function handleSendOutreach(req, res) {
       results.push({ business_name: prospect.business_name, email: prospect.email, sent: false, reason: "suppressed" });
       continue;
     }
-    // Drafted before the franchise filter existed (prospect-filters.js).
+    // Drafted before the franchise and category filters existed (prospect-filters.js).
     if (isFranchiseDealer(prospect)) {
       await supabase.from("prospects").update({ status: "excluded_franchise", updated_at: new Date().toISOString() }).eq("id", prospect.id);
       results.push({ business_name: prospect.business_name, email: prospect.email, sent: false, reason: "franchise_dealer" });
+      continue;
+    }
+    if (isUnsupportedCategory(prospect)) {
+      await supabase.from("prospects").update({ status: "excluded_wrong_category", updated_at: new Date().toISOString() }).eq("id", prospect.id);
+      results.push({ business_name: prospect.business_name, email: prospect.email, sent: false, reason: "category_not_supported" });
       continue;
     }
     // With v3 previews on, the page is checked again right before the send:

@@ -23,7 +23,7 @@
 
 import { callCtaLabel, offersFreeEstimates } from "./page-claims.js";
 import { lintCopy, scrubCopy, fixInstructions, BANNED_WORDS, CAPTION_FILLER_RE } from "./copy-lint.js";
-import { evidenceMap } from "./fact-sheet.js";
+import { evidenceMap, specificTrade } from "./fact-sheet.js";
 import { isStrongRating } from "./page-style.js";
 
 const NOT_PROVIDED = "not provided";
@@ -655,7 +655,7 @@ const v3slug = t => String(t || "").toLowerCase().replace(/&/g, " and ").replace
 /** "Plumber" from the fact sheet: the trade, or Google's primary type when the trade is generic. */
 export function tradeNoun(fs = {}) {
   const b = fs.business || {};
-  const trade = String(b.trade || "").trim();
+  const trade = specificTrade(b);
   const primary = String(b.primary_type || "").trim();
   return tc(!trade || GENERIC_TRADE.test(trade) ? (primary || trade || "Local service") : trade);
 }
