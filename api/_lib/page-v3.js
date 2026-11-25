@@ -36,6 +36,8 @@ import { stockForService, stockForHero, tagForService } from "./stock-library.js
 import { cleanBusinessName } from "./business-name.js";
 import { peopleInReviews, leadPerson, personLine } from "./review-people.js";
 import { buildFaqs } from "./faq-bank.js";
+import { specificTrade } from "./fact-sheet.js";
+import { buildEyebrow } from "./page-copy.js";
 import {
   kitStyle, brandMark, mobileBar, ownerBar, googlePhotoSrc, attributionHtml, stockCredit,
 } from "./page-v2.js";
@@ -184,7 +186,9 @@ export function personaForProfile(rawProfile = {}) {
   const fs = obj(rawProfile?.fact_sheet) || {};
   const b = obj(fs.business) || {};
   const c = obj(rawProfile?.page_copy_v3) || {};
-  const tries = [b.trade, b.primary_type, ...list(b.google_types), rawProfile?.primary_category,
+  // specificTrade: Google's "HVAC contractor" beats our broad "general
+  // contractor" bucket, so pages built before that fix render right too.
+  const tries = [specificTrade(b), b.trade, b.primary_type, ...list(b.google_types), rawProfile?.primary_category,
     list(c.services).map(s => str(s?.name)).join(" ")];
   for (const t of tries) {
     const pz = personaFor(str(t).replace(/_/g, " "));
@@ -302,6 +306,8 @@ export function factsFor(rawProfile = {}, kit = null) {
   };
 }
 
+const BROAD_EYEBROW = /^(general contractors?|contractors?|services?|local service|home services?)\b/i;
+
 /** The words on the page, from page_copy_v3 (items without evidence dropped). */
 export function copyFor(rawProfile = {}, facts = null) {
   const c = obj(rawProfile?.page_copy_v3) || {};
@@ -310,7 +316,9 @@ export function copyFor(rawProfile = {}, facts = null) {
   const ownerBody = owner && hasEvidence(owner) ? str(owner.body).split(/\n\s*\n/).map(str).filter(Boolean) : [];
   return {
     hero: {
-      eyebrow: str(c.eyebrow), h1: str(c.hero_headline),
+      // A page saved with a broad trade ("General contractor in ...") gets
+      // its eyebrow rebuilt from the fact sheet; any other eyebrow is kept.
+      eyebrow: BROAD_EYEBROW.test(str(c.eyebrow)) && obj(rawProfile?.fact_sheet)?.business ? buildEyebrow(rawProfile.fact_sheet) : str(c.eyebrow), h1: str(c.hero_headline),
       sub: facts && weakSub(c.hero_sub, c.hero_headline, facts.name) ? (factSub(facts) || str(c.hero_sub)) : str(c.hero_sub),
       person: facts ? personLine(facts.person) : "",
     },

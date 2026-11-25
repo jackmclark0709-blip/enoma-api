@@ -44,6 +44,19 @@ const num = v => (v === null || v === undefined || v === "" ? null : (Number.isF
 const bool = v => (v === true ? true : v === false ? false : null);
 const GENERIC_TYPE = /^(services?|general contractors?|contractors?|establishment|point of interest|business)$/i;
 
+// Enoma's own category buckets are broad: HVAC companies and landscapers were
+// filed as "general contractor", so pages said "General contractor in
+// Lafayette, LA" above an HVAC headline and borrowed contractor FAQs (Nov 24).
+// When the trade is one of these and Google's primary type is specific, the
+// Google type is the trade.
+export const BROAD_TRADE = /^(services?|general contractors?|contractors?|local service|home services?|business|company|other)$/i;
+export function specificTrade(b = {}) {
+  const trade = String(b.trade || "").trim();
+  const primary = String(b.primary_type || "").trim();
+  if (primary && !GENERIC_TYPE.test(primary) && (!trade || BROAD_TRADE.test(trade))) return primary;
+  return trade || primary;
+}
+
 /** "Russell Brown" → "Russell B."; "Russ" → "Russ"; "" → "Google reviewer". */
 export function reviewAuthor(name) {
   const parts = s(name).replace(/[^\p{L}\p{M}' .-]/gu, " ").split(/\s+/).filter(Boolean);
@@ -158,6 +171,7 @@ export function buildFactSheet({ profile = {}, place = null, raw = null, reviews
     review_count: num(place?.userRatingCount ?? p.review_count ?? r.reviews ?? pb.review_count),
     place_id: s(p.google_place_id) || s(place?.id) || s(r.place_id) || s(pb.place_id) || null,
   };
+  business.trade = specificTrade(business) || business.trade;
 
   const theReviews = reviews === undefined ? list(prev.reviews) : reviewsFrom(reviews);
   const site = siteText === undefined ? s(prev.site_text) : s(siteText);

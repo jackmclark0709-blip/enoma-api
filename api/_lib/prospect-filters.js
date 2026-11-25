@@ -6,6 +6,7 @@
 // - OUTREACH_STATES: optional allowlist of states ("MA,RI,CT"). Unset or
 //   empty means every state, which is how outreach has always run.
 import { US_STATE_NAMES, US_STATE_ABBR } from "./service-utils.js";
+import { personaFor } from "./page-style.js";
 
 // National franchise brands common among trades prospects. Matched on the
 // business name as whole words, case-insensitive.
@@ -38,6 +39,17 @@ export function isFranchiseDealer(prospect = {}) {
     if (DEALER_PATH_RE.test(u.pathname + "/")) return true;
   } catch { /* no or bad website: name check only */ }
   return false;
+}
+
+// A listing whose Google type and subtypes are all outside the trades Enoma
+// builds pages for (home inspector, pest control, a nursery or supply yard)
+// even though the search that found it was for one (Nov 25: "House Call Home
+// Inspection" came in as a house cleaner). No type info: not excluded.
+export function isUnsupportedCategory(prospect = {}) {
+  const raw = prospect.raw && typeof prospect.raw === "object" ? prospect.raw : {};
+  const types = [raw.type, ...String(raw.subtypes || "").split(/,\s*/)].map(t => String(t || "").trim()).filter(Boolean);
+  if (!types.length) return false;
+  return types.every(t => personaFor(t.toLowerCase()) === "default");
 }
 
 const CODE_BY_NAME = Object.fromEntries(US_STATE_NAMES.map((n, i) => [n, US_STATE_ABBR[i].toUpperCase()]));

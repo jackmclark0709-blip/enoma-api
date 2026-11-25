@@ -107,14 +107,14 @@ await test("wiring: v3 builds run one at a time and failures give the slot back"
 await test("wiring: send holds out-of-area drafts and parks franchise drafts", () => {
   const q = slice("const sendStates = ", 600);
   assert.match(q, /if \(sendStates\) q = q\.in\("state", sendStates\);/);
-  const loop = slice("// Drafted before the franchise filter existed", 500);
+  const loop = slice("// Drafted before the franchise and category filters existed", 500);
   assert.match(loop, /status: "excluded_franchise"/);
-  assert.ok(src.indexOf("// Drafted before the franchise filter existed") < src.indexOf("const ready = page ? outreachReadiness(page"), "checked before the page");
+  assert.ok(src.indexOf("// Drafted before the franchise and category filters existed") < src.indexOf("const ready = page ? outreachReadiness(page"), "checked before the page");
 });
 
 await test("wiring: page_not_ready keeps its reasons; parked statuses aren't re-drafted or texted", () => {
   assert.equal((src.match(/raw: noteNotReady\(/g) || []).length, 2);
-  assert.match(src, /removed_by_owner,excluded_franchise\)"\)/);
+  assert.match(src, /removed_by_owner,excluded_franchise,excluded_wrong_category\)"\)/);
   const text = fs.readFileSync(new URL("../api/_lib/text-outreach.js", import.meta.url), "utf8");
   assert.match(text, /"excluded_franchise"/);
 });
