@@ -53,7 +53,7 @@ export const BROAD_TRADE = /^(services?|general contractors?|contractors?|local 
 export function specificTrade(b = {}) {
   const trade = String(b.trade || "").trim();
   const primary = String(b.primary_type || "").trim();
-  if (primary && !GENERIC_TYPE.test(primary) && (!trade || BROAD_TRADE.test(trade))) return primary;
+  if (primary && !GENERIC_TYPE.test(primary) && !BROAD_TRADE.test(primary) && (!trade || BROAD_TRADE.test(trade))) return primary;
   return trade || primary;
 }
 

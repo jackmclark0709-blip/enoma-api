@@ -28,6 +28,8 @@ await test("trade: Google's specific type beats a broad bucket; real contractors
   assert.equal(specificTrade({ trade: "general contractor", primary_type: "General contractor" }), "general contractor");
   assert.equal(specificTrade({ trade: "plumber", primary_type: "Drainage service" }), "plumber", "a specific trade is kept");
   assert.equal(specificTrade({ trade: "", primary_type: "Electrician" }), "Electrician");
+  assert.equal(specificTrade({ trade: "general contractor", primary_type: "Home services" }), "general contractor", "a generic Google type doesn't replace the bucket");
+  assert.equal(specificTrade({ trade: "services", primary_type: "Local service" }), "services");
 });
 
 await test("eyebrow and persona: Dalton's HVAC page reads HVAC, not General contractor", () => {
