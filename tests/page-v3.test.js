@@ -305,15 +305,44 @@ await test("reviews: rating + count + Read all on Google; pull quote only with 3
 
 // ── Area, FAQ, closing, footer ───────────────────────────────────────────
 
-await test("where we work: Google's free embedded map, confirmed chips, text us your town", () => {
+await test("where we work: our own drawn map (wide + phone), confirmed chips, text us your town", () => {
   const a = render(fixture("arno")).blocks["{{BLOCK_AREAS}}"];
-  assert.match(a, /<iframe class="v3-gmap" src="https:\/\/www\.google\.com\/maps\/embed\/v1\/place\?key=[^"&]+&amp;q=place_id%3AChIJ___T0axn5IkRogBUGMKq0cI"/);
-  assert.match(a, /loading="lazy"/);
+  assert.doesNotMatch(a, /<iframe/, "no Google embed when the town is in our data");
+  assert.equal(count(a, /<svg class="v3-map v3-map--(wide|narrow)"/g), 2, "one drawing for desktop, one for phones");
+  assert.match(a, /viewBox="0 0 460 320"/);
+  assert.match(a, /viewBox="0 0 340 300"/);
+  assert.match(a, /class="v3-map__pin"/);
+  assert.match(a, /<text class="v3-map__home-label"[^>]*>North Attleborough<\/text>/);
+  assert.match(a, /class="v3-map__area"/);
+  assert.match(a, /\d+ mi<\/text>/, "scale bar");
+  assert.match(a, /href="https:\/\/www\.google\.com\/maps\/search\/\?api=1&amp;query=[^"]*&amp;query_place_id=ChIJ___T0axn5IkRogBUGMKq0cI"[^>]*>Open in Google Maps/);
+  assert.match(a, />Our area</, "one town: 'Our area', not 'Towns we serve'");
   assert.match(a, /href="sms:\+?7745341403"[^>]*>Text us your town/);
   assert.match(a, /<ul class="v3-chips"><li>North Attleborough<\/li><\/ul>/, "chips are confirmed towns only");
+  // Home town not in our data: Google's free embed instead.
+  const lost = render(fixture("arno"), { townCoords: [] }).blocks["{{BLOCK_AREAS}}"];
+  assert.match(lost, /<iframe class="v3-gmap" src="https:\/\/www\.google\.com\/maps\/embed\/v1\/place\?key=[^"&]+&amp;q=place_id%3AChIJ___T0axn5IkRogBUGMKq0cI"/);
+  assert.match(lost, /loading="lazy"/);
+  assert.doesNotMatch(lost, /<svg class="v3-map/);
   const noPlace = clone(fixture("arno")); noPlace.fact_sheet.business.place_id = null; noPlace.google_place_id = null;
-  assert.match(render(noPlace).blocks["{{BLOCK_AREAS}}"], /q=3%20Kendall%20St%2C%20North%20Attleborough%2C%20MA&amp;zoom=11/, "no place id: the address");
-  assert.ok(areaMapSvg(factsFor(fixture("arno")), COORDS).startsWith("<svg"), "drawn map still available");
+  assert.match(render(noPlace, { townCoords: [] }).blocks["{{BLOCK_AREAS}}"], /q=3%20Kendall%20St%2C%20North%20Attleborough%2C%20MA&amp;zoom=11/, "no place id: the address");
+  assert.match(render(noPlace).blocks["{{BLOCK_AREAS}}"], /href="https:\/\/www\.google\.com\/maps\/search\/\?api=1&amp;query=North%20Attleborough%2C%20MA"/, "no place id: the link searches the town");
+});
+
+await test("drawn map: towns served get dots and labels, far-off towns are left off, villages stay unlabeled", () => {
+  const f = factsFor(fixture("arno"));
+  f.towns.confirmed = ["North Attleborough", "Plainville", "Attleboro", "Ewing"];
+  const coords = [...COORDS, ["North Attleborough Center", "MA", 41.975, -71.325], ["Wrentham", "MA", 42.067, -71.328]];
+  const svg = areaMapSvg(f, coords, { name: "Arno Plumbing" });
+  assert.equal(count(svg, /class="v3-map__dot"/g), 2, "Plainville and Attleboro; Ewing NJ is 200+ miles away");
+  assert.match(svg, />Plainville<\/text>/);
+  assert.match(svg, />Attleboro<\/text>/);
+  assert.doesNotMatch(svg, />Ewing</);
+  assert.doesNotMatch(svg, />North Attleborough Center</, "village named after the home town: dot only");
+  assert.match(svg, /class="v3-map__ctx"/, "other towns as context dots");
+  assert.match(svg, /aria-label="Map of the area Arno Plumbing serves: North Attleborough, Plainville, Attleboro"/);
+  assert.match(svg, /<path class="v3-map__area" d="M[\d.]+ [\d.]+L[\d.]+ [\d.]+L[\d.]+ [\d.]+Z"/, "the shaded area is the hull of the three towns");
+  assert.equal(areaMapSvg({ ...f, towns: { ...f.towns, home: "Nowhere" } }, coords), "", "home town not found: no drawn map");
 });
 
 await test("FAQ: trade questions + facts + evidence-backed copy, with FAQPage schema", () => {
